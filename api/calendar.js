@@ -11,15 +11,10 @@ export default async function handler(req, res) {
   if (!id) return res.status(400).json({ error: 'Missing property id' });
 
   try {
-    const qs = new URLSearchParams({
-      'property_ids[]': id,
-      start_date,
-      end_date
-    }).toString();
-    const upstream = await fetch(
-      `https://api.hostex.io/v3/availabilities?${qs}`,
-      { headers: { 'Hostex-Access-Token': token } }
-    );
+    const url = `https://api.hostex.io/v3/availabilities?property_ids%5B%5D=${id}&start_date=${start_date}&end_date=${end_date}`;
+    const upstream = await fetch(url, {
+      headers: { 'Hostex-Access-Token': token }
+    });
     const data = await upstream.json();
     return res.status(upstream.status).json(data);
   } catch (e) {
