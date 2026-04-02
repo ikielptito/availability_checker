@@ -1,4 +1,4 @@
-# Hostex Availability Portal
+# Hostex Availability Portal 
 
 A read-only availability dashboard for your rental agents. Shows all your Hostex properties with 6-month rolling calendars. No login required for agents — your API token stays securely on the server.
 
