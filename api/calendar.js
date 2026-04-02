@@ -15,11 +15,9 @@ export default async function handler(req, res) {
       fetch(`https://api.hostex.io/v3/reservations?property_id=${id}&per_page=100&page=1`, {
         headers: { 'Hostex-Access-Token': token }
       }),
-      fetch(`https://api.hostex.io/v3/availabilities?property_ids[]=${id}&start_date=${start_date}&end_date=${end_date}`, {
-        headers: { 
-          'Hostex-Access-Token': token,
-          'Content-Type': 'application/json'
-        }
+      // Send property_ids as repeated params: property_ids[0]=ID
+      fetch(`https://api.hostex.io/v3/availabilities?property_ids[0]=${id}&start_date=${start_date}&end_date=${end_date}`, {
+        headers: { 'Hostex-Access-Token': token }
       })
     ]);
 
