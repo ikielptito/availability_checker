@@ -7,7 +7,7 @@ A read-only availability dashboard for your rental agents. Shows all your Hostex
 ## Deploy to Vercel (5 minutes)
 
 ### Step 1 — Create a free Vercel account
-Go to [vercel.com](https://vercel.com) and sign up (free, no credit card needed). 
+Go to [vercel.com](https://vercel.com) and sign up (free, no credit card needed).   
 
 ### Step 2 — Install the Vercel CLI
 Open your terminal and run:
