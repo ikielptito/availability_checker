@@ -13,6 +13,11 @@ export default async function handler(req, res) {
       headers: { 'Hostex-Access-Token': token }
     });
     const data = await upstream.json();
+    // Normalise: Hostex returns { data: { properties: [...] } }
+    // Remap to { data: { items: [...] } } so the frontend can use one path
+    if (data?.data?.properties) {
+      data.data.items = data.data.properties;
+    }
     return res.status(upstream.status).json(data);
   } catch (e) {
     return res.status(502).json({ error: 'Upstream error', detail: e.message });
