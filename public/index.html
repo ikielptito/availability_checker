@@ -592,6 +592,653 @@ function render() {
 
   grid.innerHTML = filtered.map((p, i) => {
     const booked = avail[p.id] || new Set();
+    const photoEl = p.photo
+      ? `<img class="prop-photo" src="${p.photo}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      : '';
+    const placeholderEl = `<div class="prop-photo-placeholder" style="${p.photo ? 'display:none' : ''}">🏠</div>`;
+
+    const info = PRICING[p.id];
+    const infoPanel = info ? `
+      <button class="info-toggle" id="btn-${p.id}" onclick="toggleInfo(${p.id})">
+        <span>Pricing &amp; Details</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="info-panel" id="info-${p.id}">
+        <div class="info-section">
+          <div class="info-section-title">Location</div>
+          <div class="info-row">${info.complex}</div>
+          <div class="info-row" style="color:var(--muted);font-size:0.72rem;margin-top:2px">${info.desc}</div>
+        </div>
+        <div class="info-section">
+          <div class="info-section-title">Pricing</div>
+          <div class="info-row"><span class="info-label">Monthly</span>${info.monthly}</div>
+          <div class="info-row"><span class="info-label">Yearly</span>${info.yearly}</div>
+        </div>
+        <div class="info-note">${INCLUSIONS.map(n => '· ' + n).join('<br>')}</div>
+      </div>` : '';
+
+    return `
+    <div class="prop-card" style="animation-delay:${i*0.04}s">
+      <div class="prop-head">
+        ${photoEl}${placeholderEl}
+        <div style="flex:1;min-width:0">
+          <div class="prop-name">${esc(p.name)}</div>
+          ${p.type ? `<div class="prop-type">${esc(p.type)}</div>` : ''}
+        </div>
+      </div>
+      <div class="cal-scroll">
+        <div class="cal-months">${buildSix(booked)}</div>
+      </div>
+      ${infoPanel}
+    </div>`;
+  }).join('');
+}
+
+function buildSix(booked) {
+  let html = '';
+  for (let m = 0; m < 6; m++) {
+    const d  = new Date(TODAY.getFullYear(), TODAY.getMonth()+m, 1);
+    html += `<div class="cal-month">
+      <div class="cal-month-lbl">${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}</div>
+      ${buildMonth(d.getFullYear(), d.getMonth(), booked)}
+    </div>`;
+  }
+  return html;
+}
+
+function buildMonth(year, month, booked) {
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMo = new Date(year, month+1, 0).getDate();
+  let html = `<div class="cal-grid">`;
+  DOWS.forEach(d => { html += `<div class="dow">${d}</div>`; });
+  for (let i = 0; i < firstDow; i++) html += `<div class="day empty"></div>`;
+  for (let d = 1; d <= daysInMo; d++) {
+    const key  = `${year}-${p2(month+1)}-${p2(d)}`;
+    const isPast = key < todayStr;
+    const isTod  = key === todayStr;
+    const isBkd  = booked.has(key);
+    let cls = isBkd ? 'booked' : 'avail';
+    if (isPast) cls += ' past';
+    if (isTod)  cls += ' today';
+    html += `<div class="day ${cls}" title="${key}">${d}</div>`;
+  }
+  return html + '</div>';
+}
+
+function doFilter() { query = document.getElementById('search').value; render(); }
+
+async function doRefresh() {
+  const btn = document.querySelector('.refresh-btn');
+  btn.style.opacity = '0.5';
+  avail = {};
+  showSkeletons();
+  await loadAll();
+  render();
+  btn.style.opacity = '';
+}
+
+// Auto-start
+boot();
+</script>
+</body>
+</html>  #loading-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+    background:
+      radial-gradient(ellipse 60% 40% at 70% 30%, rgba(74,124,247,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 50% at 20% 80%, rgba(82,200,122,0.05) 0%, transparent 60%),
+      var(--bg);
+  }
+
+  .loading-wordmark {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #e8eaf2 0%, #8090c0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .loading-sub {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .loading-spinner {
+    width: 32px; height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-screen {
+    min-height: 100vh;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    padding: 40px;
+    text-align: center;
+  }
+
+  .error-screen.show { display: flex; }
+
+  .error-icon { font-size: 2.5rem; }
+  .error-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; }
+  .error-msg { color: var(--muted); font-size: 0.85rem; max-width: 380px; line-height: 1.7; }
+
+  /* APP */
+  #app { display: none; }
+  #app.on { display: block; }
+
+  /* TOP BAR */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15,17,23,0.92);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    height: 58px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .topbar-brand {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .topbar-count {
+    font-size: 0.7rem;
+    color: var(--muted);
+    padding: 3px 10px;
+    background: var(--surface2);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .spacer { flex: 1; }
+
+  .search-wrap { position: relative; width: 220px; }
+
+  .search-wrap svg {
+    position: absolute;
+    left: 10px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    width: 14px; height: 14px;
+    pointer-events: none;
+  }
+
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px 7px 32px;
+    font-family: 'Sora', sans-serif;
+    font-size: 0.8rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-input::placeholder { color: var(--muted); }
+  .search-input:focus { border-color: var(--accent); }
+
+  .live-pill {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.68rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); white-space: nowrap;
+  }
+
+  .live-dot {
+    width: 6px; height: 6px;
+    background: var(--avail-text);
+    border-radius: 50%;
+    animation: blink 2.4s ease-in-out infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+  .refresh-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    padding: 6px 13px;
+    font-family: 'Sora', sans-serif;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
+
+  .refresh-btn:hover { color: var(--text); border-color: var(--subtle); }
+  .refresh-btn svg { width: 12px; height: 12px; }
+
+  /* LEGEND */
+  .legend-bar {
+    padding: 9px 28px;
+    display: flex; align-items: center; gap: 22px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .legend-item {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 0.68rem; color: var(--muted);
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+
+  .swatch { width: 24px; height: 9px; border-radius: 3px; }
+  .sw-avail  { background: var(--avail);  border: 1px solid rgba(82,200,122,0.35); }
+  .sw-booked { background: var(--booked); border: 1px solid rgba(224,96,96,0.35); }
+  .sw-today  { width:9px;height:9px;border-radius:2px;background:transparent;border:1.5px solid var(--today-ring); }
+
+  /* GRID */
+  .prop-grid {
+    padding: 24px 28px 60px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(680px, 1fr));
+    gap: 18px;
+  }
+
+  @media(max-width:760px){
+    .prop-grid { grid-template-columns:1fr; padding:14px; }
+    .topbar { padding:0 14px; gap:10px; }
+    .search-wrap { width:140px; }
+    .legend-bar { padding:9px 14px; }
+  }
+
+  /* CARD */
+  .prop-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    animation: fadeUp 0.3s ease both;
+  }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+  .prop-head {
+    padding: 14px 20px 12px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .prop-name { font-family: 'Playfair Display', serif; font-size: 1rem; line-height: 1.2; }
+  .prop-type { font-size: 0.66rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
+
+  .prop-photo {
+    width: 64px; height: 64px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+
+  .prop-photo-placeholder {
+    width: 64px; height: 64px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+  }
+
+  .avail-badge {
+    font-size: 0.68rem; font-weight: 500;
+    padding: 4px 10px; border-radius: 20px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+
+  .badge-hi  { background:var(--avail);  color:var(--avail-text);  border:1px solid rgba(82,200,122,0.2); }
+  .badge-mid { background:#2a2a1a;       color:#c8a840;            border:1px solid rgba(200,168,64,0.2); }
+  .badge-lo  { background:var(--booked); color:var(--booked-text); border:1px solid rgba(224,96,96,0.2); }
+
+
+  /* PRICING PANEL */
+  .info-toggle {
+    width: 100%;
+    background: none;
+    border: none;
+    border-top: 1px solid var(--border);
+    padding: 9px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    color: var(--muted);
+    font-family: 'Sora', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .info-toggle:hover { color: var(--text); }
+
+  .info-toggle svg {
+    width: 12px; height: 12px;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+
+  .info-toggle.open svg { transform: rotate(180deg); }
+
+  .info-panel {
+    display: none;
+    padding: 14px 20px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .info-panel.open { display: flex; }
+
+  .info-section { flex: 1; min-width: 160px; }
+
+  .info-section-title {
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 7px;
+    font-weight: 500;
+  }
+
+  .info-row {
+    font-size: 0.78rem;
+    color: var(--text);
+    line-height: 1.8;
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+  }
+
+  .info-row .info-label {
+    color: var(--muted);
+    font-size: 0.7rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .info-note {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    width: 100%;
+    line-height: 1.6;
+  }
+
+  /* 6-MONTH ROW */
+  .cal-scroll {
+    overflow-x: auto;
+    padding: 16px 20px 18px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--subtle) transparent;
+  }
+
+  .cal-scroll::-webkit-scrollbar { height: 4px; }
+  .cal-scroll::-webkit-scrollbar-thumb { background: var(--subtle); border-radius: 4px; }
+
+  .cal-months { display: flex; gap: 18px; min-width: max-content; }
+  .cal-month  { width: 165px; flex-shrink: 0; }
+
+  .cal-month-lbl {
+    font-size: 0.66rem; font-weight: 500;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 7px; text-align: center;
+  }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 1.5px; }
+
+  .dow {
+    font-size: 0.54rem; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--muted);
+    text-align: center; padding-bottom: 4px; font-weight: 500;
+  }
+
+  .day {
+    aspect-ratio: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.63rem; border-radius: 3px; font-weight: 300;
+  }
+
+  .day.avail  { background: var(--avail);  color: var(--avail-text); }
+  .day.booked { background: var(--booked); color: var(--booked-text); font-weight:400; }
+  .day.past   { opacity: 0.25; }
+  .day.empty  { background: transparent; }
+  .day.today  {
+    outline: 1.5px solid var(--today-ring);
+    outline-offset: -1px;
+    font-weight: 600; color: var(--today-ring);
+  }
+
+  /* SKELETON */
+  .skel-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+  .skel-head { padding:14px 20px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+  .skel-bar  { border-radius:4px; background:var(--surface2); animation:shimmer 1.4s ease-in-out infinite; }
+  @keyframes shimmer { 0%,100%{opacity:0.5} 50%{opacity:1} }
+  .skel-body { padding:16px 20px 18px; display:flex; gap:18px; }
+  .skel-mo   { width:165px; flex-shrink:0; }
+  .skel-lbl  { height:9px; width:60px; margin:0 auto 7px; }
+  .skel-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1.5px; }
+  .skel-cell { aspect-ratio:1; border-radius:3px; background:var(--surface2); animation:shimmer 1.4s ease-in-out infinite; }
+
+  .empty-state { grid-column:1/-1; text-align:center; padding:80px 20px; color:var(--muted); font-size:0.9rem; }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="loading-wordmark">Availability</div>
+  <div class="loading-sub">Agent Portal · Loading properties…</div>
+  <div class="loading-spinner"></div>
+</div>
+
+<!-- ERROR -->
+<div class="error-screen" id="error-screen">
+  <div class="error-icon">⚠️</div>
+  <div class="error-title">Could not load properties</div>
+  <div class="error-msg" id="error-detail">Please check that HOSTEX_TOKEN is set correctly in your Vercel environment variables, then redeploy.</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <span class="topbar-brand">Availability</span>
+    <span class="topbar-count" id="prop-count"></span>
+    <div class="spacer"></div>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input class="search-input" id="search" placeholder="Filter properties…" oninput="doFilter()" />
+    </div>
+    <div class="live-pill"><div class="live-dot"></div>Live</div>
+    <button class="refresh-btn" onclick="doRefresh()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M23 4v6h-6M1 20v-6h6"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+
+  <div class="legend-bar">
+    <div class="legend-item"><div class="swatch sw-avail"></div>Available</div>
+    <div class="legend-item"><div class="swatch sw-booked"></div>Booked</div>
+    <div class="legend-item"><div class="swatch sw-today"></div>Today</div>
+  </div>
+
+  <div class="prop-grid" id="grid"></div>
+</div>
+
+<script>
+// STATE
+let properties = [];
+let avail = {};
+let query = '';
+
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+const MONTHS_FULL = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+const DOWS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+const p2  = n => String(n).padStart(2,'0');
+const ds  = d => `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const todayStr = ds(TODAY);
+
+
+// PRICING DATA
+const PRICING = {
+  // HAUS Canggu – Batu Bolong
+  11621510: { complex: 'HAUS Canggu – Batu Bolong', desc: 'Boutique 1BR apartment', monthly: '30jt / month', yearly: '300jt / year' },
+  11621511: { complex: 'HAUS Canggu – Batu Bolong', desc: 'Boutique 1BR apartment', monthly: '30jt / month', yearly: '300jt / year' },
+  11621512: { complex: 'HAUS Canggu – Batu Bolong', desc: 'Boutique 1BR apartment', monthly: '30jt / month', yearly: '300jt / year' },
+  11621513: { complex: 'HAUS Canggu – Batu Bolong', desc: 'Boutique 1BR apartment', monthly: '30jt / month', yearly: '300jt / year' },
+  // LaneHAUS – Pererenan
+  11621507: { complex: 'LaneHAUS – Pererenan', desc: 'Boutique 1BR townhouse', monthly: '24jt / month', yearly: '240jt / year' },
+  11621509: { complex: 'LaneHAUS – Pererenan', desc: 'Boutique 1BR townhouse', monthly: '22jt / month', yearly: '220jt / year' },
+  // Villa Saturno – Padang Linjong
+  12552236: { complex: 'Villa Saturno – Padang Linjong', desc: '3BR villa with pool', monthly: '40jt / month', yearly: '350jt / year' },
+  // Tropicana Valley – Buduk
+  12484483: { complex: 'Tropicana Valley – Buduk', desc: 'Private pool 1BR villa', monthly: '30jt / month', yearly: '270jt / year' },
+  12450063: { complex: 'Tropicana Valley – Buduk', desc: 'Private pool 1BR villa', monthly: '30jt / month', yearly: '270jt / year' },
+  12566585: { complex: 'Tropicana Valley – Buduk', desc: 'Private pool 1BR villa', monthly: '30jt / month', yearly: '270jt / year' },
+  12566586: { complex: 'Tropicana Valley – Buduk', desc: 'Private pool 1BR villa', monthly: '30jt / month', yearly: '270jt / year' },
+  12566587: { complex: 'Tropicana Valley – Buduk', desc: 'Private pool 1BR villa', monthly: '30jt / month', yearly: '270jt / year' },
+  12566588: { complex: 'Tropicana Valley – Buduk', desc: 'Private pool 1BR villa', monthly: '30jt / month', yearly: '270jt / year' },
+};
+
+const INCLUSIONS = [
+  'All properties fully furnished',
+  'Monthly: housekeeping & services included',
+  'Yearly: utilities excluded'
+];
+
+function toggleInfo(id) {
+  const panel = document.getElementById('info-' + id);
+  const btn   = document.getElementById('btn-' + id);
+  panel.classList.toggle('open');
+  btn.classList.toggle('open');
+}
+
+// BOOT — called automatically, no token needed
+async function boot() {
+  try {
+    const r = await fetch('/api/properties');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    const items = d.data?.properties || d.data?.items || d.data || d.items || [];
+    if (!items.length) throw new Error('items count: ' + items.length + ' raw: ' + JSON.stringify(d).slice(0,300));
+    properties = items.map(p => ({
+      id:   p.id   || p.property_id,
+      name: p.name || p.title || 'Unnamed',
+      type:  p.property_type || p.room_type || '',
+      photo: p.cover?.large_url || p.cover?.original_url || ''
+    }));
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('app').classList.add('on');
+    document.getElementById('prop-count').textContent =
+      `${properties.length} propert${properties.length===1?'y':'ies'}`;
+    showSkeletons();
+    await loadAll();
+    render();
+  } catch(e) {
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('error-detail').textContent = 'ERR: ' + e.message;
+    document.getElementById('error-screen').classList.add('show');
+  }
+}
+
+// API (via proxy — no token in frontend)
+async function fetchAvail(propId) {
+  const start = ds(TODAY);
+  const endD  = new Date(TODAY.getFullYear(), TODAY.getMonth()+6, 0);
+  const end   = ds(endD);
+  const r = await fetch(`/api/calendar?id=${propId}&start_date=${start}&end_date=${end}`);
+  if (!r.ok) return new Set();
+  const d = await r.json();
+  const items = d.data?.items || d.data || d.items || [];
+  const booked = new Set();
+  items.forEach(day => {
+    if (day.status==='booked' || day.available===false || day.blocked===true)
+      booked.add(day.date || day.day);
+  });
+  return booked;
+}
+
+async function loadAll() {
+  await Promise.all(properties.map(async p => {
+    try { avail[p.id] = await fetchAvail(p.id); }
+    catch { avail[p.id] = new Set(); }
+  }));
+}
+
+// SKELETONS
+function showSkeletons() {
+  const skelMonth = () => `
+    <div class="skel-mo">
+      <div class="skel-bar skel-lbl"></div>
+      <div class="skel-grid">${Array(35).fill('<div class="skel-cell"></div>').join('')}</div>
+    </div>`;
+  document.getElementById('grid').innerHTML = properties.map(() => `
+    <div class="skel-card">
+      <div class="skel-head">
+        <div style="flex:1">
+          <div class="skel-bar" style="height:13px;width:50%;margin-bottom:6px"></div>
+          <div class="skel-bar" style="height:8px;width:28%"></div>
+        </div>
+        <div class="skel-bar" style="height:22px;width:110px;border-radius:20px"></div>
+      </div>
+      <div class="skel-body">${Array(6).fill(0).map(skelMonth).join('')}</div>
+    </div>`).join('');
+}
+
+// RENDER
+function render() {
+  const grid = document.getElementById('grid');
+  const q = query.toLowerCase();
+  const filtered = properties.filter(p =>
+    p.name.toLowerCase().includes(q) || (p.type||'').toLowerCase().includes(q));
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty-state">No properties match "<strong>${esc(query)}</strong>"</div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map((p, i) => {
+    const booked = avail[p.id] || new Set();
     const hasAvail = hasAnyFree(booked);
     const photoEl = p.photo
       ? `<img class="prop-photo" src="${p.photo}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
