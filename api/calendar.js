@@ -11,13 +11,15 @@ export default async function handler(req, res) {
   if (!id) return res.status(400).json({ error: 'Missing property id' });
 
   try {
-    // Fetch reservations AND availabilities in parallel
     const [resRes, availRes] = await Promise.all([
       fetch(`https://api.hostex.io/v3/reservations?property_id=${id}&per_page=100&page=1`, {
         headers: { 'Hostex-Access-Token': token }
       }),
-      fetch(`https://api.hostex.io/v3/availabilities?property_id=${id}&start_date=${start_date}&end_date=${end_date}`, {
-        headers: { 'Hostex-Access-Token': token }
+      fetch(`https://api.hostex.io/v3/availabilities?property_ids[]=${id}&start_date=${start_date}&end_date=${end_date}`, {
+        headers: { 
+          'Hostex-Access-Token': token,
+          'Content-Type': 'application/json'
+        }
       })
     ]);
 
@@ -26,7 +28,7 @@ export default async function handler(req, res) {
 
     const bookedDates = [];
 
-    // Add booked dates from reservations
+    // Reservations → booked dates
     const reservations = resData.data?.reservations || [];
     reservations.forEach(r => {
       if (r.status === 'cancelled') return;
@@ -38,15 +40,16 @@ export default async function handler(req, res) {
       }
     });
 
-    // Add closed/blocked dates from availabilities
+    // Availabilities → closed dates
     const avails = availData.data?.availabilities || availData.data?.items || availData.data || [];
-    avails.forEach(a => {
-      if (a.available === false || a.status === 'closed' || a.closed === true) {
-        bookedDates.push({ date: a.date, status: 'booked' });
-      }
-    });
+    if (Array.isArray(avails)) {
+      avails.forEach(a => {
+        if (a.available === false || a.status === 'closed' || a.closed === true) {
+          bookedDates.push({ date: a.date, status: 'booked' });
+        }
+      });
+    }
 
-    // Return raw availData too so we can inspect it
     return res.status(200).json({ 
       data: { items: bookedDates },
       _debug_avail: availData 
