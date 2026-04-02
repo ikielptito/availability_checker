@@ -11,30 +11,46 @@ export default async function handler(req, res) {
   if (!id) return res.status(400).json({ error: 'Missing property id' });
 
   try {
-    // Fetch all reservations for this property (paginate if needed)
-    const url = `https://api.hostex.io/v3/reservations?property_id=${id}&per_page=100&page=1`;
-    const upstream = await fetch(url, {
-      headers: { 'Hostex-Access-Token': token }
-    });
-    const data = await upstream.json();
-    const reservations = data.data?.reservations || [];
+    // Fetch reservations AND availabilities in parallel
+    const [resRes, availRes] = await Promise.all([
+      fetch(`https://api.hostex.io/v3/reservations?property_id=${id}&per_page=100&page=1`, {
+        headers: { 'Hostex-Access-Token': token }
+      }),
+      fetch(`https://api.hostex.io/v3/availabilities?property_id=${id}&start_date=${start_date}&end_date=${end_date}`, {
+        headers: { 'Hostex-Access-Token': token }
+      })
+    ]);
 
-    // Expand each reservation into individual booked dates
+    const resData = await resRes.json();
+    const availData = await availRes.json();
+
     const bookedDates = [];
+
+    // Add booked dates from reservations
+    const reservations = resData.data?.reservations || [];
     reservations.forEach(r => {
       if (r.status === 'cancelled') return;
       const cur = new Date(r.check_in_date);
       const end = new Date(r.check_out_date);
       while (cur < end) {
-        bookedDates.push({
-          date: cur.toISOString().split('T')[0],
-          status: 'booked'
-        });
+        bookedDates.push({ date: cur.toISOString().split('T')[0], status: 'booked' });
         cur.setDate(cur.getDate() + 1);
       }
     });
 
-    return res.status(200).json({ data: { items: bookedDates } });
+    // Add closed/blocked dates from availabilities
+    const avails = availData.data?.availabilities || availData.data?.items || availData.data || [];
+    avails.forEach(a => {
+      if (a.available === false || a.status === 'closed' || a.closed === true) {
+        bookedDates.push({ date: a.date, status: 'booked' });
+      }
+    });
+
+    // Return raw availData too so we can inspect it
+    return res.status(200).json({ 
+      data: { items: bookedDates },
+      _debug_avail: availData 
+    });
   } catch (e) {
     return res.status(502).json({ error: 'Upstream error', detail: e.message });
   }
