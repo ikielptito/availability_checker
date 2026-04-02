@@ -15,8 +15,7 @@ export default async function handler(req, res) {
       fetch(`https://api.hostex.io/v3/reservations?property_id=${id}&per_page=100&page=1`, {
         headers: { 'Hostex-Access-Token': token }
       }),
-      // Send property_ids as repeated params: property_ids[0]=ID
-      fetch(`https://api.hostex.io/v3/availabilities?property_ids[0]=${id}&start_date=${start_date}&end_date=${end_date}`, {
+      fetch(`https://api.hostex.io/v3/availabilities?property_ids=${id}&start_date=${start_date}&end_date=${end_date}`, {
         headers: { 'Hostex-Access-Token': token }
       })
     ]);
@@ -38,20 +37,17 @@ export default async function handler(req, res) {
       }
     });
 
-    // Availabilities → closed dates
-    const avails = availData.data?.availabilities || availData.data?.items || availData.data || [];
-    if (Array.isArray(avails)) {
-      avails.forEach(a => {
-        if (a.available === false || a.status === 'closed' || a.closed === true) {
+    // Availabilities → closed dates (response is data.properties[].availabilities[])
+    const properties = availData.data?.properties || [];
+    properties.forEach(prop => {
+      (prop.availabilities || []).forEach(a => {
+        if (a.available === false) {
           bookedDates.push({ date: a.date, status: 'booked' });
         }
       });
-    }
-
-    return res.status(200).json({ 
-      data: { items: bookedDates },
-      _debug_avail: availData 
     });
+
+    return res.status(200).json({ data: { items: bookedDates } });
   } catch (e) {
     return res.status(502).json({ error: 'Upstream error', detail: e.message });
   }
