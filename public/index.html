@@ -380,7 +380,7 @@ async function boot() {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const d = await r.json();
     const items = d.data?.properties || d.data?.items || d.data || d.items || [];
-    if (!items.length) throw new Error('No properties returned');
+    if (!items.length) throw new Error('items count: ' + items.length + ' raw: ' + JSON.stringify(d).slice(0,300));
     properties = items.map(p => ({
       id:   p.id   || p.property_id,
       name: p.name || p.title || 'Unnamed',
@@ -395,7 +395,7 @@ async function boot() {
     render();
   } catch(e) {
     document.getElementById('loading-screen').style.display = 'none';
-    document.getElementById('error-detail').textContent = e.message;
+    document.getElementById('error-detail').textContent = 'ERR: ' + e.message;
     document.getElementById('error-screen').classList.add('show');
   }
 }
