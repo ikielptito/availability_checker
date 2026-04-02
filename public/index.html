@@ -242,6 +242,25 @@
   .prop-name { font-family: 'Playfair Display', serif; font-size: 1rem; line-height: 1.2; }
   .prop-type { font-size: 0.66rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
 
+  .prop-photo {
+    width: 64px; height: 64px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+
+  .prop-photo-placeholder {
+    width: 64px; height: 64px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+  }
+
   .avail-badge {
     font-size: 0.68rem; font-weight: 500;
     padding: 4px 10px; border-radius: 20px;
@@ -384,7 +403,8 @@ async function boot() {
     properties = items.map(p => ({
       id:   p.id   || p.property_id,
       name: p.name || p.title || 'Unnamed',
-      type: p.property_type || p.room_type || ''
+      type:  p.property_type || p.room_type || '',
+      photo: p.cover?.large_url || p.cover?.original_url || ''
     }));
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('app').classList.add('on');
@@ -458,18 +478,21 @@ function render() {
 
   grid.innerHTML = filtered.map((p, i) => {
     const booked = avail[p.id] || new Set();
-    const { free, total } = countFree(booked);
-    const pct = total > 0 ? free/total : 1;
-    const bCls = pct >= 0.5 ? 'badge-hi' : pct >= 0.25 ? 'badge-mid' : 'badge-lo';
+    const hasAvail = hasAnyFree(booked);
+    const photoEl = p.photo
+      ? `<img class="prop-photo" src="${p.photo}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      : '';
+    const placeholderEl = `<div class="prop-photo-placeholder" style="${p.photo ? 'display:none' : ''}">🏠</div>`;
 
     return `
     <div class="prop-card" style="animation-delay:${i*0.04}s">
       <div class="prop-head">
-        <div>
+        ${photoEl}${placeholderEl}
+        <div style="flex:1;min-width:0">
           <div class="prop-name">${esc(p.name)}</div>
           ${p.type ? `<div class="prop-type">${esc(p.type)}</div>` : ''}
         </div>
-        <span class="avail-badge ${bCls}">${free} of ${total} nights free</span>
+        <span class="avail-badge ${hasAvail ? 'badge-hi' : 'badge-lo'}">${hasAvail ? 'Available' : 'Fully Booked'}</span>
       </div>
       <div class="cal-scroll">
         <div class="cal-months">${buildSix(booked)}</div>
@@ -509,16 +532,14 @@ function buildMonth(year, month, booked) {
   return html + '</div>';
 }
 
-function countFree(booked) {
-  let free = 0, total = 0;
+function hasAnyFree(booked) {
   const end = new Date(TODAY.getFullYear(), TODAY.getMonth()+6, 0);
   const cur = new Date(TODAY);
   while (cur <= end) {
-    const key = ds(cur); total++;
-    if (!booked.has(key)) free++;
+    if (!booked.has(ds(cur))) return true;
     cur.setDate(cur.getDate()+1);
   }
-  return { free, total };
+  return false;
 }
 
 function doFilter() { query = document.getElementById('search').value; render(); }
