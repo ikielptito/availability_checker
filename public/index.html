@@ -379,7 +379,7 @@ async function boot() {
     const r = await fetch('/api/properties');
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const d = await r.json();
-    const items = d.data?.items || d.data || d.items || [];
+    const items = d.data?.properties || d.data?.items || d.data || d.items || [];
     if (!items.length) throw new Error('No properties returned');
     properties = items.map(p => ({
       id:   p.id   || p.property_id,
