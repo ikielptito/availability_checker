@@ -1,7 +1,6 @@
 {
-  "outputDirectory": "public",
   "rewrites": [
-    { "source": "/listing/:slug", "destination": "/listing.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/public/index.html" }
   ]
 }
