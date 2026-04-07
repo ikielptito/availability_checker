@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Samba Rentals</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Sora:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf8f4;
+    --surface: #ffffff;
+    --border: #e8e2d8;
+    --text: #1a1814;
+    --muted: #8a8478;
+    --accent: #c8402a;
+    --green: #2a6a3a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(250,248,244,0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-brand {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .nav-back {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s;
+  }
+
+  .nav-back:hover { color: var(--text); }
+
+  /* LOADING / ERROR */
+  .state-screen {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    color: var(--muted);
+  }
+
+  .spinner {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* HERO */
+  .hero {
+    width: 100%;
+    height: 70vh;
+    max-height: 600px;
+    position: relative;
+    background: #1a1814;
+    overflow: hidden;
+  }
+
+  .hero-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.85;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .hero-img:hover { opacity: 0.75; }
+
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .hero-label {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    font-size: 0.72rem;
+    padding: 6px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .hero-label:hover { background: rgba(0,0,0,0.7); }
+
+  .hero-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    background: linear-gradient(135deg, #2a2620 0%, #1a1814 100%);
+  }
+
+  /* CONTENT */
+  .content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 32px 80px;
+  }
+
+  .property-tag {
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+
+  .property-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    margin-bottom: 8px;
+  }
+
+  .property-location {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 28px;
+    text-decoration: none;
+    width: fit-content;
+    transition: color 0.2s;
+  }
+
+  .property-location:hover { color: var(--accent); }
+
+  .overview {
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 40px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+    max-width: 680px;
+  }
+
+  /* DETAILS GRID */
+  .details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 32px;
+    margin-bottom: 40px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-section-title {
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+
+  .detail-row {
+    font-size: 0.82rem;
+    line-height: 1.9;
+    color: var(--text);
+    display: flex;
+    gap: 8px;
+  }
+
+  .detail-row::before {
+    content: '·';
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  /* PRICING */
+  .pricing-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .pricing-left h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+  }
+
+  .price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .price-amount {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--text);
+    font-family: 'Playfair Display', serif;
+  }
+
+  .price-period {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .inclusions-list {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .inclusions-title {
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .inclusion-row {
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .inclusion-row::before { content: '✓ '; color: var(--green); }
+
+  .wa-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .wa-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 24px;
+    background: #25d366;
+    color: #fff;
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: background 0.2s, transform 0.15s;
+    white-space: nowrap;
+  }
+
+  .wa-cta:hover { background: #1ebe5d; transform: translateY(-1px); }
+
+  .wa-note {
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* PHOTO GALLERY */
+  .gallery-section { margin-bottom: 48px; }
+
+  .gallery-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+  }
+
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+  }
+
+  .gallery-thumb {
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+    width: 100%;
+  }
+
+  .gallery-thumb:hover { opacity: 0.85; transform: scale(1.02); }
+
+  .gallery-loading {
+    color: var(--muted);
+    font-size: 0.82rem;
+    padding: 20px 0;
+  }
+
+  /* LIGHTBOX */
+  .lb-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .lb-overlay.open { display: flex; }
+
+  .lb-img {
+    max-width: 92vw;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 6px;
+  }
+
+  .lb-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .lb-btn {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+
+  .lb-btn:hover { background: rgba(255,255,255,0.22); }
+
+  .lb-counter {
+    color: rgba(255,255,255,0.5);
+    font-size: 0.8rem;
+    min-width: 60px;
+    text-align: center;
+  }
+
+  .lb-close {
+    position: fixed;
+    top: 18px; right: 18px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 24px 32px;
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  @media(max-width: 600px) {
+    .hero { height: 50vh; }
+    .content { padding: 32px 20px 60px; }
+    .property-title { font-size: 1.8rem; }
+    .pricing-block { flex-direction: column; }
+    nav { padding: 0 20px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/">Samba Rentals</a>
+  <a class="nav-back" href="/">← Back to all properties</a>
+</nav>
+
+<!-- LOADING -->
+<div class="state-screen" id="loading">
+  <div class="spinner"></div>
+  <span>Loading listing…</span>
+</div>
+
+<!-- ERROR -->
+<div class="state-screen" id="error" style="display:none">
+  <div style="font-size:2rem">⚠️</div>
+  <span id="error-msg">Listing not found.</span>
+</div>
+
+<!-- LISTING -->
+<div id="listing" style="display:none">
+  <div class="hero" id="hero">
+    <div class="hero-placeholder" id="hero-placeholder">🏠</div>
+    <img class="hero-img" id="hero-img" src="" alt="" style="display:none" onclick="openLb(0)" />
+    <div class="hero-overlay"></div>
+    <div class="hero-label" id="photo-count" onclick="openLb(0)" style="display:none"></div>
+  </div>
+
+  <div class="content">
+    <div class="property-tag" id="prop-tag"></div>
+    <h1 class="property-title" id="prop-title"></h1>
+    <a class="property-location" id="prop-location" target="_blank">
+      📍 <span id="prop-location-text"></span>
+    </a>
+    <p class="overview" id="prop-overview"></p>
+
+    <div class="details-grid" id="details-grid"></div>
+
+    <div class="pricing-block">
+      <div class="pricing-left">
+        <h3>Pricing</h3>
+        <div id="price-rows"></div>
+        <div class="inclusions-list">
+          <div class="inclusions-title">Monthly Inclusions</div>
+          <div id="inclusions-list"></div>
+        </div>
+      </div>
+      <div class="wa-block">
+        <a class="wa-cta" id="wa-link" href="#" target="_blank">
+          💬 Enquire with Era
+        </a>
+        <div class="wa-note">Available on WhatsApp</div>
+      </div>
+    </div>
+
+    <div class="gallery-section">
+      <h2 class="gallery-title">Photos</h2>
+      <div class="gallery-loading" id="gallery-loading">Loading photos…</div>
+      <div class="gallery-grid" id="gallery-grid"></div>
+    </div>
+  </div>
+</div>
+
+<footer>© Samba Rentals · Bali, Indonesia</footer>
+
+<!-- LIGHTBOX -->
+<div class="lb-overlay" id="lb" onclick="lbClickOverlay(event)">
+  <button class="lb-close" onclick="closeLb()">✕</button>
+  <img class="lb-img" id="lb-img" src="" alt="" />
+  <div class="lb-controls">
+    <button class="lb-btn" onclick="lbNav(-1)">←</button>
+    <span class="lb-counter" id="lb-counter"></span>
+    <button class="lb-btn" onclick="lbNav(1)">→</button>
+  </div>
+</div>
+
+<script>
+// ── PROPERTY DATA ──
+const HAUS_BASE = {
+  complex: 'HAUS Canggu',
+  tag: 'Batu Bolong · Canggu',
+  location: 'https://maps.app.goo.gl/tMuPXqKHxhbKLDVe6',
+  locationText: 'Batu Bolong, Canggu',
+  overview: 'Boutique collection of 8 fully furnished one-bedroom apartments in the heart of Batu Bolong. Steps from cafés, restaurants, and nightlife, yet tucked in a quiet residential lane.',
+  features: ['43–46m² building · 4 are land', '1 Bedroom · 1 Bathroom', 'Large shared swimming pool', 'Outdoor lounge seating', 'Terrazzo bathrooms · Teak & rattan cabinetry', 'Fully equipped kitchen · Air-conditioning', 'High-speed fiber internet · Fully furnished'],
+  locationHighlights: ['2-min walk to Bali Social Club', '5-min walk to Batu Bolong strip', '10-min ride to Batu Bolong Beach', '5-min drive to Pererenan'],
+  inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas', 'Electricity', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly'],
+};
+
+const LANE_BASE = {
+  complex: 'LaneHAUS',
+  tag: 'Pererenan',
+  location: 'https://maps.app.goo.gl/JGcqfdZMqUXSVjpD9',
+  locationText: 'Pererenan, Canggu',
+  overview: 'Boutique collection of 3 fully furnished one-bedroom townhouses in central Pererenan. Walkable yet private, ideal for long-term living.',
+  features: ['250m² land', '1 Bedroom · 1 Bathroom', 'Large shared swimming pool', 'XL king beds · Dedicated workspaces', 'Terrazzo floors & bathrooms', 'Fully equipped kitchen · Air-conditioning', '200mbps fiber (dedicated per unit) · Fully furnished'],
+  locationHighlights: ['1-min to Pepito & Frestive', '3-min to Obsidian Gym', '4-min to Bar Vera', '8-min to Pererenan Beach', '10-min to La Brisa'],
+  inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly', 'Electricity excluded for yearly'],
+};
+
+const LISTINGS = {
+  'haus-1': { ...HAUS_BASE, title: 'HAUS Canggu – Unit 1', unit: 'Unit 1', monthly: '27jt', yearly: '270jt', folder: '1xkEkRprYDCIfSCwCmfuPgcszI5kakOKF' },
+  'haus-2': { ...HAUS_BASE, title: 'HAUS Canggu – Unit 2', unit: 'Unit 2', monthly: '27jt', yearly: '270jt', folder: '11Pr1akQilpBkgT37BhbajsneP7Ekijmu' },
+  'haus-4': { ...HAUS_BASE, title: 'HAUS Canggu – Unit 4', unit: 'Unit 4', monthly: '30jt', yearly: '300jt', folder: '1qpdTd5oDxIbGkISxgSTKNJ3BtYM_aDEw' },
+  'haus-5': { ...HAUS_BASE, title: 'HAUS Canggu – Unit 5', unit: 'Unit 5', monthly: '30jt', yearly: '300jt', folder: '1mxfot6q9JVF2C22wPpVzyNP8zVotJURr' },
+  'lanehaus-1': { ...LANE_BASE, title: 'LaneHAUS – Unit 1', unit: 'Unit 1', size: '65m²', monthly: '24jt', yearly: '240jt', folder: '1f6mhoH36L-uY5ncGq5LHhq2_dMS_20cd' },
+  'lanehaus-3': { ...LANE_BASE, title: 'LaneHAUS – Unit 3', unit: 'Unit 3', size: '55m²', monthly: '22jt', yearly: '220jt', folder: '1OY71DdG07xakOCCMZJAz4CqiI4EQm24F' },
+  'villa-saturno': {
+    complex: 'Villa Saturno', tag: 'Padang Linjong · Canggu', title: 'Villa Saturno',
+    location: 'https://maps.app.goo.gl/r4833cRt8oEXMjpD9', locationText: 'Padang Linjong, Canggu',
+    overview: 'Spacious 3-bedroom villa in prime Padang Linjong next to Bali Buddha. Central, walkable, and ideal for long-term living.',
+    features: ['350m² land · 250m² building', '3 Bedrooms · 3 Bathrooms', 'Private swimming pool · Tropical garden', 'Enclosed AC living · Open-concept kitchen', 'Washing machine · Surfboards · Tennis rackets', 'Fully furnished'],
+    locationHighlights: ['Next to Bali Buddha', 'Walking distance to shops & cafés', 'Central Canggu location'],
+    inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly'],
+    monthly: '40jt', yearly: '350jt', yearly2: '600jt',
+    folder: '19Fh1nnnN6pvR3Ia4Pd2opB-J1D0hj1fZ'
+  },
+  'tropicana-a4': { ...tropicanaBase(), unit: 'Unit A4', title: 'Tropicana Valley – Unit A4', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
+  'tropicana-a5': { ...tropicanaBase(), unit: 'Unit A5', title: 'Tropicana Valley – Unit A5', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
+  'tropicana-b2': { ...tropicanaBase(), unit: 'Unit B2', title: 'Tropicana Valley – Unit B2', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
+  'tropicana-b3': { ...tropicanaBase(), unit: 'Unit B3', title: 'Tropicana Valley – Unit B3', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
+  'tropicana-b5': { ...tropicanaBase(), unit: 'Unit B5', title: 'Tropicana Valley – Unit B5', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
+  'tropicana-b6': { ...tropicanaBase(), unit: 'Unit B6', title: 'Tropicana Valley – Unit B6', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
+};
+
+function tropicanaBase() {
+  return {
+    complex: 'Tropicana Valley', tag: 'Buduk · Near Canggu',
+    location: 'https://maps.app.goo.gl/T78azqdxnspQAnVs5', locationText: 'Buduk, near Pererenan',
+    overview: 'Modern private residences in Buduk offering private outdoor space, quiet surroundings, and proximity to Pererenan and Canggu.',
+    features: ['60m² land · 75m² building', '1 Bedroom · 1 Bathroom', 'Private swimming pool & poolside seating', 'Balcony with bistro table · Dedicated workspace', 'Extra-large two-person wardrobe', 'Fully equipped kitchen · Air-conditioning', 'High-speed fiber internet · Fully furnished'],
+    locationHighlights: ['5-min to Pererenan', '10-min to Canggu', 'Quiet residential area'],
+    inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly', 'Electricity excluded for yearly'],
+    monthly: '30jt', yearly: '300jt',
+  };
+}
+
+// ── LIGHTBOX ──
+let lbPhotos = [], lbIdx = 0;
+
+function openLb(idx) {
+  if (!lbPhotos.length) return;
+  lbIdx = idx;
+  showLbPhoto();
+  document.getElementById('lb').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function showLbPhoto() {
+  document.getElementById('lb-img').src = lbPhotos[lbIdx];
+  document.getElementById('lb-counter').textContent = (lbIdx+1) + ' / ' + lbPhotos.length;
+}
+
+function lbNav(dir) {
+  lbIdx = (lbIdx + dir + lbPhotos.length) % lbPhotos.length;
+  showLbPhoto();
+}
+
+function closeLb() {
+  document.getElementById('lb').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function lbClickOverlay(e) {
+  if (e.target === document.getElementById('lb')) closeLb();
+}
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lb').classList.contains('open')) return;
+  if (e.key === 'ArrowRight') lbNav(1);
+  if (e.key === 'ArrowLeft') lbNav(-1);
+  if (e.key === 'Escape') closeLb();
+});
+
+// ── BOOT ──
+function getSlug() {
+  const path = window.location.pathname;
+  const parts = path.split('/').filter(Boolean);
+  return parts[parts.length - 1] || '';
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function boot() {
+  const slug = getSlug();
+  const listing = LISTINGS[slug];
+
+  if (!listing) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'flex';
+    document.getElementById('error-msg').textContent = 'Listing "' + slug + '" not found.';
+    return;
+  }
+
+  document.title = listing.title + ' · Samba Rentals';
+
+  // Fill content
+  document.getElementById('prop-tag').textContent = listing.tag;
+  document.getElementById('prop-title').textContent = listing.title;
+  document.getElementById('prop-location').href = listing.location;
+  document.getElementById('prop-location-text').textContent = listing.locationText;
+  document.getElementById('prop-overview').textContent = listing.overview;
+
+  // Details grid
+  const grid = document.getElementById('details-grid');
+  const sections = [
+    { title: 'Property Features', items: listing.features },
+    { title: 'Location Highlights', items: listing.locationHighlights },
+  ];
+  grid.innerHTML = sections.map(s =>
+    '<div><div class="detail-section-title">' + s.title + '</div>' +
+    s.items.map(i => '<div class="detail-row">' + esc(i) + '</div>').join('') +
+    '</div>'
+  ).join('');
+
+  // Pricing
+  const priceRows = document.getElementById('price-rows');
+  let priceHtml = '<div class="price-row"><span class="price-amount">' + listing.monthly + '</span><span class="price-period">/ month</span></div>';
+  priceHtml += '<div class="price-row"><span class="price-amount">' + listing.yearly + '</span><span class="price-period">/ year</span></div>';
+  if (listing.yearly2) priceHtml += '<div class="price-row"><span class="price-amount">' + listing.yearly2 + '</span><span class="price-period">/ 2 years</span></div>';
+  priceRows.innerHTML = priceHtml;
+
+  // Inclusions
+  document.getElementById('inclusions-list').innerHTML = listing.inclusions.map(i =>
+    '<div class="inclusion-row">' + esc(i) + '</div>'
+  ).join('');
+
+  // WhatsApp
+  const waMsg = encodeURIComponent('Hi Era, I\'m interested in ' + listing.title + '. Could you tell me more?');
+  document.getElementById('wa-link').href = 'https://wa.me/6281246357778?text=' + waMsg;
+
+  // Show listing
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('listing').style.display = 'block';
+
+  // Load photos
+  loadPhotos(listing.folder);
+}
+
+async function loadPhotos(folderId) {
+  try {
+    const r = await fetch('/api/gdrive?folder=' + folderId);
+    const d = await r.json();
+    document.getElementById('gallery-loading').style.display = 'none';
+
+    if (!d.photos || !d.photos.length) {
+      document.getElementById('gallery-loading').style.display = 'block';
+      document.getElementById('gallery-loading').textContent = 'No photos available yet.';
+      return;
+    }
+
+    lbPhotos = d.photos.map(p => p.url);
+
+    // Hero
+    document.getElementById('hero-placeholder').style.display = 'none';
+    const heroImg = document.getElementById('hero-img');
+    heroImg.src = d.photos[0].url;
+    heroImg.style.display = 'block';
+    const countLabel = document.getElementById('photo-count');
+    countLabel.style.display = 'block';
+    countLabel.textContent = '📷 ' + d.photos.length + ' photos';
+
+    // Gallery grid
+    const grid = document.getElementById('gallery-grid');
+    grid.innerHTML = d.photos.map((p, i) =>
+      '<img class="gallery-thumb" src="' + p.thumb + '" loading="lazy" onclick="openLb(' + i + ')" alt="Photo ' + (i+1) + '">'
+    ).join('');
+
+  } catch(e) {
+    document.getElementById('gallery-loading').textContent = 'Could not load photos.';
+  }
+}
+
+boot();
+</script>
+</body>
+</html>
