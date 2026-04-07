@@ -339,16 +339,47 @@
     flex-shrink: 0;
   }
 
-  .info-note {
-    font-size: 0.7rem;
+  .info-overview {
+    font-size: 0.8rem;
     color: var(--muted);
-    font-style: italic;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border);
+    line-height: 1.7;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
     width: 100%;
-    line-height: 1.6;
   }
+
+  .info-cols {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .info-links {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    padding-top: 4px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .info-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.75rem;
+    text-decoration: none;
+    transition: border-color 0.2s, color 0.2s;
+    font-family: 'Sora', sans-serif;
+  }
+
+  .info-link-btn:hover { border-color: var(--accent); color: var(--accent); }
 
   /* 6-MONTH ROW */
   .cal-scroll {
@@ -406,6 +437,36 @@
   .skel-cell { aspect-ratio:1; border-radius:3px; background:var(--surface2); animation:shimmer 1.4s ease-in-out infinite; }
 
   .empty-state { grid-column:1/-1; text-align:center; padding:80px 20px; color:var(--muted); font-size:0.9rem; }
+  /* SHARE BUTTON */
+  .share-bar {
+    display: flex;
+    gap: 8px;
+    padding: 10px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .share-btn {
+    flex: 1;
+    padding: 8px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'Sora', sans-serif;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .share-btn:hover { color: var(--text); border-color: var(--subtle); }
+
   /* WHATSAPP BUTTON */
   .wa-btn {
     display: flex;
@@ -586,6 +647,37 @@ const todayStr = ds(TODAY);
 
 
 
+
+// LISTING SLUGS — maps Hostex property ID to shareable URL slug
+const SLUGS = {
+  11621510: 'haus-1',
+  11621511: 'haus-2',
+  11621512: 'haus-4',
+  11621513: 'haus-5',
+  11621507: 'lanehaus-1',
+  11621509: 'lanehaus-3',
+  12552236: 'villa-saturno',
+  12484483: 'tropicana-a4',
+  12450063: 'tropicana-a5',
+  12566585: 'tropicana-b2',
+  12566586: 'tropicana-b3',
+  12566587: 'tropicana-b5',
+  12566588: 'tropicana-b6',
+};
+
+function copyListingLink(propId) {
+  const slug = SLUGS[propId];
+  if (!slug) return;
+  const url = window.location.origin + '/listing/' + slug;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('share-' + propId);
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    btn.style.color = '#52c87a';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2000);
+  });
+}
+
 // LIGHTBOX
 let lbPhotos = [];
 let lbIndex = 0;
@@ -648,32 +740,58 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeLightbox({target: document.getElementById('lightbox')});
 });
 
-// PRICING DATA
-const PRICING = {
-  // HAUS Canggu – Batu Bolong
-  11621510: { complex: 'HAUS Canggu – Batu Bolong', desc: 'Boutique 1BR apartment', monthly: '30jt / month', yearly: '300jt / year' },
-  11621511: { complex: 'HAUS Canggu – Batu Bolong', desc: 'Boutique 1BR apartment', monthly: '30jt / month', yearly: '300jt / year' },
-  11621512: { complex: 'HAUS Canggu – Batu Bolong', desc: 'Boutique 1BR apartment', monthly: '30jt / month', yearly: '300jt / year' },
-  11621513: { complex: 'HAUS Canggu – Batu Bolong', desc: 'Boutique 1BR apartment', monthly: '30jt / month', yearly: '300jt / year' },
-  // LaneHAUS – Pererenan
-  11621507: { complex: 'LaneHAUS – Pererenan', desc: 'Boutique 1BR townhouse', monthly: '24jt / month', yearly: '240jt / year' },
-  11621509: { complex: 'LaneHAUS – Pererenan', desc: 'Boutique 1BR townhouse', monthly: '22jt / month', yearly: '220jt / year' },
-  // Villa Saturno – Padang Linjong
-  12552236: { complex: 'Villa Saturno – Padang Linjong', desc: '3BR villa with pool', monthly: '40jt / month', yearly: '350jt / year' },
-  // Tropicana Valley – Buduk
-  12484483: { complex: 'Tropicana Valley – Buduk', desc: 'Private pool 1BR villa', monthly: '30jt / month', yearly: '270jt / year' },
-  12450063: { complex: 'Tropicana Valley – Buduk', desc: 'Private pool 1BR villa', monthly: '30jt / month', yearly: '270jt / year' },
-  12566585: { complex: 'Tropicana Valley – Buduk', desc: 'Private pool 1BR villa', monthly: '30jt / month', yearly: '270jt / year' },
-  12566586: { complex: 'Tropicana Valley – Buduk', desc: 'Private pool 1BR villa', monthly: '30jt / month', yearly: '270jt / year' },
-  12566587: { complex: 'Tropicana Valley – Buduk', desc: 'Private pool 1BR villa', monthly: '30jt / month', yearly: '270jt / year' },
-  12566588: { complex: 'Tropicana Valley – Buduk', desc: 'Private pool 1BR villa', monthly: '30jt / month', yearly: '270jt / year' },
+// PROPERTY DATA
+const HAUS = {
+  complex: 'HAUS Canggu – Batu Bolong',
+  location: 'https://maps.app.goo.gl/tMuPXqKHxhbKLDVe6',
+  photos: 'https://drive.google.com/drive/folders/19Fh1nnnN6pvR3Ia4Pd2opB-J1D0hj1fZ?usp=share_link',
+  overview: 'Boutique collection of 8 fully furnished one-bedroom apartments in the heart of Batu Bolong. Steps from cafés, restaurants, and nightlife, yet tucked in a quiet residential lane.',
+  features: ['43–46m² building · 4 are land', '1 Bedroom · 1 Bathroom', 'Large shared swimming pool', 'Outdoor lounge seating', 'Terrazzo bathrooms · Teak & rattan cabinetry', 'Fully equipped kitchen · Air-conditioning', 'High-speed fiber internet · Fully furnished'],
+  inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas (monthly)', 'Electricity (monthly)', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly'],
 };
 
-const INCLUSIONS = [
-  'All properties fully furnished',
-  'Monthly: housekeeping & services included',
-  'Yearly: utilities excluded'
-];
+const LANE = {
+  complex: 'LaneHAUS – Pererenan',
+  location: 'https://maps.app.goo.gl/JGcqfdZMqUXSVjpD9',
+  photos: 'https://drive.google.com/drive/folders/19Fh1nnnN6pvR3Ia4Pd2opB-J1D0hj1fZ?usp=share_link',
+  overview: 'Boutique collection of 3 fully furnished one-bedroom townhouses in central Pererenan. Walkable yet private, ideal for long-term living.',
+  features: ['250m² land', '1 Bedroom · 1 Bathroom', 'Large shared swimming pool', 'XL king beds · Dedicated workspaces', 'Terrazzo floors & bathrooms', 'Fully equipped kitchen · Air-conditioning', '200mbps fiber (dedicated per unit) · Fully furnished'],
+  inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas (monthly)', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly', 'Electricity excluded for yearly'],
+};
+
+const SATURNO = {
+  complex: 'Villa Saturno – Padang Linjong',
+  location: 'https://maps.app.goo.gl/r4833cRt8oEXMjpD9',
+  photos: 'https://drive.google.com/drive/folders/10MCsy3Z83H2zYGjH1JxtTn3dqpkceBd_?usp=share_link',
+  overview: 'Spacious 3-bedroom villa in prime Padang Linjong next to Bali Buddha. Central, walkable, and ideal for long-term living.',
+  features: ['350m² land · 250m² building', '3 Bedrooms · 3 Bathrooms', 'Private swimming pool · Tropical garden', 'Enclosed AC living · Open-concept kitchen', 'Washing machine · Surfboards · Tennis rackets', 'Fully furnished'],
+  inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas (monthly)', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly'],
+};
+
+const TROPICANA = {
+  complex: 'Tropicana Valley – Buduk',
+  location: 'https://maps.app.goo.gl/T78azqdxnspQAnVs5',
+  photos: 'https://drive.google.com/drive/folders/1wd33vK0QUyi0tJOzufMP2L6CsM88Soab?usp=share_link',
+  overview: 'Modern private residences in Buduk offering private outdoor space, quiet surroundings, and proximity to Pererenan and Canggu.',
+  features: ['60m² land · 75m² building', '1 Bedroom · 1 Bathroom', 'Private swimming pool & poolside seating', 'Balcony with bistro table · Dedicated workspace', 'Extra-large two-person wardrobe', 'Fully equipped kitchen · Air-conditioning', 'High-speed fiber internet · Fully furnished'],
+  inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas (monthly)', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly', 'Electricity excluded for yearly'],
+};
+
+const PRICING = {
+  11621510: { ...HAUS, unit: 'Unit 1', monthly: '27jt / month', yearly: '270jt / year' },
+  11621511: { ...HAUS, unit: 'Unit 2', monthly: '27jt / month', yearly: '270jt / year' },
+  11621512: { ...HAUS, unit: 'Unit 4', monthly: '30jt / month', yearly: '300jt / year' },
+  11621513: { ...HAUS, unit: 'Unit 5', monthly: '30jt / month', yearly: '300jt / year' },
+  11621507: { ...LANE, unit: 'Unit 1', monthly: '24jt / month', yearly: '240jt / year', size: '65m²' },
+  11621509: { ...LANE, unit: 'Unit 3', monthly: '22jt / month', yearly: '220jt / year', size: '55m²' },
+  12552236: { ...SATURNO, unit: '', monthly: '40jt / month', yearly: '350jt / year', yearly2: '600jt / 2 years' },
+  12484483: { ...TROPICANA, unit: 'Unit A4', monthly: '30jt / month', yearly: '300jt / year' },
+  12450063: { ...TROPICANA, unit: 'Unit A5', monthly: '30jt / month', yearly: '300jt / year' },
+  12566585: { ...TROPICANA, unit: 'Unit B2', monthly: '30jt / month', yearly: '300jt / year' },
+  12566586: { ...TROPICANA, unit: 'Unit B3', monthly: '30jt / month', yearly: '300jt / year' },
+  12566587: { ...TROPICANA, unit: 'Unit B5', monthly: '30jt / month', yearly: '300jt / year' },
+  12566588: { ...TROPICANA, unit: 'Unit B6', monthly: '30jt / month', yearly: '300jt / year' },
+};
 
 function toggleInfo(id) {
   const panel = document.getElementById('info-' + id);
@@ -774,27 +892,38 @@ function render() {
     const placeholderEl = `<div class="prop-photo-placeholder" style="${p.photo ? 'display:none' : ''}">🏠</div>`;
 
     const info = PRICING[p.id];
-    const infoPanel = info ? `
-      <button class="info-toggle" id="btn-${p.id}" onclick="toggleInfo(${p.id})">
-        <span>Pricing &amp; Details</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
-      </button>
-      <div class="info-panel" id="info-${p.id}">
-        <div class="info-section">
-          <div class="info-section-title">Location</div>
-          <div class="info-row">${info.complex}</div>
-          <div class="info-row" style="color:var(--muted);font-size:0.72rem;margin-top:2px">${info.desc}</div>
-        </div>
-        <div class="info-section">
-          <div class="info-section-title">Pricing</div>
-          <div class="info-row"><span class="info-label">Monthly</span>${info.monthly}</div>
-          <div class="info-row"><span class="info-label">Yearly</span>${info.yearly}</div>
-        </div>
-        <div class="info-note">${INCLUSIONS.map(n => '· ' + n).join('<br>')}</div>
-      </div>` : '';
+    const infoPanel = info ? (
+      '<button class="info-toggle" id="btn-' + p.id + '" onclick="toggleInfo(' + p.id + ')">' +
+        '<span>Details &amp; Pricing</span>' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>' +
+      '</button>' +
+      '<div class="info-panel" id="info-' + p.id + '">' +
+        '<div class="info-overview">' + info.overview + '</div>' +
+        '<div class="info-cols">' +
+          '<div class="info-section">' +
+            '<div class="info-section-title">Pricing' + (info.unit ? ' · ' + info.unit : '') + '</div>' +
+            '<div class="info-row"><span class="info-label">Monthly</span>' + info.monthly + '</div>' +
+            '<div class="info-row"><span class="info-label">Yearly</span>' + info.yearly + '</div>' +
+            (info.yearly2 ? '<div class="info-row"><span class="info-label">2 Years</span>' + info.yearly2 + '</div>' : '') +
+          '</div>' +
+          '<div class="info-section">' +
+            '<div class="info-section-title">Features</div>' +
+            info.features.map(function(f){ return '<div class="info-row">· ' + f + '</div>'; }).join('') +
+          '</div>' +
+          '<div class="info-section">' +
+            '<div class="info-section-title">Monthly Inclusions</div>' +
+            info.inclusions.map(function(f){ return '<div class="info-row">· ' + f + '</div>'; }).join('') +
+          '</div>' +
+        '</div>' +
+        '<div class="info-links">' +
+          '<a href="' + info.photos + '" target="_blank" class="info-link-btn">📷 View Photos</a>' +
+          '<a href="' + info.location + '" target="_blank" class="info-link-btn">📍 View on Maps</a>' +
+        '</div>' +
+      '</div>'
+    ) : '';
 
     const waMsg = encodeURIComponent(`Hi Era, I'd like to schedule a visit for ${p.name}.`);
-    const waUrl = `https://wa.me/628124635778?text=${waMsg}`;
+    const waUrl = `https://wa.me/6281246357778?text=${waMsg}`;
 
     const photoHtml = p.photo
       ? '<img class="prop-photo" src="' + p.photo + '" alt="' + esc(p.name) + '" loading="lazy" onclick="openLightbox(' + p.id + ', \'' + esc(p.name) + '\', \'' + p.photo + '\')" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
@@ -815,6 +944,10 @@ function render() {
         <div class="cal-months">${buildSix(booked)}</div>
       </div>
       ${infoPanel}
+      <div class="share-bar">
+        <a class="share-btn" href="/listing/${SLUGS[p.id] || ''}" target="_blank">🔗 View Listing</a>
+        <button class="share-btn" id="share-${p.id}" onclick="copyListingLink(${p.id})">📋 Copy Link</button>
+      </div>
       <a class="wa-btn" href="${waUrl}" target="_blank" rel="noopener">
         💬 Schedule a Visit with Era
       </a>
