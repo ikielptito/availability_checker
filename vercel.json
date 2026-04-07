@@ -1,7 +1,7 @@
 {
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/listing/:slug", "destination": "/public/listing.html" },
+    { "source": "/listing/(.*)", "destination": "/public/listing.html" },
     { "source": "/(.*)", "destination": "/public/index.html" }
   ]
 }
