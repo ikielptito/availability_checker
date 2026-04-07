@@ -205,7 +205,8 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
     </div>
     <div class="modal-actions">
       <button class="modal-action-btn" id="modal-share-btn" onclick="shareModal()">↗ Share</button>
-      <a class="modal-action-btn modal-wa-btn" id="modal-wa-btn" href="#" target="_blank">💬 Enquire with Era</a>
+<a class="modal-action-btn" id="modal-drive-btn" href="#" target="_blank">📥 Download Photos</a>
+<a class="modal-action-btn modal-wa-btn" id="modal-wa-btn" href="#" target="_blank">💬 Enquire with Era</a>
     </div>
   </div>
 </div>
@@ -295,6 +296,8 @@ function openModal(propId) {
   document.getElementById('modal-inclusions').innerHTML=info.inclusions.map(i=>'<div class="inclusion-row">'+esc(i)+'</div>').join('');
   document.getElementById('map-iframe').src=info.mapEmbed;
   document.getElementById('map-open-btn').href=info.location;
+  document.getElementById('modal-drive-btn').href=
+  'https://drive.google.com/drive/folders/'+info.folder;
   const waMsg=encodeURIComponent('Hi Era, I\'m interested in '+info.name+'. Could you tell me more?');
   document.getElementById('modal-wa-btn').href='https://wa.me/6281246357778?text='+waMsg;
   document.getElementById('modal').classList.add('open');
