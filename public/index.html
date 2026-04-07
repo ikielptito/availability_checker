@@ -503,4 +503,473 @@ async function doRefresh(){
 boot();
 </script>
 </body>
+</html>.swatch{width:24px;height:9px;border-radius:3px}
+.sw-avail{background:var(--avail);border:1px solid rgba(82,200,122,.35)}
+.sw-booked{background:var(--booked);border:1px solid rgba(224,96,96,.35)}
+.sw-today{width:9px;height:9px;border-radius:2px;background:transparent;border:1.5px solid var(--today-ring)}
+.prop-grid{padding:24px 28px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(680px,1fr));gap:18px}
+@media(max-width:760px){.prop-grid{grid-template-columns:1fr;padding:14px}.topbar{padding:0 14px;gap:10px}.search-wrap{width:140px}.legend-bar{padding:9px 14px}}
+.prop-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;animation:fadeUp .3s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.prop-head{padding:14px 20px 12px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border)}
+.prop-name{font-family:'Playfair Display',serif;font-size:1rem;line-height:1.2}
+.prop-type{font-size:.66rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:3px}
+.prop-photo{width:64px;height:64px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);cursor:pointer;transition:opacity .2s}
+.prop-photo:hover{opacity:.8}
+.prop-photo-placeholder{width:64px;height:64px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem}
+.cal-scroll{overflow-x:auto;padding:16px 20px 18px;scrollbar-width:thin;scrollbar-color:var(--subtle) transparent}
+.cal-scroll::-webkit-scrollbar{height:4px}.cal-scroll::-webkit-scrollbar-thumb{background:var(--subtle);border-radius:4px}
+.cal-months{display:flex;gap:18px;min-width:max-content}
+.cal-month{width:165px;flex-shrink:0}
+.cal-month-lbl{font-size:.66rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;text-align:center}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1.5px}
+.dow{font-size:.54rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:center;padding-bottom:4px;font-weight:500}
+.day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:.63rem;border-radius:3px;font-weight:300}
+.day.avail{background:var(--avail);color:var(--avail-text)}
+.day.booked{background:var(--booked);color:var(--booked-text);font-weight:400}
+.day.past{opacity:.25}.day.empty{background:transparent}
+.day.today{outline:1.5px solid var(--today-ring);outline-offset:-1px;font-weight:600;color:var(--today-ring)}
+.card-actions{display:flex;border-top:1px solid var(--border)}
+.action-btn{flex:1;padding:10px 8px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);font-family:'Sora',sans-serif;font-size:.72rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px}
+.action-btn:last-child{border-right:none}.action-btn:hover{color:var(--text);background:var(--surface2)}
+.wa-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px;background:#25d366;color:#fff;border:none;font-family:'Sora',sans-serif;font-size:.8rem;font-weight:500;cursor:pointer;letter-spacing:.04em;transition:background .2s;text-decoration:none}
+.wa-btn:hover{background:#1ebe5d}
+.skel-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.skel-head{padding:14px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.skel-bar{border-radius:4px;background:var(--surface2);animation:shimmer 1.4s ease-in-out infinite}
+@keyframes shimmer{0%,100%{opacity:.5}50%{opacity:1}}
+.skel-body{padding:16px 20px 18px;display:flex;gap:18px}
+.skel-mo{width:165px;flex-shrink:0}.skel-lbl{height:9px;width:60px;margin:0 auto 7px}
+.skel-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1.5px}
+.skel-cell{aspect-ratio:1;border-radius:3px;background:var(--surface2);animation:shimmer 1.4s ease-in-out infinite}
+.empty-state{grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--muted);font-size:.9rem}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+@media(min-width:760px){.modal-overlay{align-items:center}}
+.modal{background:var(--surface);width:100%;max-width:780px;max-height:92vh;border-radius:20px 20px 0 0;overflow:hidden;display:flex;flex-direction:column;animation:slideUp .3s ease}
+@media(min-width:760px){.modal{border-radius:16px;max-height:88vh}}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.modal-header{padding:16px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.15rem}
+.modal-close{background:var(--surface2);border:1px solid var(--border);color:var(--muted);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.modal-close:hover{color:var(--text)}
+.modal-body{overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:var(--subtle) transparent}
+/* CAROUSEL */
+.carousel{position:relative;background:#000;height:260px;flex-shrink:0}
+@media(min-width:760px){.carousel{height:340px}}
+.carousel-img{width:100%;height:100%;object-fit:cover;display:block}
+.carousel-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.carousel-nav:hover{background:rgba(0,0,0,.8)}
+.carousel-prev{left:12px}.carousel-next{right:12px}
+.carousel-counter{position:absolute;bottom:10px;right:12px;background:rgba(0,0,0,.5);color:#fff;font-size:.7rem;padding:3px 8px;border-radius:10px}
+.carousel-loading{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:.82rem;flex-direction:column;gap:10px}
+.carousel-spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+/* MODAL SECTIONS */
+.modal-section{padding:18px 20px;border-bottom:1px solid var(--border)}
+.modal-section:last-child{border-bottom:none}
+.modal-section-title{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;margin-bottom:10px}
+.overview-text{font-size:.85rem;line-height:1.8;color:var(--text)}
+.detail-cols{display:flex;gap:20px;flex-wrap:wrap}
+.detail-col{flex:1;min-width:160px}
+.detail-row{font-size:.78rem;line-height:1.9;color:var(--text);display:flex;gap:6px}
+.detail-row::before{content:'·';color:var(--muted);flex-shrink:0}
+.price-row{display:flex;gap:10px;align-items:baseline;margin-bottom:6px}
+.price-amount{font-family:'Playfair Display',serif;font-size:1.3rem}
+.price-period{font-size:.72rem;color:var(--muted)}
+.inclusion-row{font-size:.78rem;line-height:1.9;color:var(--muted)}
+.inclusion-row::before{content:'✓ ';color:var(--avail-text)}
+/* MAP */
+.map-container{position:relative;height:220px;background:var(--surface2)}
+.map-iframe{width:100%;height:100%;border:none;display:block}
+.map-open-btn{position:absolute;top:10px;right:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'Sora',sans-serif;font-size:.72rem;padding:6px 12px;border-radius:8px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:5px;transition:all .2s}
+.map-open-btn:hover{background:var(--surface2)}
+/* MODAL ACTIONS */
+.modal-actions{display:flex;gap:10px;padding:14px 20px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;flex-wrap:wrap}
+.modal-action-btn{flex:1;min-width:120px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--muted);font-family:'Sora',sans-serif;font-size:.75rem;cursor:pointer;transition:all .2s;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px}
+.modal-action-btn:hover{color:var(--text);border-color:var(--subtle)}
+.modal-wa-btn{background:#25d366;border-color:#25d366;color:#fff;font-weight:500}
+.modal-wa-btn:hover{background:#1ebe5d;border-color:#1ebe5d;color:#fff}
+/* LIGHTBOX */
+.lb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.lb-overlay.open{display:flex}
+.lb-img{max-width:92vw;max-height:80vh;object-fit:contain;border-radius:6px}
+.lb-controls{display:flex;align-items:center;gap:20px}
+.lb-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;width:42px;height:42px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.lb-btn:hover{background:rgba(255,255,255,.22)}
+.lb-counter{color:rgba(255,255,255,.5);font-size:.8rem;min-width:60px;text-align:center}
+.lb-close{position:fixed;top:18px;right:18px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem}
+</style>
+</head>
+<body>
+<div id="loading-screen">
+  <div class="loading-wordmark">Availability</div>
+  <div class="loading-sub">Agent Portal · Loading properties…</div>
+  <div class="loading-spinner"></div>
+</div>
+<div class="error-screen" id="error-screen">
+  <div style="font-size:2.5rem">⚠️</div>
+  <div class="error-title">Could not load properties</div>
+  <div class="error-msg" id="error-detail">Check that HOSTEX_TOKEN is set in Vercel environment variables.</div>
+</div>
+<div id="app">
+  <div class="topbar">
+    <span class="topbar-brand">Availability</span>
+    <span class="topbar-count" id="prop-count"></span>
+    <div class="spacer"></div>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search-input" id="search" placeholder="Filter properties…" oninput="doFilter()" />
+    </div>
+    <div class="live-pill"><div class="live-dot"></div>Live</div>
+    <button class="refresh-btn" onclick="doRefresh()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh
+    </button>
+  </div>
+  <div class="legend-bar">
+    <div class="legend-item"><div class="swatch sw-avail"></div>Available</div>
+    <div class="legend-item"><div class="swatch sw-booked"></div>Booked</div>
+    <div class="legend-item"><div class="swatch sw-today"></div>Today</div>
+  </div>
+  <div class="prop-grid" id="grid"></div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title"></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="carousel" id="carousel">
+        <div class="carousel-loading" id="carousel-loading"><div class="carousel-spinner"></div><span>Loading photos…</span></div>
+        <img class="carousel-img" id="carousel-img" src="" alt="" style="display:none" />
+        <button class="carousel-nav carousel-prev" onclick="carNav(-1)" style="display:none" id="carousel-prev">←</button>
+        <button class="carousel-nav carousel-next" onclick="carNav(1)" style="display:none" id="carousel-next">→</button>
+        <div class="carousel-counter" id="carousel-counter" style="display:none"></div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Overview</div>
+        <div class="overview-text" id="modal-overview"></div>
+      </div>
+      <div class="modal-section">
+        <div class="detail-cols" id="modal-details"></div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Pricing</div>
+        <div id="modal-pricing"></div>
+        <div style="margin-top:12px">
+          <div class="modal-section-title" style="margin-bottom:6px">Monthly Inclusions</div>
+          <div id="modal-inclusions"></div>
+        </div>
+      </div>
+      <div class="modal-section" style="padding:0">
+        <div class="map-container">
+          <iframe class="map-iframe" id="map-iframe" src="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <a class="map-open-btn" id="map-open-btn" href="#" target="_blank">📍 Open in Maps</a>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-action-btn" id="modal-share-btn" onclick="shareModal()">↗ Share</button>
+      <a class="modal-action-btn modal-wa-btn" id="modal-wa-btn" href="#" target="_blank">💬 Enquire with Era</a>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lb-overlay" id="lb" onclick="lbClickOverlay(event)">
+  <button class="lb-close" onclick="closeLb()">✕</button>
+  <img class="lb-img" id="lb-img" src="" alt="" />
+  <div class="lb-controls">
+    <button class="lb-btn" onclick="lbNav(-1)">←</button>
+    <span class="lb-counter" id="lb-counter"></span>
+    <button class="lb-btn" onclick="lbNav(1)">→</button>
+  </div>
+</div>
+
+<script>
+let properties=[], avail={}, query='';
+const TODAY=new Date(); TODAY.setHours(0,0,0,0);
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOWS=['Su','Mo','Tu','We','Th','Fr','Sa'];
+const p2=n=>String(n).padStart(2,'0');
+const ds=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const todayStr=ds(TODAY);
+
+const HAUS={
+  tag:'Batu Bolong · Canggu',location:'https://maps.app.goo.gl/tMuPXqKHxhbKLDVe6',
+  mapEmbed:'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3946.4!2d115.1429!3d-8.6419!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOMKwMzgnMzEuMCJTIDExNcKwMDgnMzQuNiJF!5e0!3m2!1sen!2sid!4v1',
+  overview:'Boutique collection of 8 fully furnished one-bedroom apartments in the heart of Batu Bolong. Steps from cafés, restaurants, and nightlife, yet tucked in a quiet residential lane.',
+  features:['43–46m² building · 4 are land','1 Bedroom · 1 Bathroom','Large shared swimming pool','Outdoor lounge seating','Terrazzo bathrooms · Teak & rattan cabinetry','Fully equipped kitchen · Air-conditioning','High-speed fiber internet · Fully furnished'],
+  inclusions:['400mbps fibre internet','Drinking water & cooking gas','Electricity','Banjar fee & trash collection','Housekeeping 2× weekly','Linen & towels changed weekly'],
+};
+const LANE={
+  tag:'Pererenan',location:'https://maps.app.goo.gl/JGcqfdZMqUXSVjpD9',
+  mapEmbed:'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3946.4!2d115.1348!3d-8.6283!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOMKwMzcnNDIuMCJTIDExNcKwMDgnMDMuMyJF!5e0!3m2!1sen!2sid!4v1',
+  overview:'Boutique collection of 3 fully furnished one-bedroom townhouses in central Pererenan. Walkable yet private, ideal for long-term living.',
+  features:['250m² land','1 Bedroom · 1 Bathroom','Large shared swimming pool','XL king beds · Dedicated workspaces','Terrazzo floors & bathrooms','Fully equipped kitchen · Air-conditioning','200mbps fiber (dedicated per unit) · Fully furnished'],
+  inclusions:['400mbps fibre internet','Drinking water & cooking gas','Banjar fee & trash collection','Housekeeping 2× weekly','Linen & towels changed weekly','Electricity excluded for yearly'],
+};
+const SATURNO={
+  tag:'Padang Linjong · Canggu',location:'https://maps.app.goo.gl/r4833cRt8oEXMjpD9',
+  mapEmbed:'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3946.4!2d115.1353!3d-8.6469!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOMKwMzgnNDkuNiJTIDExNcKwMDgnMDcuMyJF!5e0!3m2!1sen!2sid!4v1',
+  overview:'Spacious 3-bedroom villa in prime Padang Linjong next to Bali Buddha. Central, walkable, and ideal for long-term living.',
+  features:['350m² land · 250m² building','3 Bedrooms · 3 Bathrooms','Private swimming pool · Tropical garden','Enclosed AC living · Open-concept kitchen','Washing machine · Surfboards · Tennis rackets','Fully furnished'],
+  inclusions:['400mbps fibre internet','Drinking water & cooking gas','Banjar fee & trash collection','Housekeeping 2× weekly','Linen & towels changed weekly'],
+};
+const TROPICANA={
+  tag:'Buduk · Near Canggu',location:'https://maps.app.goo.gl/T78azqdxnspQAnVs5',
+  mapEmbed:'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3946.4!2d115.1549!3d-8.6153!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOMKwMzYnNTUuMSJTIDExNcKwMDknMTcuNiJF!5e0!3m2!1sen!2sid!4v1',
+  overview:'Modern private residences in Buduk offering private outdoor space, quiet surroundings, and proximity to Pererenan and Canggu.',
+  features:['60m² land · 75m² building','1 Bedroom · 1 Bathroom','Private swimming pool & poolside seating','Balcony with bistro table · Dedicated workspace','Extra-large two-person wardrobe','Fully equipped kitchen · Air-conditioning','High-speed fiber internet · Fully furnished'],
+  inclusions:['400mbps fibre internet','Drinking water & cooking gas','Banjar fee & trash collection','Housekeeping 2× weekly','Linen & towels changed weekly','Electricity excluded for yearly'],
+};
+
+const PROPS={
+  11621510:{...HAUS,name:'HAUS Canggu – Unit 1',monthly:'27jt',yearly:'270jt',folder:'1xkEkRprYDCIfSCwCmfuPgcszI5kakOKF'},
+  11621511:{...HAUS,name:'HAUS Canggu – Unit 2',monthly:'27jt',yearly:'270jt',folder:'11Pr1akQilpBkgT37BhbajsneP7Ekijmu'},
+  11621512:{...HAUS,name:'HAUS Canggu – Unit 4',monthly:'30jt',yearly:'300jt',folder:'1qpdTd5oDxIbGkISxgSTKNJ3BtYM_aDEw'},
+  11621513:{...HAUS,name:'HAUS Canggu – Unit 5',monthly:'30jt',yearly:'300jt',folder:'1mxfot6q9JVF2C22wPpVzyNP8zVotJURr'},
+  11621507:{...LANE,name:'LaneHAUS – Unit 1',monthly:'24jt',yearly:'240jt',folder:'1f6mhoH36L-uY5ncGq5LHhq2_dMS_20cd'},
+  11621509:{...LANE,name:'LaneHAUS – Unit 3',monthly:'22jt',yearly:'220jt',folder:'1OY71DdG07xakOCCMZJAz4CqiI4EQm24F'},
+  12552236:{...SATURNO,name:'Villa Saturno',monthly:'40jt',yearly:'350jt',yearly2:'600jt',folder:'19Fh1nnnN6pvR3Ia4Pd2opB-J1D0hj1fZ'},
+  12484483:{...TROPICANA,name:'Tropicana Valley – A4',monthly:'30jt',yearly:'300jt',folder:'1voeHZet0DspSnBeLeAIWarz-FPqUCUAr'},
+  12450063:{...TROPICANA,name:'Tropicana Valley – A5',monthly:'30jt',yearly:'300jt',folder:'1voeHZet0DspSnBeLeAIWarz-FPqUCUAr'},
+  12566585:{...TROPICANA,name:'Tropicana Valley – B2',monthly:'30jt',yearly:'300jt',folder:'1voeHZet0DspSnBeLeAIWarz-FPqUCUAr'},
+  12566586:{...TROPICANA,name:'Tropicana Valley – B3',monthly:'30jt',yearly:'300jt',folder:'1voeHZet0DspSnBeLeAIWarz-FPqUCUAr'},
+  12566587:{...TROPICANA,name:'Tropicana Valley – B5',monthly:'30jt',yearly:'300jt',folder:'1voeHZet0DspSnBeLeAIWarz-FPqUCUAr'},
+  12566588:{...TROPICANA,name:'Tropicana Valley – B6',monthly:'30jt',yearly:'300jt',folder:'1voeHZet0DspSnBeLeAIWarz-FPqUCUAr'},
+  12606732:{...TROPICANA,name:'Tropicana Valley – B4',monthly:'30jt',yearly:'300jt',folder:'1voeHZet0DspSnBeLeAIWarz-FPqUCUAr'},
+};
+
+// ── MODAL ──
+let modalPropId=null, carPhotos=[], carIdx=0;
+
+function openModal(propId) {
+  const info=PROPS[propId]; if(!info) return;
+  modalPropId=propId;
+  document.getElementById('modal-title').textContent=info.name;
+  document.getElementById('modal-overview').textContent=info.overview;
+  document.getElementById('modal-details').innerHTML=
+    '<div class="detail-col"><div class="modal-section-title">Features</div>'+
+    info.features.map(f=>'<div class="detail-row">'+esc(f)+'</div>').join('')+'</div>';
+  let ph='<div class="price-row"><span class="price-amount">'+info.monthly+'</span><span class="price-period">/ month</span></div>'+
+         '<div class="price-row"><span class="price-amount">'+info.yearly+'</span><span class="price-period">/ year</span></div>';
+  if(info.yearly2) ph+='<div class="price-row"><span class="price-amount">'+info.yearly2+'</span><span class="price-period">/ 2 years</span></div>';
+  document.getElementById('modal-pricing').innerHTML=ph;
+  document.getElementById('modal-inclusions').innerHTML=info.inclusions.map(i=>'<div class="inclusion-row">'+esc(i)+'</div>').join('');
+  document.getElementById('map-iframe').src=info.mapEmbed;
+  document.getElementById('map-open-btn').href=info.location;
+  const waMsg=encodeURIComponent('Hi Era, I\'m interested in '+info.name+'. Could you tell me more?');
+  document.getElementById('modal-wa-btn').href='https://wa.me/6281246357778?text='+waMsg;
+  document.getElementById('modal').classList.add('open');
+  document.body.style.overflow='hidden';
+  loadCarousel(propId,info.folder);
+}
+
+function closeModal(e) {
+  if(e && e.target!==document.getElementById('modal')) return;
+  document.getElementById('modal').classList.remove('open');
+  document.body.style.overflow='';
+  document.getElementById('carousel-img').style.display='none';
+  document.getElementById('carousel-loading').style.display='flex';
+  document.getElementById('carousel-loading').innerHTML='<div class="carousel-spinner"></div><span>Loading photos…</span>';
+  document.getElementById('carousel-prev').style.display='none';
+  document.getElementById('carousel-next').style.display='none';
+  document.getElementById('carousel-counter').style.display='none';
+  document.getElementById('map-iframe').src='';
+  carPhotos=[]; carIdx=0;
+}
+
+async function loadCarousel(propId,folderId) {
+  carPhotos=[]; carIdx=0;
+  document.getElementById('carousel-img').style.display='none';
+  document.getElementById('carousel-loading').style.display='flex';
+  document.getElementById('carousel-prev').style.display='none';
+  document.getElementById('carousel-next').style.display='none';
+  document.getElementById('carousel-counter').style.display='none';
+  const prop=properties.find(p=>p.id==propId);
+  if(prop&&prop.photo){carPhotos=[prop.photo];showCarPhoto();}
+  try {
+    const r=await fetch('/api/gdrive?folder='+folderId);
+    const d=await r.json();
+    if(d.photos&&d.photos.length){carPhotos=d.photos.map(p=>p.url);carIdx=0;showCarPhoto();}
+  } catch(e){}
+  if(!carPhotos.length) document.getElementById('carousel-loading').innerHTML='<span style="color:var(--muted)">No photos available yet</span>';
+}
+
+function showCarPhoto() {
+  const img=document.getElementById('carousel-img');
+  document.getElementById('carousel-loading').style.display='none';
+  img.style.display='block'; img.src=carPhotos[carIdx];
+  if(carPhotos.length>1){
+    document.getElementById('carousel-prev').style.display='flex';
+    document.getElementById('carousel-next').style.display='flex';
+    document.getElementById('carousel-counter').style.display='block';
+    document.getElementById('carousel-counter').textContent=(carIdx+1)+' / '+carPhotos.length;
+  }
+}
+
+function carNav(dir){carIdx=(carIdx+dir+carPhotos.length)%carPhotos.length;showCarPhoto();}
+
+function shareModal() {
+  const info=PROPS[modalPropId]; if(!info) return;
+  const btn=document.getElementById('modal-share-btn');
+  const text=info.name+'\n'+info.tag+'\n\n'+info.monthly+' / month\n'+info.yearly+' / year'+(info.yearly2?'\n'+info.yearly2+' / 2 years':'')+'\n\nEnquire with Era: https://wa.me/6281246357778';
+  if(navigator.share){
+    navigator.share({title:info.name,text});
+  } else {
+    navigator.clipboard.writeText(text).then(()=>{
+      btn.textContent='✓ Copied!';
+      setTimeout(()=>{btn.textContent='↗ Share';},2000);
+    });
+  }
+}
+
+// ── CARD SHARE ──
+function shareCard(propId,name) {
+  const info=PROPS[propId];
+  const btn=event.target;
+  const text=name+(info?'\n'+info.tag+'\n\n'+info.monthly+' / month\n'+info.yearly+' / year'+'\n\nEnquire with Era: https://wa.me/6281246357778':'');
+  if(navigator.share){
+    navigator.share({title:name,text});
+  } else {
+    navigator.clipboard.writeText(text).then(()=>{
+      const orig=btn.textContent; btn.textContent='✓ Copied!';
+      setTimeout(()=>{btn.textContent=orig;},2000);
+    });
+  }
+}
+
+// ── LIGHTBOX ──
+let lbPhotos=[], lbIdx=0;
+function openLightbox(propId,name,coverUrl) {
+  lbPhotos=coverUrl?[coverUrl]:[]; lbIdx=0;
+  if(!lbPhotos.length) return;
+  document.getElementById('lb-img').src=lbPhotos[0];
+  document.getElementById('lb-counter').textContent='1 / 1';
+  document.getElementById('lb').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeLb(){document.getElementById('lb').classList.remove('open');document.body.style.overflow='';}
+function lbClickOverlay(e){if(e.target===document.getElementById('lb'))closeLb();}
+function lbNav(dir){lbIdx=(lbIdx+dir+lbPhotos.length)%lbPhotos.length;document.getElementById('lb-img').src=lbPhotos[lbIdx];document.getElementById('lb-counter').textContent=(lbIdx+1)+' / '+lbPhotos.length;}
+
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('lb').classList.contains('open')){
+    if(e.key==='ArrowRight')lbNav(1);if(e.key==='ArrowLeft')lbNav(-1);if(e.key==='Escape')closeLb();
+  }
+  if(document.getElementById('modal').classList.contains('open')&&e.key==='Escape')closeModal({target:null});
+});
+
+// ── API ──
+async function boot() {
+  try {
+    const r=await fetch('/api/properties');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    const items=d.data?.properties||d.data?.items||d.data||d.items||[];
+    if(!items.length) throw new Error('No properties returned');
+    properties=items.map(p=>({id:p.id||p.property_id,name:p.name||p.title||'Unnamed',type:p.property_type||p.room_type||'',photo:p.cover?.large_url||p.cover?.original_url||''}));
+    document.getElementById('loading-screen').style.display='none';
+    document.getElementById('app').classList.add('on');
+    document.getElementById('prop-count').textContent=properties.length+' propert'+(properties.length===1?'y':'ies');
+    showSkeletons(); await loadAll(); render();
+  } catch(e) {
+    document.getElementById('loading-screen').style.display='none';
+    document.getElementById('error-detail').textContent=e.message;
+    document.getElementById('error-screen').classList.add('show');
+  }
+}
+
+async function fetchAvail(propId) {
+  const start=ds(TODAY);
+  const endD=new Date(TODAY.getFullYear(),TODAY.getMonth()+6,0);
+  const r=await fetch('/api/calendar?id='+propId+'&start_date='+start+'&end_date='+ds(endD));
+  if(!r.ok) return new Set();
+  const d=await r.json();
+  const items=d.data?.items||d.data||d.items||[];
+  const booked=new Set();
+  items.forEach(day=>{if(day.status==='booked'||day.available===false||day.blocked===true)booked.add(day.date||day.day);});
+  return booked;
+}
+
+async function loadAll() {
+  await Promise.all(properties.map(async p=>{
+    try{avail[p.id]=await fetchAvail(p.id);}catch{avail[p.id]=new Set();}
+  }));
+}
+
+function showSkeletons() {
+  const sk=()=>'<div class="skel-mo"><div class="skel-bar skel-lbl"></div><div class="skel-grid">'+Array(35).fill('<div class="skel-cell"></div>').join('')+'</div></div>';
+  document.getElementById('grid').innerHTML=properties.map(()=>'<div class="skel-card"><div class="skel-head"><div style="flex:1"><div class="skel-bar" style="height:13px;width:50%;margin-bottom:6px"></div><div class="skel-bar" style="height:8px;width:28%"></div></div></div><div class="skel-body">'+Array(6).fill(0).map(sk).join('')+'</div></div>').join('');
+}
+
+function render() {
+  const grid=document.getElementById('grid');
+  const q=query.toLowerCase();
+  const filtered=properties.filter(p=>p.name.toLowerCase().includes(q)||(p.type||'').toLowerCase().includes(q));
+  if(!filtered.length){grid.innerHTML='<div class="empty-state">No properties match "'+esc(query)+'"</div>';return;}
+  grid.innerHTML=filtered.map((p,i)=>{
+    const booked=avail[p.id]||new Set();
+    const info=PROPS[p.id];
+    const photoHtml=p.photo?'<img class="prop-photo" src="'+p.photo+'" alt="'+esc(p.name)+'" loading="lazy" onclick="openLightbox('+p.id+',\''+esc(p.name)+'\',\''+p.photo+'\')" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">':'';
+    const phStyle=p.photo?'display:none':'';
+    const waMsg=encodeURIComponent('Hi Era, I\'d like to schedule a visit for '+p.name+'.');
+    const waUrl='https://wa.me/6281246357778?text='+waMsg;
+    return '<div class="prop-card" style="animation-delay:'+i*0.04+'s">'
+      +'<div class="prop-head">'+photoHtml
+      +'<div class="prop-photo-placeholder" style="'+phStyle+'">🏠</div>'
+      +'<div style="flex:1;min-width:0"><div class="prop-name">'+esc(p.name)+'</div>'
+      +(p.type?'<div class="prop-type">'+esc(p.type)+'</div>':'')
+      +(info?'<div style="font-size:.68rem;color:var(--muted);margin-top:3px">'+info.tag+'</div>':'')
+      +'</div></div>'
+      +'<div class="cal-scroll"><div class="cal-months">'+buildSix(booked)+'</div></div>'
+      +'<div class="card-actions">'
+      +(info?'<button class="action-btn" onclick="openModal('+p.id+')">ℹ️ Details & Photos</button>':'')
+      +'<button class="action-btn" onclick="shareCard('+p.id+',\''+esc(p.name)+'\')">↗ Share</button>'
+      +'</div>'
+      +'<a class="wa-btn" href="'+waUrl+'" target="_blank" rel="noopener">💬 Schedule a Visit with Era</a>'
+      +'</div>';
+  }).join('');
+}
+
+function buildSix(booked) {
+  let html='';
+  for(let m=0;m<6;m++){
+    const d=new Date(TODAY.getFullYear(),TODAY.getMonth()+m,1);
+    html+='<div class="cal-month"><div class="cal-month-lbl">'+MONTHS[d.getMonth()]+' '+d.getFullYear()+'</div>'+buildMonth(d.getFullYear(),d.getMonth(),booked)+'</div>';
+  }
+  return html;
+}
+
+function buildMonth(year,month,booked) {
+  const firstDow=new Date(year,month,1).getDay();
+  const days=new Date(year,month+1,0).getDate();
+  let html='<div class="cal-grid">';
+  DOWS.forEach(d=>{html+='<div class="dow">'+d+'</div>';});
+  for(let i=0;i<firstDow;i++)html+='<div class="day empty"></div>';
+  for(let d=1;d<=days;d++){
+    const key=year+'-'+p2(month+1)+'-'+p2(d);
+    let cls=booked.has(key)?'booked':'avail';
+    if(key<todayStr)cls+=' past';
+    if(key===todayStr)cls+=' today';
+    html+='<div class="day '+cls+'" title="'+key+'">'+d+'</div>';
+  }
+  return html+'</div>';
+}
+
+function doFilter(){query=document.getElementById('search').value;render();}
+async function doRefresh(){
+  const btn=document.querySelector('.refresh-btn');btn.style.opacity='.5';
+  avail={};showSkeletons();await loadAll();render();btn.style.opacity='';
+}
+
+boot();
+</script>
+</body>
 </html>
