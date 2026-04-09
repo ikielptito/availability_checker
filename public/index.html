@@ -296,6 +296,7 @@ function openModal(propId) {
   document.getElementById('modal-inclusions').innerHTML=info.inclusions.map(i=>'<div class="inclusion-row">'+esc(i)+'</div>').join('');
   document.getElementById('map-iframe').src=info.mapEmbed;
   document.getElementById('map-open-btn').href=info.location;
+  document.getElementById('modal-drive-btn').href='https://drive.google.com/drive/folders/'+info.folder;
   const waMsg=encodeURIComponent('Hi Era, I\'m interested in '+info.name+'. Could you tell me more?');
   document.getElementById('modal-wa-btn').href='https://wa.me/6281246357778?text='+waMsg;
   document.getElementById('modal').classList.add('open');
