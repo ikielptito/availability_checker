@@ -88,14 +88,16 @@ export default async function handler(req, res) {
     propKeys.push(`prop:${id}:details_open`);
     propKeys.push(`prop:${id}:share`);
     propKeys.push(`prop:${id}:whatsapp_click`);
+    propKeys.push(`prop:${id}:photo_download`);
   }
   const propVals = await mget(propKeys);
   const properties = propIds.map((id, i) => ({
     id, name: propNames[id],
-    views: propVals[i * 4],
-    details: propVals[i * 4 + 1],
-    shares: propVals[i * 4 + 2],
-    whatsapp: propVals[i * 4 + 3],
+    views: propVals[i * 5],
+    details: propVals[i * 5 + 1],
+    shares: propVals[i * 5 + 2],
+    whatsapp: propVals[i * 5 + 3],
+    downloads: propVals[i * 5 + 4],
   })).sort((a, b) => b.views - a.views);
 
   // ── RECENT EVENTS ──
