@@ -205,6 +205,11 @@ function render(data) {
         <div class="stat-value">${fmt(totals.photo_view)}</div>
         <div class="stat-sub">gallery opens</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-label">Unique Agents</div>
+        <div class="stat-value" style="color:var(--green)">${fmt(totals.unique_agents_total)}</div>
+        <div class="stat-sub">${fmt(totals.unique_agents_today)} today</div>
+      </div>
     </div>
 
     <!-- ACTIVITY CHART -->
