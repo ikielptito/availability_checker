@@ -235,6 +235,7 @@ function render(data) {
             <th>Details</th>
             <th>Shares</th>
             <th>WhatsApp</th>
+            <th>Downloads</th>
             <th style="width:100px">Interest</th>
           </tr>
         </thead>
@@ -247,6 +248,7 @@ function render(data) {
               <td><span style="color:var(--green)">${fmt(p.details)}</span></td>
               <td><span style="color:var(--yellow)">${fmt(p.shares)}</span></td>
               <td><span style="color:var(--orange)">${fmt(p.whatsapp)}</span></td>
+              <td><span style="color:var(--accent)">${fmt(p.downloads)}</span></td>
               <td>
                 <div class="bar-wrap">
                   <div class="bar-fill" style="width:${Math.round((p.views/maxViews)*100)}%"></div>
