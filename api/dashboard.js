@@ -62,6 +62,17 @@ export default async function handler(req, res) {
   const totals = {};
   [...events, 'sessions'].forEach((e, i) => totals[e] = totalVals[i]);
 
+  // ── UNIQUE AGENTS ──
+  async function scard(key) {
+    const r = await fetch(`${url}/scard/${encodeURIComponent(key)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const d = await r.json();
+    return parseInt(d.result || 0);
+  }
+  totals.unique_agents_today = await scard(`unique:agents:${days[days.length-1]}`);
+  totals.unique_agents_total = await scard('unique:agents:all');
+
   // ── DAILY SERIES (for chart) ──
   const seriesKeys = [];
   for (const day of days) {
