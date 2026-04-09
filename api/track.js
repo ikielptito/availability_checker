@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const token = process.env.KV_REST_API_TOKEN;
   if (!url || !token) return res.status(500).json({ error: 'Redis not configured' });
 
-  const { event, propId, propName } = req.body || {};
+  const { event, propId, propName, agentId } = req.body || {};
   if (!event) return res.status(400).json({ error: 'Missing event' });
 
   const now = Date.now();
@@ -58,7 +58,14 @@ export default async function handler(req, res) {
     keys.push(incr(`prop:${propId}:day:${day}:${event}`));
     keys.push(incr(`prop:${propId}:month:${month}:${event}`));
   }
-
+if (agentId) {
+    await fetch(`${url}/sadd/unique:agents:${day}/${encodeURIComponent(agentId)}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }
+    });
+    await fetch(`${url}/sadd/unique:agents:all/${encodeURIComponent(agentId)}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }
+    });
+  }
   // Recent event log
   keys.push(lpush('events:recent', { event, propId, propName, ts: now, day }));
 
