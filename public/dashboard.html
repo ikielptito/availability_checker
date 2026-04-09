@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics — Samba Rentals</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Sora:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1117;--surface:#181c27;--surface2:#1f2333;--border:#2a2f42;--text:#e8eaf2;--muted:#5a607a;--accent:#4a7cf7;--green:#52c87a;--red:#e06060;--yellow:#f0c060;--orange:#e08040;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+/* LOGIN */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse 60% 40% at 70% 30%,rgba(74,124,247,0.08) 0%,transparent 60%),var(--bg);}
+.login-box{width:100%;max-width:360px;padding:0 20px;}
+.login-brand{font-family:'Playfair Display',serif;font-size:1.8rem;margin-bottom:6px;background:linear-gradient(135deg,#e8eaf2 0%,#8090c0 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.login-sub{font-size:0.72rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:32px;}
+.login-label{font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:block;}
+.login-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 16px;font-family:'Sora',sans-serif;font-size:0.85rem;color:var(--text);outline:none;transition:border-color 0.2s;}
+.login-input:focus{border-color:var(--accent);}
+.login-btn{margin-top:14px;width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:0.85rem;font-weight:500;cursor:pointer;transition:opacity 0.2s;}
+.login-btn:hover{opacity:0.88;}
+.login-err{margin-top:10px;color:var(--red);font-size:0.78rem;text-align:center;}
+
+/* APP */
+#app{display:none;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;gap:16px;}
+.topbar-brand{font-family:'Playfair Display',serif;font-size:1rem;color:var(--text);}
+.spacer{flex:1;}
+.period-btns{display:flex;gap:4px;}
+.period-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:5px 12px;font-family:'Sora',sans-serif;font-size:0.72rem;cursor:pointer;transition:all 0.2s;}
+.period-btn.active,.period-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff;}
+.refresh-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:5px 12px;font-family:'Sora',sans-serif;font-size:0.72rem;cursor:pointer;transition:all 0.2s;}
+.refresh-btn:hover{color:var(--text);}
+
+.content{padding:24px 28px 60px;max-width:1200px;margin:0 auto;}
+@media(max-width:640px){.content{padding:16px;}.topbar{padding:0 16px;}}
+
+/* STAT CARDS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:28px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+.stat-label{font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.stat-value{font-family:'Playfair Display',serif;font-size:1.8rem;line-height:1;}
+.stat-sub{font-size:0.7rem;color:var(--muted);margin-top:4px;}
+
+/* CHART */
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:28px;}
+.card-title{font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.chart-wrap{overflow-x:auto;}
+.chart-legend{display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:0.7rem;color:var(--muted);}
+.legend-dot{width:8px;height:8px;border-radius:50%;}
+canvas{display:block;}
+
+/* PROPERTY TABLE */
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:28px;}
+.table-header{padding:14px 20px;border-bottom:1px solid var(--border);font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
+table{width:100%;border-collapse:collapse;}
+th{padding:10px 20px;text-align:left;font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);}
+td{padding:11px 20px;font-size:0.82rem;border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--surface2);}
+.prop-rank{color:var(--muted);font-size:0.7rem;width:24px;}
+.bar-wrap{width:80px;background:var(--surface2);border-radius:3px;height:6px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;background:var(--accent);}
+.metric-pill{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border-radius:4px;padding:2px 7px;font-size:0.7rem;color:var(--muted);}
+
+/* RECENT EVENTS */
+.events-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.event-row{padding:10px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;font-size:0.78rem;}
+.event-row:last-child{border-bottom:none;}
+.event-icon{width:28px;height:28px;border-radius:6px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;}
+.event-name{flex:1;}
+.event-prop{color:var(--muted);font-size:0.7rem;}
+.event-time{color:var(--muted);font-size:0.68rem;white-space:nowrap;}
+
+.loading-state{padding:40px;text-align:center;color:var(--muted);}
+.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-box">
+    <div class="login-brand">Analytics</div>
+    <div class="login-sub">Samba Rentals · Owner Dashboard</div>
+    <label class="login-label">Password</label>
+    <input class="login-input" id="pwd" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" />
+    <button class="login-btn" onclick="doLogin()">Access Dashboard</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <span class="topbar-brand">Analytics</span>
+    <div class="spacer"></div>
+    <div class="period-btns">
+      <button class="period-btn active" onclick="setPeriod('7d',this)">7 days</button>
+      <button class="period-btn" onclick="setPeriod('30d',this)">30 days</button>
+      <button class="period-btn" onclick="setPeriod('90d',this)">90 days</button>
+      <button class="period-btn" onclick="setPeriod('all',this)">All time</button>
+    </div>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+
+  <div class="content">
+    <div id="dash-content">
+      <div class="loading-state"><div class="spinner"></div>Loading analytics…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let authToken = '';
+let currentPeriod = '7d';
+
+function doLogin() {
+  const pwd = document.getElementById('pwd').value.trim();
+  if (!pwd) return;
+  authToken = pwd;
+  loadData();
+}
+
+function setPeriod(p, btn) {
+  currentPeriod = p;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadData();
+}
+
+async function loadData() {
+  try {
+    const r = await fetch('/api/dashboard?period=' + currentPeriod, {
+      headers: { Authorization: 'Bearer ' + authToken }
+    });
+    if (r.status === 401) {
+      document.getElementById('login-err').textContent = 'Incorrect password.';
+      return;
+    }
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    const data = await r.json();
+    render(data);
+  } catch(e) {
+    document.getElementById('login-err').textContent = 'Could not connect.';
+  }
+}
+
+const EVENT_ICONS = {
+  page_view: '👁', details_open: 'ℹ️', share: '↗', whatsapp_click: '💬',
+  photo_view: '📷', refresh: '↻', sessions: '🔑'
+};
+const EVENT_LABELS = {
+  page_view: 'Page View', details_open: 'Details Opened', share: 'Share', whatsapp_click: 'WhatsApp',
+  photo_view: 'Photos Viewed', refresh: 'Refresh', sessions: 'Sessions'
+};
+
+function render(data) {
+  const { totals, series, properties, recent, period } = data;
+  const periodLabel = {
+    '7d':'last 7 days','30d':'last 30 days','90d':'last 90 days','all':'all time'
+  }[period] || period;
+
+  const maxViews = Math.max(...properties.map(p => p.views), 1);
+
+  // Calculate engagement rate
+  const engRate = totals.page_view > 0 ? Math.round((totals.details_open / totals.page_view) * 100) : 0;
+  const shareRate = totals.page_view > 0 ? Math.round((totals.share / totals.page_view) * 100) : 0;
+  const waRate = totals.page_view > 0 ? Math.round((totals.whatsapp_click / totals.page_view) * 100) : 0;
+
+  document.getElementById('dash-content').innerHTML = `
+    <!-- STAT CARDS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Sessions</div>
+        <div class="stat-value" style="color:var(--accent)">${fmt(totals.sessions)}</div>
+        <div class="stat-sub">${periodLabel}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Property Views</div>
+        <div class="stat-value">${fmt(totals.page_view)}</div>
+        <div class="stat-sub">card impressions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Details Opened</div>
+        <div class="stat-value" style="color:var(--green)">${fmt(totals.details_open)}</div>
+        <div class="stat-sub">${engRate}% engagement rate</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Shares</div>
+        <div class="stat-value" style="color:var(--yellow)">${fmt(totals.share)}</div>
+        <div class="stat-sub">${shareRate}% share rate</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">WhatsApp Clicks</div>
+        <div class="stat-value" style="color:var(--orange)">${fmt(totals.whatsapp_click)}</div>
+        <div class="stat-sub">${waRate}% conversion rate</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Photos Viewed</div>
+        <div class="stat-value">${fmt(totals.photo_view)}</div>
+        <div class="stat-sub">gallery opens</div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY CHART -->
+    <div class="chart-card">
+      <div class="card-title">
+        Daily Activity
+      </div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Sessions</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Details Opened</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>Shares</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>WhatsApp</div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="activity-chart" height="180"></canvas>
+      </div>
+    </div>
+
+    <!-- PROPERTY PERFORMANCE -->
+    <div class="table-card">
+      <div class="table-header">Property Performance</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Property</th>
+            <th>Views</th>
+            <th>Details</th>
+            <th>Shares</th>
+            <th>WhatsApp</th>
+            <th style="width:100px">Interest</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${properties.map((p, i) => `
+            <tr>
+              <td class="prop-rank">${i + 1}</td>
+              <td style="font-weight:500">${p.name}</td>
+              <td>${fmt(p.views)}</td>
+              <td><span style="color:var(--green)">${fmt(p.details)}</span></td>
+              <td><span style="color:var(--yellow)">${fmt(p.shares)}</span></td>
+              <td><span style="color:var(--orange)">${fmt(p.whatsapp)}</span></td>
+              <td>
+                <div class="bar-wrap">
+                  <div class="bar-fill" style="width:${Math.round((p.views/maxViews)*100)}%"></div>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- RECENT EVENTS -->
+    <div class="events-card">
+      <div class="table-header">Recent Activity (last 50 events)</div>
+      ${recent.length === 0 ? '<div class="loading-state" style="padding:20px">No events recorded yet. Activity will appear here once agents start using the portal.</div>' :
+        recent.map(e => `
+          <div class="event-row">
+            <div class="event-icon">${EVENT_ICONS[e.event] || '•'}</div>
+            <div>
+              <div class="event-name">${EVENT_LABELS[e.event] || e.event}</div>
+              ${e.propName ? `<div class="event-prop">${e.propName}</div>` : ''}
+            </div>
+            <div class="event-time">${timeAgo(e.ts)}</div>
+          </div>
+        `).join('')
+      }
+    </div>
+  `;
+
+  // Draw chart
+  drawChart(series);
+}
+
+function drawChart(series) {
+  const canvas = document.getElementById('activity-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.parentElement.offsetWidth - 2;
+  const H = 180;
+  canvas.width = W;
+  canvas.height = H;
+
+  const pad = { top: 10, right: 10, bottom: 30, left: 36 };
+  const cw = W - pad.left - pad.right;
+  const ch = H - pad.top - pad.bottom;
+
+  const metrics = [
+    { key: 'sessions', color: '#4a7cf7' },
+    { key: 'details_open', color: '#52c87a' },
+    { key: 'share', color: '#f0c060' },
+    { key: 'whatsapp_click', color: '#e08040' },
+  ];
+
+  const maxVal = Math.max(...series.flatMap(d => metrics.map(m => d[m.key])), 1);
+  const step = cw / Math.max(series.length - 1, 1);
+
+  // Grid
+  ctx.strokeStyle = '#2a2f42';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (ch / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
+    ctx.fillStyle = '#5a607a';
+    ctx.font = '10px Sora,sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(Math.round(maxVal * (1 - i / 4)), pad.left - 4, y + 4);
+  }
+
+  // Lines
+  metrics.forEach(({ key, color }) => {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    series.forEach((d, i) => {
+      const x = pad.left + i * step;
+      const y = pad.top + ch - (d[key] / maxVal) * ch;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Dots
+    series.forEach((d, i) => {
+      const x = pad.left + i * step;
+      const y = pad.top + ch - (d[key] / maxVal) * ch;
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    });
+  });
+
+  // X labels (show every N days)
+  const labelEvery = series.length <= 7 ? 1 : series.length <= 30 ? 5 : 14;
+  ctx.fillStyle = '#5a607a';
+  ctx.font = '10px Sora,sans-serif';
+  ctx.textAlign = 'center';
+  series.forEach((d, i) => {
+    if (i % labelEvery !== 0 && i !== series.length - 1) return;
+    const x = pad.left + i * step;
+    const label = d.date.slice(5); // MM-DD
+    ctx.fillText(label, x, H - 6);
+  });
+}
+
+function fmt(n) { return (n||0).toLocaleString(); }
+
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return Math.floor(diff/60000) + 'm ago';
+  if (diff < 86400000) return Math.floor(diff/3600000) + 'h ago';
+  return Math.floor(diff/86400000) + 'd ago';
+}
+
+// Auto-login if previously authenticated in session
+const savedPwd = sessionStorage.getItem('dash_pwd');
+if (savedPwd) {
+  authToken = savedPwd;
+  document.getElementById('pwd').value = savedPwd;
+  loadData();
+}
+
+// Save password to session on success
+const origLoad = loadData;
+loadData = async function() {
+  await origLoad();
+  if (document.getElementById('app').style.display === 'block') {
+    sessionStorage.setItem('dash_pwd', authToken);
+  }
+};
+</script>
+</body>
+</html>
