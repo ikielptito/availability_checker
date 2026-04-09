@@ -205,8 +205,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
     </div>
     <div class="modal-actions">
       <button class="modal-action-btn" id="modal-share-btn" onclick="shareModal()">↗ Share</button>
-<a class="modal-action-btn" id="modal-drive-btn" href="#" target="_blank">📥 Download Photos</a>
-<a class="modal-action-btn modal-wa-btn" id="modal-wa-btn" href="#" target="_blank">💬 Enquire with Era</a>
+      <a class="modal-action-btn modal-wa-btn" id="modal-wa-btn" href="#" target="_blank">💬 Enquire with Era</a>
     </div>
   </div>
 </div>
@@ -283,6 +282,7 @@ let modalPropId=null, carPhotos=[], carIdx=0;
 
 function openModal(propId) {
   const info=PROPS[propId]; if(!info) return;
+  track('details_open', propId, info.name);
   modalPropId=propId;
   document.getElementById('modal-title').textContent=info.name;
   document.getElementById('modal-overview').textContent=info.overview;
@@ -296,8 +296,6 @@ function openModal(propId) {
   document.getElementById('modal-inclusions').innerHTML=info.inclusions.map(i=>'<div class="inclusion-row">'+esc(i)+'</div>').join('');
   document.getElementById('map-iframe').src=info.mapEmbed;
   document.getElementById('map-open-btn').href=info.location;
-  document.getElementById('modal-drive-btn').href=
-  'https://drive.google.com/drive/folders/'+info.folder;
   const waMsg=encodeURIComponent('Hi Era, I\'m interested in '+info.name+'. Could you tell me more?');
   document.getElementById('modal-wa-btn').href='https://wa.me/6281246357778?text='+waMsg;
   document.getElementById('modal').classList.add('open');
@@ -353,8 +351,7 @@ function carNav(dir){carIdx=(carIdx+dir+carPhotos.length)%carPhotos.length;showC
 function shareModal() {
   const info=PROPS[modalPropId]; if(!info) return;
   const btn=document.getElementById('modal-share-btn');
-  const slug=SLUGS[modalPropId];
-  const url=slug?'https://sambarentals-listings.vercel.app/'+slug:'https://sambarentals.vercel.app';
+  const text=info.name+'\n'+info.tag+'\n\n'+info.monthly+' / month\n'+info.yearly+' / year'+(info.yearly2?'\n'+info.yearly2+' / 2 years':'')+'\n\nEnquire with Era: https://wa.me/6281246357778';
   if(navigator.share){
     navigator.share({title:info.name+' · '+info.tag,url});
   } else {
@@ -376,6 +373,7 @@ const SLUGS={
 };
 
 function shareCard(propId,name) {
+  track('share', propId, name);
   const slug=SLUGS[propId];
   const btn=event.target;
   const url=slug?'https://sambarentals-listings.vercel.app/'+slug:'https://sambarentals.vercel.app';
@@ -412,6 +410,16 @@ document.addEventListener('keydown',e=>{
   if(document.getElementById('modal').classList.contains('open')&&e.key==='Escape')closeModal({target:null});
 });
 
+
+// ── ANALYTICS ──
+function track(event, propId, propName) {
+  fetch('/api/track', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event, propId, propName })
+  }).catch(() => {}); // silent fail
+}
+
 // ── API ──
 async function boot() {
   try {
@@ -424,7 +432,7 @@ async function boot() {
     document.getElementById('loading-screen').style.display='none';
     document.getElementById('app').classList.add('on');
     document.getElementById('prop-count').textContent=properties.length+' propert'+(properties.length===1?'y':'ies');
-    showSkeletons(); await loadAll(); render();
+    track('page_view'); showSkeletons(); await loadAll(); render();
   } catch(e) {
     document.getElementById('loading-screen').style.display='none';
     document.getElementById('error-detail').textContent=e.message;
@@ -479,7 +487,7 @@ function render() {
       +(info?'<button class="action-btn" onclick="openModal('+p.id+')">ℹ️ Details & Photos</button>':'')
       +'<button class="action-btn" onclick="shareCard('+p.id+',\''+esc(p.name)+'\')">↗ Share</button>'
       +'</div>'
-      +'<a class="wa-btn" href="'+waUrl+'" target="_blank" rel="noopener">💬 Schedule a Visit with Era</a>'
+      +'<a class="wa-btn" href="'+waUrl+'" target="_blank" rel="noopener" onclick="track('whatsapp_click','+p.id+',''+esc(p.name)+'')">💬 Schedule a Visit with Era</a>'
       +'</div>';
   }).join('');
 }
@@ -511,6 +519,7 @@ function buildMonth(year,month,booked) {
 
 function doFilter(){query=document.getElementById('search').value;render();}
 async function doRefresh(){
+  track('refresh');
   const btn=document.querySelector('.refresh-btn');btn.style.opacity='.5';
   avail={};showSkeletons();await loadAll();render();btn.style.opacity='';
 }
