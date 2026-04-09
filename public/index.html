@@ -353,7 +353,8 @@ function carNav(dir){carIdx=(carIdx+dir+carPhotos.length)%carPhotos.length;showC
 function shareModal() {
   const info=PROPS[modalPropId]; if(!info) return;
   const btn=document.getElementById('modal-share-btn');
-  const text=info.name+'\n'+info.tag+'\n\n'+info.monthly+' / month\n'+info.yearly+' / year'+(info.yearly2?'\n'+info.yearly2+' / 2 years':'')+'\n\nEnquire with Era: https://wa.me/6281246357778';
+  const slug=SLUGS[modalPropId];
+  const url=slug?'https://sambarentals-listings.vercel.app/'+slug:'https://sambarentals.vercel.app';
   if(navigator.share){
     navigator.share({title:info.name+' · '+info.tag,url});
   } else {
