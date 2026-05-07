@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Samba Rentals</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Sora:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1117;--surface:#181c27;--surface2:#1f2333;--border:#2a2f42;--text:#e8eaf2;--muted:#5a607a;--accent:#4a7cf7;--green:#52c87a;--red:#e06060;--yellow:#f0c060;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+/* LOGIN */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.login-box{width:100%;max-width:360px;padding:0 20px;}
+.login-brand{font-family:'Playfair Display',serif;font-size:1.8rem;margin-bottom:6px;background:linear-gradient(135deg,#e8eaf2 0%,#8090c0 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.login-sub{font-size:0.72rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:32px;}
+.login-label{font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:block;}
+.login-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 16px;font-family:'Sora',sans-serif;font-size:0.85rem;color:var(--text);outline:none;transition:border-color 0.2s;}
+.login-input:focus{border-color:var(--accent);}
+.login-btn{margin-top:14px;width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:0.85rem;font-weight:500;cursor:pointer;transition:opacity 0.2s;}
+.login-btn:hover{opacity:0.88;}
+.login-err{margin-top:10px;color:var(--red);font-size:0.78rem;text-align:center;}
+
+/* APP */
+#app{display:none;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;gap:12px;}
+.topbar-brand{font-family:'Playfair Display',serif;font-size:1rem;}
+.topbar-sub{font-size:0.7rem;color:var(--muted);}
+.spacer{flex:1;}
+.logout-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:5px 12px;font-family:'Sora',sans-serif;font-size:0.72rem;cursor:pointer;}
+.logout-btn:hover{color:var(--text);}
+
+.content{padding:24px 28px 80px;max-width:900px;margin:0 auto;}
+@media(max-width:640px){.content{padding:16px;}.topbar{padding:0 16px;}}
+
+/* LISTING CARDS */
+.listing-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:24px;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.card-title{font-family:'Playfair Display',serif;font-size:1.1rem;}
+.card-slug{font-size:0.65rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:3px;}
+.save-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-family:'Sora',sans-serif;font-size:0.8rem;font-weight:500;cursor:pointer;transition:opacity 0.2s;white-space:nowrap;}
+.save-btn:hover{opacity:0.88;}
+.save-btn:disabled{opacity:0.45;cursor:default;}
+
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+@media(max-width:600px){.field-row{grid-template-columns:1fr;}}
+.field-row.full{grid-template-columns:1fr;}
+
+.field-group{display:flex;flex-direction:column;gap:6px;}
+.field-label{font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);}
+.field-input,.field-textarea{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Sora',sans-serif;font-size:0.82rem;color:var(--text);outline:none;transition:border-color 0.2s;width:100%;resize:vertical;}
+.field-input:focus,.field-textarea:focus{border-color:var(--accent);}
+.field-textarea{line-height:1.5;}
+.field-hint{font-size:0.65rem;color:var(--muted);}
+
+/* DRIVE PREVIEW */
+.drive-row{display:flex;gap:12px;align-items:flex-start;}
+.drive-input-wrap{flex:1;}
+.drive-preview{width:72px;height:72px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.drive-preview img{width:100%;height:100%;object-fit:cover;}
+.drive-preview-placeholder{font-size:0.6rem;color:var(--muted);text-align:center;padding:4px;}
+
+/* PRICING ROW */
+.pricing-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;}
+@media(max-width:500px){.pricing-row{grid-template-columns:1fr 1fr;}}
+
+/* SECTION DIVIDER */
+.section-label{font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:20px 0 12px;display:flex;align-items:center;gap:8px;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 20px;border-radius:10px;font-size:0.78rem;letter-spacing:0.04em;transition:transform 0.25s cubic-bezier(.2,.9,.3,1.2);z-index:999;pointer-events:none;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.success{border-color:var(--green);color:var(--green);}
+.toast.error{border-color:var(--red);color:var(--red);}
+
+.loading-state{padding:60px;text-align:center;color:var(--muted);}
+.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="login-box">
+    <div class="login-brand">Admin</div>
+    <div class="login-sub">Samba Rentals · Listings</div>
+    <label class="login-label">Password</label>
+    <input class="login-input" id="pwd" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" />
+    <button class="login-btn" onclick="doLogin()">Enter</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <span class="topbar-brand">Admin</span>
+    <span class="topbar-sub">Listings</span>
+    <div class="spacer"></div>
+    <button class="logout-btn" onclick="logout()">Log out</button>
+  </div>
+  <div class="content" id="content">
+    <div class="loading-state"><div class="spinner"></div>Loading listings…</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let adminPw = '';
+
+function doLogin() {
+  const pw = document.getElementById('pwd').value.trim();
+  if (!pw) return;
+  adminPw = pw;
+  sessionStorage.setItem('admin_pw', pw);
+  loadListings();
+}
+
+function logout() {
+  sessionStorage.removeItem('admin_pw');
+  adminPw = '';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login').style.display = 'flex';
+  document.getElementById('pwd').value = '';
+  document.getElementById('login-err').textContent = '';
+}
+
+function showGate(errMsg) {
+  sessionStorage.removeItem('admin_pw');
+  adminPw = '';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login').style.display = 'flex';
+  if (errMsg) document.getElementById('login-err').textContent = errMsg;
+}
+
+let toastTimer;
+function showToast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+async function loadListings() {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('content').innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading listings…</div>';
+  try {
+    const r = await fetch('/api/listings');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const { listings } = await r.json();
+    renderListings(listings);
+  } catch(e) {
+    document.getElementById('content').innerHTML = '<div class="loading-state">Could not load listings: ' + e.message + '</div>';
+  }
+}
+
+function extractFolderId(url) {
+  const m = url.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : null;
+}
+
+function renderListings(listings) {
+  const html = listings.map(l => `
+    <div class="listing-card" id="card-${l.slug}">
+      <div class="card-header">
+        <div>
+          <div class="card-title">${esc(l.name)}</div>
+          <div class="card-slug">${l.slug}</div>
+        </div>
+        <button class="save-btn" id="save-${l.slug}" onclick="saveListing('${l.slug}')">Save</button>
+      </div>
+
+      <div class="section-label">Photos</div>
+      <div class="drive-row">
+        <div class="drive-input-wrap field-group">
+          <label class="field-label">Google Drive Folder URL</label>
+          <input class="field-input" id="${l.slug}-folder-url"
+            value="${esc('https://drive.google.com/drive/folders/' + l.folder)}"
+            placeholder="https://drive.google.com/drive/folders/…"
+            oninput="onFolderInput('${l.slug}', this.value)" />
+          <span class="field-hint" id="${l.slug}-folder-hint">Paste a Drive folder link to update photos</span>
+        </div>
+        <div class="drive-preview" id="${l.slug}-preview">
+          <div class="drive-preview-placeholder">No preview</div>
+        </div>
+      </div>
+
+      <div class="section-label">Pricing</div>
+      <div class="pricing-row">
+        <div class="field-group">
+          <label class="field-label">Monthly</label>
+          <input class="field-input" id="${l.slug}-monthly" value="${esc(l.monthly)}" placeholder="e.g. 27jt" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Yearly</label>
+          <input class="field-input" id="${l.slug}-yearly" value="${esc(l.yearly)}" placeholder="e.g. 270jt" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">2-Year (optional)</label>
+          <input class="field-input" id="${l.slug}-yearly2" value="${esc(l.yearly2 || '')}" placeholder="e.g. 500jt" />
+        </div>
+      </div>
+
+      <div class="section-label">Description</div>
+      <div class="field-row full">
+        <div class="field-group">
+          <label class="field-label">Overview</label>
+          <textarea class="field-textarea" id="${l.slug}-overview" rows="4">${esc(l.overview)}</textarea>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Features <span class="field-hint">(one per line)</span></label>
+          <textarea class="field-textarea" id="${l.slug}-features" rows="8">${esc(l.features.join('\n'))}</textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Inclusions <span class="field-hint">(one per line)</span></label>
+          <textarea class="field-textarea" id="${l.slug}-inclusions" rows="8">${esc(l.inclusions.join('\n'))}</textarea>
+        </div>
+      </div>
+      <div class="field-row full">
+        <div class="field-group">
+          <label class="field-label">Location Highlights <span class="field-hint">(one per line)</span></label>
+          <textarea class="field-textarea" id="${l.slug}-locationHighlights" rows="5">${esc(l.locationHighlights.join('\n'))}</textarea>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('content').innerHTML = html;
+
+  // Load drive previews for all listings
+  listings.forEach(l => {
+    if (l.folder) loadDrivePreview(l.slug, l.folder);
+  });
+}
+
+const folderDebounce = {};
+function onFolderInput(slug, url) {
+  clearTimeout(folderDebounce[slug]);
+  folderDebounce[slug] = setTimeout(() => {
+    const folderId = extractFolderId(url);
+    const hint = document.getElementById(slug + '-folder-hint');
+    if (!folderId) {
+      hint.textContent = 'Could not extract folder ID from URL';
+      hint.style.color = 'var(--red)';
+      document.getElementById(slug + '-preview').innerHTML = '<div class="drive-preview-placeholder">No preview</div>';
+      return;
+    }
+    hint.textContent = 'Folder ID: ' + folderId;
+    hint.style.color = 'var(--muted)';
+    loadDrivePreview(slug, folderId);
+  }, 500);
+}
+
+async function loadDrivePreview(slug, folderId) {
+  const preview = document.getElementById(slug + '-preview');
+  if (!preview) return;
+  try {
+    const r = await fetch('/api/gdrive?folder=' + encodeURIComponent(folderId));
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    if (d.photos && d.photos.length) {
+      preview.innerHTML = '<img src="' + d.photos[0].thumb + '" alt="preview" onerror="this.parentElement.innerHTML=\'<div class=drive-preview-placeholder>No preview</div>\'">';
+    } else {
+      preview.innerHTML = '<div class="drive-preview-placeholder">Empty folder</div>';
+    }
+  } catch {
+    preview.innerHTML = '<div class="drive-preview-placeholder">Not found</div>';
+  }
+}
+
+async function saveListing(slug) {
+  const btn = document.getElementById('save-' + slug);
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const folderUrl = document.getElementById(slug + '-folder-url').value;
+  const folderId = extractFolderId(folderUrl) || folderUrl.trim();
+
+  const data = {
+    folder: folderId,
+    monthly: document.getElementById(slug + '-monthly').value,
+    yearly: document.getElementById(slug + '-yearly').value,
+    yearly2: document.getElementById(slug + '-yearly2').value,
+    overview: document.getElementById(slug + '-overview').value,
+    features: lines(document.getElementById(slug + '-features').value),
+    inclusions: lines(document.getElementById(slug + '-inclusions').value),
+    locationHighlights: lines(document.getElementById(slug + '-locationHighlights').value),
+  };
+
+  try {
+    const r = await fetch('/api/listings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + adminPw,
+      },
+      body: JSON.stringify({ slug, data }),
+    });
+    if (r.status === 401) {
+      showGate('Session expired. Please log in again.');
+      return;
+    }
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + r.status);
+    }
+    showToast('Saved ' + slug, 'success');
+  } catch(e) {
+    showToast('Save failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save';
+  }
+}
+
+function lines(str) {
+  return str.split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Boot
+const saved = sessionStorage.getItem('admin_pw');
+if (saved) {
+  adminPw = saved;
+  loadListings();
+}
+</script>
+</body>
+</html>

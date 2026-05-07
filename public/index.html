@@ -534,7 +534,23 @@ async function doRefresh(){
   avail={};showSkeletons();await loadAll();render();btn.style.opacity='';
 }
 
-boot();
+async function loadListingMeta() {
+  try {
+    const r = await fetch('/api/listings');
+    if (!r.ok) return;
+    const { listings } = await r.json();
+    const slugToHostex = Object.fromEntries(Object.entries(SLUGS).map(([id, s]) => [s, String(id)]));
+    listings.forEach(l => {
+      const hostexId = slugToHostex[l.slug];
+      if (hostexId && PROPS[hostexId]) Object.assign(PROPS[hostexId], l);
+    });
+  } catch {}
+}
+
+(async () => {
+  await loadListingMeta();
+  boot();
+})();
 </script>
 </body>
 </html>

@@ -695,7 +695,21 @@ async function loadPhotos(folderId) {
   }
 }
 
-boot();
+async function loadListingMeta() {
+  try {
+    const r = await fetch('/api/listings');
+    if (!r.ok) return;
+    const { listings } = await r.json();
+    listings.forEach(l => {
+      if (l.slug && LISTINGS[l.slug]) Object.assign(LISTINGS[l.slug], l);
+    });
+  } catch {}
+}
+
+(async () => {
+  await loadListingMeta();
+  boot();
+})();
 </script>
 </body>
 </html>
