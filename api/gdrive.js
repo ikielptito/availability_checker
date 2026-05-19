@@ -20,6 +20,7 @@ export default async function handler(req, res) {
       url: `https://lh3.googleusercontent.com/d/${f.id}`,
       thumb: `https://lh3.googleusercontent.com/d/${f.id}=w400`
     }));
+    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).json({ photos });
   } catch (e) {
     return res.status(502).json({ error: e.message });
