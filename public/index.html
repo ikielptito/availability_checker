@@ -365,7 +365,8 @@ function carNav(dir){carIdx=(carIdx+dir+carPhotos.length)%carPhotos.length;showC
     if(isHoriz===null) isHoriz=Math.abs(dx)>Math.abs(dy);
     if(!isHoriz)return;
     e.preventDefault();
-    img.style.transform='translateX('+dx+'px)';
+    const cdx=Math.max(-el.offsetWidth,Math.min(el.offsetWidth,dx));
+    img.style.transform='translateX('+cdx+'px)';
   },{passive:false});
   el.addEventListener('touchend',e=>{
     if(!carPhotos.length||!isHoriz||busy){isHoriz=null;return;}
