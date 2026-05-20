@@ -565,8 +565,7 @@ function buildMonth(year,month,booked) {
   for(let i=0;i<firstDow;i++)html+='<div class="day empty"></div>';
   for(let d=1;d<=days;d++){
     const key=year+'-'+p2(month+1)+'-'+p2(d);
-    let cls=booked.has(key)?'booked':'avail';
-    if(key<todayStr)cls+=' past';
+    let cls=key<todayStr?'past':(booked.has(key)?'booked':'avail');
     if(key===todayStr)cls+=' today';
     html+='<div class="day '+cls+'" title="'+key+'">'+d+'</div>';
   }
