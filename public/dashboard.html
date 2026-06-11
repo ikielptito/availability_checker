@@ -52,6 +52,16 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .legend-dot{width:8px;height:8px;border-radius:50%;}
 canvas{display:block;}
 
+/* FUNNEL */
+.funnel{max-width:760px;margin:0 auto;}
+.funnel-meta{display:flex;justify-content:space-between;align-items:baseline;font-size:0.78rem;margin-bottom:6px;}
+.funnel-hint{color:var(--muted);font-size:0.68rem;}
+.funnel-nums{color:var(--muted);font-size:0.72rem;}
+.funnel-track{background:var(--surface2);border-radius:7px;height:32px;display:flex;justify-content:center;overflow:hidden;}
+.funnel-bar{height:100%;border-radius:7px;min-width:2px;transition:width 0.35s ease;}
+.funnel-connector{text-align:center;color:var(--muted);font-size:0.7rem;padding:8px 0;}
+.funnel-note{margin-top:14px;font-size:0.66rem;color:var(--muted);text-align:center;}
+
 /* PROPERTY TABLE */
 .table-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:28px;}
 .table-card .table-scroll{overflow-x:auto;}
@@ -221,9 +231,12 @@ function render(data) {
     <!-- FUNNEL -->
     <div class="chart-card">
       <div class="card-title">Conversion Funnel · ${periodLabel}</div>
-      ${funnelRow('Sessions', totals.sessions, totals.sessions, 'var(--accent)')}
-      ${funnelRow('Property engagement (details + listing views)', engagement, totals.sessions, 'var(--green)')}
-      ${funnelRow('WhatsApp enquiries', totals.whatsapp_click, totals.sessions, 'var(--orange)')}
+      ${funnel([
+        { label: 'Sessions', value: totals.sessions, color: 'var(--accent)' },
+        { label: 'Property engagement', hint: 'details + listing views', value: engagement, color: 'var(--green)', stepText: 'of sessions engaged with a property' },
+        { label: 'WhatsApp enquiries', value: totals.whatsapp_click, color: 'var(--orange)', stepText: 'of engaged sessions enquired' },
+      ])}
+      <div class="funnel-note">Stages count events, so engagement can exceed sessions when an agent opens several properties.</div>
     </div>
 
     <!-- ACTIVITY CHART -->
@@ -307,19 +320,27 @@ function render(data) {
   drawChart(series);
 }
 
-function funnelRow(label, value, base, color) {
-  const pct = base > 0 ? Math.round((value / base) * 100) : 0;
-  return `
-    <div style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:5px">
-        <span>${label}</span>
-        <span style="color:var(--muted)">${fmt(value)} · ${pct}%</span>
-      </div>
-      <div style="background:var(--surface2);border-radius:5px;height:10px;overflow:hidden">
-        <div style="height:100%;border-radius:5px;background:${color};width:${Math.min(pct, 100)}%"></div>
-      </div>
-    </div>
-  `;
+function funnel(stages) {
+  const top = stages[0].value || 0;
+  return '<div class="funnel">' + stages.map((s, i) => {
+    const pctTop = top > 0 ? Math.round((s.value / top) * 100) : 0;
+    const prev = i > 0 ? stages[i - 1].value : null;
+    const step = i > 0 ? (prev > 0 ? Math.round((s.value / prev) * 100) : 0) : null;
+    const width = s.value > 0 ? Math.max(Math.min(pctTop, 100), 3) : 0;
+    const connector = i > 0
+      ? `<div class="funnel-connector">↓ ${step > 100 ? '100%+' : step + '%'} ${s.stepText || 'continued'}</div>`
+      : '';
+    return connector + `
+      <div class="funnel-stage">
+        <div class="funnel-meta">
+          <span>${s.label}${s.hint ? ` <span class="funnel-hint">(${s.hint})</span>` : ''}</span>
+          <span class="funnel-nums">${fmt(s.value)}${i > 0 ? ` · ${pctTop > 100 ? '100%+' : pctTop + '%'} of total` : ''}</span>
+        </div>
+        <div class="funnel-track">
+          <div class="funnel-bar" style="width:${width}%;background:${s.color}"></div>
+        </div>
+      </div>`;
+  }).join('') + '</div>';
 }
 
 function esc(s) {
