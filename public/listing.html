@@ -671,6 +671,12 @@ async function loadPhotos(folderId) {
       return;
     }
 
+    // Admin-picked cover photo leads the hero + gallery
+    if (LISTING && LISTING.coverPhotoId) {
+      const ci = d.photos.findIndex(p => p.id === LISTING.coverPhotoId);
+      if (ci > 0) d.photos.unshift(d.photos.splice(ci, 1)[0]);
+    }
+
     lbPhotos = d.photos.map(p => p.url);
 
     // Hero

@@ -36,20 +36,20 @@ const TROPICANA = {
 };
 
 const DEFAULTS = {
-  'haus-1':       { ...HAUS,      slug: 'haus-1',       hostexId: '11621510', name: 'HAUS Canggu – Unit 1',    monthly: '27jt', yearly: '270jt', yearly2: '', folder: '1xkEkRprYDCIfSCwCmfuPgcszI5kakOKF' },
-  'haus-2':       { ...HAUS,      slug: 'haus-2',       hostexId: '11621511', name: 'HAUS Canggu – Unit 2',    monthly: '27jt', yearly: '270jt', yearly2: '', folder: '11Pr1akQilpBkgT37BhbajsneP7Ekijmu' },
-  'haus-4':       { ...HAUS,      slug: 'haus-4',       hostexId: '11621512', name: 'HAUS Canggu – Unit 4',    monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1qpdTd5oDxIbGkISxgSTKNJ3BtYM_aDEw' },
-  'haus-5':       { ...HAUS,      slug: 'haus-5',       hostexId: '11621513', name: 'HAUS Canggu – Unit 5',    monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1mxfot6q9JVF2C22wPpVzyNP8zVotJURr' },
-  'lanehaus-1':   { ...LANE,      slug: 'lanehaus-1',   hostexId: '11621507', name: 'LaneHAUS – Unit 1',       monthly: '24jt', yearly: '240jt', yearly2: '', folder: '1f6mhoH36L-uY5ncGq5LHhq2_dMS_20cd' },
-  'lanehaus-3':   { ...LANE,      slug: 'lanehaus-3',   hostexId: '11621509', name: 'LaneHAUS – Unit 3',       monthly: '22jt', yearly: '220jt', yearly2: '', folder: '1OY71DdG07xakOCCMZJAz4CqiI4EQm24F' },
-  'villa-saturno':{ ...SATURNO,   slug: 'villa-saturno',hostexId: '12552236', name: 'Villa Saturno',           monthly: '40jt', yearly: '350jt', yearly2: '600jt', folder: '19Fh1nnnN6pvR3Ia4Pd2opB-J1D0hj1fZ' },
-  'tropicana-a4': { ...TROPICANA, slug: 'tropicana-a4', hostexId: '12484483', name: 'Tropicana Valley – Unit A4', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-a5': { ...TROPICANA, slug: 'tropicana-a5', hostexId: '12450063', name: 'Tropicana Valley – Unit A5', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-b2': { ...TROPICANA, slug: 'tropicana-b2', hostexId: '12566585', name: 'Tropicana Valley – Unit B2', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-b3': { ...TROPICANA, slug: 'tropicana-b3', hostexId: '12566586', name: 'Tropicana Valley – Unit B3', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-b4': { ...TROPICANA, slug: 'tropicana-b4', hostexId: '12606732', name: 'Tropicana Valley – Unit B4', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-b5': { ...TROPICANA, slug: 'tropicana-b5', hostexId: '12566587', name: 'Tropicana Valley – Unit B5', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-b6': { ...TROPICANA, slug: 'tropicana-b6', hostexId: '12566588', name: 'Tropicana Valley – Unit B6', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
+  'haus-1':       { ...HAUS,      slug: 'haus-1', unitType: '1BR Apartment',       hostexId: '11621510', name: 'HAUS Canggu – Unit 1',    monthly: '27jt', yearly: '270jt', yearly2: '', folder: '1xkEkRprYDCIfSCwCmfuPgcszI5kakOKF' },
+  'haus-2':       { ...HAUS,      slug: 'haus-2', unitType: '1BR Apartment',       hostexId: '11621511', name: 'HAUS Canggu – Unit 2',    monthly: '27jt', yearly: '270jt', yearly2: '', folder: '11Pr1akQilpBkgT37BhbajsneP7Ekijmu' },
+  'haus-4':       { ...HAUS,      slug: 'haus-4', unitType: '1BR Apartment',       hostexId: '11621512', name: 'HAUS Canggu – Unit 4',    monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1qpdTd5oDxIbGkISxgSTKNJ3BtYM_aDEw' },
+  'haus-5':       { ...HAUS,      slug: 'haus-5', unitType: '1BR Apartment',       hostexId: '11621513', name: 'HAUS Canggu – Unit 5',    monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1mxfot6q9JVF2C22wPpVzyNP8zVotJURr' },
+  'lanehaus-1':   { ...LANE,      slug: 'lanehaus-1', unitType: '1BR Townhouse',   hostexId: '11621507', name: 'LaneHAUS – Unit 1',       monthly: '24jt', yearly: '240jt', yearly2: '', folder: '1f6mhoH36L-uY5ncGq5LHhq2_dMS_20cd' },
+  'lanehaus-3':   { ...LANE,      slug: 'lanehaus-3', unitType: '1BR Townhouse',   hostexId: '11621509', name: 'LaneHAUS – Unit 3',       monthly: '22jt', yearly: '220jt', yearly2: '', folder: '1OY71DdG07xakOCCMZJAz4CqiI4EQm24F' },
+  'villa-saturno':{ ...SATURNO,   slug: 'villa-saturno', unitType: '3BR Villa',hostexId: '12552236', name: 'Villa Saturno',           monthly: '40jt', yearly: '350jt', yearly2: '600jt', folder: '19Fh1nnnN6pvR3Ia4Pd2opB-J1D0hj1fZ' },
+  'tropicana-a4': { ...TROPICANA, slug: 'tropicana-a4', unitType: '1BR Villa', hostexId: '12484483', name: 'Tropicana Valley – Unit A4', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
+  'tropicana-a5': { ...TROPICANA, slug: 'tropicana-a5', unitType: '1BR Villa', hostexId: '12450063', name: 'Tropicana Valley – Unit A5', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
+  'tropicana-b2': { ...TROPICANA, slug: 'tropicana-b2', unitType: '1BR Villa', hostexId: '12566585', name: 'Tropicana Valley – Unit B2', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
+  'tropicana-b3': { ...TROPICANA, slug: 'tropicana-b3', unitType: '1BR Villa', hostexId: '12566586', name: 'Tropicana Valley – Unit B3', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
+  'tropicana-b4': { ...TROPICANA, slug: 'tropicana-b4', unitType: '1BR Villa', hostexId: '12606732', name: 'Tropicana Valley – Unit B4', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
+  'tropicana-b5': { ...TROPICANA, slug: 'tropicana-b5', unitType: '1BR Villa', hostexId: '12566587', name: 'Tropicana Valley – Unit B5', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
+  'tropicana-b6': { ...TROPICANA, slug: 'tropicana-b6', unitType: '1BR Villa', hostexId: '12566588', name: 'Tropicana Valley – Unit B6', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
 };
 
 const CUSTOM_KEY = 'custom_properties';
@@ -142,6 +142,7 @@ export default async function handler(req, res) {
         unitType: cleanStr(data.unitType),
         location: cleanStr(data.location),
         icalUrl: /^https?:\/\//.test(cleanStr(data.icalUrl)) ? cleanStr(data.icalUrl) : '',
+        coverPhotoId: /^[A-Za-z0-9_-]{0,80}$/.test(cleanStr(data.coverPhotoId)) ? cleanStr(data.coverPhotoId) : '',
         mapEmbed: cleanStr(data.mapEmbed) || existing.mapEmbed || '',
         overview: cleanStr(data.overview),
         features: cleanLines(data.features),
@@ -182,7 +183,9 @@ export default async function handler(req, res) {
       mapEmbed: typeof data.mapEmbed === 'string' ? data.mapEmbed.trim() : existing.mapEmbed || DEFAULTS[slug].mapEmbed,
       waNumber: typeof data.waNumber === 'string' ? data.waNumber.replace(/[^0-9]/g, '') : existing.waNumber || '',
       waContactName: typeof data.waContactName === 'string' ? data.waContactName.trim() : existing.waContactName || '',
-      unitType: typeof data.unitType === 'string' ? data.unitType.trim() : existing.unitType || '',
+      unitType: (typeof data.unitType === 'string' && data.unitType.trim()) || existing.unitType || DEFAULTS[slug].unitType || '',
+      coverPhotoId: typeof data.coverPhotoId === 'string' && /^[A-Za-z0-9_-]{0,80}$/.test(data.coverPhotoId.trim())
+        ? data.coverPhotoId.trim() : existing.coverPhotoId || '',
     };
 
     await kvSet(`listing:${slug}`, safe);

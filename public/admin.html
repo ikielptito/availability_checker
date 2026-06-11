@@ -54,12 +54,14 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .field-textarea{line-height:1.5;}
 .field-hint{font-size:0.65rem;color:var(--muted);}
 
-/* DRIVE PREVIEW */
+/* DRIVE PREVIEW / COVER PICKER */
 .drive-row{display:flex;gap:12px;align-items:flex-start;}
 .drive-input-wrap{flex:1;}
-.drive-preview{width:72px;height:72px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
-.drive-preview img{width:100%;height:100%;object-fit:cover;}
-.drive-preview-placeholder{font-size:0.6rem;color:var(--muted);text-align:center;padding:4px;}
+.drive-preview-placeholder{font-size:0.65rem;color:var(--muted);padding:8px 4px;}
+.drive-grid{display:flex;gap:6px;flex-wrap:wrap;min-height:48px;align-items:center;}
+.drive-thumb{width:56px;height:56px;border-radius:6px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:0.8;transition:all 0.15s;}
+.drive-thumb:hover{opacity:1;}
+.drive-thumb.selected{border-color:var(--accent);opacity:1;box-shadow:0 0 0 2px rgba(74,124,247,0.3);}
 
 /* PRICING ROW */
 .pricing-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;}
@@ -232,18 +234,18 @@ function defaultCard(l) {
       </div>
 
       <div class="section-label">Photos</div>
-      <div class="drive-row">
-        <div class="drive-input-wrap field-group">
-          <label class="field-label">Google Drive Folder URL</label>
-          <input class="field-input" id="${l.slug}-folder-url"
-            value="${esc('https://drive.google.com/drive/folders/' + l.folder)}"
-            placeholder="https://drive.google.com/drive/folders/…"
-            oninput="onFolderInput('${l.slug}', this.value)" />
-          <span class="field-hint" id="${l.slug}-folder-hint">Paste a Drive folder link to update photos</span>
-        </div>
-        <div class="drive-preview" id="${l.slug}-preview">
-          <div class="drive-preview-placeholder">No preview</div>
-        </div>
+      <div class="field-group">
+        <label class="field-label">Google Drive Folder URL</label>
+        <input class="field-input" id="${l.slug}-folder-url"
+          value="${esc('https://drive.google.com/drive/folders/' + l.folder)}"
+          placeholder="https://drive.google.com/drive/folders/…"
+          oninput="onFolderInput('${l.slug}', this.value)" />
+        <span class="field-hint" id="${l.slug}-folder-hint">Paste a Drive folder link to update photos</span>
+      </div>
+      <div class="field-group" style="margin-top:12px">
+        <label class="field-label">Card Preview Photo <span class="field-hint">(click to choose · click again to clear)</span></label>
+        <div class="drive-grid" id="${l.slug}-drive-grid"><div class="drive-preview-placeholder">Loading photos…</div></div>
+        <input type="hidden" id="${l.slug}-coverPhotoId" value="${esc(l.coverPhotoId || '')}" />
       </div>
 
       <div class="section-label">Pricing</div>
@@ -352,18 +354,18 @@ function customCard(l, isNew) {
       </div>
 
       <div class="section-label">Photos</div>
-      <div class="drive-row">
-        <div class="drive-input-wrap field-group">
-          <label class="field-label">Google Drive Folder URL</label>
-          <input class="field-input" id="${slug}-folder-url"
-            value="${l.folder ? esc('https://drive.google.com/drive/folders/' + l.folder) : ''}"
-            placeholder="https://drive.google.com/drive/folders/…"
-            oninput="onFolderInput('${slug}', this.value)" />
-          <span class="field-hint" id="${slug}-folder-hint">Paste a Drive folder link for photos</span>
-        </div>
-        <div class="drive-preview" id="${slug}-preview">
-          <div class="drive-preview-placeholder">No preview</div>
-        </div>
+      <div class="field-group">
+        <label class="field-label">Google Drive Folder URL</label>
+        <input class="field-input" id="${slug}-folder-url"
+          value="${l.folder ? esc('https://drive.google.com/drive/folders/' + l.folder) : ''}"
+          placeholder="https://drive.google.com/drive/folders/…"
+          oninput="onFolderInput('${slug}', this.value)" />
+        <span class="field-hint" id="${slug}-folder-hint">Paste a Drive folder link for photos</span>
+      </div>
+      <div class="field-group" style="margin-top:12px">
+        <label class="field-label">Card Preview Photo <span class="field-hint">(click to choose · click again to clear)</span></label>
+        <div class="drive-grid" id="${slug}-drive-grid"><div class="drive-preview-placeholder">${l.folder ? 'Loading photos…' : 'Add a Drive folder first'}</div></div>
+        <input type="hidden" id="${slug}-coverPhotoId" value="${esc(l.coverPhotoId || '')}" />
       </div>
 
       <div class="section-label">Pricing</div>
@@ -465,6 +467,7 @@ async function saveCustom(cardSlug, isNew) {
     waNumber: document.getElementById(cardSlug + '-waNumber').value,
     bookedRanges: parseRanges(document.getElementById(cardSlug + '-ranges').value),
     icalUrl: document.getElementById(cardSlug + '-icalUrl').value.trim(),
+    coverPhotoId: document.getElementById(cardSlug + '-coverPhotoId').value,
     hidden: document.getElementById(cardSlug + '-hidden').checked,
   };
 
@@ -517,7 +520,7 @@ function onFolderInput(slug, url) {
     if (!folderId) {
       hint.textContent = 'Could not extract folder ID from URL';
       hint.style.color = 'var(--red)';
-      document.getElementById(slug + '-preview').innerHTML = '<div class="drive-preview-placeholder">No preview</div>';
+      document.getElementById(slug + '-drive-grid').innerHTML = '<div class="drive-preview-placeholder">No folder</div>';
       return;
     }
     hint.textContent = 'Folder ID: ' + folderId;
@@ -527,20 +530,39 @@ function onFolderInput(slug, url) {
 }
 
 async function loadDrivePreview(slug, folderId) {
-  const preview = document.getElementById(slug + '-preview');
-  if (!preview) return;
+  const grid = document.getElementById(slug + '-drive-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div class="drive-preview-placeholder">Loading photos…</div>';
   try {
     const r = await fetch('/api/gdrive?folder=' + encodeURIComponent(folderId));
     if (!r.ok) throw new Error();
     const d = await r.json();
-    if (d.photos && d.photos.length) {
-      preview.innerHTML = '<img src="' + d.photos[0].thumb + '" alt="preview" onerror="this.parentElement.innerHTML=\'<div class=drive-preview-placeholder>No preview</div>\'">';
-    } else {
-      preview.innerHTML = '<div class="drive-preview-placeholder">Empty folder</div>';
+    if (!d.photos || !d.photos.length) {
+      grid.innerHTML = '<div class="drive-preview-placeholder">Empty folder</div>';
+      return;
     }
+    const selected = (document.getElementById(slug + '-coverPhotoId') || {}).value || '';
+    grid.innerHTML = d.photos.slice(0, 18).map(p =>
+      `<img class="drive-thumb${p.id === selected ? ' selected' : ''}" src="${p.thumb}" data-id="${p.id}"
+        onclick="pickCover('${slug}', '${p.id}', this)" onerror="this.remove()">`
+    ).join('');
   } catch {
-    preview.innerHTML = '<div class="drive-preview-placeholder">Not found</div>';
+    grid.innerHTML = '<div class="drive-preview-placeholder">Not found</div>';
   }
+}
+
+function pickCover(slug, id, el) {
+  const input = document.getElementById(slug + '-coverPhotoId');
+  const grid = document.getElementById(slug + '-drive-grid');
+  if (input.value === id) {
+    input.value = '';
+    el.classList.remove('selected');
+    showToast('Cover cleared — first photo will be used. Remember to Save.');
+    return;
+  }
+  input.value = id;
+  grid.querySelectorAll('.drive-thumb').forEach(t => t.classList.toggle('selected', t.dataset.id === id));
+  showToast('Cover photo picked — remember to Save', 'success');
 }
 
 async function saveListing(slug) {
@@ -564,6 +586,7 @@ async function saveListing(slug) {
     waNumber: document.getElementById(slug + '-waNumber').value,
     unitType: document.getElementById(slug + '-unitType').value,
     tag: document.getElementById(slug + '-tag').value,
+    coverPhotoId: document.getElementById(slug + '-coverPhotoId').value,
   };
 
   try {

@@ -64,6 +64,10 @@ globalThis.fetch = async (url, opts = {}) => {
     return { json: async () => ({ data: { properties: [{ availabilities: [{ date: addDays(14), available: false }, { date: addDays(15), available: false }] }] } }) };
   }
   if (u.includes('googleapis.com/drive')) {
+    // Note: api/gdrive.js builds lh3.googleusercontent.com URLs from these ids.
+    // In the dev preview those 404 (fake ids) — the admin picker's onerror
+    // hides broken thumbs, so dev-server testing of the picker uses the DOM
+    // before image load completes, or stub at the /api/gdrive level below.
     return { json: async () => ({ files: [{ id: 'ph1' }, { id: 'ph2' }, { id: 'ph3' }] }) };
   }
   if (u.includes('mock-ics')) {
@@ -115,6 +119,18 @@ const server = http.createServer(async (req, res) => {
   try {
     if (u.pathname.startsWith('/api/')) {
       const name = u.pathname.slice(5).replace(/\/$/, '');
+      if (name === 'gdrive') {
+        // Dev override: loadable placeholder thumbs so the admin cover picker
+        // can be exercised visually (real gdrive.js builds lh3 URLs from ids
+        // that don't exist in the mock).
+        const photos = ['a', 'b', 'c'].map((s, i) => ({
+          id: 'ph' + (i + 1),
+          url: `https://picsum.photos/seed/${s}/800/600`,
+          thumb: `https://picsum.photos/seed/${s}/400/300`,
+        }));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ photos }));
+      }
       const mod = handlers[name];
       if (!mod) { res.writeHead(404); return res.end('{"error":"no such api"}'); }
       let body = '';
