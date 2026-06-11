@@ -484,6 +484,19 @@ document.addEventListener('keydown',e=>{
 
 
 // ── ANALYTICS ──
+// WhatsApp-attributed visits arrive with ?ref=wa_alert&aid=<crm_agent_id>.
+// We override the anonymous browser ID with the CRM ID so a single agent's
+// activity stitches together across devices, and we tag the session src so
+// the dashboard can break out WhatsApp-driven traffic from organic clicks.
+const URL_PARAMS = new URLSearchParams(window.location.search);
+const URL_REF = URL_PARAMS.get('ref') || null;        // 'wa_alert' | 'wa_digest' | null
+const URL_AID = URL_PARAMS.get('aid') || null;        // CRM agent id, if present
+if (URL_AID && /^[a-zA-Z0-9_-]{1,64}$/.test(URL_AID)) {
+  localStorage.setItem('samba_agent_id', URL_AID);
+  if (URL_REF) sessionStorage.setItem('samba_session_src', URL_REF);
+}
+const SESSION_SRC = sessionStorage.getItem('samba_session_src') || 'portal';
+
 function getAgentId() {
   let id = localStorage.getItem('samba_agent_id');
   if (!id) { id = 'a_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('samba_agent_id', id); }
@@ -499,7 +512,7 @@ function track(event, propId, propName) {
   fetch('/api/track', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ event, propId, propName, agentId: getAgentId(), newSession, src: 'portal' })
+    body: JSON.stringify({ event, propId, propName, agentId: getAgentId(), newSession, src: SESSION_SRC })
   }).catch(() => {});
 }
 

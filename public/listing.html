@@ -500,6 +500,18 @@
 let LISTING = null, PROP_ID = null;
 
 // ── ANALYTICS ──
+// See index.html for the WhatsApp-attribution rationale. Listing pages also
+// honour ?ref=&aid= so a shared link forwarded via WhatsApp ties back to the
+// real CRM agent id.
+const URL_PARAMS = new URLSearchParams(window.location.search);
+const URL_REF = URL_PARAMS.get('ref') || null;
+const URL_AID = URL_PARAMS.get('aid') || null;
+if (URL_AID && /^[a-zA-Z0-9_-]{1,64}$/.test(URL_AID)) {
+  localStorage.setItem('samba_agent_id', URL_AID);
+  if (URL_REF) sessionStorage.setItem('samba_session_src', URL_REF);
+}
+const SESSION_SRC = sessionStorage.getItem('samba_session_src') || 'listing';
+
 function getAgentId() {
   let id = localStorage.getItem('samba_agent_id');
   if (!id) { id = 'a_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('samba_agent_id', id); }
@@ -515,7 +527,7 @@ function track(event, propId, propName) {
   fetch('/api/track', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ event, propId, propName, agentId: getAgentId(), newSession, src: 'listing' })
+    body: JSON.stringify({ event, propId, propName, agentId: getAgentId(), newSession, src: SESSION_SRC })
   }).catch(() => {});
 }
 

@@ -4,5 +4,11 @@
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/l/(.*)", "destination": "/listing.html" },
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/digest?force=1",
+      "schedule": "50 0 * * *"
+    }
   ]
 }

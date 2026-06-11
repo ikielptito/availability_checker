@@ -10,6 +10,7 @@ process.env.KV_REST_API_TOKEN = 't';
 process.env.DASHBOARD_PASSWORD = 'Bissli2024';
 process.env.HOSTEX_TOKEN = 'fake';
 process.env.GOOGLE_API_KEY = 'fake';
+process.env.DIGEST_SHARED_SECRET = 'dev_secret';
 
 // ── mock redis ──
 const store = new Map(), sets = new Map(), hashes = new Map(), lists = new Map();

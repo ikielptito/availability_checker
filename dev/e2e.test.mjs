@@ -2,6 +2,8 @@
 process.env.KV_REST_API_URL = 'http://kv';
 process.env.KV_REST_API_TOKEN = 't';
 process.env.DASHBOARD_PASSWORD = 'pw';
+process.env.DIGEST_SHARED_SECRET = 'digest_secret';
+process.env.HOSTEX_TOKEN = 'fake';
 
 const store = new Map(); // strings
 const sets = new Map();  // Set
@@ -40,6 +42,16 @@ function exec(cmd) {
 const listingsMod = await import('/Users/ikiel/availability_checker/api/listings.js');
 const trackMod = await import('/Users/ikiel/availability_checker/api/track.js');
 const dashMod = await import('/Users/ikiel/availability_checker/api/dashboard.js');
+const digestMod = await import('/Users/ikiel/availability_checker/api/digest.js');
+
+// ── Hostex mock controls for digest test ─────────────────────────────
+// hostexCalendars[propertyId] = { reservations: [{check_in_date, check_out_date, status}], closedDates: [YYYY-MM-DD] }
+const hostexCalendars = {};
+function isoNext(base, n) {
+  const d = new Date(base + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().split('T')[0];
+}
 
 function fakeRes() {
   return {
@@ -75,6 +87,18 @@ globalThis.fetch = async (url, opts = {}) => {
   if (u.includes('/api/listings')) {
     const res = await call(listingsMod, { method: 'GET' });
     return { ok: true, json: async () => res.data };
+  }
+  // Hostex API mocks for the digest endpoint
+  if (u.includes('api.hostex.io/v3/reservations')) {
+    const id = (u.match(/property_id=(\d+)/) || [])[1];
+    const cal = hostexCalendars[id] || {};
+    return { json: async () => ({ data: { reservations: cal.reservations || [] } }) };
+  }
+  if (u.includes('api.hostex.io/v3/availabilities')) {
+    const id = (u.match(/property_ids=(\d+)/) || [])[1];
+    const cal = hostexCalendars[id] || {};
+    const availabilities = (cal.closedDates || []).map(date => ({ date, available: false }));
+    return { json: async () => ({ data: { properties: [{ availabilities }] } }) };
   }
   throw new Error('unexpected fetch: ' + u);
 };
@@ -161,6 +185,102 @@ r = await call(listingsMod, { method: 'DELETE', headers: { authorization: 'Beare
 check('delete ok', r.code === 200);
 r = await call(listingsMod, { method: 'GET' });
 check('custom gone after delete', r.data.listings.length === 14);
+
+// ── 8. DIGEST ENDPOINT ─────────────────────────────────────────────
+// Reset KV state to a known shape so the digest's assertions are stable.
+store.clear(); hashes.clear(); lists.clear(); sets.clear();
+const T0 = new Date().toISOString().split('T')[0];
+
+// Seed two custom properties + Hostex mock data
+await call(listingsMod, {
+  method: 'POST', headers: { authorization: 'Bearer pw' },
+  body: { slug: 'fully-booked', custom: true, data: {
+    name: 'Fully Booked Villa', tag: 'Pererenan', monthly: '40jt',
+    bookedRanges: [{ from: T0, to: isoNext(T0, 200) }],
+  } },
+});
+await call(listingsMod, {
+  method: 'POST', headers: { authorization: 'Bearer pw' },
+  body: { slug: 'long-window-villa', custom: true, data: {
+    name: 'Long Window Villa', tag: 'Umalas', monthly: '35jt',
+    // Booked first 5 days, then 30+ free, then booked again
+    bookedRanges: [
+      { from: T0, to: isoNext(T0, 4) },
+      { from: isoNext(T0, 50), to: isoNext(T0, 60) },
+    ],
+  } },
+});
+await call(listingsMod, {
+  method: 'POST', headers: { authorization: 'Bearer pw' },
+  body: { slug: 'hidden-villa', custom: true, data: {
+    name: 'Hidden Villa', tag: 'Hidden', hidden: true,
+  } },
+});
+
+// Hostex: HAUS-1 fully booked next 60 days (reservation), then opens up
+hostexCalendars['11621510'] = {
+  reservations: [{ check_in_date: T0, check_out_date: isoNext(T0, 60), status: 'accepted' }],
+  closedDates: [],
+};
+// Hostex: HAUS-2 closed only days 10-12 (short closure → still has long window)
+hostexCalendars['11621511'] = {
+  reservations: [],
+  closedDates: [isoNext(T0, 10), isoNext(T0, 11), isoNext(T0, 12)],
+};
+// All other Hostex props default to fully open
+
+// 8a. Auth
+r = await call(digestMod, { method: 'GET', headers: { authorization: 'Bearer wrong' } });
+check('digest rejects bad auth', r.code === 401);
+
+r = await call(digestMod, { method: 'GET', headers: { authorization: 'Bearer digest_secret' } });
+check('digest 200 with shared secret', r.code === 200, r.data?.error);
+
+const dg = r.data;
+check('digest has asOf + properties', !!dg.asOf && Array.isArray(dg.properties));
+check('digest includes 14 hostex + 2 visible custom (16)', dg.properties.length === 16, dg.properties.length);
+check('hidden custom excluded', !dg.properties.find(p => p.id === 'c_hidden-villa'));
+
+// 8b. Fully-booked custom property
+const fb = dg.properties.find(p => p.id === 'c_fully-booked');
+check('fully-booked: availableToday=false', fb && fb.availability.availableToday === false);
+check('fully-booked: nextAvailableFrom null beyond horizon', fb && fb.availability.nextAvailableFrom === null);
+check('fully-booked: nextLongWindowFrom null', fb && fb.availability.nextLongWindowFrom === null);
+check('fully-booked: longWindowDays = 0', fb && fb.availability.longWindowDays === 0);
+
+// 8c. Long-window custom property — first 5 days booked, then 45 free, then 11 booked, then open
+const lw = dg.properties.find(p => p.id === 'c_long-window-villa');
+check('long-window: availableToday=false', lw && lw.availability.availableToday === false);
+check('long-window: nextAvailableFrom = today+5', lw && lw.availability.nextAvailableFrom === isoNext(T0, 5), lw?.availability);
+check('long-window: nextLongWindowFrom = today+5 (45-day run is >= 30)', lw && lw.availability.nextLongWindowFrom === isoNext(T0, 5), lw?.availability);
+check('long-window: longWindowDays ≥ 30', lw && lw.availability.longWindowDays >= 30, lw?.availability.longWindowDays);
+
+// 8d. Hostex HAUS-1: booked first 60 days, then open → long window starts at day 60
+const haus1 = dg.properties.find(p => p.id === '11621510');
+check('haus-1: availableToday=false (booked next 60 days)', haus1 && haus1.availability.availableToday === false);
+check('haus-1: nextAvailableFrom = today+60', haus1 && haus1.availability.nextAvailableFrom === isoNext(T0, 60), haus1?.availability);
+check('haus-1: nextLongWindowFrom = today+60', haus1 && haus1.availability.nextLongWindowFrom === isoNext(T0, 60));
+
+// 8e. Hostex HAUS-2: 3-day closure ~day 10 — short, can't span 30-day window from today,
+// but the first window of 30 free days starts at day 13.
+const haus2 = dg.properties.find(p => p.id === '11621511');
+check('haus-2: availableToday=true', haus2 && haus2.availability.availableToday === true);
+check('haus-2: nextAvailableFrom = today', haus2 && haus2.availability.nextAvailableFrom === T0);
+check('haus-2: nextLongWindowFrom = today+13 (run starts after closure)', haus2 && haus2.availability.nextLongWindowFrom === isoNext(T0, 13), haus2?.availability);
+
+// 8f. Fully-open Hostex (e.g. HAUS-4) → all good from today
+const open = dg.properties.find(p => p.id === '11621512');
+check('fully-open hostex: availableToday=true', open && open.availability.availableToday === true);
+check('fully-open hostex: nextLongWindowFrom = today', open && open.availability.nextLongWindowFrom === T0);
+
+// 8g. Cache hit on second call
+r = await call(digestMod, { method: 'GET', headers: { authorization: 'Bearer digest_secret' } });
+check('digest cache hit returns same payload', r.data && r.data.asOf === dg.asOf, 'asOf drifted');
+
+// 8h. Cron-secret auth works too
+process.env.CRON_SECRET = 'cron_secret';
+r = await call(digestMod, { method: 'GET', headers: { authorization: 'Bearer cron_secret' }, query: { force: '1' } });
+check('digest accepts CRON_SECRET', r.code === 200);
 
 console.log(failures ? `\n${failures} FAILURES` : '\nALL PASS');
 process.exit(failures ? 1 : 0);
