@@ -208,6 +208,17 @@ function defaultCard(l) {
         <button class="save-btn" id="save-${l.slug}" onclick="saveListing('${l.slug}')">Save</button>
       </div>
 
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Unit Type</label>
+          <input class="field-input" id="${l.slug}-unitType" value="${esc(l.unitType || '')}" placeholder="e.g. 1BR Apartment, 3BR Villa" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Area Tag</label>
+          <input class="field-input" id="${l.slug}-tag" value="${esc(l.tag || '')}" placeholder="e.g. Tumbak Bayuh, Pererenan" />
+        </div>
+      </div>
+
       <div class="section-label">WhatsApp Contact</div>
       <div class="field-row">
         <div class="field-group">
@@ -306,9 +317,15 @@ function customCard(l, isNew) {
       </div>
       <div class="field-row">
         <div class="field-group">
+          <label class="field-label">Unit Type</label>
+          <input class="field-input" id="${slug}-unitType" value="${esc(l.unitType || '')}" placeholder="e.g. 1BR Apartment, 3BR Villa" />
+        </div>
+        <div class="field-group">
           <label class="field-label">Google Maps Link</label>
           <input class="field-input" id="${slug}-location" value="${esc(l.location || '')}" placeholder="https://maps.app.goo.gl/…" />
         </div>
+      </div>
+      <div class="field-row full">
         <div class="field-group">
           <label class="field-label" title="Booked days show red on the agent calendar">Booked Dates <span class="field-hint">(one range per line: 2026-07-01 to 2026-07-15)</span></label>
           <textarea class="field-textarea" id="${slug}-ranges" rows="2" placeholder="2026-07-01 to 2026-07-15">${esc(ranges)}</textarea>
@@ -427,6 +444,7 @@ async function saveCustom(cardSlug, isNew) {
   const data = {
     name,
     tag: document.getElementById(cardSlug + '-tag').value,
+    unitType: document.getElementById(cardSlug + '-unitType').value,
     location: document.getElementById(cardSlug + '-location').value,
     folder: folderId,
     monthly: document.getElementById(cardSlug + '-monthly').value,
@@ -536,6 +554,8 @@ async function saveListing(slug) {
     locationHighlights: lines(document.getElementById(slug + '-locationHighlights').value),
     waContactName: document.getElementById(slug + '-waContactName').value,
     waNumber: document.getElementById(slug + '-waNumber').value,
+    unitType: document.getElementById(slug + '-unitType').value,
+    tag: document.getElementById(slug + '-tag').value,
   };
 
   try {

@@ -139,6 +139,7 @@ export default async function handler(req, res) {
         custom: true,
         name: cleanStr(data.name),
         tag: cleanStr(data.tag),
+        unitType: cleanStr(data.unitType),
         location: cleanStr(data.location),
         mapEmbed: cleanStr(data.mapEmbed) || existing.mapEmbed || '',
         overview: cleanStr(data.overview),
@@ -180,6 +181,7 @@ export default async function handler(req, res) {
       mapEmbed: typeof data.mapEmbed === 'string' ? data.mapEmbed.trim() : existing.mapEmbed || DEFAULTS[slug].mapEmbed,
       waNumber: typeof data.waNumber === 'string' ? data.waNumber.replace(/[^0-9]/g, '') : existing.waNumber || '',
       waContactName: typeof data.waContactName === 'string' ? data.waContactName.trim() : existing.waContactName || '',
+      unitType: typeof data.unitType === 'string' ? data.unitType.trim() : existing.unitType || '',
     };
 
     await kvSet(`listing:${slug}`, safe);

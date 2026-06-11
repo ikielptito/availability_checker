@@ -21,21 +21,25 @@ const PORTAL_BASE = 'https://sambarentals.vercel.app';
 // Default catalog (Hostex IDs → slug/name/tag/pricing) — kept in sync with
 // api/listings.js DEFAULTS. We inline the names so the digest is self-contained
 // even when the listings KV blob is empty (first deploy, fresh dev server).
+// `order` groups buildings together with units in sequence (HAUS block,
+// then LaneHAUS, then Villa Saturno, then Tropicana) — consumers render
+// lists in this order. `unitType` feeds the WhatsApp line format
+// ("1BR Apartment"). Both are overridable per-listing via /admin (KV).
 const DEFAULTS = {
-  '11621510': { slug: 'haus-1',        name: 'HAUS Canggu – Unit 1',     tag: 'Batu Bolong · Canggu', monthly: '27jt', yearly: '270jt' },
-  '11621511': { slug: 'haus-2',        name: 'HAUS Canggu – Unit 2',     tag: 'Batu Bolong · Canggu', monthly: '27jt', yearly: '270jt' },
-  '11621512': { slug: 'haus-4',        name: 'HAUS Canggu – Unit 4',     tag: 'Batu Bolong · Canggu', monthly: '30jt', yearly: '300jt' },
-  '11621513': { slug: 'haus-5',        name: 'HAUS Canggu – Unit 5',     tag: 'Batu Bolong · Canggu', monthly: '30jt', yearly: '300jt' },
-  '11621507': { slug: 'lanehaus-1',    name: 'LaneHAUS – Unit 1',         tag: 'Pererenan',            monthly: '24jt', yearly: '240jt' },
-  '11621509': { slug: 'lanehaus-3',    name: 'LaneHAUS – Unit 3',         tag: 'Pererenan',            monthly: '22jt', yearly: '220jt' },
-  '12552236': { slug: 'villa-saturno', name: 'Villa Saturno',             tag: 'Padang Linjong · Canggu', monthly: '40jt', yearly: '350jt', yearly2: '600jt' },
-  '12484483': { slug: 'tropicana-a4',  name: 'Tropicana Valley – Unit A4',tag: 'Buduk · Near Canggu',  monthly: '30jt', yearly: '300jt' },
-  '12450063': { slug: 'tropicana-a5',  name: 'Tropicana Valley – Unit A5',tag: 'Buduk · Near Canggu',  monthly: '30jt', yearly: '300jt' },
-  '12566585': { slug: 'tropicana-b2',  name: 'Tropicana Valley – Unit B2',tag: 'Buduk · Near Canggu',  monthly: '30jt', yearly: '300jt' },
-  '12566586': { slug: 'tropicana-b3',  name: 'Tropicana Valley – Unit B3',tag: 'Buduk · Near Canggu',  monthly: '30jt', yearly: '300jt' },
-  '12606732': { slug: 'tropicana-b4',  name: 'Tropicana Valley – Unit B4',tag: 'Buduk · Near Canggu',  monthly: '30jt', yearly: '300jt' },
-  '12566587': { slug: 'tropicana-b5',  name: 'Tropicana Valley – Unit B5',tag: 'Buduk · Near Canggu',  monthly: '30jt', yearly: '300jt' },
-  '12566588': { slug: 'tropicana-b6',  name: 'Tropicana Valley – Unit B6',tag: 'Buduk · Near Canggu',  monthly: '30jt', yearly: '300jt' },
+  '11621510': { order: 10, slug: 'haus-1',        name: 'HAUS Canggu – Unit 1',      unitType: '1BR Apartment', tag: 'Batu Bolong, Canggu',    monthly: '27jt', yearly: '270jt' },
+  '11621511': { order: 11, slug: 'haus-2',        name: 'HAUS Canggu – Unit 2',      unitType: '1BR Apartment', tag: 'Batu Bolong, Canggu',    monthly: '27jt', yearly: '270jt' },
+  '11621512': { order: 12, slug: 'haus-4',        name: 'HAUS Canggu – Unit 4',      unitType: '1BR Apartment', tag: 'Batu Bolong, Canggu',    monthly: '30jt', yearly: '300jt' },
+  '11621513': { order: 13, slug: 'haus-5',        name: 'HAUS Canggu – Unit 5',      unitType: '1BR Apartment', tag: 'Batu Bolong, Canggu',    monthly: '30jt', yearly: '300jt' },
+  '11621507': { order: 20, slug: 'lanehaus-1',    name: 'LaneHAUS – Unit 1',          unitType: '1BR Townhouse', tag: 'Pererenan',              monthly: '24jt', yearly: '240jt' },
+  '11621509': { order: 21, slug: 'lanehaus-3',    name: 'LaneHAUS – Unit 3',          unitType: '1BR Townhouse', tag: 'Pererenan',              monthly: '22jt', yearly: '220jt' },
+  '12552236': { order: 30, slug: 'villa-saturno', name: 'Villa Saturno',              unitType: '3BR Villa',     tag: 'Padang Linjong, Canggu', monthly: '40jt', yearly: '350jt', yearly2: '600jt' },
+  '12484483': { order: 40, slug: 'tropicana-a4',  name: 'Tropicana Valley – Unit A4', unitType: '1BR Villa',     tag: 'Tumbak Bayuh, Pererenan', monthly: '30jt', yearly: '300jt' },
+  '12450063': { order: 41, slug: 'tropicana-a5',  name: 'Tropicana Valley – Unit A5', unitType: '1BR Villa',     tag: 'Tumbak Bayuh, Pererenan', monthly: '30jt', yearly: '300jt' },
+  '12566585': { order: 42, slug: 'tropicana-b2',  name: 'Tropicana Valley – Unit B2', unitType: '1BR Villa',     tag: 'Tumbak Bayuh, Pererenan', monthly: '30jt', yearly: '300jt' },
+  '12566586': { order: 43, slug: 'tropicana-b3',  name: 'Tropicana Valley – Unit B3', unitType: '1BR Villa',     tag: 'Tumbak Bayuh, Pererenan', monthly: '30jt', yearly: '300jt' },
+  '12606732': { order: 44, slug: 'tropicana-b4',  name: 'Tropicana Valley – Unit B4', unitType: '1BR Villa',     tag: 'Tumbak Bayuh, Pererenan', monthly: '30jt', yearly: '300jt' },
+  '12566587': { order: 45, slug: 'tropicana-b5',  name: 'Tropicana Valley – Unit B5', unitType: '1BR Villa',     tag: 'Tumbak Bayuh, Pererenan', monthly: '30jt', yearly: '300jt' },
+  '12566588': { order: 46, slug: 'tropicana-b6',  name: 'Tropicana Valley – Unit B6', unitType: '1BR Villa',     tag: 'Tumbak Bayuh, Pererenan', monthly: '30jt', yearly: '300jt' },
 };
 
 export default async function handler(req, res) {
@@ -117,9 +121,11 @@ export default async function handler(req, res) {
       const availability = computeAvailability(bookedSet, todayStr, HORIZON_DAYS, LONG_WINDOW_DAYS);
       return {
         id,
+        order: base.order,
         slug: merged.slug,
         name: merged.name,
         tag: merged.tag,
+        unitType: merged.unitType || null,
         monthly: merged.monthly || null,
         yearly: merged.yearly || null,
         yearly2: merged.yearly2 || null,
@@ -130,6 +136,7 @@ export default async function handler(req, res) {
       };
     })
   );
+  hostexResults.sort((a, b) => a.order - b.order);
 
   // ── Custom properties ──────────────────────────────────────────────
   const customResults = Object.values(customMap || {}).filter(c => !c.hidden).map(c => {
@@ -140,6 +147,7 @@ export default async function handler(req, res) {
       slug: c.slug,
       name: c.name,
       tag: c.tag || '',
+      unitType: c.unitType || null,
       monthly: c.monthly || null,
       yearly: c.yearly || null,
       yearly2: c.yearly2 || null,
@@ -149,6 +157,9 @@ export default async function handler(req, res) {
       availability,
     };
   });
+  // Customs sort alphabetically after the Hostex building groups — units of
+  // the same custom building share a name prefix so they end up adjacent.
+  customResults.sort((a, b) => a.name.localeCompare(b.name));
 
   const payload = {
     asOf: new Date().toISOString(),
