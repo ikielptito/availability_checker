@@ -139,8 +139,18 @@ export default async function handler(req, res) {
   hostexResults.sort((a, b) => a.order - b.order);
 
   // ── Custom properties ──────────────────────────────────────────────
-  const customResults = Object.values(customMap || {}).filter(c => !c.hidden).map(c => {
+  const customResults = await Promise.all(Object.values(customMap || {}).filter(c => !c.hidden).map(async c => {
     const bookedSet = rangesToSet(c.bookedRanges, todayStr, horizonEndStr);
+    // Union in iCal bookings (e.g. a friend's Hostex/Airbnb calendar export)
+    if (c.icalUrl) {
+      try {
+        const icsRes = await fetch(c.icalUrl, { headers: { 'User-Agent': 'SambaRentals/1.0' } });
+        if (icsRes.ok) {
+          const ics = await icsRes.text();
+          parseIcsBookedDates(ics, todayStr, horizonEndStr).forEach(d => bookedSet.add(d));
+        }
+      } catch {}
+    }
     const availability = computeAvailability(bookedSet, todayStr, HORIZON_DAYS, LONG_WINDOW_DAYS);
     return {
       id: 'c_' + c.slug,
@@ -156,7 +166,7 @@ export default async function handler(req, res) {
       isHidden: false,
       availability,
     };
-  });
+  }));
   // Customs sort alphabetically after the Hostex building groups — units of
   // the same custom building share a name prefix so they end up adjacent.
   customResults.sort((a, b) => a.name.localeCompare(b.name));
@@ -245,6 +255,29 @@ function computeAvailability(bookedSet, todayStr, horizonDays, longWindowDays) {
     nextLongWindowFrom,
     longWindowDays: longWindowDaysActual,
   };
+}
+
+// Parse VEVENT blocks into booked YYYY-MM-DD dates (duplicated in
+// api/ical.js — keep in sync). DTEND exclusive; cancelled events skipped.
+function parseIcsBookedDates(ics, horizonStart, horizonEnd) {
+  const unfolded = String(ics).replace(/\r?\n[ \t]/g, '');
+  const events = unfolded.split('BEGIN:VEVENT').slice(1);
+  const booked = new Set();
+  for (const ev of events) {
+    if (/STATUS\s*:\s*CANCELLED/i.test(ev)) continue;
+    const ds = ev.match(/DTSTART[^:]*:(\d{8})/);
+    if (!ds) continue;
+    const de = ev.match(/DTEND[^:]*:(\d{8})/);
+    const fmt = s => `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+    const start = fmt(ds[1]);
+    const end = de ? fmt(de[1]) : addDays(start, 1);
+    let cur = start < horizonStart ? horizonStart : start;
+    while (cur < end && cur <= horizonEnd) {
+      booked.add(cur);
+      cur = addDays(cur, 1);
+    }
+  }
+  return booked;
 }
 
 // Mirror of the logic in api/calendar.js: reservations + closed availabilities

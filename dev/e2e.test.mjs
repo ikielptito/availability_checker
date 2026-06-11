@@ -43,6 +43,7 @@ const listingsMod = await import('/Users/ikiel/availability_checker/api/listings
 const trackMod = await import('/Users/ikiel/availability_checker/api/track.js');
 const dashMod = await import('/Users/ikiel/availability_checker/api/dashboard.js');
 const digestMod = await import('/Users/ikiel/availability_checker/api/digest.js');
+const icalMod = await import('/Users/ikiel/availability_checker/api/ical.js');
 
 // ── Hostex mock controls for digest test ─────────────────────────────
 // hostexCalendars[propertyId] = { reservations: [{check_in_date, check_out_date, status}], closedDates: [YYYY-MM-DD] }
@@ -87,6 +88,9 @@ globalThis.fetch = async (url, opts = {}) => {
   if (u.includes('/api/listings')) {
     const res = await call(listingsMod, { method: 'GET' });
     return { ok: true, json: async () => res.data };
+  }
+  if (u === 'http://ics/villa-merman.ics') {
+    return { ok: true, status: 200, text: async () => MOCK_ICS };
   }
   // Hostex API mocks for the digest endpoint
   if (u.includes('api.hostex.io/v3/reservations')) {
@@ -281,6 +285,62 @@ check('digest cache hit returns same payload', r.data && r.data.asOf === dg.asOf
 process.env.CRON_SECRET = 'cron_secret';
 r = await call(digestMod, { method: 'GET', headers: { authorization: 'Bearer cron_secret' }, query: { force: '1' } });
 check('digest accepts CRON_SECRET', r.code === 200);
+
+// ── 9. ICAL SYNC ────────────────────────────────────────────────────
+// MOCK_ICS: all-day booking T0+2..T0+5 (DTEND exclusive → booked +2,+3,+4),
+// a datetime booking T0+10..T0+12 (booked +10,+11), and a cancelled event.
+const compact = s => s.replace(/-/g, '');
+globalThis.MOCK_ICS = [
+  'BEGIN:VCALENDAR',
+  'BEGIN:VEVENT',
+  `DTSTART;VALUE=DATE:${compact(isoNext(T0, 2))}`,
+  `DTEND;VALUE=DATE:${compact(isoNext(T0, 5))}`,
+  'SUMMARY:Reserved',
+  'END:VEVENT',
+  'BEGIN:VEVENT',
+  `DTSTART:${compact(isoNext(T0, 10))}T140000Z`,
+  `DTEND:${compact(isoNext(T0, 12))}T110000Z`,
+  'SUMMARY:Booking',
+  'END:VEVENT',
+  'BEGIN:VEVENT',
+  `DTSTART;VALUE=DATE:${compact(isoNext(T0, 20))}`,
+  `DTEND;VALUE=DATE:${compact(isoNext(T0, 25))}`,
+  'STATUS:CANCELLED',
+  'END:VEVENT',
+  'END:VCALENDAR',
+].join('\r\n');
+
+// Custom property with iCal + one manual range
+await call(listingsMod, {
+  method: 'POST', headers: { authorization: 'Bearer pw' },
+  body: { slug: 'villa-merman', custom: true, data: {
+    name: 'Villa Merman', tag: 'Pererenan', unitType: '2BR Villa', monthly: '30jt',
+    icalUrl: 'http://ics/villa-merman.ics',
+    bookedRanges: [{ from: isoNext(T0, 40), to: isoNext(T0, 42) }],
+  } },
+});
+
+r = await call(icalMod, { method: 'GET', query: { slug: 'villa-merman' } });
+check('ical endpoint 200', r.code === 200, JSON.stringify(r.data));
+const booked9 = new Set(r.data.booked || []);
+check('ical: all-day range booked (DTEND exclusive)', booked9.has(isoNext(T0, 2)) && booked9.has(isoNext(T0, 4)) && !booked9.has(isoNext(T0, 5)), [...booked9].join(','));
+check('ical: datetime range booked, checkout day free', booked9.has(isoNext(T0, 10)) && booked9.has(isoNext(T0, 11)) && !booked9.has(isoNext(T0, 12)));
+check('ical: cancelled event excluded', !booked9.has(isoNext(T0, 20)));
+
+r = await call(icalMod, { method: 'GET', query: { slug: 'no-such-villa' } });
+check('ical: unknown slug 404', r.code === 404);
+
+r = await call(icalMod, { method: 'GET', query: { slug: 'fully-booked' } });
+check('ical: property without icalUrl returns empty', r.code === 200 && r.data.booked.length === 0);
+
+// Digest merges iCal + manual ranges for the custom property
+r = await call(digestMod, { method: 'GET', headers: { authorization: 'Bearer digest_secret' }, query: { force: '1' } });
+const merman = r.data.properties.find(p => p.id === 'c_villa-merman');
+check('digest includes villa-merman with unitType', merman && merman.unitType === '2BR Villa', JSON.stringify(merman));
+check('digest merman availableToday=true (T0 free)', merman && merman.availability.availableToday === true);
+// Blocked: +2..+4 (ical), +10..+11 (ical), +40..+42 (manual). Runs: 0..1 (2d),
+// 5..9 (5d), 12..39 (28d — just under 30), then 43+ → first ≥30-day window at +43
+check('digest merman long window starts after manual range', merman && merman.availability.nextLongWindowFrom === isoNext(T0, 43), merman?.availability.nextLongWindowFrom);
 
 console.log(failures ? `\n${failures} FAILURES` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

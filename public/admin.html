@@ -325,9 +325,16 @@ function customCard(l, isNew) {
           <input class="field-input" id="${slug}-location" value="${esc(l.location || '')}" placeholder="https://maps.app.goo.gl/…" />
         </div>
       </div>
+      <div class="section-label">Availability</div>
       <div class="field-row full">
         <div class="field-group">
-          <label class="field-label" title="Booked days show red on the agent calendar">Booked Dates <span class="field-hint">(one range per line: 2026-07-01 to 2026-07-15)</span></label>
+          <label class="field-label">iCal Calendar URL <span class="field-hint">(Hostex/Airbnb export link — booked dates sync automatically, ~30 min delay)</span></label>
+          <input class="field-input" id="${slug}-icalUrl" value="${esc(l.icalUrl || '')}" placeholder="https://…/calendar.ics" />
+        </div>
+      </div>
+      <div class="field-row full">
+        <div class="field-group">
+          <label class="field-label" title="Booked days show red on the agent calendar">Manual Booked Dates <span class="field-hint">(added on top of iCal · one range per line: 2026-07-01 to 2026-07-15)</span></label>
           <textarea class="field-textarea" id="${slug}-ranges" rows="2" placeholder="2026-07-01 to 2026-07-15">${esc(ranges)}</textarea>
         </div>
       </div>
@@ -457,6 +464,7 @@ async function saveCustom(cardSlug, isNew) {
     waContactName: document.getElementById(cardSlug + '-waContactName').value,
     waNumber: document.getElementById(cardSlug + '-waNumber').value,
     bookedRanges: parseRanges(document.getElementById(cardSlug + '-ranges').value),
+    icalUrl: document.getElementById(cardSlug + '-icalUrl').value.trim(),
     hidden: document.getElementById(cardSlug + '-hidden').checked,
   };
 

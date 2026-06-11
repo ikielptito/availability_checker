@@ -568,7 +568,16 @@ function rangesToSet(ranges) {
 async function loadAll() {
   await Promise.all(properties.map(async p=>{
     if(p.custom){
-      avail[p.id]=rangesToSet((PROPS[p.id]||{}).bookedRanges);
+      const info=PROPS[p.id]||{};
+      const booked=rangesToSet(info.bookedRanges);
+      if(info.icalUrl){
+        try{
+          const r=await fetch('/api/ical?slug='+encodeURIComponent(SLUGS[p.id]));
+          const d=await r.json();
+          (d.booked||[]).forEach(x=>booked.add(x));
+        }catch{}
+      }
+      avail[p.id]=booked;
       if(!p.photo&&p.folder){
         try{
           const r=await fetch('/api/gdrive?folder='+encodeURIComponent(p.folder));

@@ -66,6 +66,19 @@ globalThis.fetch = async (url, opts = {}) => {
   if (u.includes('googleapis.com/drive')) {
     return { json: async () => ({ files: [{ id: 'ph1' }, { id: 'ph2' }, { id: 'ph3' }] }) };
   }
+  if (u.includes('mock-ics')) {
+    const compact = s => s.replace(/-/g, '');
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'BEGIN:VEVENT',
+      `DTSTART;VALUE=DATE:${compact(addDays(20))}`,
+      `DTEND;VALUE=DATE:${compact(addDays(28))}`,
+      'SUMMARY:Reserved via iCal',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+    return { ok: true, status: 200, text: async () => ics };
+  }
   if (u.includes('/api/listings')) {
     const res = shimRes();
     await handlers.listings.default({ method: 'GET', headers: {}, query: {} }, res);
@@ -137,6 +150,7 @@ await handlers.listings.default({
     features: ['2 Bedrooms · 2 Bathrooms', 'Private pool'], inclusions: ['Wifi', 'Housekeeping'],
     locationHighlights: ['5-min to Umalas cafés'], folder: 'FOLDER123',
     bookedRanges: [{ from: addDays(5), to: addDays(12) }], hidden: false,
+    unitType: '2BR Villa', icalUrl: 'http://mock-ics/villa.ics',
   } },
 }, shimRes());
 const seedEvents = [

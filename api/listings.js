@@ -141,6 +141,7 @@ export default async function handler(req, res) {
         tag: cleanStr(data.tag),
         unitType: cleanStr(data.unitType),
         location: cleanStr(data.location),
+        icalUrl: /^https?:\/\//.test(cleanStr(data.icalUrl)) ? cleanStr(data.icalUrl) : '',
         mapEmbed: cleanStr(data.mapEmbed) || existing.mapEmbed || '',
         overview: cleanStr(data.overview),
         features: cleanLines(data.features),
