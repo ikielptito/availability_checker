@@ -196,7 +196,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
           <div id="modal-inclusions"></div>
         </div>
       </div>
-      <div class="modal-section" style="padding:0">
+      <div class="modal-section" style="padding:0" id="map-section">
         <div class="map-container">
           <iframe class="map-iframe" id="map-iframe" src="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
           <a class="map-open-btn" id="map-open-btn" href="#" target="_blank">📍 Open in Maps</a>
@@ -205,7 +205,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
     </div>
     <div class="modal-actions">
       <button class="modal-action-btn" id="modal-share-btn" onclick="shareModal()">↗ Share</button>
-<a class="modal-action-btn" id="modal-drive-btn" href="#" target="_blank" onclick="track('photo_download',modalPropId)">📥 Download Photos</a>
+<a class="modal-action-btn" id="modal-drive-btn" href="#" target="_blank">📥 Download Photos</a>
 <a class="modal-action-btn modal-wa-btn" id="modal-wa-btn" href="#" target="_blank">💬 Enquire with Era</a>
     </div>
   </div>
@@ -286,20 +286,42 @@ function openModal(propId) {
   track('details_open', propId, info.name);
   modalPropId=propId;
   document.getElementById('modal-title').textContent=info.name;
-  document.getElementById('modal-overview').textContent=info.overview;
-  document.getElementById('modal-details').innerHTML=
-    '<div class="detail-col"><div class="modal-section-title">Features</div>'+
-    info.features.map(f=>'<div class="detail-row">'+esc(f)+'</div>').join('')+'</div>';
-  let ph='<div class="price-row"><span class="price-amount">'+info.monthly+'</span><span class="price-period">/ month</span></div>'+
-         '<div class="price-row"><span class="price-amount">'+info.yearly+'</span><span class="price-period">/ year</span></div>';
-  if(info.yearly2) ph+='<div class="price-row"><span class="price-amount">'+info.yearly2+'</span><span class="price-period">/ 2 years</span></div>';
+  document.getElementById('modal-overview').textContent=info.overview||'';
+  let detailsHtml='<div class="detail-col"><div class="modal-section-title">Features</div>'+
+    (info.features||[]).map(f=>'<div class="detail-row">'+esc(f)+'</div>').join('')+'</div>';
+  if(info.locationHighlights&&info.locationHighlights.length)
+    detailsHtml+='<div class="detail-col"><div class="modal-section-title">Location</div>'+
+      info.locationHighlights.map(f=>'<div class="detail-row">'+esc(f)+'</div>').join('')+'</div>';
+  document.getElementById('modal-details').innerHTML=detailsHtml;
+  let ph='';
+  if(info.monthly) ph+='<div class="price-row"><span class="price-amount">'+esc(info.monthly)+'</span><span class="price-period">/ month</span></div>';
+  if(info.yearly) ph+='<div class="price-row"><span class="price-amount">'+esc(info.yearly)+'</span><span class="price-period">/ year</span></div>';
+  if(info.yearly2) ph+='<div class="price-row"><span class="price-amount">'+esc(info.yearly2)+'</span><span class="price-period">/ 2 years</span></div>';
   document.getElementById('modal-pricing').innerHTML=ph;
-  document.getElementById('modal-inclusions').innerHTML=info.inclusions.map(i=>'<div class="inclusion-row">'+esc(i)+'</div>').join('');
-  document.getElementById('map-iframe').src=info.mapEmbed;
-  document.getElementById('map-open-btn').href=info.location;
-  document.getElementById('modal-drive-btn').href='https://drive.google.com/drive/folders/'+info.folder;
-  const waMsg=encodeURIComponent('Hi Era, I\'m interested in '+info.name+'. Could you tell me more?');
-  document.getElementById('modal-wa-btn').href='https://wa.me/6281246357778?text='+waMsg;
+  document.getElementById('modal-inclusions').innerHTML=(info.inclusions||[]).map(i=>'<div class="inclusion-row">'+esc(i)+'</div>').join('');
+  const mapSection=document.getElementById('map-section');
+  if(info.mapEmbed){
+    mapSection.style.display='';
+    document.getElementById('map-iframe').src=info.mapEmbed;
+    document.getElementById('map-open-btn').href=info.location||'#';
+  } else {
+    mapSection.style.display='none';
+  }
+  const driveBtn=document.getElementById('modal-drive-btn');
+  if(info.folder){
+    driveBtn.style.display='';
+    driveBtn.href='https://drive.google.com/drive/folders/'+info.folder;
+    driveBtn.onclick=()=>track('photo_download',propId,info.name);
+  } else {
+    driveBtn.style.display='none';
+  }
+  const waNum=info.waNumber||'6281246357778';
+  const waName=info.waContactName||'Era';
+  const waMsg=encodeURIComponent('Hi '+waName+', I\'m interested in '+info.name+'. Could you tell me more?');
+  const waBtn=document.getElementById('modal-wa-btn');
+  waBtn.href='https://wa.me/'+waNum+'?text='+waMsg;
+  waBtn.textContent='💬 Enquire with '+waName;
+  waBtn.onclick=()=>track('whatsapp_click',propId,info.name);
   document.getElementById('modal').classList.add('open');
   document.body.style.overflow='hidden';
   loadCarousel(propId,info.folder);
@@ -399,9 +421,8 @@ function carNav(dir){carIdx=(carIdx+dir+carPhotos.length)%carPhotos.length;showC
 function shareModal() {
   const info=PROPS[modalPropId]; if(!info) return;
   const btn=document.getElementById('modal-share-btn');
-  const text=info.name+'\n'+info.tag+'\n\n'+info.monthly+' / month\n'+info.yearly+' / year'+(info.yearly2?'\n'+info.yearly2+' / 2 years':'')+'\n\nEnquire with Era: https://wa.me/6281246357778';
   const slug=SLUGS[modalPropId];
-  const url=slug?'https://sambarentals-listings.vercel.app/'+slug:'https://sambarentals.vercel.app';
+  const url=slug?'https://sambarentals.vercel.app/l/'+slug:'https://sambarentals.vercel.app';
   if(navigator.share){
     navigator.share({title:info.name+' · '+info.tag,url});
   } else {
@@ -426,7 +447,7 @@ function shareCard(propId,name) {
   track('share', propId, name);
   const slug=SLUGS[propId];
   const btn=event.target;
-  const url=slug?'https://sambarentals-listings.vercel.app/'+slug:'https://sambarentals.vercel.app';
+  const url=slug?'https://sambarentals.vercel.app/l/'+slug:'https://sambarentals.vercel.app';
   const info=PROPS[propId];
   const title=name+(info?' · '+info.tag:'');
   if(navigator.share){
@@ -444,6 +465,7 @@ let lbPhotos=[], lbIdx=0;
 function openLightbox(propId,name,coverUrl) {
   lbPhotos=coverUrl?[coverUrl]:[]; lbIdx=0;
   if(!lbPhotos.length) return;
+  track('photo_view', propId, name);
   document.getElementById('lb-img').src=lbPhotos[0];
   document.getElementById('lb-counter').textContent='1 / 1';
   document.getElementById('lb').classList.add('open');
@@ -469,31 +491,43 @@ function getAgentId() {
 }
 
 function track(event, propId, propName) {
+  let newSession = false;
+  if (event === 'page_view' && !sessionStorage.getItem('samba_sess')) {
+    sessionStorage.setItem('samba_sess', '1');
+    newSession = true;
+  }
   fetch('/api/track', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ event, propId, propName, agentId: getAgentId() })
+    body: JSON.stringify({ event, propId, propName, agentId: getAgentId(), newSession, src: 'portal' })
   }).catch(() => {});
 }
 
 // ── API ──
 async function boot() {
+  let items=[], hostexError=null;
   try {
     const r=await fetch('/api/properties');
     if(!r.ok) throw new Error('HTTP '+r.status);
     const d=await r.json();
-    const items=d.data?.properties||d.data?.items||d.data||d.items||[];
-    if(!items.length) throw new Error('No properties returned');
-    properties=items.map(p=>({id:p.id||p.property_id,name:p.name||p.title||'Unnamed',type:p.property_type||p.room_type||'',photo:p.cover?.large_url||p.cover?.original_url||''}));
+    items=d.data?.properties||d.data?.items||d.data||d.items||[];
+  } catch(e) { hostexError=e; }
+  properties=items.map(p=>({id:String(p.id||p.property_id),name:p.name||p.title||'Unnamed',type:p.property_type||p.room_type||'',photo:p.cover?.large_url||p.cover?.original_url||''}));
+  customListings.forEach(l=>{
+    const id='c_'+l.slug;
+    PROPS[id]=l; SLUGS[id]=l.slug;
+    properties.push({id,name:l.name,type:l.tag||'',photo:'',custom:true,folder:l.folder});
+  });
+  if(!properties.length){
     document.getElementById('loading-screen').style.display='none';
-    document.getElementById('app').classList.add('on');
-    document.getElementById('prop-count').textContent=properties.length+' propert'+(properties.length===1?'y':'ies');
-    track('page_view'); showSkeletons(); await loadAll(); render();
-  } catch(e) {
-    document.getElementById('loading-screen').style.display='none';
-    document.getElementById('error-detail').textContent=e.message;
+    document.getElementById('error-detail').textContent=hostexError?hostexError.message:'No properties returned';
     document.getElementById('error-screen').classList.add('show');
+    return;
   }
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('app').classList.add('on');
+  document.getElementById('prop-count').textContent=properties.length+' propert'+(properties.length===1?'y':'ies');
+  track('page_view'); showSkeletons(); await loadAll(); render();
 }
 
 async function fetchAvail(propId) {
@@ -508,8 +542,29 @@ async function fetchAvail(propId) {
   return booked;
 }
 
+function rangesToSet(ranges) {
+  const booked=new Set();
+  (ranges||[]).forEach(r=>{
+    if(!r||!r.from||!r.to) return;
+    const cur=new Date(r.from+'T00:00:00'), end=new Date(r.to+'T00:00:00');
+    while(cur<=end){booked.add(ds(cur));cur.setDate(cur.getDate()+1);}
+  });
+  return booked;
+}
+
 async function loadAll() {
   await Promise.all(properties.map(async p=>{
+    if(p.custom){
+      avail[p.id]=rangesToSet((PROPS[p.id]||{}).bookedRanges);
+      if(!p.photo&&p.folder){
+        try{
+          const r=await fetch('/api/gdrive?folder='+encodeURIComponent(p.folder));
+          const d=await r.json();
+          if(d.photos&&d.photos[0])p.photo=d.photos[0].thumb;
+        }catch{}
+      }
+      return;
+    }
     try{avail[p.id]=await fetchAvail(p.id);}catch{avail[p.id]=new Set();}
   }));
 }
@@ -527,23 +582,25 @@ function render() {
   grid.innerHTML=filtered.map((p,i)=>{
     const booked=avail[p.id]||new Set();
     const info=PROPS[p.id];
-    const photoHtml=p.photo?'<img class="prop-photo" src="'+p.photo+'" alt="'+esc(p.name)+'" loading="lazy" onclick="openLightbox('+p.id+',\''+esc(p.name)+'\',\''+p.photo+'\')" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">':'';
+    const photoHtml=p.photo?'<img class="prop-photo" src="'+p.photo+'" alt="'+esc(p.name)+'" loading="lazy" onclick="openLightbox(\''+p.id+'\',\''+esc(p.name)+'\',\''+p.photo+'\')" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">':'';
     const phStyle=p.photo?'display:none':'';
-    const waMsg=encodeURIComponent('Hi Era, I\'d like to schedule a visit for '+p.name+'.');
-    const waUrl='https://wa.me/6281246357778?text='+waMsg;
+    const waNum=(info&&info.waNumber)||'6281246357778';
+    const waName=(info&&info.waContactName)||'Era';
+    const waMsg=encodeURIComponent('Hi '+waName+', I\'d like to schedule a visit for '+p.name+'.');
+    const waUrl='https://wa.me/'+waNum+'?text='+waMsg;
     return '<div class="prop-card" style="animation-delay:'+i*0.04+'s">'
       +'<div class="prop-head">'+photoHtml
       +'<div class="prop-photo-placeholder" style="'+phStyle+'">🏠</div>'
       +'<div style="flex:1;min-width:0"><div class="prop-name">'+esc(p.name)+'</div>'
       +(p.type?'<div class="prop-type">'+esc(p.type)+'</div>':'')
-      +(info?'<div style="font-size:.68rem;color:var(--muted);margin-top:3px">'+info.tag+'</div>':'')
+      +(info&&info.tag?'<div style="font-size:.68rem;color:var(--muted);margin-top:3px">'+esc(info.tag)+'</div>':'')
       +'</div></div>'
       +'<div class="cal-scroll"><div class="cal-months">'+buildSix(booked)+'</div></div>'
       +'<div class="card-actions">'
-      +(info?'<button class="action-btn" onclick="openModal('+p.id+')">ℹ️ Details & Photos</button>':'')
-      +'<button class="action-btn" onclick="shareCard('+p.id+',\''+esc(p.name)+'\')">↗ Share</button>'
+      +(info?'<button class="action-btn" onclick="openModal(\''+p.id+'\')">ℹ️ Details & Photos</button>':'')
+      +'<button class="action-btn" onclick="shareCard(\''+p.id+'\',\''+esc(p.name)+'\')">↗ Share</button>'
       +'</div>'
-      +'<a class="wa-btn" href="'+waUrl+'" target="_blank" rel="noopener">💬 Schedule a Visit with Era</a>'
+      +'<a class="wa-btn" href="'+waUrl+'" target="_blank" rel="noopener" onclick="track(\'whatsapp_click\',\''+p.id+'\',\''+esc(p.name)+'\')">💬 Schedule a Visit with '+esc(waName)+'</a>'
       +'</div>';
   }).join('');
 }
@@ -579,6 +636,7 @@ async function doRefresh(){
   avail={};showSkeletons();await loadAll();render();btn.style.opacity='';
 }
 
+let customListings = [];
 async function loadListingMeta() {
   try {
     const r = await fetch('/api/listings');
@@ -586,6 +644,7 @@ async function loadListingMeta() {
     const { listings } = await r.json();
     const slugToHostex = Object.fromEntries(Object.entries(SLUGS).map(([id, s]) => [s, String(id)]));
     listings.forEach(l => {
+      if (l.custom) { if (!l.hidden) customListings.push(l); return; }
       const hostexId = slugToHostex[l.slug];
       if (hostexId && PROPS[hostexId]) Object.assign(PROPS[hostexId], l);
     });

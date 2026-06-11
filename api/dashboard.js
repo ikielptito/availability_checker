@@ -13,128 +13,126 @@ export default async function handler(req, res) {
   const token = process.env.KV_REST_API_TOKEN;
   if (!url || !token) return res.status(500).json({ error: 'Redis not configured' });
 
-  const { period = '7d' } = req.query;
-
-  async function get(key) {
-    const r = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const d = await r.json();
-    return parseInt(d.result || 0);
-  }
-
-  async function mget(keys) {
-    if (!keys.length) return [];
-    const r = await fetch(`${url}/mget/${keys.map(k => encodeURIComponent(k)).join('/')}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const d = await r.json();
-    return (d.result || []).map(v => parseInt(v || 0));
-  }
-
-  async function lrange(key, start, end) {
-    const r = await fetch(`${url}/lrange/${encodeURIComponent(key)}/${start}/${end}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const d = await r.json();
-    return (d.result || []).map(v => { try { return JSON.parse(v); } catch { return null; } }).filter(Boolean);
-  }
-
-  // Build date ranges
-  const days = getDays(period);
-  const months = getMonths(period);
-
-  const events = ['page_view', 'details_open', 'share', 'whatsapp_click', 'photo_view', 'refresh'];
-  const propIds = [11621510,11621511,11621512,11621513,11621507,11621509,12552236,12484483,12450063,12566585,12566586,12606732,12566587,12566588];
-  const propNames = {
-    11621510:'HAUS Unit 1',11621511:'HAUS Unit 2',11621512:'HAUS Unit 4',11621513:'HAUS Unit 5',
-    11621507:'LaneHAUS Unit 1',11621509:'LaneHAUS Unit 3',
-    12552236:'Villa Saturno',
-    12484483:'Tropicana A4',12450063:'Tropicana A5',
-    12566585:'Tropicana B2',12566586:'Tropicana B3',12606732:'Tropicana B4',
-    12566587:'Tropicana B5',12566588:'Tropicana B6'
-  };
-
-  // ── TOTALS ──
-  const totalKeys = events.map(e => `total:${e}`);
-  totalKeys.push('total:sessions');
-  const totalVals = await mget(totalKeys);
-  const totals = {};
-  [...events, 'sessions'].forEach((e, i) => totals[e] = totalVals[i]);
-
-  // ── UNIQUE AGENTS ──
-  async function scard(key) {
-    const r = await fetch(`${url}/scard/${encodeURIComponent(key)}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const d = await r.json();
-    return parseInt(d.result || 0);
-  }
-  totals.unique_agents_today = await scard(`unique:agents:${days[days.length-1]}`);
-  totals.unique_agents_total = await scard('unique:agents:all');
-
-  // ── DAILY SERIES (for chart) ──
-  const seriesKeys = [];
-  for (const day of days) {
-    seriesKeys.push(`day:${day}:page_view`);
-    seriesKeys.push(`day:${day}:details_open`);
-    seriesKeys.push(`day:${day}:share`);
-    seriesKeys.push(`day:${day}:whatsapp_click`);
-    seriesKeys.push(`day:${day}:sessions`);
-  }
-  const seriesVals = await mget(seriesKeys);
-  const series = days.map((day, i) => ({
-    date: day,
-    page_view: seriesVals[i * 5],
-    details_open: seriesVals[i * 5 + 1],
-    share: seriesVals[i * 5 + 2],
-    whatsapp_click: seriesVals[i * 5 + 3],
-    sessions: seriesVals[i * 5 + 4],
-  }));
-
-  // ── PROPERTY STATS ──
-  const propKeys = [];
-  for (const id of propIds) {
-    propKeys.push(`prop:${id}:page_view`);
-    propKeys.push(`prop:${id}:details_open`);
-    propKeys.push(`prop:${id}:share`);
-    propKeys.push(`prop:${id}:whatsapp_click`);
-    propKeys.push(`prop:${id}:photo_download`);
-  }
-  const propVals = await mget(propKeys);
-  const properties = propIds.map((id, i) => ({
-    id, name: propNames[id],
-    views: propVals[i * 5],
-    details: propVals[i * 5 + 1],
-    shares: propVals[i * 5 + 2],
-    whatsapp: propVals[i * 5 + 3],
-    downloads: propVals[i * 5 + 4],
-  })).sort((a, b) => b.views - a.views);
-
-  // ── RECENT EVENTS ──
-  const recent = await lrange('events:recent', 0, 49);
-
-  return res.status(200).json({ totals, series, properties, recent, period, days });
-}
-
-function getDays(period) {
+  const period = ['7d', '30d', '90d', 'all'].includes(req.query.period) ? req.query.period : '7d';
+  const nDays = period === '7d' ? 7 : period === '30d' ? 30 : 90;
   const days = [];
-  const n = period === '7d' ? 7 : period === '30d' ? 30 : 90;
-  for (let i = n - 1; i >= 0; i--) {
+  for (let i = nDays - 1; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     days.push(d.toISOString().split('T')[0]);
   }
-  return days;
-}
 
-function getMonths(period) {
-  const months = [];
-  const n = period === '7d' ? 1 : period === '30d' ? 1 : 3;
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    months.push(d.toISOString().slice(0, 7));
+  async function pipeline(cmds) {
+    const out = [];
+    for (let i = 0; i < cmds.length; i += 400) {
+      const chunk = cmds.slice(i, i + 400);
+      const r = await fetch(`${url}/pipeline`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(chunk),
+      });
+      const d = await r.json();
+      if (!Array.isArray(d)) throw new Error('Pipeline failed');
+      out.push(...d.map(x => x.result));
+    }
+    return out;
   }
-  return months;
+
+  // Property list comes from the listings API so custom properties show up automatically
+  let listingProps = [];
+  try {
+    const lr = await fetch(`https://${req.headers.host}/api/listings`);
+    const { listings } = await lr.json();
+    listingProps = (listings || []).map(l => ({
+      id: l.custom ? 'c_' + l.slug : String(l.hostexId),
+      name: l.name,
+      custom: !!l.custom,
+    }));
+  } catch {}
+
+  const EVENTS = ['page_view', 'listing_view', 'details_open', 'share', 'whatsapp_click', 'photo_view', 'photo_download', 'refresh', 'sessions'];
+  const PEVENTS = ['listing_view', 'details_open', 'share', 'whatsapp_click', 'photo_view', 'photo_download'];
+
+  const cmds = [];
+  EVENTS.forEach(e => cmds.push(['GET', `total:${e}`]));
+  days.forEach(d => EVENTS.forEach(e => cmds.push(['GET', `day:${d}:${e}`])));
+  days.forEach(d => cmds.push(['SCARD', `unique:agents:${d}`]));
+  cmds.push(['SUNION', ...days.map(d => `unique:agents:${d}`)]);
+  cmds.push(['SCARD', 'unique:agents:all']);
+  listingProps.forEach(p => PEVENTS.forEach(e => cmds.push(['GET', `prop:${p.id}:${e}`])));
+  days.forEach(d => cmds.push(['HGETALL', `pstats:${d}`]));
+  cmds.push(['LRANGE', 'events:recent', '0', '49']);
+
+  const out = await pipeline(cmds);
+  let ptr = 0;
+  const num = v => parseInt(v) || 0;
+
+  const allTotals = {};
+  EVENTS.forEach(e => allTotals[e] = num(out[ptr++]));
+  const dayGrid = days.map(() => {
+    const o = {};
+    EVENTS.forEach(e => o[e] = num(out[ptr++]));
+    return o;
+  });
+  const agentsPerDay = days.map(() => num(out[ptr++]));
+  const unionAgents = out[ptr++];
+  const uniqueAgentsPeriod = Array.isArray(unionAgents) ? unionAgents.length : 0;
+  const uniqueAgentsAll = num(out[ptr++]);
+  const lifetimeProps = listingProps.map(() => {
+    const o = {};
+    PEVENTS.forEach(e => o[e] = num(out[ptr++]));
+    return o;
+  });
+  const pstatsDays = days.map(() => out[ptr++]);
+  const recentRaw = out[ptr++] || [];
+
+  // Totals for the selected period (all-time uses lifetime counters)
+  const totals = {};
+  if (period === 'all') {
+    EVENTS.forEach(e => totals[e] = allTotals[e]);
+  } else {
+    EVENTS.forEach(e => totals[e] = dayGrid.reduce((s, d) => s + d[e], 0));
+  }
+  totals.unique_agents = period === 'all' ? uniqueAgentsAll : uniqueAgentsPeriod;
+  totals.unique_agents_today = agentsPerDay[agentsPerDay.length - 1];
+  totals.unique_agents_all = uniqueAgentsAll;
+
+  // Daily series for the chart
+  const series = days.map((d, i) => ({
+    date: d,
+    page_view: dayGrid[i].page_view,
+    listing_view: dayGrid[i].listing_view,
+    details_open: dayGrid[i].details_open,
+    share: dayGrid[i].share,
+    whatsapp_click: dayGrid[i].whatsapp_click,
+    sessions: dayGrid[i].sessions,
+    agents: agentsPerDay[i],
+  }));
+
+  // Per-property stats: lifetime counters for "all", per-day hashes for periods.
+  // Note: per-day hashes only exist from the date this tracking was deployed.
+  const propMap = {};
+  listingProps.forEach((p, i) => {
+    propMap[p.id] = { id: p.id, name: p.name, custom: p.custom, ...(period === 'all' ? lifetimeProps[i] : Object.fromEntries(PEVENTS.map(e => [e, 0]))) };
+  });
+  if (period !== 'all') {
+    pstatsDays.forEach(h => {
+      if (!Array.isArray(h)) return;
+      for (let i = 0; i < h.length; i += 2) {
+        const field = h[i];
+        const idx = field.lastIndexOf(':');
+        if (idx < 0) continue;
+        const pid = field.slice(0, idx);
+        const ev = field.slice(idx + 1);
+        if (propMap[pid] && PEVENTS.includes(ev)) propMap[pid][ev] += num(h[i + 1]);
+      }
+    });
+  }
+  const properties = Object.values(propMap)
+    .map(p => ({ ...p, engagement: p.listing_view + p.details_open }))
+    .sort((a, b) => b.engagement - a.engagement);
+
+  const recent = recentRaw.map(v => { try { return JSON.parse(v); } catch { return null; } }).filter(Boolean);
+
+  return res.status(200).json({ period, days, totals, allTotals, series, properties, recent });
 }

@@ -497,64 +497,26 @@
 </div>
 
 <script>
-// ── PROPERTY DATA ──
-const HAUS_BASE = {
-  complex: 'HAUS Canggu',
-  tag: 'Batu Bolong · Canggu',
-  location: 'https://maps.app.goo.gl/tMuPXqKHxhbKLDVe6',
-  locationText: 'Batu Bolong, Canggu',
-  overview: 'Boutique collection of 8 fully furnished one-bedroom apartments in the heart of Batu Bolong. Steps from cafés, restaurants, and nightlife, yet tucked in a quiet residential lane.',
-  features: ['43–46m² building · 4 are land', '1 Bedroom · 1 Bathroom', 'Large shared swimming pool', 'Outdoor lounge seating', 'Terrazzo bathrooms · Teak & rattan cabinetry', 'Fully equipped kitchen · Air-conditioning', 'High-speed fiber internet · Fully furnished'],
-  locationHighlights: ['2-min walk to Bali Social Club', '5-min walk to Batu Bolong strip', '10-min ride to Batu Bolong Beach', '5-min drive to Pererenan'],
-  inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas', 'Electricity', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly'],
-};
+let LISTING = null, PROP_ID = null;
 
-const LANE_BASE = {
-  complex: 'LaneHAUS',
-  tag: 'Pererenan',
-  location: 'https://maps.app.goo.gl/JGcqfdZMqUXSVjpD9',
-  locationText: 'Pererenan, Canggu',
-  overview: 'Boutique collection of 3 fully furnished one-bedroom townhouses in central Pererenan. Walkable yet private, ideal for long-term living.',
-  features: ['250m² land', '1 Bedroom · 1 Bathroom', 'Large shared swimming pool', 'XL king beds · Dedicated workspaces', 'Terrazzo floors & bathrooms', 'Fully equipped kitchen · Air-conditioning', '200mbps fiber (dedicated per unit) · Fully furnished'],
-  locationHighlights: ['1-min to Pepito & Frestive', '3-min to Obsidian Gym', '4-min to Bar Vera', '8-min to Pererenan Beach', '10-min to La Brisa'],
-  inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly', 'Electricity excluded for yearly'],
-};
+// ── ANALYTICS ──
+function getAgentId() {
+  let id = localStorage.getItem('samba_agent_id');
+  if (!id) { id = 'a_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('samba_agent_id', id); }
+  return id;
+}
 
-const LISTINGS = {
-  'haus-1': { ...HAUS_BASE, title: 'HAUS Canggu – Unit 1', unit: 'Unit 1', monthly: '27jt', yearly: '270jt', folder: '1xkEkRprYDCIfSCwCmfuPgcszI5kakOKF' },
-  'haus-2': { ...HAUS_BASE, title: 'HAUS Canggu – Unit 2', unit: 'Unit 2', monthly: '27jt', yearly: '270jt', folder: '11Pr1akQilpBkgT37BhbajsneP7Ekijmu' },
-  'haus-4': { ...HAUS_BASE, title: 'HAUS Canggu – Unit 4', unit: 'Unit 4', monthly: '30jt', yearly: '300jt', folder: '1qpdTd5oDxIbGkISxgSTKNJ3BtYM_aDEw' },
-  'haus-5': { ...HAUS_BASE, title: 'HAUS Canggu – Unit 5', unit: 'Unit 5', monthly: '30jt', yearly: '300jt', folder: '1mxfot6q9JVF2C22wPpVzyNP8zVotJURr' },
-  'lanehaus-1': { ...LANE_BASE, title: 'LaneHAUS – Unit 1', unit: 'Unit 1', size: '65m²', monthly: '24jt', yearly: '240jt', folder: '1f6mhoH36L-uY5ncGq5LHhq2_dMS_20cd' },
-  'lanehaus-3': { ...LANE_BASE, title: 'LaneHAUS – Unit 3', unit: 'Unit 3', size: '55m²', monthly: '22jt', yearly: '220jt', folder: '1OY71DdG07xakOCCMZJAz4CqiI4EQm24F' },
-  'villa-saturno': {
-    complex: 'Villa Saturno', tag: 'Padang Linjong · Canggu', title: 'Villa Saturno',
-    location: 'https://maps.app.goo.gl/r4833cRt8oEXMjpD9', locationText: 'Padang Linjong, Canggu',
-    overview: 'Spacious 3-bedroom villa in prime Padang Linjong next to Bali Buddha. Central, walkable, and ideal for long-term living.',
-    features: ['350m² land · 250m² building', '3 Bedrooms · 3 Bathrooms', 'Private swimming pool · Tropical garden', 'Enclosed AC living · Open-concept kitchen', 'Washing machine · Surfboards · Tennis rackets', 'Fully furnished'],
-    locationHighlights: ['Next to Bali Buddha', 'Walking distance to shops & cafés', 'Central Canggu location'],
-    inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly'],
-    monthly: '40jt', yearly: '350jt', yearly2: '600jt',
-    folder: '19Fh1nnnN6pvR3Ia4Pd2opB-J1D0hj1fZ'
-  },
-  'tropicana-a4': { ...tropicanaBase(), unit: 'Unit A4', title: 'Tropicana Valley – Unit A4', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-a5': { ...tropicanaBase(), unit: 'Unit A5', title: 'Tropicana Valley – Unit A5', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-b2': { ...tropicanaBase(), unit: 'Unit B2', title: 'Tropicana Valley – Unit B2', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-b3': { ...tropicanaBase(), unit: 'Unit B3', title: 'Tropicana Valley – Unit B3', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-b5': { ...tropicanaBase(), unit: 'Unit B5', title: 'Tropicana Valley – Unit B5', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-b6': { ...tropicanaBase(), unit: 'Unit B6', title: 'Tropicana Valley – Unit B6', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-};
-
-function tropicanaBase() {
-  return {
-    complex: 'Tropicana Valley', tag: 'Buduk · Near Canggu',
-    location: 'https://maps.app.goo.gl/T78azqdxnspQAnVs5', locationText: 'Buduk, near Pererenan',
-    overview: 'Modern private residences in Buduk offering private outdoor space, quiet surroundings, and proximity to Pererenan and Canggu.',
-    features: ['60m² land · 75m² building', '1 Bedroom · 1 Bathroom', 'Private swimming pool & poolside seating', 'Balcony with bistro table · Dedicated workspace', 'Extra-large two-person wardrobe', 'Fully equipped kitchen · Air-conditioning', 'High-speed fiber internet · Fully furnished'],
-    locationHighlights: ['5-min to Pererenan', '10-min to Canggu', 'Quiet residential area'],
-    inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly', 'Electricity excluded for yearly'],
-    monthly: '30jt', yearly: '300jt',
-  };
+function track(event, propId, propName) {
+  let newSession = false;
+  if (event === 'listing_view' && !sessionStorage.getItem('samba_sess')) {
+    sessionStorage.setItem('samba_sess', '1');
+    newSession = true;
+  }
+  fetch('/api/track', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event, propId, propName, agentId: getAgentId(), newSession, src: 'listing' })
+  }).catch(() => {});
 }
 
 // ── LIGHTBOX ──
@@ -562,6 +524,7 @@ let lbPhotos = [], lbIdx = 0;
 
 function openLb(idx) {
   if (!lbPhotos.length) return;
+  if (LISTING) track('photo_view', PROP_ID, LISTING.name);
   lbIdx = idx;
   showLbPhoto();
   document.getElementById('lb').classList.add('open');
@@ -607,7 +570,14 @@ function esc(s) {
 
 async function boot() {
   const slug = getSlug();
-  const listing = LISTINGS[slug];
+  let listing = null;
+  try {
+    const r = await fetch('/api/listings');
+    if (r.ok) {
+      const { listings } = await r.json();
+      listing = (listings || []).find(l => l.slug === slug && !l.hidden);
+    }
+  } catch {}
 
   if (!listing) {
     document.getElementById('loading').style.display = 'none';
@@ -616,21 +586,30 @@ async function boot() {
     return;
   }
 
-  document.title = listing.title + ' · Samba Rentals';
+  LISTING = listing;
+  PROP_ID = listing.custom ? 'c_' + listing.slug : String(listing.hostexId);
+  track('listing_view', PROP_ID, listing.name);
+
+  document.title = listing.name + ' · Samba Rentals';
 
   // Fill content
-  document.getElementById('prop-tag').textContent = listing.tag;
-  document.getElementById('prop-title').textContent = listing.title;
-  document.getElementById('prop-location').href = listing.location;
-  document.getElementById('prop-location-text').textContent = listing.locationText;
-  document.getElementById('prop-overview').textContent = listing.overview;
+  document.getElementById('prop-tag').textContent = listing.tag || '';
+  document.getElementById('prop-title').textContent = listing.name;
+  const locEl = document.getElementById('prop-location');
+  if (listing.location) {
+    locEl.href = listing.location;
+    document.getElementById('prop-location-text').textContent = listing.locationText || listing.tag || 'View on map';
+  } else {
+    locEl.style.display = 'none';
+  }
+  document.getElementById('prop-overview').textContent = listing.overview || '';
 
   // Details grid
   const grid = document.getElementById('details-grid');
   const sections = [
-    { title: 'Property Features', items: listing.features },
-    { title: 'Location Highlights', items: listing.locationHighlights },
-  ];
+    { title: 'Property Features', items: listing.features || [] },
+    { title: 'Location Highlights', items: listing.locationHighlights || [] },
+  ].filter(s => s.items.length);
   grid.innerHTML = sections.map(s =>
     '<div><div class="detail-section-title">' + s.title + '</div>' +
     s.items.map(i => '<div class="detail-row">' + esc(i) + '</div>').join('') +
@@ -639,26 +618,33 @@ async function boot() {
 
   // Pricing
   const priceRows = document.getElementById('price-rows');
-  let priceHtml = '<div class="price-row"><span class="price-amount">' + listing.monthly + '</span><span class="price-period">/ month</span></div>';
-  priceHtml += '<div class="price-row"><span class="price-amount">' + listing.yearly + '</span><span class="price-period">/ year</span></div>';
-  if (listing.yearly2) priceHtml += '<div class="price-row"><span class="price-amount">' + listing.yearly2 + '</span><span class="price-period">/ 2 years</span></div>';
+  let priceHtml = '';
+  if (listing.monthly) priceHtml += '<div class="price-row"><span class="price-amount">' + esc(listing.monthly) + '</span><span class="price-period">/ month</span></div>';
+  if (listing.yearly) priceHtml += '<div class="price-row"><span class="price-amount">' + esc(listing.yearly) + '</span><span class="price-period">/ year</span></div>';
+  if (listing.yearly2) priceHtml += '<div class="price-row"><span class="price-amount">' + esc(listing.yearly2) + '</span><span class="price-period">/ 2 years</span></div>';
   priceRows.innerHTML = priceHtml;
 
   // Inclusions
-  document.getElementById('inclusions-list').innerHTML = listing.inclusions.map(i =>
+  document.getElementById('inclusions-list').innerHTML = (listing.inclusions || []).map(i =>
     '<div class="inclusion-row">' + esc(i) + '</div>'
   ).join('');
 
   // WhatsApp
-  const waMsg = encodeURIComponent('Hi Era, I\'m interested in ' + listing.title + '. Could you tell me more?');
-  document.getElementById('wa-link').href = 'https://wa.me/6281246357778?text=' + waMsg;
+  const waNum = listing.waNumber || '6281246357778';
+  const waName = listing.waContactName || 'Era';
+  const waMsg = encodeURIComponent('Hi ' + waName + ', I\'m interested in ' + listing.name + '. Could you tell me more?');
+  const waLink = document.getElementById('wa-link');
+  waLink.href = 'https://wa.me/' + waNum + '?text=' + waMsg;
+  waLink.textContent = '💬 Enquire with ' + waName;
+  waLink.onclick = () => track('whatsapp_click', PROP_ID, listing.name);
 
   // Show listing
   document.getElementById('loading').style.display = 'none';
   document.getElementById('listing').style.display = 'block';
 
   // Load photos
-  loadPhotos(listing.folder);
+  if (listing.folder) loadPhotos(listing.folder);
+  else document.getElementById('gallery-loading').textContent = 'No photos available yet.';
 }
 
 async function loadPhotos(folderId) {
@@ -695,21 +681,7 @@ async function loadPhotos(folderId) {
   }
 }
 
-async function loadListingMeta() {
-  try {
-    const r = await fetch('/api/listings');
-    if (!r.ok) return;
-    const { listings } = await r.json();
-    listings.forEach(l => {
-      if (l.slug && LISTINGS[l.slug]) Object.assign(LISTINGS[l.slug], l);
-    });
-  } catch {}
-}
-
-(async () => {
-  await loadListingMeta();
-  boot();
-})();
+boot();
 </script>
 </body>
 </html>

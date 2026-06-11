@@ -52,9 +52,21 @@ const DEFAULTS = {
   'tropicana-b6': { ...TROPICANA, slug: 'tropicana-b6', hostexId: '12566588', name: 'Tropicana Valley – Unit B6', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
 };
 
+const CUSTOM_KEY = 'custom_properties';
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function cleanStr(v) { return typeof v === 'string' ? v.trim() : ''; }
+function cleanLines(a) { return Array.isArray(a) ? a.map(s => String(s).trim()).filter(Boolean) : []; }
+function cleanRanges(a) {
+  if (!Array.isArray(a)) return [];
+  return a
+    .filter(r => r && DATE_RE.test(r.from) && DATE_RE.test(r.to) && r.from <= r.to)
+    .map(r => ({ from: r.from, to: r.to }));
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -79,25 +91,75 @@ export default async function handler(req, res) {
     });
   }
 
+  function checkAuth() {
+    const adminPw = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSWORD;
+    if (!adminPw) return true;
+    const auth = req.headers.authorization || '';
+    return auth === `Bearer ${adminPw}`;
+  }
+
   if (req.method === 'GET') {
     const slugs = Object.keys(DEFAULTS);
-    const kvResults = await Promise.all(slugs.map(s => kvGet(`listing:${s}`)));
+    const [customMap, ...kvResults] = await Promise.all([
+      kvGet(CUSTOM_KEY),
+      ...slugs.map(s => kvGet(`listing:${s}`)),
+    ]);
     const listings = slugs.map((slug, i) => ({
       ...DEFAULTS[slug],
       ...(kvResults[i] || {}),
     }));
-    return res.status(200).json({ listings });
+    const customListings = Object.values(customMap || {}).map(c => ({ ...c, custom: true }));
+    return res.status(200).json({ listings: [...listings, ...customListings] });
+  }
+
+  if (req.method === 'DELETE') {
+    if (!checkAuth()) return res.status(401).json({ error: 'Unauthorized' });
+    const slug = req.query.slug;
+    if (!slug) return res.status(400).json({ error: 'Missing slug' });
+    const all = await kvGet(CUSTOM_KEY) || {};
+    if (!all[slug]) return res.status(404).json({ error: 'Not found' });
+    delete all[slug];
+    await kvSet(CUSTOM_KEY, all);
+    return res.status(200).json({ ok: true });
   }
 
   if (req.method === 'POST') {
-    const adminPw = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSWORD;
-    if (adminPw) {
-      const auth = req.headers.authorization || '';
-      if (auth !== `Bearer ${adminPw}`) return res.status(401).json({ error: 'Unauthorized' });
+    if (!checkAuth()) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { slug, data, custom } = req.body || {};
+    if (!slug || !/^[a-z0-9-]{2,60}$/.test(slug)) return res.status(400).json({ error: 'Invalid slug' });
+
+    if (custom) {
+      if (DEFAULTS[slug]) return res.status(400).json({ error: 'Slug conflicts with a Hostex listing' });
+      if (!data || !cleanStr(data.name)) return res.status(400).json({ error: 'Name is required' });
+      const all = await kvGet(CUSTOM_KEY) || {};
+      const existing = all[slug] || {};
+      all[slug] = {
+        slug,
+        custom: true,
+        name: cleanStr(data.name),
+        tag: cleanStr(data.tag),
+        location: cleanStr(data.location),
+        mapEmbed: cleanStr(data.mapEmbed) || existing.mapEmbed || '',
+        overview: cleanStr(data.overview),
+        features: cleanLines(data.features),
+        inclusions: cleanLines(data.inclusions),
+        locationHighlights: cleanLines(data.locationHighlights),
+        monthly: cleanStr(data.monthly),
+        yearly: cleanStr(data.yearly),
+        yearly2: cleanStr(data.yearly2),
+        folder: cleanStr(data.folder),
+        waNumber: cleanStr(data.waNumber).replace(/[^0-9]/g, ''),
+        waContactName: cleanStr(data.waContactName),
+        bookedRanges: Array.isArray(data.bookedRanges) ? cleanRanges(data.bookedRanges) : existing.bookedRanges || [],
+        hidden: !!data.hidden,
+        createdAt: existing.createdAt || Date.now(),
+        updatedAt: Date.now(),
+      };
+      await kvSet(CUSTOM_KEY, all);
+      return res.status(200).json({ ok: true, slug });
     }
 
-    const { slug, data } = req.body || {};
-    if (!slug || !/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ error: 'Invalid slug' });
     if (!DEFAULTS[slug]) return res.status(400).json({ error: 'Unknown listing slug' });
 
     const existing = await kvGet(`listing:${slug}`) || {};
@@ -116,6 +178,8 @@ export default async function handler(req, res) {
       tag: typeof data.tag === 'string' ? data.tag.trim() : existing.tag || DEFAULTS[slug].tag,
       location: typeof data.location === 'string' ? data.location.trim() : existing.location || DEFAULTS[slug].location,
       mapEmbed: typeof data.mapEmbed === 'string' ? data.mapEmbed.trim() : existing.mapEmbed || DEFAULTS[slug].mapEmbed,
+      waNumber: typeof data.waNumber === 'string' ? data.waNumber.replace(/[^0-9]/g, '') : existing.waNumber || '',
+      waContactName: typeof data.waContactName === 'string' ? data.waContactName.trim() : existing.waContactName || '',
     };
 
     await kvSet(`listing:${slug}`, safe);

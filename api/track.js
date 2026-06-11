@@ -9,74 +9,47 @@ export default async function handler(req, res) {
   const token = process.env.KV_REST_API_TOKEN;
   if (!url || !token) return res.status(500).json({ error: 'Redis not configured' });
 
-  const { event, propId, propName, agentId } = req.body || {};
-  if (!event) return res.status(400).json({ error: 'Missing event' });
+  const { event, propId, propName, agentId, newSession, src } = req.body || {};
+  if (!event || !/^[a-z_]{1,32}$/.test(event)) return res.status(400).json({ error: 'Missing or invalid event' });
 
   const now = Date.now();
   const day = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  const week = getWeek();
   const month = day.slice(0, 7); // YYYY-MM
 
-  async function incr(key) {
-    await fetch(`${url}/incr/${encodeURIComponent(key)}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` }
-    });
+  const cmds = [
+    ['INCR', `total:${event}`],
+    ['INCR', `day:${day}:${event}`],
+    ['INCR', `month:${month}:${event}`],
+  ];
+
+  // Sessions: only counted once per browser session (frontend sends newSession flag)
+  if ((event === 'page_view' || event === 'listing_view') && newSession) {
+    cmds.push(
+      ['INCR', 'total:sessions'],
+      ['INCR', `day:${day}:sessions`],
+      ['INCR', `month:${month}:sessions`]
+    );
   }
 
-  async function lpush(key, value) {
-    await fetch(`${url}/lpush/${encodeURIComponent(key)}/${encodeURIComponent(JSON.stringify(value))}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    // Keep only last 1000 events
-    await fetch(`${url}/ltrim/${encodeURIComponent(key)}/0/999`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-  }
-
-  const keys = [];
-
-  // Global counters
-  keys.push(incr(`total:${event}`));
-  keys.push(incr(`day:${day}:${event}`));
-  keys.push(incr(`week:${week}:${event}`));
-  keys.push(incr(`month:${month}:${event}`));
-
-  // Session tracking (page_view = new session indicator)
-  if (event === 'page_view') {
-    keys.push(incr(`day:${day}:sessions`));
-    keys.push(incr(`week:${week}:sessions`));
-    keys.push(incr(`month:${month}:sessions`));
-    keys.push(incr(`total:sessions`));
-  }
-
-  // Property-level counters
   if (propId) {
-    keys.push(incr(`prop:${propId}:${event}`));
-    keys.push(incr(`prop:${propId}:day:${day}:${event}`));
-    keys.push(incr(`prop:${propId}:month:${month}:${event}`));
+    cmds.push(['INCR', `prop:${propId}:${event}`]);
+    // Per-day property stats hash — powers period filtering on the dashboard
+    cmds.push(['HINCRBY', `pstats:${day}`, `${propId}:${event}`, '1']);
   }
-if (agentId) {
-    await fetch(`${url}/sadd/unique:agents:${day}/${encodeURIComponent(agentId)}`, {
-      method: 'POST', headers: { Authorization: `Bearer ${token}` }
-    });
-    await fetch(`${url}/sadd/unique:agents:all/${encodeURIComponent(agentId)}`, {
-      method: 'POST', headers: { Authorization: `Bearer ${token}` }
-    });
-  }
-  // Recent event log
-  keys.push(lpush('events:recent', { event, propId, propName, ts: now, day }));
 
-  await Promise.all(keys);
+  if (agentId) {
+    cmds.push(['SADD', `unique:agents:${day}`, String(agentId)]);
+    cmds.push(['SADD', 'unique:agents:all', String(agentId)]);
+  }
+
+  cmds.push(['LPUSH', 'events:recent', JSON.stringify({ event, propId, propName, agentId, src, ts: now, day })]);
+  cmds.push(['LTRIM', 'events:recent', '0', '999']);
+
+  await fetch(`${url}/pipeline`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(cmds),
+  });
 
   return res.status(200).json({ ok: true });
-}
-
-function getWeek() {
-  const d = new Date();
-  const jan1 = new Date(d.getFullYear(), 0, 1);
-  const week = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
-  return `${d.getFullYear()}-W${String(week).padStart(2, '0')}`;
 }

@@ -69,6 +69,19 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .section-label{font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:20px 0 12px;display:flex;align-items:center;gap:8px;}
 .section-label::after{content:'';flex:1;height:1px;background:var(--border);}
 
+/* SECTIONS */
+.section-head{display:flex;align-items:center;justify-content:space-between;margin:8px 0 16px;}
+.section-head h2{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:600;}
+.section-head .hint{font-size:0.7rem;color:var(--muted);margin-top:3px;}
+.add-btn{background:var(--green);color:#0f1117;border:none;border-radius:8px;padding:9px 18px;font-family:'Sora',sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;transition:opacity 0.2s;}
+.add-btn:hover{opacity:0.88;}
+.delete-btn{background:none;border:1px solid var(--red);border-radius:8px;color:var(--red);padding:8px 16px;font-family:'Sora',sans-serif;font-size:0.75rem;cursor:pointer;transition:all 0.2s;}
+.delete-btn:hover{background:var(--red);color:#fff;}
+.check-row{display:flex;align-items:center;gap:8px;font-size:0.78rem;color:var(--muted);cursor:pointer;user-select:none;}
+.check-row input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;}
+.custom-badge{font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;background:rgba(82,200,122,0.15);color:var(--green);border:1px solid rgba(82,200,122,0.3);border-radius:4px;padding:2px 7px;margin-left:8px;vertical-align:middle;}
+.empty-hint{padding:24px;border:1px dashed var(--border);border-radius:14px;color:var(--muted);font-size:0.8rem;text-align:center;margin-bottom:24px;}
+
 /* TOAST */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 20px;border-radius:10px;font-size:0.78rem;letter-spacing:0.04em;transition:transform 0.25s cubic-bezier(.2,.9,.3,1.2);z-index:999;pointer-events:none;white-space:nowrap;}
 .toast.show{transform:translateX(-50%) translateY(0);}
@@ -164,7 +177,28 @@ function extractFolderId(url) {
 }
 
 function renderListings(listings) {
-  const html = listings.map(l => `
+  const customs = listings.filter(l => l.custom);
+  const defaults = listings.filter(l => !l.custom);
+  const html =
+    `<div class="section-head">
+      <div><h2>Custom Properties</h2><div class="hint">Properties not in Hostex — fully managed here</div></div>
+      <button class="add-btn" onclick="addCustom()">+ Add Property</button>
+    </div>
+    <div id="new-custom-slot"></div>` +
+    (customs.length ? customs.map(l => customCard(l, false)).join('') :
+      '<div class="empty-hint">No custom properties yet. Click "+ Add Property" to create one.</div>') +
+    `<div class="section-head" style="margin-top:36px"><div><h2>Hostex Listings</h2><div class="hint">Synced from Hostex — details editable here</div></div></div>` +
+    defaults.map(l => defaultCard(l)).join('');
+  document.getElementById('content').innerHTML = html;
+
+  // Load drive previews for all listings
+  listings.forEach(l => {
+    if (l.folder) loadDrivePreview(l.slug, l.folder);
+  });
+}
+
+function defaultCard(l) {
+  return `
     <div class="listing-card" id="card-${l.slug}">
       <div class="card-header">
         <div>
@@ -172,6 +206,18 @@ function renderListings(listings) {
           <div class="card-slug">${l.slug}</div>
         </div>
         <button class="save-btn" id="save-${l.slug}" onclick="saveListing('${l.slug}')">Save</button>
+      </div>
+
+      <div class="section-label">WhatsApp Contact</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Contact Name</label>
+          <input class="field-input" id="${l.slug}-waContactName" value="${esc(l.waContactName || '')}" placeholder="Era (default)" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">WhatsApp Number</label>
+          <input class="field-input" id="${l.slug}-waNumber" value="${esc(l.waNumber || '')}" placeholder="6281246357778 (default)" />
+        </div>
       </div>
 
       <div class="section-label">Photos</div>
@@ -229,13 +275,211 @@ function renderListings(listings) {
         </div>
       </div>
     </div>
-  `).join('');
-  document.getElementById('content').innerHTML = html;
+  `;
+}
 
-  // Load drive previews for all listings
-  listings.forEach(l => {
-    if (l.folder) loadDrivePreview(l.slug, l.folder);
+function customCard(l, isNew) {
+  const slug = l.slug;
+  const ranges = (l.bookedRanges || []).map(r => r.from + ' to ' + r.to).join('\n');
+  return `
+    <div class="listing-card" id="card-${slug}">
+      <div class="card-header">
+        <div>
+          <div class="card-title">${isNew ? 'New Property' : esc(l.name)}<span class="custom-badge">custom</span></div>
+          <div class="card-slug">${isNew ? 'slug auto-generated from name' : slug}</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          ${isNew ? '' : `<button class="delete-btn" onclick="deleteCustom('${slug}')">Delete</button>`}
+          <button class="save-btn" id="save-${slug}" onclick="saveCustom('${slug}', ${isNew})">${isNew ? 'Create' : 'Save'}</button>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Property Name *</label>
+          <input class="field-input" id="${slug}-name" value="${esc(l.name || '')}" placeholder="e.g. Villa Sunrise" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Area Tag</label>
+          <input class="field-input" id="${slug}-tag" value="${esc(l.tag || '')}" placeholder="e.g. Umalas · Canggu" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Google Maps Link</label>
+          <input class="field-input" id="${slug}-location" value="${esc(l.location || '')}" placeholder="https://maps.app.goo.gl/…" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" title="Booked days show red on the agent calendar">Booked Dates <span class="field-hint">(one range per line: 2026-07-01 to 2026-07-15)</span></label>
+          <textarea class="field-textarea" id="${slug}-ranges" rows="2" placeholder="2026-07-01 to 2026-07-15">${esc(ranges)}</textarea>
+        </div>
+      </div>
+
+      <div class="section-label">WhatsApp Contact</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Contact Name</label>
+          <input class="field-input" id="${slug}-waContactName" value="${esc(l.waContactName || '')}" placeholder="Era (default)" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">WhatsApp Number</label>
+          <input class="field-input" id="${slug}-waNumber" value="${esc(l.waNumber || '')}" placeholder="6281246357778 (default)" />
+        </div>
+      </div>
+
+      <div class="section-label">Photos</div>
+      <div class="drive-row">
+        <div class="drive-input-wrap field-group">
+          <label class="field-label">Google Drive Folder URL</label>
+          <input class="field-input" id="${slug}-folder-url"
+            value="${l.folder ? esc('https://drive.google.com/drive/folders/' + l.folder) : ''}"
+            placeholder="https://drive.google.com/drive/folders/…"
+            oninput="onFolderInput('${slug}', this.value)" />
+          <span class="field-hint" id="${slug}-folder-hint">Paste a Drive folder link for photos</span>
+        </div>
+        <div class="drive-preview" id="${slug}-preview">
+          <div class="drive-preview-placeholder">No preview</div>
+        </div>
+      </div>
+
+      <div class="section-label">Pricing</div>
+      <div class="pricing-row">
+        <div class="field-group">
+          <label class="field-label">Monthly</label>
+          <input class="field-input" id="${slug}-monthly" value="${esc(l.monthly || '')}" placeholder="e.g. 27jt" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Yearly</label>
+          <input class="field-input" id="${slug}-yearly" value="${esc(l.yearly || '')}" placeholder="e.g. 270jt" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">2-Year (optional)</label>
+          <input class="field-input" id="${slug}-yearly2" value="${esc(l.yearly2 || '')}" placeholder="e.g. 500jt" />
+        </div>
+      </div>
+
+      <div class="section-label">Description</div>
+      <div class="field-row full">
+        <div class="field-group">
+          <label class="field-label">Overview</label>
+          <textarea class="field-textarea" id="${slug}-overview" rows="4">${esc(l.overview || '')}</textarea>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Features <span class="field-hint">(one per line)</span></label>
+          <textarea class="field-textarea" id="${slug}-features" rows="8">${esc((l.features || []).join('\n'))}</textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Inclusions <span class="field-hint">(one per line)</span></label>
+          <textarea class="field-textarea" id="${slug}-inclusions" rows="8">${esc((l.inclusions || []).join('\n'))}</textarea>
+        </div>
+      </div>
+      <div class="field-row full">
+        <div class="field-group">
+          <label class="field-label">Location Highlights <span class="field-hint">(one per line)</span></label>
+          <textarea class="field-textarea" id="${slug}-locationHighlights" rows="5">${esc((l.locationHighlights || []).join('\n'))}</textarea>
+        </div>
+      </div>
+      <div class="field-row full">
+        <label class="check-row">
+          <input type="checkbox" id="${slug}-hidden" ${l.hidden ? 'checked' : ''} />
+          Hide from agent portal
+        </label>
+      </div>
+    </div>
+  `;
+}
+
+function addCustom() {
+  const slot = document.getElementById('new-custom-slot');
+  if (slot.innerHTML) { slot.scrollIntoView({ behavior: 'smooth' }); return; }
+  slot.innerHTML = customCard({ slug: 'new-property' }, true);
+  slot.scrollIntoView({ behavior: 'smooth' });
+}
+
+function kebab(s) {
+  return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+}
+
+function parseRanges(text) {
+  const out = [];
+  text.split('\n').forEach(line => {
+    const m = line.match(/(\d{4}-\d{2}-\d{2})\s*(?:to|->|–|—|→|-)?\s*(\d{4}-\d{2}-\d{2})/);
+    if (m) out.push({ from: m[1], to: m[2] });
   });
+  return out;
+}
+
+async function saveCustom(cardSlug, isNew) {
+  const btn = document.getElementById('save-' + cardSlug);
+  const name = document.getElementById(cardSlug + '-name').value.trim();
+  if (!name) { showToast('Property name is required', 'error'); return; }
+  const slug = isNew ? kebab(name) : cardSlug;
+  if (!slug) { showToast('Could not generate a slug from that name', 'error'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const folderUrl = document.getElementById(cardSlug + '-folder-url').value;
+  const folderId = extractFolderId(folderUrl) || folderUrl.trim();
+
+  const data = {
+    name,
+    tag: document.getElementById(cardSlug + '-tag').value,
+    location: document.getElementById(cardSlug + '-location').value,
+    folder: folderId,
+    monthly: document.getElementById(cardSlug + '-monthly').value,
+    yearly: document.getElementById(cardSlug + '-yearly').value,
+    yearly2: document.getElementById(cardSlug + '-yearly2').value,
+    overview: document.getElementById(cardSlug + '-overview').value,
+    features: lines(document.getElementById(cardSlug + '-features').value),
+    inclusions: lines(document.getElementById(cardSlug + '-inclusions').value),
+    locationHighlights: lines(document.getElementById(cardSlug + '-locationHighlights').value),
+    waContactName: document.getElementById(cardSlug + '-waContactName').value,
+    waNumber: document.getElementById(cardSlug + '-waNumber').value,
+    bookedRanges: parseRanges(document.getElementById(cardSlug + '-ranges').value),
+    hidden: document.getElementById(cardSlug + '-hidden').checked,
+  };
+
+  try {
+    const r = await fetch('/api/listings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminPw },
+      body: JSON.stringify({ slug, data, custom: true }),
+    });
+    if (r.status === 401) { showGate('Session expired. Please log in again.'); return; }
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + r.status);
+    }
+    showToast((isNew ? 'Created ' : 'Saved ') + slug, 'success');
+    if (isNew) loadListings();
+  } catch(e) {
+    showToast('Save failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = isNew ? 'Create' : 'Save';
+  }
+}
+
+async function deleteCustom(slug) {
+  if (!confirm('Delete "' + slug + '"? This cannot be undone.')) return;
+  try {
+    const r = await fetch('/api/listings?slug=' + encodeURIComponent(slug), {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + adminPw },
+    });
+    if (r.status === 401) { showGate('Session expired. Please log in again.'); return; }
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + r.status);
+    }
+    showToast('Deleted ' + slug, 'success');
+    loadListings();
+  } catch(e) {
+    showToast('Delete failed: ' + e.message, 'error');
+  }
 }
 
 const folderDebounce = {};
@@ -290,6 +534,8 @@ async function saveListing(slug) {
     features: lines(document.getElementById(slug + '-features').value),
     inclusions: lines(document.getElementById(slug + '-inclusions').value),
     locationHighlights: lines(document.getElementById(slug + '-locationHighlights').value),
+    waContactName: document.getElementById(slug + '-waContactName').value,
+    waNumber: document.getElementById(slug + '-waNumber').value,
   };
 
   try {

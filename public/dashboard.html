@@ -6,7 +6,7 @@
 <title>Analytics — Samba Rentals</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Sora:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0f1117;--surface:#181c27;--surface2:#1f2333;--border:#2a2f42;--text:#e8eaf2;--muted:#5a607a;--accent:#4a7cf7;--green:#52c87a;--red:#e06060;--yellow:#f0c060;--orange:#e08040;}
+:root{--bg:#0f1117;--surface:#181c27;--surface2:#1f2333;--border:#2a2f42;--text:#e8eaf2;--muted:#5a607a;--accent:#4a7cf7;--green:#52c87a;--red:#e06060;--yellow:#f0c060;--orange:#e08040;--purple:#9a6cf7;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
 
@@ -54,6 +54,8 @@ canvas{display:block;}
 
 /* PROPERTY TABLE */
 .table-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:28px;}
+.table-card .table-scroll{overflow-x:auto;}
+.table-card table{min-width:640px;}
 .table-header{padding:14px 20px;border-bottom:1px solid var(--border);font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
 table{width:100%;border-collapse:collapse;}
 th{padding:10px 20px;text-align:left;font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);}
@@ -151,12 +153,13 @@ async function loadData() {
 }
 
 const EVENT_ICONS = {
-  page_view: '👁', details_open: 'ℹ️', share: '↗', whatsapp_click: '💬',
-  photo_view: '📷', refresh: '↻', sessions: '🔑'
+  page_view: '👁', listing_view: '🔗', details_open: 'ℹ️', share: '↗', whatsapp_click: '💬',
+  photo_view: '📷', photo_download: '📥', refresh: '↻', sessions: '🔑'
 };
 const EVENT_LABELS = {
-  page_view: 'Page View', details_open: 'Details Opened', share: 'Share', whatsapp_click: 'WhatsApp',
-  photo_view: 'Photos Viewed', refresh: 'Refresh', sessions: 'Sessions'
+  page_view: 'Portal Opened', listing_view: 'Listing Page Viewed', details_open: 'Details Opened',
+  share: 'Share', whatsapp_click: 'WhatsApp Click', photo_view: 'Photos Viewed',
+  photo_download: 'Photos Downloaded', refresh: 'Refresh', sessions: 'Session'
 };
 
 function render(data) {
@@ -165,12 +168,10 @@ function render(data) {
     '7d':'last 7 days','30d':'last 30 days','90d':'last 90 days','all':'all time'
   }[period] || period;
 
-  const maxViews = Math.max(...properties.map(p => p.views), 1);
-
-  // Calculate engagement rate
-  const engRate = totals.page_view > 0 ? Math.round((totals.details_open / totals.page_view) * 100) : 0;
-  const shareRate = totals.page_view > 0 ? Math.round((totals.share / totals.page_view) * 100) : 0;
-  const waRate = totals.page_view > 0 ? Math.round((totals.whatsapp_click / totals.page_view) * 100) : 0;
+  const engagement = totals.details_open + totals.listing_view;
+  const maxEng = Math.max(...properties.map(p => p.engagement), 1);
+  const engRate = totals.sessions > 0 ? Math.round((engagement / totals.sessions) * 100) : 0;
+  const waRate = totals.sessions > 0 ? Math.round((totals.whatsapp_click / totals.sessions) * 100) : 0;
 
   document.getElementById('dash-content').innerHTML = `
     <!-- STAT CARDS -->
@@ -181,24 +182,29 @@ function render(data) {
         <div class="stat-sub">${periodLabel}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Property Views</div>
-        <div class="stat-value">${fmt(totals.page_view)}</div>
-        <div class="stat-sub">card impressions</div>
+        <div class="stat-label">Active Agents</div>
+        <div class="stat-value" style="color:var(--green)">${fmt(totals.unique_agents)}</div>
+        <div class="stat-sub">${fmt(totals.unique_agents_today)} today · ${fmt(totals.unique_agents_all)} all-time</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Details Opened</div>
-        <div class="stat-value" style="color:var(--green)">${fmt(totals.details_open)}</div>
-        <div class="stat-sub">${engRate}% engagement rate</div>
+        <div class="stat-value">${fmt(totals.details_open)}</div>
+        <div class="stat-sub">in the agent portal</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Listing Page Views</div>
+        <div class="stat-value" style="color:var(--purple)">${fmt(totals.listing_view)}</div>
+        <div class="stat-sub">from shared links</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Shares</div>
         <div class="stat-value" style="color:var(--yellow)">${fmt(totals.share)}</div>
-        <div class="stat-sub">${shareRate}% share rate</div>
+        <div class="stat-sub">links sent out</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">WhatsApp Clicks</div>
         <div class="stat-value" style="color:var(--orange)">${fmt(totals.whatsapp_click)}</div>
-        <div class="stat-sub">${waRate}% conversion rate</div>
+        <div class="stat-sub">${waRate}% of sessions</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Photos Viewed</div>
@@ -206,22 +212,31 @@ function render(data) {
         <div class="stat-sub">gallery opens</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Unique Agents</div>
-        <div class="stat-value" style="color:var(--green)">${fmt(totals.unique_agents_total)}</div>
-        <div class="stat-sub">${fmt(totals.unique_agents_today)} today</div>
+        <div class="stat-label">Photo Downloads</div>
+        <div class="stat-value">${fmt(totals.photo_download)}</div>
+        <div class="stat-sub">Drive folder opens</div>
       </div>
+    </div>
+
+    <!-- FUNNEL -->
+    <div class="chart-card">
+      <div class="card-title">Conversion Funnel · ${periodLabel}</div>
+      ${funnelRow('Sessions', totals.sessions, totals.sessions, 'var(--accent)')}
+      ${funnelRow('Property engagement (details + listing views)', engagement, totals.sessions, 'var(--green)')}
+      ${funnelRow('WhatsApp enquiries', totals.whatsapp_click, totals.sessions, 'var(--orange)')}
     </div>
 
     <!-- ACTIVITY CHART -->
     <div class="chart-card">
       <div class="card-title">
-        Daily Activity
+        Daily Activity${period === 'all' ? ' · last 90 days' : ''}
       </div>
       <div class="chart-legend">
-        <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Sessions</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Details Opened</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>Shares</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>WhatsApp</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#4a7cf7"></div>Sessions</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#52c87a"></div>Details Opened</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#9a6cf7"></div>Listing Views</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#e08040"></div>WhatsApp</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#e06060"></div>Active Agents</div>
       </div>
       <div class="chart-wrap">
         <canvas id="activity-chart" height="180"></canvas>
@@ -230,16 +245,18 @@ function render(data) {
 
     <!-- PROPERTY PERFORMANCE -->
     <div class="table-card">
-      <div class="table-header">Property Performance</div>
+      <div class="table-header">Property Performance · ${periodLabel}</div>
+      <div class="table-scroll">
       <table>
         <thead>
           <tr>
             <th>#</th>
             <th>Property</th>
-            <th>Views</th>
             <th>Details</th>
+            <th>Listing Views</th>
             <th>Shares</th>
             <th>WhatsApp</th>
+            <th>Photos</th>
             <th>Downloads</th>
             <th style="width:100px">Interest</th>
           </tr>
@@ -248,21 +265,23 @@ function render(data) {
           ${properties.map((p, i) => `
             <tr>
               <td class="prop-rank">${i + 1}</td>
-              <td style="font-weight:500">${p.name}</td>
-              <td>${fmt(p.views)}</td>
-              <td><span style="color:var(--green)">${fmt(p.details)}</span></td>
-              <td><span style="color:var(--yellow)">${fmt(p.shares)}</span></td>
-              <td><span style="color:var(--orange)">${fmt(p.whatsapp)}</span></td>
-              <td><span style="color:var(--accent)">${fmt(p.downloads)}</span></td>
+              <td style="font-weight:500">${esc(p.name)}${p.custom ? ' <span class="metric-pill">custom</span>' : ''}</td>
+              <td>${fmt(p.details_open)}</td>
+              <td><span style="color:var(--purple)">${fmt(p.listing_view)}</span></td>
+              <td><span style="color:var(--yellow)">${fmt(p.share)}</span></td>
+              <td><span style="color:var(--orange)">${fmt(p.whatsapp_click)}</span></td>
+              <td>${fmt(p.photo_view)}</td>
+              <td><span style="color:var(--accent)">${fmt(p.photo_download)}</span></td>
               <td>
                 <div class="bar-wrap">
-                  <div class="bar-fill" style="width:${Math.round((p.views/maxViews)*100)}%"></div>
+                  <div class="bar-fill" style="width:${Math.round((p.engagement/maxEng)*100)}%"></div>
                 </div>
               </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
+      </div>
     </div>
 
     <!-- RECENT EVENTS -->
@@ -272,10 +291,11 @@ function render(data) {
         recent.map(e => `
           <div class="event-row">
             <div class="event-icon">${EVENT_ICONS[e.event] || '•'}</div>
-            <div>
-              <div class="event-name">${EVENT_LABELS[e.event] || e.event}</div>
-              ${e.propName ? `<div class="event-prop">${e.propName}</div>` : ''}
+            <div style="flex:1">
+              <div class="event-name">${EVENT_LABELS[e.event] || e.event}${e.src === 'listing' ? ' <span class="metric-pill">shared link</span>' : ''}</div>
+              ${e.propName ? `<div class="event-prop">${esc(e.propName)}</div>` : ''}
             </div>
+            ${e.agentId ? `<span class="metric-pill" title="${esc(e.agentId)}">agent ${esc(String(e.agentId).slice(2, 7))}</span>` : ''}
             <div class="event-time">${timeAgo(e.ts)}</div>
           </div>
         `).join('')
@@ -285,6 +305,25 @@ function render(data) {
 
   // Draw chart
   drawChart(series);
+}
+
+function funnelRow(label, value, base, color) {
+  const pct = base > 0 ? Math.round((value / base) * 100) : 0;
+  return `
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:5px">
+        <span>${label}</span>
+        <span style="color:var(--muted)">${fmt(value)} · ${pct}%</span>
+      </div>
+      <div style="background:var(--surface2);border-radius:5px;height:10px;overflow:hidden">
+        <div style="height:100%;border-radius:5px;background:${color};width:${Math.min(pct, 100)}%"></div>
+      </div>
+    </div>
+  `;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function drawChart(series) {
@@ -303,8 +342,9 @@ function drawChart(series) {
   const metrics = [
     { key: 'sessions', color: '#4a7cf7' },
     { key: 'details_open', color: '#52c87a' },
-    { key: 'share', color: '#f0c060' },
+    { key: 'listing_view', color: '#9a6cf7' },
     { key: 'whatsapp_click', color: '#e08040' },
+    { key: 'agents', color: '#e06060' },
   ];
 
   const maxVal = Math.max(...series.flatMap(d => metrics.map(m => d[m.key])), 1);
