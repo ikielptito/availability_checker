@@ -277,36 +277,7 @@
 
   .inclusion-row::before { content: '✓ '; color: var(--green); }
 
-  .wa-block {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-
-  .wa-cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 14px 24px;
-    background: #25d366;
-    color: #fff;
-    border-radius: 12px;
-    text-decoration: none;
-    font-size: 0.85rem;
-    font-weight: 500;
-    transition: background 0.2s, transform 0.15s;
-    white-space: nowrap;
-  }
-
-  .wa-cta:hover { background: #1ebe5d; transform: translateY(-1px); }
-
-  .wa-note {
-    font-size: 0.68rem;
-    color: var(--muted);
-    text-align: center;
-  }
+  /* .wa-block / .wa-cta / .wa-note removed — listing pages are anonymous */
 
   /* PHOTO GALLERY */
   .gallery-section { margin-bottom: 48px; }
@@ -423,8 +394,9 @@
 <body>
 
 <nav>
-  <a class="nav-brand" href="/">Samba Rentals</a>
-  <a class="nav-back" href="/">← Back to all properties</a>
+  <!-- Brand is plain text and back-link removed — agents share this page
+       directly with end clients, so we don't expose the agent portal. -->
+  <span class="nav-brand">Samba Rentals</span>
 </nav>
 
 <!-- LOADING -->
@@ -466,12 +438,6 @@
           <div class="inclusions-title">Monthly Inclusions</div>
           <div id="inclusions-list"></div>
         </div>
-      </div>
-      <div class="wa-block">
-        <a class="wa-cta" id="wa-link" href="#" target="_blank">
-          💬 Enquire with Era
-        </a>
-        <div class="wa-note">Available on WhatsApp</div>
       </div>
     </div>
 
@@ -641,14 +607,8 @@ async function boot() {
     '<div class="inclusion-row">' + esc(i) + '</div>'
   ).join('');
 
-  // WhatsApp
-  const waNum = listing.waNumber || '6281246357778';
-  const waName = listing.waContactName || 'Era';
-  const waMsg = encodeURIComponent('Hi ' + waName + ', I\'m interested in ' + listing.name + '. Could you tell me more?');
-  const waLink = document.getElementById('wa-link');
-  waLink.href = 'https://wa.me/' + waNum + '?text=' + waMsg;
-  waLink.textContent = '💬 Enquire with ' + waName;
-  waLink.onclick = () => track('whatsapp_click', PROP_ID, listing.name);
+  // Public listing pages stay anonymous — no WhatsApp link, so clients
+  // forwarded the page by their agent can't bypass that agent.
 
   // Show listing
   document.getElementById('loading').style.display = 'none';
