@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   if (!folder) return res.status(400).json({ error: 'Missing folder id' });
 
   try {
-    const url = `https://www.googleapis.com/drive/v3/files?q='${folder}'+in+parents+and+mimeType+contains+'image/'&fields=files(id,name,mimeType)&key=${apiKey}&pageSize=50`;
+    const url = `https://www.googleapis.com/drive/v3/files?q='${folder}'+in+parents+and+mimeType+contains+'image/'&fields=files(id,name,mimeType)&key=${apiKey}&pageSize=150`;
     const r = await fetch(url);
     const data = await r.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
