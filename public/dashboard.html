@@ -32,6 +32,38 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .period-btn.active,.period-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff;}
 .refresh-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:5px 12px;font-family:'Sora',sans-serif;font-size:0.72rem;cursor:pointer;transition:all 0.2s;}
 .refresh-btn:hover{color:var(--text);}
+.notify-btn{background:var(--accent);border:1px solid var(--accent);border-radius:6px;color:#fff;padding:5px 13px;font-family:'Sora',sans-serif;font-size:0.72rem;font-weight:500;cursor:pointer;transition:opacity 0.2s;}
+.notify-btn:hover{opacity:0.85;}
+.notify-btn:disabled{opacity:0.4;cursor:default;}
+
+/* NOTIFY MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.notify-modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:520px;width:100%;padding:0;overflow:hidden;animation:slideUp 0.25s ease;}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:none;opacity:1;}}
+.notify-modal-head{padding:20px 24px 12px;border-bottom:1px solid var(--border);}
+.notify-modal-title{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--text);margin-bottom:4px;}
+.notify-modal-sub{font-size:0.78rem;color:var(--muted);}
+.notify-modal-body{padding:18px 24px 8px;}
+.mode-card{display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border);border-radius:10px;cursor:pointer;margin-bottom:10px;transition:all 0.15s;background:var(--surface2);}
+.mode-card:hover{border-color:var(--subtle);}
+.mode-card.selected{border-color:var(--accent);background:rgba(74,124,247,0.08);}
+.mode-radio{width:18px;height:18px;border:2px solid var(--subtle);border-radius:50%;flex-shrink:0;margin-top:1px;position:relative;}
+.mode-card.selected .mode-radio{border-color:var(--accent);}
+.mode-card.selected .mode-radio::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--accent);}
+.mode-info{flex:1;}
+.mode-label{font-size:0.85rem;font-weight:500;color:var(--text);margin-bottom:3px;}
+.mode-desc{font-size:0.72rem;color:var(--muted);line-height:1.45;}
+.notify-modal-actions{padding:14px 24px 18px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border);background:var(--surface);}
+.notify-cancel{background:none;border:1px solid var(--border);color:var(--muted);padding:8px 18px;border-radius:8px;font-family:'Sora',sans-serif;font-size:0.78rem;cursor:pointer;}
+.notify-cancel:hover{color:var(--text);}
+.notify-confirm{background:var(--accent);border:1px solid var(--accent);color:#fff;padding:8px 18px;border-radius:8px;font-family:'Sora',sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;}
+.notify-confirm:hover{opacity:0.85;}
+.notify-confirm:disabled{opacity:0.5;cursor:default;}
+.notify-result{padding:18px 24px;font-size:0.82rem;line-height:1.6;}
+.notify-result.ok{color:var(--green);}
+.notify-result.err{color:var(--red);}
+.notify-result code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:0.78rem;}
 
 .content{padding:24px 28px 60px;max-width:1200px;margin:0 auto;}
 @media(max-width:640px){.content{padding:16px;}.topbar{padding:0 16px;}}
@@ -117,11 +149,42 @@ tr:hover td{background:var(--surface2);}
       <button class="period-btn" onclick="setPeriod('all',this)">All time</button>
     </div>
     <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+    <button class="notify-btn" onclick="openNotifyModal()">📣 Notify Agents</button>
   </div>
 
   <div class="content">
     <div id="dash-content">
       <div class="loading-state"><div class="spinner"></div>Loading analytics…</div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFY AGENTS MODAL -->
+<div class="modal-overlay" id="notifyModal" onclick="if(event.target===this)closeNotifyModal()">
+  <div class="notify-modal">
+    <div class="notify-modal-head">
+      <div class="notify-modal-title">Notify all agents</div>
+      <div class="notify-modal-sub">Triggers the WhatsApp availability broadcast now, without waiting for the next 9am WITA cron.</div>
+    </div>
+    <div id="notifyModalBody" class="notify-modal-body">
+      <div class="mode-card selected" data-mode="autopilot" onclick="pickMode(this)">
+        <div class="mode-radio"></div>
+        <div class="mode-info">
+          <div class="mode-label">Autopilot — Maya engages with replies</div>
+          <div class="mode-desc">Send the broadcast and keep Maya on autopilot so she handles inbound replies automatically. Good for quiet evenings when you don't want to babysit the inbox.</div>
+        </div>
+      </div>
+      <div class="mode-card" data-mode="silent" onclick="pickMode(this)">
+        <div class="mode-radio"></div>
+        <div class="mode-info">
+          <div class="mode-label">Send-only — Maya off, you reply manually</div>
+          <div class="mode-desc">Send the broadcast and turn Maya off. Inbound replies stack in the CRM inbox for you to handle by hand. Use this when you want to control the conversation tightly.</div>
+        </div>
+      </div>
+    </div>
+    <div id="notifyModalActions" class="notify-modal-actions">
+      <button class="notify-cancel" onclick="closeNotifyModal()">Cancel</button>
+      <button class="notify-confirm" id="notifyConfirmBtn" onclick="confirmNotify()">Send now</button>
     </div>
   </div>
 </div>
@@ -428,6 +491,100 @@ function timeAgo(ts) {
   if (diff < 3600000) return Math.floor(diff/60000) + 'm ago';
   if (diff < 86400000) return Math.floor(diff/3600000) + 'h ago';
   return Math.floor(diff/86400000) + 'd ago';
+}
+
+// ── NOTIFY AGENTS ─────────────────────────────────────────────────
+let notifyMode = 'autopilot';
+
+function openNotifyModal() {
+  notifyMode = 'autopilot';
+  document.querySelectorAll('.mode-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.mode === 'autopilot');
+  });
+  resetNotifyModalChrome();
+  document.getElementById('notifyModal').classList.add('open');
+}
+
+function closeNotifyModal() {
+  document.getElementById('notifyModal').classList.remove('open');
+}
+
+function pickMode(card) {
+  notifyMode = card.dataset.mode;
+  document.querySelectorAll('.mode-card').forEach(c => {
+    c.classList.toggle('selected', c === card);
+  });
+}
+
+function resetNotifyModalChrome() {
+  // Restore body + actions if previously replaced by result/error UI
+  document.getElementById('notifyModalBody').innerHTML = `
+    <div class="mode-card ${notifyMode==='autopilot'?'selected':''}" data-mode="autopilot" onclick="pickMode(this)">
+      <div class="mode-radio"></div>
+      <div class="mode-info">
+        <div class="mode-label">Autopilot — Maya engages with replies</div>
+        <div class="mode-desc">Send the broadcast and keep Maya on autopilot so she handles inbound replies automatically. Good for quiet evenings when you don't want to babysit the inbox.</div>
+      </div>
+    </div>
+    <div class="mode-card ${notifyMode==='silent'?'selected':''}" data-mode="silent" onclick="pickMode(this)">
+      <div class="mode-radio"></div>
+      <div class="mode-info">
+        <div class="mode-label">Send-only — Maya off, you reply manually</div>
+        <div class="mode-desc">Send the broadcast and turn Maya off. Inbound replies stack in the CRM inbox for you to handle by hand. Use this when you want to control the conversation tightly.</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('notifyModalActions').innerHTML = `
+    <button class="notify-cancel" onclick="closeNotifyModal()">Cancel</button>
+    <button class="notify-confirm" id="notifyConfirmBtn" onclick="confirmNotify()">Send now</button>
+  `;
+}
+
+async function confirmNotify() {
+  const btn = document.getElementById('notifyConfirmBtn');
+  const body = document.getElementById('notifyModalBody');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  body.innerHTML = '<div class="loading-state" style="padding:30px;"><div class="spinner"></div>Triggering broadcast…</div>';
+
+  try {
+    const r = await fetch('/api/notify-agents', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + authToken,
+      },
+      body: JSON.stringify({ mode: notifyMode }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
+
+    const cron = data.cron_response || {};
+    const sent = (cron.event_alerts_sent || 0) + (cron.weekly_digest_sent || 0);
+    const intro = cron.intro_sent || 0;
+    const skipped = (cron.skipped_freq_cap || 0) + (cron.skipped_opt_out || 0);
+    const errors = (cron.errors || []).length;
+
+    body.innerHTML = `
+      <div class="notify-result ok">
+        ✓ Broadcast triggered in <b>${data.mode}</b> mode.<br><br>
+        Sent: <b>${sent}</b> message${sent === 1 ? '' : 's'}<br>
+        First-contact intros included: <b>${intro}</b><br>
+        Properties announced: <code>${data.properties_in_digest || 0}</code><br>
+        Skipped (cap/opt-out): ${skipped}<br>
+        Errors: ${errors}${errors ? ' (check the CRM response logs)' : ''}
+      </div>
+    `;
+    document.getElementById('notifyModalActions').innerHTML = `
+      <button class="notify-confirm" onclick="closeNotifyModal();loadData()">Done</button>
+    `;
+  } catch (e) {
+    body.innerHTML = `<div class="notify-result err">⚠ ${e.message}</div>`;
+    document.getElementById('notifyModalActions').innerHTML = `
+      <button class="notify-cancel" onclick="resetNotifyModalChrome()">Try again</button>
+      <button class="notify-confirm" onclick="closeNotifyModal()">Close</button>
+    `;
+  }
 }
 
 // Auto-login if previously authenticated in session

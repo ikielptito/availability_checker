@@ -11,6 +11,8 @@ process.env.DASHBOARD_PASSWORD = 'Bissli2024';
 process.env.HOSTEX_TOKEN = 'fake';
 process.env.GOOGLE_API_KEY = 'fake';
 process.env.DIGEST_SHARED_SECRET = 'dev_secret';
+process.env.CRM_BASE_URL = 'http://localhost:3456/__crm_mock';
+const __crmCalls = [];
 
 // ── mock redis ──
 const store = new Map(), sets = new Map(), hashes = new Map(), lists = new Map();
@@ -69,6 +71,19 @@ globalThis.fetch = async (url, opts = {}) => {
     // hides broken thumbs, so dev-server testing of the picker uses the DOM
     // before image load completes, or stub at the /api/gdrive level below.
     return { json: async () => ({ files: [{ id: 'ph1' }, { id: 'ph2' }, { id: 'ph3' }] }) };
+  }
+  // CRM mock — used by api/notify-agents.js when CRM_BASE_URL points back at us
+  if (u.includes('/__crm_mock/api/supabase')) {
+    const body = JSON.parse(opts.body);
+    __crmCalls.push({ kind: 'set_settings', body });
+    return { ok: true, status: 200, json: async () => ({ ok: true }) };
+  }
+  if (u.includes('/__crm_mock/api/cron-followups')) {
+    __crmCalls.push({ kind: 'cron-followups' });
+    return { ok: true, status: 200, json: async () => ({
+      availability: { ran: true, enabled: true, recipients: 222, event_alerts_sent: 200, intro_sent: 195,
+        skipped_freq_cap: 5, skipped_opt_out: 2, errors: [], template_version: 'v3' },
+    }) };
   }
   if (u.includes('mock-ics')) {
     const compact = s => s.replace(/-/g, '');
@@ -195,5 +210,8 @@ const seedEvents = [
   { event: 'photo_view', propId: '12552236', propName: 'Villa Saturno', agentId: 'a_seed2' },
 ];
 for (const e of seedEvents) await handlers.track.default({ method: 'POST', headers: {}, query: {}, body: e }, shimRes());
+
+// Pre-warm digest cache so /api/notify-agents has data to flip
+await handlers.digest.default({ method: 'GET', headers: { authorization: 'Bearer dev_secret' }, query: { force: '1' } }, shimRes());
 
 server.listen(3456, () => console.log('dev server on http://localhost:3456'));
