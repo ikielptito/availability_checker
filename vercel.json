@@ -2,7 +2,7 @@
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/admin", "destination": "/admin.html" },
-    { "source": "/l/(.*)", "destination": "/listing.html" },
+    { "source": "/l/(.*)", "destination": "/api/listing-page?slug=$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "crons": [
