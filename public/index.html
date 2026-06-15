@@ -268,6 +268,38 @@ function getBedrooms(propId){
   for(const f of (info.features||[])){const m=String(f).match(/(\d+)\s*Bedroom/i); if(m) return +m[1];}
   return null;
 }
+// ── Complex grouping ── keep units from the same development adjacent.
+// Hostex returns properties in an arbitrary order and custom listings are
+// appended after, so without this the cards feel randomly shuffled.
+const COMPLEX_ORDER=['HAUS Canggu','LaneHAUS','Tropicana Valley','Villa Saturno','Villa Merman'];
+function complexOf(name){
+  const n=String(name||'');
+  if(/lanehaus/i.test(n)) return 'LaneHAUS';        // check before HAUS (substring)
+  if(/tropicana/i.test(n)) return 'Tropicana Valley';
+  if(/haus/i.test(n)) return 'HAUS Canggu';
+  if(/saturno/i.test(n)) return 'Villa Saturno';
+  if(/merman/i.test(n)) return 'Villa Merman';
+  return n; // unknown → its own group, sorted alphabetically after the known ones
+}
+// Within a complex, order by unit token: optional building letter then number
+// (A1, A4, A5, B2…; or plain 1, 2, 3…). Grabs the last letter+digits run in
+// the name, e.g. "Tropicana Valley Unit A1" → A1, "HAUS Canggu Unit 6" → 6.
+function unitSortKey(name){
+  const tokens=String(name||'').match(/[A-Za-z]*\d+/g);
+  const t=tokens?tokens[tokens.length-1]:'';
+  const m=t.match(/([A-Za-z]*)(\d+)/);
+  return m?[m[1].toUpperCase(),+m[2]]:['',0];
+}
+function compareProps(a,b){
+  const ca=complexOf(a.name), cb=complexOf(b.name);
+  if(ca!==cb){
+    const ia=COMPLEX_ORDER.indexOf(ca), ib=COMPLEX_ORDER.indexOf(cb);
+    if(ia!==ib) return (ia<0?Infinity:ia)-(ib<0?Infinity:ib) || ca.localeCompare(cb);
+    return ca.localeCompare(cb);
+  }
+  const [la,na]=unitSortKey(a.name), [lb,nb]=unitSortKey(b.name);
+  return la.localeCompare(lb) || na-nb;
+}
 function renderBedroomFilter(){
   const counts=new Set();
   properties.forEach(p=>{const b=getBedrooms(p.id); if(b) counts.add(b);});
@@ -605,6 +637,7 @@ async function boot() {
     PROPS[id]=l; SLUGS[id]=l.slug;
     properties.push({id,name:l.name,type:l.tag||'',photo:'',custom:true,folder:l.folder});
   });
+  properties.sort(compareProps);
   if(!properties.length){
     document.getElementById('loading-screen').style.display='none';
     document.getElementById('error-detail').textContent=hostexError?hostexError.message:'No properties returned';
