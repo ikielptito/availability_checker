@@ -62,6 +62,14 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .drive-thumb{width:56px;height:56px;border-radius:6px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:0.8;transition:all 0.15s;}
 .drive-thumb:hover{opacity:1;}
 .drive-thumb.selected{border-color:var(--accent);opacity:1;box-shadow:0 0 0 2px rgba(74,124,247,0.3);}
+/* COVER FOCAL-POINT PICKER */
+.cover-focus{position:relative;width:100%;max-width:340px;aspect-ratio:3/2;border-radius:8px;overflow:hidden;background:var(--surface2);border:1px solid var(--border);cursor:grab;touch-action:none;user-select:none;}
+.cover-focus:active{cursor:grabbing;}
+.cover-focus-img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
+.cover-focus-dot{position:absolute;width:20px;height:20px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,0.3);box-shadow:0 0 0 1px rgba(0,0,0,0.5),0 1px 3px rgba(0,0,0,0.5);transform:translate(-50%,-50%);pointer-events:none;}
+.cover-focus-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;color:var(--muted);font-size:0.78rem;}
+.cover-focus-reset{margin-top:8px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:6px 12px;font-family:'Sora',sans-serif;font-size:0.72rem;cursor:pointer;}
+.cover-focus-reset:hover{border-color:var(--muted);}
 
 /* PRICING ROW */
 .pricing-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;}
@@ -196,6 +204,7 @@ function renderListings(listings) {
   // Load drive previews for all listings
   listings.forEach(l => {
     if (l.folder) loadDrivePreview(l.slug, l.folder);
+    renderCoverFocus(l.slug);
   });
 }
 
@@ -246,6 +255,16 @@ function defaultCard(l) {
         <label class="field-label">Card Preview Photo <span class="field-hint">(click to choose · click again to clear)</span></label>
         <div class="drive-grid" id="${l.slug}-drive-grid"><div class="drive-preview-placeholder">Loading photos…</div></div>
         <input type="hidden" id="${l.slug}-coverPhotoId" value="${esc(l.coverPhotoId || '')}" />
+      </div>
+      <div class="field-group" style="margin-top:12px">
+        <label class="field-label">Preview Position <span class="field-hint">(drag to choose what stays centered in the 3:2 card crop)</span></label>
+        <div class="cover-focus" id="${l.slug}-cover-focus" onpointerdown="startCoverDrag('${l.slug}', event)">
+          <img class="cover-focus-img" id="${l.slug}-cover-focus-img" alt="" style="display:none" />
+          <div class="cover-focus-dot" id="${l.slug}-cover-dot" style="display:none"></div>
+          <div class="cover-focus-empty" id="${l.slug}-cover-empty">Pick a cover photo above to position it</div>
+        </div>
+        <button type="button" class="cover-focus-reset" onclick="resetCoverFocus('${l.slug}')">Reset to center</button>
+        <input type="hidden" id="${l.slug}-coverPosition" value="${esc(l.coverPosition || '50% 50%')}" />
       </div>
 
       <div class="section-label">Pricing</div>
@@ -367,6 +386,16 @@ function customCard(l, isNew) {
         <div class="drive-grid" id="${slug}-drive-grid"><div class="drive-preview-placeholder">${l.folder ? 'Loading photos…' : 'Add a Drive folder first'}</div></div>
         <input type="hidden" id="${slug}-coverPhotoId" value="${esc(l.coverPhotoId || '')}" />
       </div>
+      <div class="field-group" style="margin-top:12px">
+        <label class="field-label">Preview Position <span class="field-hint">(drag to choose what stays centered in the 3:2 card crop)</span></label>
+        <div class="cover-focus" id="${slug}-cover-focus" onpointerdown="startCoverDrag('${slug}', event)">
+          <img class="cover-focus-img" id="${slug}-cover-focus-img" alt="" style="display:none" />
+          <div class="cover-focus-dot" id="${slug}-cover-dot" style="display:none"></div>
+          <div class="cover-focus-empty" id="${slug}-cover-empty">Pick a cover photo above to position it</div>
+        </div>
+        <button type="button" class="cover-focus-reset" onclick="resetCoverFocus('${slug}')">Reset to center</button>
+        <input type="hidden" id="${slug}-coverPosition" value="${esc(l.coverPosition || '50% 50%')}" />
+      </div>
 
       <div class="section-label">Pricing</div>
       <div class="pricing-row">
@@ -468,6 +497,7 @@ async function saveCustom(cardSlug, isNew) {
     bookedRanges: parseRanges(document.getElementById(cardSlug + '-ranges').value),
     icalUrl: document.getElementById(cardSlug + '-icalUrl').value.trim(),
     coverPhotoId: document.getElementById(cardSlug + '-coverPhotoId').value,
+    coverPosition: document.getElementById(cardSlug + '-coverPosition').value,
     hidden: document.getElementById(cardSlug + '-hidden').checked,
   };
 
@@ -546,6 +576,7 @@ async function loadDrivePreview(slug, folderId) {
       `<img class="drive-thumb${p.id === selected ? ' selected' : ''}" src="${p.thumb}" data-id="${p.id}"
         onclick="pickCover('${slug}', '${p.id}', this)" onerror="this.remove()">`
     ).join('');
+    renderCoverFocus(slug);
   } catch {
     grid.innerHTML = '<div class="drive-preview-placeholder">Not found</div>';
   }
@@ -557,13 +588,62 @@ function pickCover(slug, id, el) {
   if (input.value === id) {
     input.value = '';
     el.classList.remove('selected');
+    renderCoverFocus(slug);
     showToast('Cover cleared — first photo will be used. Remember to Save.');
     return;
   }
   input.value = id;
   grid.querySelectorAll('.drive-thumb').forEach(t => t.classList.toggle('selected', t.dataset.id === id));
+  renderCoverFocus(slug);
   showToast('Cover photo picked — remember to Save', 'success');
 }
+
+// ── COVER FOCAL-POINT PICKER ──
+// The card hero crops the cover to 3:2 with object-fit:cover. The focal
+// point (object-position, stored as "X% Y%") decides which part survives
+// the crop. The preview box mirrors that exact crop so dragging here = the
+// live card framing.
+let coverDrag = null;
+function renderCoverFocus(slug) {
+  const id = (document.getElementById(slug + '-coverPhotoId') || {}).value || '';
+  const img = document.getElementById(slug + '-cover-focus-img');
+  const empty = document.getElementById(slug + '-cover-empty');
+  const dot = document.getElementById(slug + '-cover-dot');
+  if (!img) return;
+  if (id) {
+    img.src = 'https://lh3.googleusercontent.com/d/' + id + '=w800';
+    img.style.display = ''; if (empty) empty.style.display = 'none'; if (dot) dot.style.display = '';
+    applyCoverFocus(slug);
+  } else {
+    img.style.display = 'none'; if (empty) empty.style.display = 'flex'; if (dot) dot.style.display = 'none';
+  }
+}
+function applyCoverFocus(slug) {
+  const pos = (document.getElementById(slug + '-coverPosition') || {}).value || '50% 50%';
+  const img = document.getElementById(slug + '-cover-focus-img');
+  const dot = document.getElementById(slug + '-cover-dot');
+  if (img) img.style.objectPosition = pos;
+  if (dot) { const [x, y] = pos.split(' '); dot.style.left = x; dot.style.top = y; }
+}
+function setCoverFocusFromEvent(slug, e) {
+  const box = document.getElementById(slug + '-cover-focus');
+  const r = box.getBoundingClientRect();
+  const x = Math.max(0, Math.min(100, Math.round(((e.clientX - r.left) / r.width) * 100)));
+  const y = Math.max(0, Math.min(100, Math.round(((e.clientY - r.top) / r.height) * 100)));
+  document.getElementById(slug + '-coverPosition').value = x + '% ' + y + '%';
+  applyCoverFocus(slug);
+}
+function startCoverDrag(slug, e) {
+  if (!((document.getElementById(slug + '-coverPhotoId') || {}).value)) return;
+  coverDrag = slug; e.preventDefault();
+  setCoverFocusFromEvent(slug, e);
+}
+function resetCoverFocus(slug) {
+  document.getElementById(slug + '-coverPosition').value = '50% 50%';
+  applyCoverFocus(slug);
+}
+document.addEventListener('pointermove', e => { if (coverDrag) setCoverFocusFromEvent(coverDrag, e); });
+document.addEventListener('pointerup', () => { coverDrag = null; });
 
 async function saveListing(slug) {
   const btn = document.getElementById('save-' + slug);
@@ -587,6 +667,7 @@ async function saveListing(slug) {
     unitType: document.getElementById(slug + '-unitType').value,
     tag: document.getElementById(slug + '-tag').value,
     coverPhotoId: document.getElementById(slug + '-coverPhotoId').value,
+    coverPosition: document.getElementById(slug + '-coverPosition').value,
   };
 
   try {

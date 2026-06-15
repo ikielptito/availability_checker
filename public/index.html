@@ -646,7 +646,7 @@ async function loadAll() {
     // first photo in the Drive folder. The Drive fallback covers Hostex
     // properties with no Airbnb listing (no cover image upstream).
     if(info.coverPhotoId){
-      p.photo='https://lh3.googleusercontent.com/d/'+info.coverPhotoId+'=w1200-h800-c';
+      p.photo='https://lh3.googleusercontent.com/d/'+info.coverPhotoId+'=w1200';
     }else if(!p.photo&&(p.folder||info.folder)){
       try{
         const r=await fetch('/api/gdrive?folder='+encodeURIComponent(p.folder||info.folder));
@@ -702,8 +702,9 @@ function render() {
     }
     const av=availLabel(booked);
     const heroPill=av?'<span class="avail-pill '+av.cls+' prop-hero-pill">'+av.text+'</span>':'';
+    const heroPos=(info&&info.coverPosition)||'50% 50%';
     const heroInner=p.photo
-      ?'<img class="prop-hero-img" src="'+p.photo+'" alt="'+esc(p.name)+'" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><div class="prop-hero-ph" style="display:none">'+icon('home','lg')+'</div>'
+      ?'<img class="prop-hero-img" src="'+p.photo+'" alt="'+esc(p.name)+'" loading="lazy" style="object-position:'+heroPos+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><div class="prop-hero-ph" style="display:none">'+icon('home','lg')+'</div>'
       :'<div class="prop-hero-ph">'+icon('home','lg')+'</div>';
     return '<div class="prop-card" style="animation-delay:'+i*0.04+'s">'
       +'<div class="prop-hero" title="View details &amp; photos" onclick="openModal(\''+p.id+'\')">'+heroInner+heroPill+'</div>'
