@@ -10,42 +10,40 @@
 // returns the modified HTML. The existing client-side JS in listing.html
 // still runs after the OG tags are read by the scraper.
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let _htmlCache = null;
+let _htmlCacheAt = 0;
 let _listingsCache = null;
 let _listingsCacheAt = 0;
+const TEMPLATE_TTL_MS = 5 * 60 * 1000;
 const LISTINGS_TTL_MS = 60 * 1000;
 
 const PORTAL_BASE = 'https://sambarentals.vercel.app';
 const FALLBACK_OG = `${PORTAL_BASE}/og-portal.png`;
 
 export default async function handler(req, res) {
-  const slug = (req.query?.slug || '').toLowerCase();
+  try {
+    return await serve(req, res);
+  } catch (e) {
+    // Never 500 — link scrapers will refuse to render a preview, so on any
+    // unexpected failure fall back to a minimal page carrying just the
+    // generic portal OG card so the share still gets *some* preview.
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(200).send(fallbackPage(req));
+  }
+}
 
-  // Lazy-load listing.html on first request (cold start) — cached for the
-  // life of this Lambda instance. The file is ~30KB, the JS runtime keeps
-  // the cache warm across requests on the same instance.
-  if (!_htmlCache) {
-    try {
-      // __dirname is the api/ folder (in dev) or /var/task/api (in Vercel).
-      // public/ is its sibling in both environments.
-      const candidates = [
-        path.join(__dirname, '..', 'public', 'listing.html'),
-        path.join(process.cwd(), 'public', 'listing.html'),
-        '/var/task/public/listing.html',
-      ];
-      for (const p of candidates) {
-        if (fs.existsSync(p)) { _htmlCache = fs.readFileSync(p, 'utf8'); break; }
-      }
-      if (!_htmlCache) throw new Error('listing.html not found');
-    } catch (e) {
-      res.setHeader('Content-Type', 'text/plain');
-      return res.status(500).end('Listing template missing: ' + e.message);
-    }
+async function serve(req, res) {
+  const slug = (req.query?.slug || '').toLowerCase();
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+  const host = req.headers.host || 'sambarentals.vercel.app';
+
+  // Lazy-load listing.html over HTTPS (the static handler serves it
+  // directly from public/). Cached per-Lambda-instance for 5 minutes.
+  if (!_htmlCache || Date.now() - _htmlCacheAt > TEMPLATE_TTL_MS) {
+    const tr = await fetch(`${proto}://${host}/listing.html`);
+    if (!tr.ok) throw new Error(`listing.html fetch ${tr.status}`);
+    _htmlCache = await tr.text();
+    _htmlCacheAt = Date.now();
   }
 
   // Fetch listing metadata (60s cache so back-to-back shares of the same
@@ -54,8 +52,6 @@ export default async function handler(req, res) {
   if (slug) {
     if (Date.now() - _listingsCacheAt > LISTINGS_TTL_MS) {
       try {
-        const proto = req.headers['x-forwarded-proto'] || 'https';
-        const host = req.headers.host;
         const lr = await fetch(`${proto}://${host}/api/listings`);
         const j = await lr.json();
         _listingsCache = j.listings || [];
@@ -111,6 +107,25 @@ function composeDescription(l) {
     : null;
   const intro = l.overview ? l.overview.replace(/\s+/g, ' ').slice(0, 90).trim() + (l.overview.length > 90 ? '…' : '') : null;
   return [bits, price, intro].filter(Boolean).join(' · ');
+}
+
+function fallbackPage(req) {
+  const url = `${PORTAL_BASE}${req.url || '/'}`;
+  return `<!doctype html><html><head>
+<meta charset="utf-8">
+<title>Samba Rentals</title>
+<meta name="description" content="Bali long-term rental — full details, photos, and live availability.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Samba Rentals">
+<meta property="og:title" content="Samba Rentals">
+<meta property="og:description" content="Bali long-term rental — full details, photos, and live availability.">
+<meta property="og:url" content="${esc(url)}">
+<meta property="og:image" content="${FALLBACK_OG}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta http-equiv="refresh" content="0; url=${esc(url)}">
+</head><body><a href="${esc(url)}">Open listing</a></body></html>`;
 }
 
 function esc(s) {
