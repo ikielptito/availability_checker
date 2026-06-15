@@ -159,15 +159,6 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .modal-action-btn:hover{background:var(--surface2);border-color:var(--subtle)}
 .modal-wa-btn{background:#128c4f;border-color:#128c4f;color:#fff;font-weight:600}
 .modal-wa-btn:hover{background:#0f7a44;border-color:#0f7a44;color:#fff}
-/* LIGHTBOX */
-.lb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:16px}
-.lb-overlay.open{display:flex}
-.lb-img{max-width:92vw;max-height:80vh;object-fit:contain;border-radius:6px}
-.lb-controls{display:flex;align-items:center;gap:20px}
-.lb-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;width:42px;height:42px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
-.lb-btn:hover{background:rgba(255,255,255,.22)}
-.lb-counter{color:rgba(255,255,255,.5);font-size:.8rem;min-width:60px;text-align:center}
-.lb-close{position:fixed;top:18px;right:18px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem}
 </style>
 </head>
 <body>
@@ -250,17 +241,6 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 <a class="modal-action-btn" id="modal-drive-btn" href="#" target="_blank"></a>
 <a class="modal-action-btn modal-wa-btn" id="modal-wa-btn" href="#" target="_blank"></a>
     </div>
-  </div>
-</div>
-
-<!-- LIGHTBOX -->
-<div class="lb-overlay" id="lb" onclick="lbClickOverlay(event)">
-  <button class="lb-close" onclick="closeLb()">✕</button>
-  <img class="lb-img" id="lb-img" src="" alt="" />
-  <div class="lb-controls">
-    <button class="lb-btn" onclick="lbNav(-1)">←</button>
-    <span class="lb-counter" id="lb-counter"></span>
-    <button class="lb-btn" onclick="lbNav(1)">→</button>
   </div>
 </div>
 
@@ -571,25 +551,7 @@ function shareCard(propId,name) {
   }
 }
 
-// ── LIGHTBOX ──
-let lbPhotos=[], lbIdx=0;
-function openLightbox(propId,name,coverUrl) {
-  lbPhotos=coverUrl?[coverUrl]:[]; lbIdx=0;
-  if(!lbPhotos.length) return;
-  track('photo_view', propId, name);
-  document.getElementById('lb-img').src=lbPhotos[0];
-  document.getElementById('lb-counter').textContent='1 / 1';
-  document.getElementById('lb').classList.add('open');
-  document.body.style.overflow='hidden';
-}
-function closeLb(){document.getElementById('lb').classList.remove('open');document.body.style.overflow='';}
-function lbClickOverlay(e){if(e.target===document.getElementById('lb'))closeLb();}
-function lbNav(dir){lbIdx=(lbIdx+dir+lbPhotos.length)%lbPhotos.length;document.getElementById('lb-img').src=lbPhotos[lbIdx];document.getElementById('lb-counter').textContent=(lbIdx+1)+' / '+lbPhotos.length;}
-
 document.addEventListener('keydown',e=>{
-  if(document.getElementById('lb').classList.contains('open')){
-    if(e.key==='ArrowRight')lbNav(1);if(e.key==='ArrowLeft')lbNav(-1);if(e.key==='Escape')closeLb();
-  }
   if(document.getElementById('modal').classList.contains('open')&&e.key==='Escape')closeModal({target:null});
 });
 
