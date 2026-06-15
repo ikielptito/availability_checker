@@ -109,6 +109,18 @@ function shimRes(nodeRes) {
       return this;
     },
     end() { if (nodeRes) { nodeRes.writeHead(this._code, this._headers); nodeRes.end(); } return this; },
+    send(body) {
+      // Mirrors Vercel's res.send — auto-routes string vs object
+      this._data = body;
+      if (nodeRes) {
+        const isString = typeof body === 'string';
+        const headers = { ...this._headers };
+        if (!headers['Content-Type']) headers['Content-Type'] = isString ? 'text/html; charset=utf-8' : 'application/json';
+        nodeRes.writeHead(this._code, headers);
+        nodeRes.end(isString ? body : JSON.stringify(body));
+      }
+      return this;
+    },
   };
 }
 
@@ -140,9 +152,14 @@ const server = http.createServer(async (req, res) => {
       const fakeReq = { method: req.method, headers: req.headers, query: Object.fromEntries(u.searchParams), body: parsed };
       return void await mod.default(fakeReq, shimRes(res));
     }
+    // /l/<slug> → /api/listing-page?slug=<slug> (matches vercel.json rewrite)
+    if (u.pathname.startsWith('/l/')) {
+      const slug = u.pathname.slice(3);
+      const fakeReq = { method: 'GET', headers: req.headers, query: { slug }, body: null };
+      return void await handlers['listing-page'].default(fakeReq, shimRes(res));
+    }
     let file;
     if (u.pathname === '/admin') file = 'admin.html';
-    else if (u.pathname.startsWith('/l/')) file = 'listing.html';
     else {
       const candidate = u.pathname.replace(/^\//, '');
       file = candidate && fs.existsSync(path.join(ROOT, 'public', candidate)) ? candidate : 'index.html';
