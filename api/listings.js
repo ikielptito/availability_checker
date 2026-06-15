@@ -56,6 +56,8 @@ const CUSTOM_KEY = 'custom_properties';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function cleanStr(v) { return typeof v === 'string' ? v.trim() : ''; }
+// Cover focal point as "X% Y%" (0–100 each). Falls back to centered.
+function cleanPos(v) { const s = cleanStr(v); return /^\d{1,3}% \d{1,3}%$/.test(s) ? s : '50% 50%'; }
 function cleanLines(a) { return Array.isArray(a) ? a.map(s => String(s).trim()).filter(Boolean) : []; }
 function cleanRanges(a) {
   if (!Array.isArray(a)) return [];
@@ -143,6 +145,7 @@ export default async function handler(req, res) {
         location: cleanStr(data.location),
         icalUrl: /^https?:\/\//.test(cleanStr(data.icalUrl)) ? cleanStr(data.icalUrl) : '',
         coverPhotoId: /^[A-Za-z0-9_-]{0,80}$/.test(cleanStr(data.coverPhotoId)) ? cleanStr(data.coverPhotoId) : '',
+        coverPosition: cleanPos(data.coverPosition),
         mapEmbed: cleanStr(data.mapEmbed) || existing.mapEmbed || '',
         overview: cleanStr(data.overview),
         features: cleanLines(data.features),
@@ -186,6 +189,7 @@ export default async function handler(req, res) {
       unitType: (typeof data.unitType === 'string' && data.unitType.trim()) || existing.unitType || DEFAULTS[slug].unitType || '',
       coverPhotoId: typeof data.coverPhotoId === 'string' && /^[A-Za-z0-9_-]{0,80}$/.test(data.coverPhotoId.trim())
         ? data.coverPhotoId.trim() : existing.coverPhotoId || '',
+      coverPosition: data.coverPosition !== undefined ? cleanPos(data.coverPosition) : (existing.coverPosition || '50% 50%'),
     };
 
     await kvSet(`listing:${slug}`, safe);
