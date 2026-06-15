@@ -80,10 +80,10 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .prop-photo{width:64px;height:64px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);cursor:pointer;transition:opacity .2s}
 .prop-photo:hover{opacity:.85}
 .prop-photo-placeholder{width:64px;height:64px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem}
-.prop-hero{position:relative;width:100%;background:var(--surface2);cursor:pointer;overflow:hidden;border-bottom:1px solid var(--border)}
-.prop-hero-img{width:100%;height:auto;display:block;transition:transform .35s ease}
+.prop-hero{position:relative;width:100%;aspect-ratio:3/2;background:var(--surface2);cursor:pointer;overflow:hidden;border-bottom:1px solid var(--border)}
+.prop-hero-img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
 .prop-hero:hover .prop-hero-img{transform:scale(1.03)}
-.prop-hero-ph{width:100%;height:200px;display:flex;align-items:center;justify-content:center;font-size:2rem;color:var(--subtle)}
+.prop-hero-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;color:var(--subtle)}
 .prop-hero-pill{position:absolute;top:12px;right:12px;z-index:2;backdrop-filter:blur(6px);box-shadow:0 1px 4px rgba(0,0,0,.18)}
 .cal-scroll{overflow-x:auto;padding:16px 20px 18px;scrollbar-width:thin;scrollbar-color:var(--subtle) transparent}
 .cal-scroll::-webkit-scrollbar{height:4px}.cal-scroll::-webkit-scrollbar-thumb{background:var(--subtle);border-radius:4px}
@@ -646,7 +646,7 @@ async function loadAll() {
     // first photo in the Drive folder. The Drive fallback covers Hostex
     // properties with no Airbnb listing (no cover image upstream).
     if(info.coverPhotoId){
-      p.photo='https://lh3.googleusercontent.com/d/'+info.coverPhotoId+'=w1200';
+      p.photo='https://lh3.googleusercontent.com/d/'+info.coverPhotoId+'=w1200-h800-c';
     }else if(!p.photo&&(p.folder||info.folder)){
       try{
         const r=await fetch('/api/gdrive?folder='+encodeURIComponent(p.folder||info.folder));
