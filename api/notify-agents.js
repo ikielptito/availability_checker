@@ -1,12 +1,16 @@
 // POST /api/notify-agents — manual broadcast trigger from the analytics dashboard.
 //
-// Pulls today's availability digest, force-flips the snapshot so every
-// currently-available property registers as "newly available" to the CRM
-// diff, sets Maya's autoresponder mode, ensures the broadcast kill switch
-// is on, and triggers the CRM cron immediately.
+// Two modes:
+// - preview: true  → composes what would be sent (template + rendered body
+//                    + recipient count) without mutating any settings or
+//                    firing Meta. Used by the "Preview" step in the UI.
+// - preview: false → full flow: pulls today's digest, force-flips the
+//                    snapshot so every currently-available property
+//                    registers as 'newly available', sets Maya's mode,
+//                    ensures the kill switch is on, triggers the CRM cron.
 //
 // Auth: same DASHBOARD_PASSWORD as the analytics dashboard.
-// Body: { mode: 'autopilot' | 'silent' }
+// Body: { mode: 'autopilot' | 'silent', preview: boolean }
 //   autopilot → automation.mode='autopilot', Maya engages with replies
 //   silent    → automation.mode='off', Maya goes quiet for the broadcast aftermath
 
@@ -21,12 +25,36 @@ export default async function handler(req, res) {
   const pwd = process.env.DASHBOARD_PASSWORD || 'samba2024';
   if (auth !== `Bearer ${pwd}`) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { mode = 'autopilot' } = req.body || {};
+  const { mode = 'autopilot', preview = false } = req.body || {};
   if (!['autopilot', 'silent'].includes(mode)) {
     return res.status(400).json({ error: 'mode must be "autopilot" or "silent"' });
   }
 
   const crmBase = process.env.CRM_BASE_URL || 'https://kaya-agent-crm.vercel.app';
+
+  // ── PREVIEW MODE ────────────────────────────────────────────────
+  // Just ask the CRM cron to compose what it would send. Skip the digest
+  // self-fetch, the settings mutation, and any state change. The cron
+  // pulls its own digest via the configured AVAILABILITY_DIGEST_URL.
+  if (preview) {
+    const cronRes = await fetch(`${crmBase}/api/cron-followups?preview=1`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const cronBody = await cronRes.json().catch(() => ({}));
+    const av = cronBody.availability || {};
+    return res.status(200).json({
+      ok: true,
+      preview: true,
+      mode,
+      now_utc: new Date().toISOString(),
+      recipients: av.recipients || 0,
+      enabled: av.enabled,
+      template_version: av.template_version,
+      preview_data: av.preview || null,
+      enabled_warning: av.enabled === false ? 'Broadcast switch is off (samba_availability.enabled = false). Preview shown without writing.' : null,
+    });
+  }
 
   // ── Step 1: digest from KV cache (no self-call → no deadlock) ───
   // The daily Vercel cron pre-warms digest:cache at 08:50 WITA, plus
