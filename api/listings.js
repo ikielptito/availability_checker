@@ -100,6 +100,22 @@ export default async function handler(req, res) {
     return auth === `Bearer ${adminPw}`;
   }
 
+  // Push the changed listing to the CRM so Maya's `rentals` table stays in sync.
+  // Fire-and-forget but awaited (serverless may freeze after the response):
+  // failures here must never block the listing save.
+  async function notifyCrmSync(slug, action) {
+    const url = process.env.CRM_SYNC_URL;          // e.g. https://kaya-agent-crm.vercel.app/api/sync-rental
+    const secret = process.env.LISTING_SYNC_SECRET;
+    if (!url || !secret) return;
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+        body: JSON.stringify({ slug, action }),
+      });
+    } catch (e) { /* CRM sync is best-effort */ }
+  }
+
   if (req.method === 'GET') {
     const slugs = Object.keys(DEFAULTS);
     const [customMap, ...kvResults] = await Promise.all([
@@ -122,6 +138,7 @@ export default async function handler(req, res) {
     if (!all[slug]) return res.status(404).json({ error: 'Not found' });
     delete all[slug];
     await kvSet(CUSTOM_KEY, all);
+    await notifyCrmSync(slug, 'delete');
     return res.status(200).json({ ok: true });
   }
 
@@ -163,6 +180,8 @@ export default async function handler(req, res) {
         updatedAt: Date.now(),
       };
       await kvSet(CUSTOM_KEY, all);
+      // A hidden listing drops out of the live set -> deactivate its rental.
+      await notifyCrmSync(slug, all[slug].hidden ? 'delete' : 'upsert');
       return res.status(200).json({ ok: true, slug });
     }
 
@@ -193,6 +212,7 @@ export default async function handler(req, res) {
     };
 
     await kvSet(`listing:${slug}`, safe);
+    await notifyCrmSync(slug, 'upsert');
     return res.status(200).json({ ok: true });
   }
 
