@@ -296,8 +296,14 @@ function defaultCard(l) {
           <textarea class="field-textarea" id="${l.slug}-features" rows="8">${esc(l.features.join('\n'))}</textarea>
         </div>
         <div class="field-group">
-          <label class="field-label">Inclusions <span class="field-hint">(one per line)</span></label>
+          <label class="field-label">Monthly Inclusions <span class="field-hint">(one per line)</span></label>
           <textarea class="field-textarea" id="${l.slug}-inclusions" rows="8">${esc(l.inclusions.join('\n'))}</textarea>
+        </div>
+      </div>
+      <div class="field-row full">
+        <div class="field-group">
+          <label class="field-label">Yearly Inclusions <span class="field-hint">(one per line — what's covered for a yearly lease)</span></label>
+          <textarea class="field-textarea" id="${l.slug}-yearlyInclusions" rows="3">${esc((l.yearlyInclusions || []).join('\n'))}</textarea>
         </div>
       </div>
       <div class="field-row full">
@@ -426,8 +432,14 @@ function customCard(l, isNew) {
           <textarea class="field-textarea" id="${slug}-features" rows="8">${esc((l.features || []).join('\n'))}</textarea>
         </div>
         <div class="field-group">
-          <label class="field-label">Inclusions <span class="field-hint">(one per line)</span></label>
+          <label class="field-label">Monthly Inclusions <span class="field-hint">(one per line)</span></label>
           <textarea class="field-textarea" id="${slug}-inclusions" rows="8">${esc((l.inclusions || []).join('\n'))}</textarea>
+        </div>
+      </div>
+      <div class="field-row full">
+        <div class="field-group">
+          <label class="field-label">Yearly Inclusions <span class="field-hint">(one per line — what's covered for a yearly lease)</span></label>
+          <textarea class="field-textarea" id="${slug}-yearlyInclusions" rows="3">${esc((l.yearlyInclusions || ['Villa only, no services included.']).join('\n'))}</textarea>
         </div>
       </div>
       <div class="field-row full">
@@ -491,6 +503,7 @@ async function saveCustom(cardSlug, isNew) {
     overview: document.getElementById(cardSlug + '-overview').value,
     features: lines(document.getElementById(cardSlug + '-features').value),
     inclusions: lines(document.getElementById(cardSlug + '-inclusions').value),
+    yearlyInclusions: lines(document.getElementById(cardSlug + '-yearlyInclusions').value),
     locationHighlights: lines(document.getElementById(cardSlug + '-locationHighlights').value),
     waContactName: document.getElementById(cardSlug + '-waContactName').value,
     waNumber: document.getElementById(cardSlug + '-waNumber').value,
@@ -661,6 +674,7 @@ async function saveListing(slug) {
     overview: document.getElementById(slug + '-overview').value,
     features: lines(document.getElementById(slug + '-features').value),
     inclusions: lines(document.getElementById(slug + '-inclusions').value),
+    yearlyInclusions: lines(document.getElementById(slug + '-yearlyInclusions').value),
     locationHighlights: lines(document.getElementById(slug + '-locationHighlights').value),
     waContactName: document.getElementById(slug + '-waContactName').value,
     waNumber: document.getElementById(slug + '-waNumber').value,

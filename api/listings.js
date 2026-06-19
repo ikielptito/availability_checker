@@ -5,6 +5,7 @@ const HAUS = {
   overview: 'Boutique collection of 8 fully furnished one-bedroom apartments in the heart of Batu Bolong. Steps from cafés, restaurants, and nightlife, yet tucked in a quiet residential lane.',
   features: ['43–46m² building · 4 are land', '1 Bedroom · 1 Bathroom', 'Large shared swimming pool', 'Outdoor lounge seating', 'Terrazzo bathrooms · Teak & rattan cabinetry', 'Fully equipped kitchen · Air-conditioning', 'High-speed fiber internet · Fully furnished'],
   inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas', 'Electricity', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly'],
+  yearlyInclusions: ['Villa only, no services included.'],
   locationHighlights: ['2-min walk to Bali Social Club', '5-min walk to Batu Bolong strip', '10-min ride to Batu Bolong Beach', '5-min drive to Pererenan'],
 };
 const LANE = {
@@ -14,6 +15,7 @@ const LANE = {
   overview: 'Boutique collection of 3 fully furnished one-bedroom townhouses in central Pererenan. Walkable yet private, ideal for long-term living.',
   features: ['250m² land', '1 Bedroom · 1 Bathroom', 'Large shared swimming pool', 'XL king beds · Dedicated workspaces', 'Terrazzo floors & bathrooms', 'Fully equipped kitchen · Air-conditioning', '200mbps fiber (dedicated per unit) · Fully furnished'],
   inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly', 'Electricity excluded for yearly'],
+  yearlyInclusions: ['Villa only, no services included.'],
   locationHighlights: ['1-min to Pepito & Frestive', '3-min to Obsidian Gym', '4-min to Bar Vera', '8-min to Pererenan Beach', '10-min to La Brisa'],
 };
 const SATURNO = {
@@ -23,6 +25,7 @@ const SATURNO = {
   overview: 'Spacious 3-bedroom villa in prime Padang Linjong next to Bali Buddha. Central, walkable, and ideal for long-term living.',
   features: ['350m² land · 250m² building', '3 Bedrooms · 3 Bathrooms', 'Private swimming pool · Tropical garden', 'Enclosed AC living · Open-concept kitchen', 'Washing machine · Surfboards · Tennis rackets', 'Fully furnished'],
   inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly'],
+  yearlyInclusions: ['Villa only, no services included.'],
   locationHighlights: ['Next to Bali Buddha', 'Walking distance to shops & cafés', 'Central Canggu location'],
 };
 const TROPICANA = {
@@ -32,6 +35,7 @@ const TROPICANA = {
   overview: 'Modern private residences in Buduk offering private outdoor space, quiet surroundings, and proximity to Pererenan and Canggu.',
   features: ['60m² land · 75m² building', '1 Bedroom · 1 Bathroom', 'Private swimming pool & poolside seating', 'Balcony with bistro table · Dedicated workspace', 'Extra-large two-person wardrobe', 'Fully equipped kitchen · Air-conditioning', 'High-speed fiber internet · Fully furnished'],
   inclusions: ['400mbps fibre internet', 'Drinking water & cooking gas', 'Banjar fee & trash collection', 'Housekeeping 2× weekly', 'Linen & towels changed weekly', 'Electricity excluded for yearly'],
+  yearlyInclusions: ['Villa only, no services included.'],
   locationHighlights: ['5-min to Pererenan', '10-min to Canggu', 'Quiet residential area'],
 };
 
@@ -167,6 +171,7 @@ export default async function handler(req, res) {
         overview: cleanStr(data.overview),
         features: cleanLines(data.features),
         inclusions: cleanLines(data.inclusions),
+        yearlyInclusions: cleanLines(data.yearlyInclusions),
         locationHighlights: cleanLines(data.locationHighlights),
         monthly: cleanStr(data.monthly),
         yearly: cleanStr(data.yearly),
@@ -196,6 +201,7 @@ export default async function handler(req, res) {
       overview: typeof data.overview === 'string' ? data.overview.trim() : existing.overview || DEFAULTS[slug].overview,
       features: Array.isArray(data.features) ? data.features.map(s => String(s).trim()).filter(Boolean) : existing.features || DEFAULTS[slug].features,
       inclusions: Array.isArray(data.inclusions) ? data.inclusions.map(s => String(s).trim()).filter(Boolean) : existing.inclusions || DEFAULTS[slug].inclusions,
+      yearlyInclusions: Array.isArray(data.yearlyInclusions) ? data.yearlyInclusions.map(s => String(s).trim()).filter(Boolean) : existing.yearlyInclusions || DEFAULTS[slug].yearlyInclusions,
       locationHighlights: Array.isArray(data.locationHighlights) ? data.locationHighlights.map(s => String(s).trim()).filter(Boolean) : existing.locationHighlights || DEFAULTS[slug].locationHighlights,
       monthly: typeof data.monthly === 'string' ? data.monthly.trim() : existing.monthly || DEFAULTS[slug].monthly,
       yearly: typeof data.yearly === 'string' ? data.yearly.trim() : existing.yearly || DEFAULTS[slug].yearly,

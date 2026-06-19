@@ -438,6 +438,10 @@
           <div class="inclusions-title">Monthly Inclusions</div>
           <div id="inclusions-list"></div>
         </div>
+        <div class="inclusions-list" id="yearly-inclusions-block" style="display:none">
+          <div class="inclusions-title">Yearly Inclusions</div>
+          <div id="yearly-inclusions-list"></div>
+        </div>
       </div>
     </div>
 
@@ -606,6 +610,13 @@ async function boot() {
   document.getElementById('inclusions-list').innerHTML = (listing.inclusions || []).map(i =>
     '<div class="inclusion-row">' + esc(i) + '</div>'
   ).join('');
+  const yearlyInc = listing.yearlyInclusions || [];
+  if (yearlyInc.length > 0) {
+    document.getElementById('yearly-inclusions-block').style.display = '';
+    document.getElementById('yearly-inclusions-list').innerHTML = yearlyInc.map(i =>
+      '<div class="inclusion-row">' + esc(i) + '</div>'
+    ).join('');
+  }
 
   // Public listing pages stay anonymous — no WhatsApp link, so clients
   // forwarded the page by their agent can't bypass that agent.
