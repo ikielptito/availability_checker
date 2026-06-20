@@ -279,6 +279,15 @@
 
   /* .wa-block / .wa-cta / .wa-note removed — listing pages are anonymous */
 
+  /* MAP */
+  .map-section { margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid var(--border); }
+  .map-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; margin-bottom: 16px; }
+  .map-wrap { position: relative; width: 100%; height: 320px; border-radius: 12px; overflow: hidden; background: var(--bg); border: 1px solid var(--border); }
+  .map-iframe { width: 100%; height: 100%; border: none; display: block; }
+  .map-open { position: absolute; top: 12px; right: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'Sora', sans-serif; font-size: 0.78rem; padding: 8px 14px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: background 0.2s; }
+  .map-open:hover { background: var(--bg); }
+  @media(max-width: 600px) { .map-wrap { height: 240px; } }
+
   /* PHOTO GALLERY */
   .gallery-section { margin-bottom: 48px; }
 
@@ -429,6 +438,14 @@
     <p class="overview" id="prop-overview"></p>
 
     <div class="details-grid" id="details-grid"></div>
+
+    <section class="map-section" id="map-section" style="display:none">
+      <h2 class="map-title">Location</h2>
+      <div class="map-wrap">
+        <iframe class="map-iframe" id="map-iframe" src="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <a class="map-open" id="map-open" href="#" target="_blank" rel="noopener">📍 Open in Maps</a>
+      </div>
+    </section>
 
     <div class="pricing-block">
       <div class="pricing-left">
@@ -616,6 +633,13 @@ async function boot() {
     document.getElementById('yearly-inclusions-list').innerHTML = yearlyInc.map(i =>
       '<div class="inclusion-row">' + esc(i) + '</div>'
     ).join('');
+  }
+
+  // Map (embed + Open-in-Maps shortcut)
+  if (listing.mapEmbed) {
+    document.getElementById('map-section').style.display = '';
+    document.getElementById('map-iframe').src = listing.mapEmbed;
+    document.getElementById('map-open').href = listing.location || '#';
   }
 
   // Public listing pages stay anonymous — no WhatsApp link, so clients
