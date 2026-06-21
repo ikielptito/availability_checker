@@ -654,6 +654,19 @@ async function boot() {
   document.getElementById('app').classList.add('on');
   document.getElementById('prop-count').textContent=properties.length+' propert'+(properties.length===1?'y':'ies');
   track('page_view'); renderBedroomFilter(); showSkeletons(); await loadAll(); render();
+
+  // Deep-link to a specific property — broadcasts use this so an agent
+  // tapping a per-property link in WhatsApp lands directly on its modal
+  // instead of having to scan the full portfolio first.
+  // URL shape: /?property=<slug> (optionally with &ref=wa_alert&aid=<id>)
+  const urlProperty = URL_PARAMS.get('property');
+  if (urlProperty) {
+    const target = properties.find(p => SLUGS[p.id] === urlProperty);
+    if (target) {
+      // Defer to next frame so the rendered card exists when openModal reads it
+      requestAnimationFrame(() => openModal(target.id));
+    }
+  }
 }
 
 async function fetchAvail(propId) {
