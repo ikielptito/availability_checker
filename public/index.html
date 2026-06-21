@@ -19,6 +19,15 @@
 <meta name="twitter:title" content="Samba Rentals — Agent Portal">
 <meta name="twitter:description" content="Live availability across our Bali long-term rental portfolio. 10% commission on every booking.">
 <meta name="twitter:image" content="https://sambarentals.vercel.app/og-portal.png">
+<!-- Favicon + installable PWA metadata -->
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#faf8f4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Samba Agent">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f3f1fb;--surface:#ffffff;--surface2:#ece9f7;--border:#e0dcef;--text:#1a1730;--text-2:#3d3960;--muted:#6a6590;--subtle:#9893b8;--avail:#dceee0;--avail-text:#1a6b34;--avail-border:#9dc7a8;--booked:#f5dcdc;--booked-text:#9a2828;--booked-border:#d6a3a3;--primary:#5847e0;--primary-2:#4438b5;--primary-soft:#e4dffa;--today-ring:#5847e0;--today-bg:#e4dffa;--accent:#5847e0;--shadow:0 4px 12px rgba(60,40,160,.06),0 1px 2px rgba(60,40,160,.04)}
@@ -40,6 +49,52 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 #app{display:none}#app.on{display:block}
 .topbar{position:sticky;top:0;z-index:100;background:rgba(243,241,251,.94);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;gap:16px}
 .topbar-brand{font-family:'Inter',sans-serif;font-size:1.5rem;font-weight:700;color:var(--text);letter-spacing:-.025em;white-space:nowrap}
+.topbar-logo{height:40px;width:auto;display:block;flex-shrink:0}
+@media(max-width:600px){.topbar-logo{height:32px}}
+
+/* Welcome banner — shown once on first visit, dismissible */
+.welcome-banner{
+  position:relative;margin:14px 28px 0;padding:14px 18px 14px 22px;
+  background:linear-gradient(135deg,#faf8f4 0%,#f3efe6 100%);
+  border:1px solid #e5dcc8;border-left:3px solid #b89968;border-radius:12px;
+  display:flex;align-items:center;gap:14px;font-family:'Sora',sans-serif;
+  color:#3d3960;font-size:.88rem;line-height:1.5;
+  animation:welcome-slide-in .35s ease-out;
+}
+.welcome-banner strong{color:#1a1730;font-weight:600}
+.welcome-banner-close{
+  position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;
+  font-size:1.2rem;color:#9893b8;padding:4px 8px;line-height:1;border-radius:6px;
+}
+.welcome-banner-close:hover{background:rgba(0,0,0,.04);color:#3d3960}
+@keyframes welcome-slide-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@media(max-width:600px){.welcome-banner{margin:12px 16px 0;padding:12px 36px 12px 16px;font-size:.82rem}}
+
+/* Install-to-home-screen prompt */
+.install-prompt{
+  position:fixed;left:16px;right:16px;bottom:16px;z-index:300;
+  background:#fff;border:1px solid #e0dcef;border-radius:14px;
+  box-shadow:0 12px 32px rgba(60,40,160,.18),0 2px 6px rgba(60,40,160,.08);
+  padding:14px;display:flex;align-items:center;gap:12px;
+  font-family:'Sora',sans-serif;font-size:.85rem;color:#1a1730;
+  animation:install-slide-up .4s ease-out;
+}
+.install-prompt-icon{width:48px;height:48px;border-radius:11px;flex-shrink:0;background:#faf8f4}
+.install-prompt-body{flex:1;min-width:0;line-height:1.4}
+.install-prompt-body strong{display:block;font-weight:600;margin-bottom:2px}
+.install-prompt-body span{color:#6a6590;font-size:.78rem}
+.install-prompt-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.install-prompt-btn{
+  background:#5847e0;color:#fff;border:none;padding:8px 16px;border-radius:8px;
+  font-family:'Sora',sans-serif;font-size:.78rem;font-weight:500;cursor:pointer;white-space:nowrap;
+}
+.install-prompt-btn:hover{background:#4438b5}
+.install-prompt-dismiss{
+  background:none;border:none;color:#9893b8;font-size:.78rem;cursor:pointer;padding:6px;
+}
+.install-prompt-dismiss:hover{color:#3d3960}
+@keyframes install-slide-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@media(min-width:600px){.install-prompt{left:auto;right:24px;bottom:24px;max-width:380px}}
 .topbar-count{font-size:.72rem;font-weight:500;color:var(--text-2);padding:4px 11px;background:var(--surface);border-radius:20px;border:1px solid var(--border);white-space:nowrap}
 .spacer{flex:1}
 .search-wrap{position:relative;width:220px}
@@ -183,7 +238,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 </div>
 <div id="app">
   <div class="topbar">
-    <span class="topbar-brand">Availability</span>
+    <img class="topbar-logo" src="/logo-portal.png" alt="Samba Rentals — Agent Portal" />
     <span class="topbar-count" id="prop-count"></span>
     <div class="spacer"></div>
     <div class="search-wrap">
@@ -196,6 +251,14 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       Refresh
     </button>
   </div>
+  <!-- Welcome banner — shown once per agent on first visit -->
+  <div class="welcome-banner" id="welcome-banner" style="display:none">
+    <div>
+      <strong>Welcome to the Samba Rentals Agent Portal.</strong>
+      Photos, real-time availability, pricing, share links, and visit scheduling — all in one place.
+    </div>
+    <button class="welcome-banner-close" onclick="dismissWelcome()" title="Dismiss">×</button>
+  </div>
   <div class="legend-bar">
     <div class="legend-item"><div class="swatch sw-avail"></div>Available</div>
     <div class="legend-item"><div class="swatch sw-booked"></div>Booked</div>
@@ -206,6 +269,19 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
     <div class="filter-chips" id="bedroom-chips"></div>
   </div>
   <div class="prop-grid" id="grid"></div>
+
+  <!-- Install-to-home-screen prompt — iOS shows manual instructions, Android/Chrome shows native install button -->
+  <div class="install-prompt" id="install-prompt" style="display:none">
+    <img class="install-prompt-icon" src="/icon-192.png" alt="" />
+    <div class="install-prompt-body">
+      <strong>Save to your home screen</strong>
+      <span id="install-prompt-detail">Tap Share → Add to Home Screen</span>
+    </div>
+    <div class="install-prompt-actions">
+      <button class="install-prompt-btn" id="install-prompt-btn" style="display:none" onclick="triggerInstall()">Install</button>
+      <button class="install-prompt-dismiss" onclick="dismissInstall()">Not now</button>
+    </div>
+  </div>
 </div>
 
 <!-- DETAIL MODAL -->
@@ -667,7 +743,79 @@ async function boot() {
       requestAnimationFrame(() => openModal(target.id));
     }
   }
+
+  // Welcome banner — first visit only. Stored in localStorage so we never
+  // nag an agent twice. New-device sessions get it again, which is fine.
+  if (!localStorage.getItem('samba_welcomed')) {
+    const banner = document.getElementById('welcome-banner');
+    if (banner) banner.style.display = '';
+  }
+
+  // Install-to-home-screen prompt. Shows ~5s after data loads, gives the
+  // agent time to see real listings first so the value is obvious.
+  setTimeout(maybeShowInstallPrompt, 5000);
 }
+
+window.dismissWelcome = function() {
+  localStorage.setItem('samba_welcomed', '1');
+  const b = document.getElementById('welcome-banner');
+  if (b) b.style.display = 'none';
+};
+
+// ── Install-to-home-screen flow ─────────────────────────────────────
+// Two paths: Android/Chrome fires beforeinstallprompt (native install),
+// iOS Safari doesn't — we show manual instructions instead. Both routes
+// share one prompt UI so the dismissal logic stays simple.
+let __deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  __deferredInstallPrompt = e;
+});
+window.maybeShowInstallPrompt = function() {
+  // Already installed / dismissed / running standalone — bail.
+  if (window.matchMedia('(display-mode: standalone)').matches) return;
+  if (window.navigator.standalone) return;  // iOS standalone flag
+  if (localStorage.getItem('install_dismissed')) return;
+
+  const prompt = document.getElementById('install-prompt');
+  if (!prompt) return;
+  const detail = document.getElementById('install-prompt-detail');
+  const btn = document.getElementById('install-prompt-btn');
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/.test(ua) && !window.MSStream;
+  const isAndroid = /Android/.test(ua);
+
+  if (__deferredInstallPrompt) {
+    // Native install available (Android, Chrome desktop).
+    detail.textContent = 'One tap to install on your home screen.';
+    btn.style.display = '';
+  } else if (isIOS) {
+    detail.innerHTML = 'Tap <strong>Share</strong> → <strong>Add to Home Screen</strong>.';
+  } else if (isAndroid) {
+    // Chrome on Android usually fires beforeinstallprompt; if it didn't,
+    // assume the agent has already installed or isn't eligible — stay quiet.
+    return;
+  } else {
+    // Desktop without a native install event — stay quiet so we don't
+    // confuse anyone on a laptop where home-screen isn't a concept.
+    return;
+  }
+  prompt.style.display = 'flex';
+};
+window.triggerInstall = async function() {
+  if (!__deferredInstallPrompt) return;
+  __deferredInstallPrompt.prompt();
+  const choice = await __deferredInstallPrompt.userChoice;
+  __deferredInstallPrompt = null;
+  if (choice && choice.outcome === 'accepted') {
+    localStorage.setItem('install_dismissed', '1');
+  }
+  document.getElementById('install-prompt').style.display = 'none';
+};
+window.dismissInstall = function() {
+  localStorage.setItem('install_dismissed', '1');
+  document.getElementById('install-prompt').style.display = 'none';
+};
 
 async function fetchAvail(propId) {
   const start=ds(TODAY);

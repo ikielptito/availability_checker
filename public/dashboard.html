@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Analytics — Samba Rentals</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0f1117">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Sora:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0f1117;--surface:#181c27;--surface2:#1f2333;--border:#2a2f42;--text:#e8eaf2;--muted:#5a607a;--accent:#4a7cf7;--green:#52c87a;--red:#e06060;--yellow:#f0c060;--orange:#e08040;--purple:#9a6cf7;}
@@ -26,6 +30,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 #app{display:none;}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;gap:16px;}
 .topbar-brand{font-family:'Playfair Display',serif;font-size:1rem;color:var(--text);}
+.topbar-logo{height:36px;width:auto;display:block;flex-shrink:0;filter:invert(1) brightness(1.4);}
 .spacer{flex:1;}
 .period-btns{display:flex;gap:4px;}
 .period-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:5px 12px;font-family:'Sora',sans-serif;font-size:0.72rem;cursor:pointer;transition:all 0.2s;}
@@ -146,7 +151,8 @@ tr:hover td{background:var(--surface2);}
 <!-- APP -->
 <div id="app">
   <div class="topbar">
-    <span class="topbar-brand">Analytics</span>
+    <img class="topbar-logo" src="/logo-portal.png" alt="Samba Rentals" />
+    <span class="topbar-brand">· Analytics</span>
     <div class="spacer"></div>
     <div class="period-btns">
       <button class="period-btn" onclick="setPeriod('today',this)">Today</button>
