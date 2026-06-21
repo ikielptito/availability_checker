@@ -555,7 +555,7 @@ async function previewNotify() {
   body.innerHTML = '<div class="loading-state" style="padding:30px;"><div class="spinner"></div>Composing the message Maya would send…</div>';
 
   try {
-    const r = await fetch('/api/notify-agents', {
+    const r = await fetch('/api/dashboard', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
       body: JSON.stringify({ mode: notifyMode, preview: true }),
@@ -608,7 +608,7 @@ async function confirmNotify() {
   body.innerHTML = '<div class="loading-state" style="padding:30px;"><div class="spinner"></div>Triggering broadcast…</div>';
 
   try {
-    const r = await fetch('/api/notify-agents', {
+    const r = await fetch('/api/dashboard', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
       body: JSON.stringify({ mode: notifyMode, preview: false }),

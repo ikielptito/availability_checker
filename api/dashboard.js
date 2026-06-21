@@ -1,13 +1,20 @@
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Password check
+  // Password check (shared between analytics GET and notify-agents POST —
+  // both are dashboard-side operations behind DASHBOARD_PASSWORD).
   const auth = req.headers.authorization || '';
   const pwd = process.env.DASHBOARD_PASSWORD || 'samba2024';
   if (auth !== `Bearer ${pwd}`) return res.status(401).json({ error: 'Unauthorized' });
+
+  // ── POST → notify-agents (manual broadcast preview/fire) ──────────
+  // Folded into this handler to stay under Vercel Hobby plan's 12-function
+  // cap. Body: { mode: 'autopilot' | 'silent', preview: boolean }.
+  if (req.method === 'POST') return handleNotifyAgents(req, res);
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   const url = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
@@ -135,4 +142,99 @@ export default async function handler(req, res) {
   const recent = recentRaw.map(v => { try { return JSON.parse(v); } catch { return null; } }).filter(Boolean);
 
   return res.status(200).json({ period, days, totals, allTotals, series, properties, recent });
+}
+
+// ── Manual broadcast: preview or fire ───────────────────────────────
+// Originally api/notify-agents.js — folded in here to stay under Vercel
+// Hobby plan's 12-function cap.
+async function handleNotifyAgents(req, res) {
+  const { mode = 'autopilot', preview = false } = req.body || {};
+  if (!['autopilot', 'silent'].includes(mode)) {
+    return res.status(400).json({ error: 'mode must be "autopilot" or "silent"' });
+  }
+
+  const crmBase = process.env.CRM_BASE_URL || 'https://kaya-agent-crm.vercel.app';
+
+  // ── PREVIEW MODE ────────────────────────────────────────────────
+  if (preview) {
+    const cronRes = await fetch(`${crmBase}/api/cron-followups?preview=1`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const cronBody = await cronRes.json().catch(() => ({}));
+    const av = cronBody.availability || {};
+    return res.status(200).json({
+      ok: true,
+      preview: true,
+      mode,
+      now_utc: new Date().toISOString(),
+      recipients: av.recipients || 0,
+      enabled: av.enabled,
+      template_version: av.template_version,
+      preview_data: av.preview || null,
+      enabled_warning: av.enabled === false ? 'Broadcast switch is off (samba_availability.enabled = false). Preview shown without writing.' : null,
+    });
+  }
+
+  // ── Step 1: digest from KV cache (no self-call → no deadlock) ───
+  const kvUrl = process.env.KV_REST_API_URL;
+  const kvToken = process.env.KV_REST_API_TOKEN;
+  if (!kvUrl || !kvToken) return res.status(500).json({ error: 'Redis not configured' });
+
+  const kvRes = await fetch(`${kvUrl}/get/${encodeURIComponent('digest:cache')}`, {
+    headers: { Authorization: `Bearer ${kvToken}` },
+  });
+  const kvJson = await kvRes.json();
+  let digest = null;
+  try { digest = JSON.parse(kvJson.result); } catch {}
+  if (!digest || !digest.properties) {
+    return res.status(503).json({
+      error: 'No digest available — visit /api/digest first to warm the cache',
+    });
+  }
+  const propCount = digest.properties.length;
+
+  // ── Step 2: build "all unavailable yesterday" snapshot ──────────
+  const flippedSnapshot = {};
+  for (const p of digest.properties || []) {
+    flippedSnapshot[p.id] = {
+      availableToday: false,
+      nextLongWindowFrom: null,
+      monthly: p.monthly || null,
+    };
+  }
+
+  // ── Step 3: stage CRM settings before the trigger ───────────────
+  async function crmSet(key, value) {
+    const r = await fetch(`${crmBase}/api/supabase`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'set_settings', payload: { key, value } }),
+    });
+    return r.ok;
+  }
+  const settingsOk = await Promise.all([
+    crmSet('samba_availability', { enabled: true, test_agents_only: false }),
+    crmSet('samba_availability_snapshot', flippedSnapshot),
+    crmSet('automation', { mode: mode === 'autopilot' ? 'autopilot' : 'off' }),
+  ]);
+  if (!settingsOk.every(Boolean)) {
+    return res.status(502).json({ error: 'CRM settings update failed', settingsOk });
+  }
+
+  // ── Step 4: fire the CRM cron ───────────────────────────────────
+  const cronRes = await fetch(`${crmBase}/api/cron-followups`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const cronBody = await cronRes.json().catch(() => ({}));
+
+  return res.status(200).json({
+    ok: true,
+    triggered_at: new Date().toISOString(),
+    mode,
+    properties_in_digest: propCount,
+    snapshot_entries_written: Object.keys(flippedSnapshot).length,
+    cron_response: cronBody.availability || cronBody,
+  });
 }
