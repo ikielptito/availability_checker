@@ -119,15 +119,19 @@
     right: 20px;
     background: rgba(0,0,0,0.5);
     color: #fff;
-    font-size: 0.72rem;
-    padding: 6px 12px;
+    font-size: 0.78rem;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
     border-radius: 20px;
     letter-spacing: 0.06em;
     cursor: pointer;
     transition: background 0.2s;
+    -webkit-tap-highlight-color: rgba(255,255,255,0.15);
   }
 
-  .hero-label:hover { background: rgba(0,0,0,0.7); }
+  .hero-label:hover, .hero-label:active { background: rgba(0,0,0,0.7); }
 
   .hero-placeholder {
     width: 100%;

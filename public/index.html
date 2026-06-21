@@ -30,7 +30,7 @@
 <meta name="apple-mobile-web-app-title" content="Samba Agent">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600&family=Sora:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f3f1fb;--surface:#ffffff;--surface2:#ece9f7;--border:#e0dcef;--text:#1a1730;--text-2:#3d3960;--muted:#6a6590;--subtle:#9893b8;--avail:#dceee0;--avail-text:#1a6b34;--avail-border:#9dc7a8;--booked:#f5dcdc;--booked-text:#9a2828;--booked-border:#d6a3a3;--primary:#5847e0;--primary-2:#4438b5;--primary-soft:#e4dffa;--today-ring:#5847e0;--today-bg:#e4dffa;--accent:#5847e0;--shadow:0 4px 12px rgba(60,40,160,.06),0 1px 2px rgba(60,40,160,.04)}
+:root{--bg:#faf8f4;--surface:#ffffff;--surface2:#f3efe6;--border:#e8e2d8;--text:#1a1814;--text-2:#3d3a32;--muted:#8a8478;--subtle:#b5ac9a;--avail:#dfe9dd;--avail-text:#2a6a3a;--avail-border:#a8c4a4;--booked:#f2ddd6;--booked-text:#a8331f;--booked-border:#dcb3a6;--primary:#c8402a;--primary-2:#a8331f;--primary-soft:#f5e6e1;--today-ring:#c8402a;--today-bg:#f5e6e1;--accent:#b89968;--shadow:0 4px 12px rgba(120,90,40,.07),0 1px 2px rgba(120,90,40,.05)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14.5px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .icon{width:16px;height:16px;flex-shrink:0;display:inline-block;vertical-align:middle}
@@ -38,7 +38,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .icon-lg{width:20px;height:20px}
 .icon-xl{width:36px;height:36px}
 #loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;background:radial-gradient(ellipse 60% 40% at 70% 30%,rgba(29,78,216,.05) 0%,transparent 60%),radial-gradient(ellipse 40% 50% at 20% 80%,rgba(26,107,52,.04) 0%,transparent 60%),var(--bg)}
-.loading-wordmark{font-family:'Inter',sans-serif;font-size:2.4rem;font-weight:700;letter-spacing:-.025em;color:var(--text)}
+.loading-wordmark{font-family:'Playfair Display',serif;font-size:2rem;font-weight:600;letter-spacing:.04em;color:var(--text)}
 .loading-sub{font-size:.75rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-weight:500}
 .loading-spinner{width:32px;height:32px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -66,41 +66,41 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
   background:linear-gradient(135deg,#faf8f4 0%,#f3efe6 100%);
   border:1px solid #e5dcc8;border-left:3px solid #b89968;border-radius:12px;
   display:flex;align-items:center;gap:14px;font-family:'Sora',sans-serif;
-  color:#3d3960;font-size:.88rem;line-height:1.5;
+  color:var(--text-2);font-size:.88rem;line-height:1.5;
   animation:welcome-slide-in .35s ease-out;
 }
-.welcome-banner strong{color:#1a1730;font-weight:600}
+.welcome-banner strong{color:var(--text);font-weight:600}
 .welcome-banner-close{
   position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;
-  font-size:1.2rem;color:#9893b8;padding:4px 8px;line-height:1;border-radius:6px;
+  font-size:1.2rem;color:var(--subtle);padding:4px 8px;line-height:1;border-radius:6px;
 }
-.welcome-banner-close:hover{background:rgba(0,0,0,.04);color:#3d3960}
+.welcome-banner-close:hover{background:rgba(0,0,0,.04);color:var(--text-2)}
 @keyframes welcome-slide-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 @media(max-width:600px){.welcome-banner{margin:12px 16px 0;padding:12px 36px 12px 16px;font-size:.82rem}}
 
 /* Install-to-home-screen prompt */
 .install-prompt{
   position:fixed;left:16px;right:16px;bottom:16px;z-index:300;
-  background:#fff;border:1px solid #e0dcef;border-radius:14px;
-  box-shadow:0 12px 32px rgba(60,40,160,.18),0 2px 6px rgba(60,40,160,.08);
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  box-shadow:0 12px 32px rgba(120,90,40,.18),0 2px 6px rgba(120,90,40,.08);
   padding:14px;display:flex;align-items:center;gap:12px;
-  font-family:'Sora',sans-serif;font-size:.85rem;color:#1a1730;
+  font-family:'Sora',sans-serif;font-size:.85rem;color:var(--text);
   animation:install-slide-up .4s ease-out;
 }
 .install-prompt-icon{width:48px;height:48px;border-radius:11px;flex-shrink:0;background:#faf8f4}
 .install-prompt-body{flex:1;min-width:0;line-height:1.4}
 .install-prompt-body strong{display:block;font-weight:600;margin-bottom:2px}
-.install-prompt-body span{color:#6a6590;font-size:.78rem}
+.install-prompt-body span{color:var(--muted);font-size:.78rem}
 .install-prompt-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
 .install-prompt-btn{
-  background:#5847e0;color:#fff;border:none;padding:8px 16px;border-radius:8px;
+  background:var(--primary);color:#fff;border:none;padding:8px 16px;border-radius:8px;
   font-family:'Sora',sans-serif;font-size:.78rem;font-weight:500;cursor:pointer;white-space:nowrap;
 }
-.install-prompt-btn:hover{background:#4438b5}
+.install-prompt-btn:hover{background:var(--primary-2)}
 .install-prompt-dismiss{
-  background:none;border:none;color:#9893b8;font-size:.78rem;cursor:pointer;padding:6px;
+  background:none;border:none;color:var(--subtle);font-size:.78rem;cursor:pointer;padding:6px;
 }
-.install-prompt-dismiss:hover{color:#3d3960}
+.install-prompt-dismiss:hover{color:var(--text-2)}
 @keyframes install-slide-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
 @media(min-width:600px){.install-prompt{left:auto;right:24px;bottom:24px;max-width:380px}}
 .topbar-count{font-size:.72rem;font-weight:500;color:var(--text-2);padding:4px 11px;background:var(--surface);border-radius:20px;border:1px solid var(--border);white-space:nowrap}
@@ -108,7 +108,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .search-wrap{position:relative;width:220px}
 .search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);width:14px;height:14px;pointer-events:none}
 .search-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px 8px 32px;font-family:'Sora',sans-serif;font-size:.85rem;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
-.search-input::placeholder{color:var(--subtle)}.search-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(107,92,255,.18)}
+.search-input::placeholder{color:var(--subtle)}.search-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(200,64,42,.15)}
 .live-pill{display:flex;align-items:center;gap:6px;font-size:.7rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text-2);white-space:nowrap}
 .live-dot{width:7px;height:7px;background:var(--avail-text);border-radius:50%;animation:blink 2.4s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
@@ -160,15 +160,33 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .day.booked{background:var(--booked);color:var(--booked-text);font-weight:600}
 .day.past{opacity:.3}.day.empty{background:transparent}
 .day.today{outline:2px solid var(--today-ring);outline-offset:-1px;font-weight:700;color:var(--today-ring);background:var(--today-bg)}
-.card-actions{display:flex;gap:10px;padding:14px 14px 0;border-top:1px solid var(--border);background:var(--surface);flex-wrap:wrap}
-.action-btn{flex:1;min-width:0;padding:12px;background:var(--surface);border:1.5px solid var(--primary);border-radius:10px;color:var(--primary);font-family:'Sora',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;white-space:nowrap}
-.action-btn:hover{background:var(--primary-soft)}
-.action-btn .btn-label{overflow:hidden;text-overflow:ellipsis}
-.visit-row{padding:10px 14px 14px;background:var(--surface)}
-.visit-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:#128c4f;color:#fff;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .2s;text-decoration:none;text-align:center}
-.visit-btn:hover{background:#0f7a44}
-.visit-btn .btn-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-@media(max-width:520px){.card-actions{gap:8px;padding:12px 12px 0}.action-btn{font-size:.78rem;padding:11px 8px}.visit-row{padding:10px 12px 12px}.visit-btn{font-size:.85rem;padding:13px}}
+/* Compact availability summary — replaces the per-card 6-month grid.
+   Mental Model: lead with "is it available?" One glanceable line. */
+.cal-summary{display:flex;align-items:center;gap:9px;padding:13px 20px;border-top:1px solid var(--border)}
+.cal-summary-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.cal-summary.now .cal-summary-dot{background:var(--avail-text)}
+.cal-summary.from .cal-summary-dot{background:var(--primary)}
+.cal-summary.full .cal-summary-dot{background:var(--booked-text)}
+.cal-summary-main{font-size:.86rem;font-weight:600;color:var(--text)}
+.cal-summary-sub{font-size:.78rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+/* Prominent price region (Law of Proximity / Common Region) */
+.prop-price{display:flex;align-items:baseline;gap:8px;padding:0 20px 14px}
+.prop-price-main{font-family:'Inter',sans-serif;font-size:1.25rem;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.prop-price-per{font-size:.78rem;color:var(--muted)}
+.prop-price-yr{font-size:.74rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+/* Action hierarchy — Share (primary) dominates; Details quiet; Enquire tertiary */
+.card-actions{display:flex;gap:10px;padding:0 14px 12px;background:var(--surface)}
+.btn-share{flex:2;min-width:0;padding:13px;background:var(--primary);border:1.5px solid var(--primary);border-radius:10px;color:#fff;font-family:'Sora',sans-serif;font-size:.86rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px;text-decoration:none;white-space:nowrap}
+.btn-share:hover{background:var(--primary-2);border-color:var(--primary-2)}
+.btn-ghost{flex:1;min-width:0;padding:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text-2);font-family:'Sora',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;white-space:nowrap}
+.btn-ghost:hover{background:var(--surface2);border-color:var(--subtle);color:var(--text)}
+.btn-share .btn-label,.btn-ghost .btn-label{overflow:hidden;text-overflow:ellipsis}
+.btn-share.shared-ok,.modal-action-primary.shared-ok{background:var(--avail-text);border-color:var(--avail-text)}
+.enquire-row{padding:0 14px 14px;background:var(--surface);text-align:center}
+.enquire-link{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:6px 12px;font-family:'Sora',sans-serif;font-size:.78rem;font-weight:500;color:var(--muted);text-decoration:none;border-radius:8px;transition:all .15s}
+.enquire-link:hover,.enquire-link:active{color:var(--avail-text);background:var(--surface2)}
+.enquire-link .icon{width:14px;height:14px;flex-shrink:0}
+@media(max-width:520px){.card-actions{gap:8px;padding:0 12px 12px}.btn-share{font-size:.82rem;padding:13px 8px}.btn-ghost{font-size:.78rem;padding:13px 8px}.cal-summary{padding:12px 16px}.prop-price{padding:0 16px 12px}}
 .skel-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
 .skel-head{padding:14px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
 .skel-bar{border-radius:4px;background:var(--surface2);animation:shimmer 1.4s ease-in-out infinite}
@@ -179,7 +197,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .skel-cell{aspect-ratio:1;border-radius:3px;background:var(--surface2);animation:shimmer 1.4s ease-in-out infinite}
 .empty-state{grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--text-2);font-size:.95rem;font-weight:500}
 /* MODAL */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(40,25,90,.45);backdrop-filter:blur(3px);z-index:200;align-items:flex-end;justify-content:center}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(40,30,20,.45);backdrop-filter:blur(3px);z-index:200;align-items:flex-end;justify-content:center}
 .modal-overlay.open{display:flex}
 @media(min-width:760px){.modal-overlay{align-items:center}}
 .modal{background:var(--surface);width:100%;max-width:780px;max-height:92vh;border-radius:20px 20px 0 0;overflow:hidden;display:flex;flex-direction:column;animation:slideUp .3s ease;box-shadow:0 20px 60px rgba(20,15,5,.18)}
@@ -194,7 +212,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .carousel{position:relative;background:#1a1a1a;height:260px;flex-shrink:0;overflow:hidden}
 @media(min-width:760px){.carousel{height:340px}}
 .carousel-img{width:100%;height:100%;object-fit:contain;display:block}
-.carousel-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.carousel-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:none;color:#fff;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:background .2s}
 .carousel-nav:hover{background:rgba(0,0,0,.8)}
 .carousel-prev{left:12px}.carousel-next{right:12px}
 .carousel-counter{position:absolute;bottom:10px;right:12px;background:rgba(0,0,0,.5);color:#fff;font-size:.7rem;padding:3px 8px;border-radius:10px}
@@ -220,22 +238,24 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .map-open-btn:hover{background:var(--surface2)}
 .map-copy-btn{position:absolute;top:10px;left:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'Sora',sans-serif;font-size:.78rem;font-weight:500;padding:7px 13px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .2s;box-shadow:var(--shadow)}
 .map-copy-btn:hover{background:var(--surface2)}
-.loc-tag{display:inline-flex;align-items:center;gap:5px;margin-top:4px;padding:3px 9px 3px 7px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:.7rem;font-weight:500;color:var(--text-2);cursor:pointer;transition:all .15s}
-.loc-tag:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-soft)}
-.loc-tag .icon{width:11px;height:11px;opacity:.7}
-.loc-tag .copy-ic{width:11px;height:11px;opacity:.55;margin-left:2px}
-.loc-tag:hover .copy-ic{opacity:1}
+.loc-tag{display:inline-flex;align-items:center;gap:6px;margin-top:6px;min-height:34px;padding:7px 12px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:.74rem;font-weight:500;color:var(--text-2);cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:rgba(200,64,42,.12)}
+.loc-tag:hover,.loc-tag:active{border-color:var(--primary);color:var(--primary);background:var(--primary-soft)}
+.loc-tag .icon{width:13px;height:13px;opacity:.7;flex-shrink:0}
+.loc-tag .copy-ic{width:13px;height:13px;opacity:.75;margin-left:1px;flex-shrink:0}
+.loc-tag:hover .copy-ic,.loc-tag:active .copy-ic{opacity:1}
 /* MODAL ACTIONS */
 .modal-actions{display:flex;gap:10px;padding:16px 22px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;flex-wrap:wrap}
 .modal-action-btn{flex:1;min-width:120px;padding:11px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Sora',sans-serif;font-size:.82rem;font-weight:500;cursor:pointer;transition:all .2s;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px}
 .modal-action-btn:hover{background:var(--surface2);border-color:var(--subtle)}
-.modal-wa-btn{background:#128c4f;border-color:#128c4f;color:#fff;font-weight:600}
-.modal-wa-btn:hover{background:#0f7a44;border-color:#0f7a44;color:#fff}
+.modal-action-primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600;flex:1.6}
+.modal-action-primary:hover{background:var(--primary-2);border-color:var(--primary-2);color:#fff}
+.modal-wa-btn{color:var(--avail-text);font-weight:600}
+.modal-wa-btn:hover{background:var(--surface2);border-color:var(--avail-border);color:var(--avail-text)}
 </style>
 </head>
 <body>
 <div id="loading-screen">
-  <div class="loading-wordmark">Availability</div>
+  <div class="loading-wordmark">Samba Rentals</div>
   <div class="loading-sub">Agent Portal · Loading properties…</div>
   <div class="loading-spinner"></div>
 </div>
@@ -317,6 +337,10 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       <div class="modal-section">
         <div class="detail-cols" id="modal-details"></div>
       </div>
+      <div class="modal-section" id="modal-availability-section">
+        <div class="modal-section-title">Availability</div>
+        <div class="cal-scroll"><div class="cal-months" id="modal-calendar"></div></div>
+      </div>
       <div class="modal-section">
         <div class="modal-section-title">Pricing</div>
         <div id="modal-pricing"></div>
@@ -338,7 +362,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       </div>
     </div>
     <div class="modal-actions">
-      <button class="modal-action-btn" id="modal-share-btn" onclick="shareModal()"></button>
+      <button class="modal-action-btn modal-action-primary" id="modal-share-btn" onclick="shareModal()"></button>
 <a class="modal-action-btn" id="modal-drive-btn" href="#" target="_blank"></a>
 <a class="modal-action-btn modal-wa-btn" id="modal-wa-btn" href="#" target="_blank"></a>
     </div>
@@ -488,6 +512,8 @@ function openModal(propId) {
     detailsHtml+='<div class="detail-col"><div class="modal-section-title">Location</div>'+
       info.locationHighlights.map(f=>'<div class="detail-row">'+esc(f)+'</div>').join('')+'</div>';
   document.getElementById('modal-details').innerHTML=detailsHtml;
+  // Full 6-month availability calendar (relocated here from the card).
+  document.getElementById('modal-calendar').innerHTML=buildSix(avail[propId]||new Set());
   let ph='';
   if(info.monthly) ph+='<div class="price-row"><span class="price-amount">'+esc(info.monthly)+'</span><span class="price-period">/ month</span></div>';
   if(info.yearly) ph+='<div class="price-row"><span class="price-amount">'+esc(info.yearly)+'</span><span class="price-period">/ year</span></div>';
@@ -514,7 +540,7 @@ function openModal(propId) {
   } else {
     driveBtn.style.display='none';
   }
-  document.getElementById('modal-share-btn').innerHTML=icon('share','sm')+'<span>Share</span>';
+  document.getElementById('modal-share-btn').innerHTML=icon('share','sm')+'<span>Share with client</span>';
   const waNum=info.waNumber||'6281246357778';
   const waName=info.waContactName||'Era';
   const waMsg=encodeURIComponent('Hi '+waName+', I\'m interested in '+info.name+'. Could you tell me more?');
@@ -618,20 +644,29 @@ function carNav(dir){carIdx=(carIdx+dir+carPhotos.length)%carPhotos.length;showC
   },{passive:true});
 })();
 
-function shareModal() {
-  const info=PROPS[modalPropId]; if(!info) return;
-  const btn=document.getElementById('modal-share-btn');
-  const slug=SLUGS[modalPropId];
+// One share helper for both card and modal (Occam's Razor). Native share
+// sheet on mobile, clipboard fallback on desktop. Peak-End Rule: always
+// give a clear, affirming confirmation on the button itself.
+function doShare(propId, btn){
+  const info=PROPS[propId]; if(!info) return;
+  track('share', propId, info.name);
+  const slug=SLUGS[propId];
   const url=slug?'https://sambarentals.vercel.app/l/'+slug:'https://sambarentals.vercel.app';
+  const title=info.name+(info.tag?' · '+info.tag:'');
+  const flash=(txt)=>{
+    if(!btn) return;
+    const orig=btn.innerHTML;
+    btn.innerHTML=icon('check','sm')+'<span>'+txt+'</span>';
+    btn.classList.add('shared-ok');
+    setTimeout(()=>{btn.innerHTML=orig;btn.classList.remove('shared-ok');},2000);
+  };
   if(navigator.share){
-    navigator.share({title:info.name+' · '+info.tag,url});
+    navigator.share({title,url}).then(()=>flash('Shared')).catch(()=>{});
   } else {
-    navigator.clipboard.writeText(url).then(()=>{
-      btn.innerHTML=icon('check','sm')+'<span>Copied!</span>';
-      setTimeout(()=>{btn.innerHTML=icon('share','sm')+'<span>Share</span>';},2000);
-    });
+    navigator.clipboard.writeText(url).then(()=>flash('Link copied'));
   }
 }
+function shareModal(){ doShare(modalPropId, document.getElementById('modal-share-btn')); }
 
 // ── CARD SHARE ──
 const SLUGS={
@@ -660,22 +695,7 @@ function copyMapsLink(e, propId) {
   });
 }
 
-function shareCard(propId,name) {
-  track('share', propId, name);
-  const slug=SLUGS[propId];
-  const btn=event.target;
-  const url=slug?'https://sambarentals.vercel.app/l/'+slug:'https://sambarentals.vercel.app';
-  const info=PROPS[propId];
-  const title=name+(info?' · '+info.tag:'');
-  if(navigator.share){
-    navigator.share({title,url});
-  } else {
-    navigator.clipboard.writeText(url).then(()=>{
-      const orig=btn.innerHTML; btn.innerHTML=icon('check','sm')+'<span>Copied!</span>';
-      setTimeout(()=>{btn.innerHTML=orig;},2000);
-    });
-  }
-}
+function shareCard(propId,name){ doShare(propId, event.currentTarget); }
 
 document.addEventListener('keydown',e=>{
   if(document.getElementById('modal').classList.contains('open')&&e.key==='Escape')closeModal({target:null});
@@ -890,7 +910,11 @@ function render() {
   const grid=document.getElementById('grid');
   const q=query.toLowerCase();
   const filtered=properties.filter(p=>{
-    if(!(p.name.toLowerCase().includes(q)||(p.type||'').toLowerCase().includes(q))) return false;
+    // Postel's Law: accept location/area queries too ("Canggu", "Pererenan"),
+    // not just the property name or unit type.
+    const info=PROPS[p.id];
+    const hay=(p.name+' '+(p.type||'')+' '+((info&&info.tag)||'')+' '+((info&&info.unitType)||'')).toLowerCase();
+    if(!hay.includes(q)) return false;
     if(bedroomFilter!=='all'){const b=getBedrooms(p.id); if(b!==+bedroomFilter) return false;}
     return true;
   });
@@ -902,36 +926,47 @@ function render() {
     const waName=(info&&info.waContactName)||'Era';
     const waMsg=encodeURIComponent('Hi '+waName+', I\'d like to schedule a visit for '+p.name+'.');
     const waUrl='https://wa.me/'+waNum+'?text='+waMsg;
-    let chips='';
-    if(info){
-      const bits=[];
-      if(info.unitType)bits.push('<span class="chip">'+esc(info.unitType)+'</span>');
-      if(info.monthly)bits.push('<span class="chip chip-price">'+esc(info.monthly)+'/mo</span>');
-      if(info.yearly)bits.push('<span class="chip">'+esc(info.yearly)+'/yr</span>');
-      if(info.yearly2)bits.push('<span class="chip">'+esc(info.yearly2)+'/2yr</span>');
-      if(bits.length)chips='<div class="prop-meta">'+bits.join('')+'</div>';
-    }
+    // Unit type stays as a small chip; pricing moves to its own region below.
+    const typeChip=(info&&info.unitType)?'<div class="prop-meta"><span class="chip">'+esc(info.unitType)+'</span></div>':'';
     const av=availLabel(booked);
-    const heroPill=av?'<span class="avail-pill '+av.cls+' prop-hero-pill">'+av.text+'</span>':'';
+    const heroPill=av?'<span class="avail-pill '+av.cls+' prop-hero-pill">'+av.pill+'</span>':'';
     const heroPos=(info&&info.coverPosition)||'50% 50%';
     const heroInner=p.photo
       ?'<img class="prop-hero-img" src="'+p.photo+'" alt="'+esc(p.name)+'" loading="lazy" style="object-position:'+heroPos+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><div class="prop-hero-ph" style="display:none">'+icon('home','lg')+'</div>'
       :'<div class="prop-hero-ph">'+icon('home','lg')+'</div>';
+    // Compact availability summary (replaces the per-card 6-month grid).
+    let calSummary;
+    if(!av){
+      calSummary='<div class="cal-summary full"><span class="cal-summary-dot"></span><span class="cal-summary-main">Booked out</span><span class="cal-summary-sub">check back soon</span></div>';
+    } else if(av.cls==='avail-now'){
+      calSummary='<div class="cal-summary now"><span class="cal-summary-dot"></span><span class="cal-summary-main">Available now</span><span class="cal-summary-sub">next '+av.window+' days open</span></div>';
+    } else {
+      calSummary='<div class="cal-summary from"><span class="cal-summary-dot"></span><span class="cal-summary-main">Free from '+esc(av.from)+'</span><span class="cal-summary-sub">'+av.window+'-day window</span></div>';
+    }
+    // Prominent price region (Law of Proximity / Common Region).
+    let priceRow='';
+    if(info&&(info.monthly||info.yearly)){
+      priceRow='<div class="prop-price">'
+        +(info.monthly?'<span class="prop-price-main">'+esc(info.monthly)+'</span><span class="prop-price-per">/ month</span>':'')
+        +(info.yearly?'<span class="prop-price-yr">'+esc(info.yearly)+' / yr</span>':'')
+        +'</div>';
+    }
     return '<div class="prop-card" style="animation-delay:'+i*0.04+'s">'
       +'<div class="prop-hero" title="View details &amp; photos" onclick="openModal(\''+p.id+'\')">'+heroInner+heroPill+'</div>'
       +'<div class="prop-head">'
       +'<div style="flex:1;min-width:0"><div class="prop-name">'+esc(p.name)+'</div>'
       +(info&&info.tag?'<div class="loc-tag" onclick="copyMapsLink(event,\''+p.id+'\')" title="Copy Google Maps link">'+icon('mapPin')+'<span>'+esc(info.tag)+'</span>'+(info.location?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="copy-ic"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>':'')+'</div>'
         :(p.type?'<div class="prop-type">'+esc(p.type)+'</div>':''))
-      +chips
+      +typeChip
       +'</div></div>'
-      +'<div class="cal-scroll"><div class="cal-months">'+buildSix(booked)+'</div></div>'
+      +calSummary
+      +priceRow
       +'<div class="card-actions">'
-      +(info?'<button class="action-btn" onclick="openModal(\''+p.id+'\')">'+icon('info','sm')+'<span class="btn-label">Details &amp; Photos</span></button>':'')
-      +'<button class="action-btn" onclick="shareCard(\''+p.id+'\',\''+esc(p.name)+'\')">'+icon('share','sm')+'<span class="btn-label">Share</span></button>'
+      +'<button class="btn-share" onclick="shareCard(\''+p.id+'\',\''+esc(p.name)+'\')">'+icon('share','sm')+'<span class="btn-label">Share with client</span></button>'
+      +(info?'<button class="btn-ghost" onclick="openModal(\''+p.id+'\')">'+icon('info','sm')+'<span class="btn-label">Details</span></button>':'')
       +'</div>'
-      +'<div class="visit-row">'
-      +'<a class="visit-btn" href="'+waUrl+'" target="_blank" rel="noopener" onclick="track(\'whatsapp_click\',\''+p.id+'\',\''+esc(p.name)+'\')">'+icon('whatsapp','sm')+'<span class="btn-label">Visit '+esc(p.name)+'</span></a>'
+      +'<div class="enquire-row">'
+      +'<a class="enquire-link" href="'+waUrl+'" target="_blank" rel="noopener" onclick="track(\'whatsapp_click\',\''+p.id+'\',\''+esc(p.name)+'\')">'+icon('whatsapp','sm')+'<span>Enquire or book a visit</span></a>'
       +'</div>'
       +'</div>';
   }).join('');
@@ -963,16 +998,27 @@ function buildMonth(year,month,booked) {
 
 // "Available now" if today is free; otherwise the first free day in the
 // next 6 months ("From Jul 1"). Null (no pill) if fully booked throughout.
+// Also returns `window` = length of the consecutive free run starting at
+// firstFree (capped at the 180-day lookahead), used for the compact card
+// summary ("Available now · 87-day window").
 function availLabel(booked){
-  let firstFree=null;
+  let firstFree=null,firstIdx=0;
   for(let i=0;i<180;i++){
     const d=new Date(TODAY);d.setDate(d.getDate()+i);
-    const k=ds(d);
-    if(!booked.has(k)){firstFree=d;break;}
+    if(!booked.has(ds(d))){firstFree=d;firstIdx=i;break;}
   }
   if(!firstFree)return null;
-  if(ds(firstFree)===todayStr)return{cls:'avail-now',text:'Available now'};
-  return{cls:'avail-from',text:'From '+MONTHS[firstFree.getMonth()].slice(0,3)+' '+firstFree.getDate()};
+  // Count consecutive free days from firstFree.
+  let win=0;
+  for(let i=firstIdx;i<180;i++){
+    const d=new Date(TODAY);d.setDate(d.getDate()+i);
+    if(booked.has(ds(d)))break;
+    win++;
+  }
+  const winCapped=win>=180?'180+':String(win);
+  if(ds(firstFree)===todayStr)return{cls:'avail-now',pill:'Available now',window:winCapped,from:null};
+  const fromTxt=MONTHS[firstFree.getMonth()].slice(0,3)+' '+firstFree.getDate();
+  return{cls:'avail-from',pill:'From '+fromTxt,window:winCapped,from:fromTxt};
 }
 
 function doFilter(){query=document.getElementById('search').value;render();}
