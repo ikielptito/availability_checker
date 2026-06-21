@@ -20,8 +20,8 @@ export default async function handler(req, res) {
   const token = process.env.KV_REST_API_TOKEN;
   if (!url || !token) return res.status(500).json({ error: 'Redis not configured' });
 
-  const period = ['7d', '30d', '90d', 'all'].includes(req.query.period) ? req.query.period : '7d';
-  const nDays = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+  const period = ['today', '7d', '30d', '90d', 'all'].includes(req.query.period) ? req.query.period : '7d';
+  const nDays = period === 'today' ? 1 : period === '7d' ? 7 : period === '30d' ? 30 : 90;
   const days = [];
   for (let i = nDays - 1; i >= 0; i--) {
     const d = new Date();

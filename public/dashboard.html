@@ -149,6 +149,7 @@ tr:hover td{background:var(--surface2);}
     <span class="topbar-brand">Analytics</span>
     <div class="spacer"></div>
     <div class="period-btns">
+      <button class="period-btn" onclick="setPeriod('today',this)">Today</button>
       <button class="period-btn active" onclick="setPeriod('7d',this)">7 days</button>
       <button class="period-btn" onclick="setPeriod('30d',this)">30 days</button>
       <button class="period-btn" onclick="setPeriod('90d',this)">90 days</button>
@@ -244,7 +245,7 @@ const EVENT_LABELS = {
 function render(data) {
   const { totals, series, properties, recent, period } = data;
   const periodLabel = {
-    '7d':'last 7 days','30d':'last 30 days','90d':'last 90 days','all':'all time'
+    'today':'today','7d':'last 7 days','30d':'last 30 days','90d':'last 90 days','all':'all time'
   }[period] || period;
 
   const engagement = totals.details_open + totals.listing_view;
