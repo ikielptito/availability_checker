@@ -515,6 +515,16 @@ const PROPS={
 // ── MODAL ──
 let modalPropId=null, carPhotos=[], carIdx=0;
 
+// Build a Google Maps "search → embed" URL from the listing's area tag,
+// appended with ", Bali" for disambiguation. No API key required. Used when
+// a listing has no hand-pasted mapEmbed iframe URL. Returns null if there
+// isn't even a tag to search by.
+function deriveMapEmbed(info){
+  const q=(info&&(info.tag||info.name)||'').trim();
+  if(!q) return null;
+  return 'https://www.google.com/maps?q='+encodeURIComponent(q+', Bali')+'&z=14&output=embed';
+}
+
 function openModal(propId) {
   const info=PROPS[propId]; if(!info) return;
   track('details_open', propId, info.name);
@@ -538,21 +548,27 @@ function openModal(propId) {
   const yInc=info.yearlyInclusions||[];
   document.getElementById('modal-yearly-inclusions-block').style.display=yInc.length?'':'none';
   document.getElementById('modal-yearly-inclusions').innerHTML=yInc.map(i=>'<div class="inclusion-row">'+esc(i)+'</div>').join('');
-  // Show the map section whenever the listing has a Google Maps share URL,
-  // even if there's no iframe-embed URL — agents still need Open in Maps +
-  // Copy pin. Fallback panel shows the area name when the iframe is absent.
+  // Show the map section whenever the listing has any kind of location data.
+  // Prefer the listing's exact mapEmbed URL when set (the Hostex DEFAULTS
+  // have these hardcoded); otherwise derive a search-based embed from the
+  // area tag so custom listings get an embedded neighbourhood view too. The
+  // exact pin still comes via Copy pin / Open in Maps (which use
+  // info.location, the Google Maps share URL).
   const mapSection=document.getElementById('map-section');
   const mapIframe=document.getElementById('map-iframe');
   const mapFallback=document.getElementById('map-fallback');
   const mapCopyBtn=document.getElementById('map-copy-btn');
   const mapOpenBtn=document.getElementById('map-open-btn');
-  if(info.mapEmbed || info.location){
+  const embedSrc=info.mapEmbed||deriveMapEmbed(info);
+  if(embedSrc||info.location){
     mapSection.style.display='';
-    if(info.mapEmbed){
+    if(embedSrc){
       mapIframe.style.display='';
-      mapIframe.src=info.mapEmbed;
+      mapIframe.src=embedSrc;
       mapFallback.style.display='none';
     } else {
+      // Nothing embeddable at all — keep the static fallback so the
+      // Copy pin / Open in Maps buttons still have somewhere to live.
       mapIframe.style.display='none';
       mapIframe.src='about:blank';
       mapFallback.style.display='';
