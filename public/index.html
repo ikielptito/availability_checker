@@ -237,6 +237,13 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 /* MAP */
 .map-container{position:relative;height:220px;background:var(--surface2)}
 .map-iframe{width:100%;height:100%;border:none;display:block}
+/* Fallback shown when a listing has a Google Maps share URL (info.location)
+   but no embed URL (info.mapEmbed). Keeps the Copy pin + Open in Maps
+   buttons reachable instead of hiding the whole section. */
+.map-fallback{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,var(--bg) 0%,var(--surface2) 100%);text-align:center;padding:24px}
+.map-fallback-icon{width:32px;height:32px;color:var(--primary);opacity:.85}
+.map-fallback-area{font-family:'Playfair Display',serif;font-weight:600;font-size:1.05rem;color:var(--text);margin-top:2px}
+.map-fallback-hint{font-size:.74rem;color:var(--muted);max-width:240px;line-height:1.4}
 .map-open-btn{position:absolute;top:10px;right:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'Sora',sans-serif;font-size:.78rem;font-weight:500;padding:7px 13px;border-radius:8px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:5px;transition:all .2s;box-shadow:var(--shadow)}
 .map-open-btn:hover{background:var(--surface2)}
 .map-copy-btn{position:absolute;top:10px;left:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'Sora',sans-serif;font-size:.78rem;font-weight:500;padding:7px 13px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .2s;box-shadow:var(--shadow)}
@@ -359,6 +366,11 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       <div class="modal-section" style="padding:0" id="map-section">
         <div class="map-container">
           <iframe class="map-iframe" id="map-iframe" src="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <div class="map-fallback" id="map-fallback" style="display:none">
+            <svg class="map-fallback-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <div class="map-fallback-area" id="map-fallback-area"></div>
+            <div class="map-fallback-hint">Tap below to open the location in Google Maps or copy the pin to send to your client.</div>
+          </div>
           <button class="map-copy-btn" id="map-copy-btn" onclick="copyMapsLink(event)" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-sm"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy pin</span></button>
           <a class="map-open-btn" id="map-open-btn" href="#" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-sm"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Open in Maps</a>
         </div>
@@ -526,11 +538,29 @@ function openModal(propId) {
   const yInc=info.yearlyInclusions||[];
   document.getElementById('modal-yearly-inclusions-block').style.display=yInc.length?'':'none';
   document.getElementById('modal-yearly-inclusions').innerHTML=yInc.map(i=>'<div class="inclusion-row">'+esc(i)+'</div>').join('');
+  // Show the map section whenever the listing has a Google Maps share URL,
+  // even if there's no iframe-embed URL — agents still need Open in Maps +
+  // Copy pin. Fallback panel shows the area name when the iframe is absent.
   const mapSection=document.getElementById('map-section');
-  if(info.mapEmbed){
+  const mapIframe=document.getElementById('map-iframe');
+  const mapFallback=document.getElementById('map-fallback');
+  const mapCopyBtn=document.getElementById('map-copy-btn');
+  const mapOpenBtn=document.getElementById('map-open-btn');
+  if(info.mapEmbed || info.location){
     mapSection.style.display='';
-    document.getElementById('map-iframe').src=info.mapEmbed;
-    document.getElementById('map-open-btn').href=info.location||'#';
+    if(info.mapEmbed){
+      mapIframe.style.display='';
+      mapIframe.src=info.mapEmbed;
+      mapFallback.style.display='none';
+    } else {
+      mapIframe.style.display='none';
+      mapIframe.src='about:blank';
+      mapFallback.style.display='';
+      document.getElementById('map-fallback-area').textContent=info.tag||info.name||'Location';
+    }
+    mapOpenBtn.href=info.location||'#';
+    mapOpenBtn.style.display=info.location?'':'none';
+    mapCopyBtn.style.display=info.location?'':'none';
   } else {
     mapSection.style.display='none';
   }
