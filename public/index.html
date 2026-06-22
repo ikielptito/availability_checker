@@ -47,7 +47,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .error-title{font-family:'Inter',sans-serif;font-size:1.6rem;font-weight:700;letter-spacing:-.02em;color:var(--text)}
 .error-msg{color:var(--text-2);font-size:.9rem;max-width:380px;line-height:1.7}
 #app{display:none}#app.on{display:block}
-.topbar{position:sticky;top:0;z-index:100;background:rgba(243,241,251,.94);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;gap:16px}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(250,248,244,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:0 24px;height:48px;display:flex;align-items:center;gap:14px}
 .topbar-brand{font-family:'Inter',sans-serif;font-size:1.5rem;font-weight:700;color:var(--text);letter-spacing:-.025em;white-space:nowrap}
 
 /* Text wordmark for the nav — full logo lockup lives on OG/home-screen/welcome
@@ -127,11 +127,11 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .sw-avail{background:var(--avail);border:1px solid var(--avail-border)}
 .sw-booked{background:var(--booked);border:1px solid var(--booked-border)}
 .sw-today{width:10px;height:10px;border-radius:2px;background:var(--today-bg);border:1.5px solid var(--today-ring)}
-.prop-grid{padding:24px 28px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(680px,1fr));gap:18px}
+.prop-grid{padding:20px 24px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
 @media(max-width:760px){.prop-grid{grid-template-columns:1fr;padding:14px}.topbar{padding:0 14px;gap:10px}.search-wrap{width:140px}.legend-bar{padding:9px 14px}}
 .prop-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;animation:fadeUp .3s ease both;box-shadow:var(--shadow)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.prop-head{padding:16px 20px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border)}
+.prop-head{padding:10px 16px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .prop-name{font-family:'Inter',sans-serif;font-size:1.2rem;font-weight:700;line-height:1.25;color:var(--text);letter-spacing:-.02em}
 .prop-type{font-size:.7rem;font-weight:600;color:var(--muted);letter-spacing:.09em;text-transform:uppercase;margin-top:4px}
 .prop-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;align-items:center}
@@ -169,13 +169,20 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .cal-summary.full .cal-summary-dot{background:var(--booked-text)}
 .cal-summary-main{font-size:.86rem;font-weight:600;color:var(--text)}
 .cal-summary-sub{font-size:.78rem;color:var(--muted);margin-left:auto;white-space:nowrap}
-/* Prominent price region (Law of Proximity / Common Region) */
-.prop-price{display:flex;align-items:baseline;gap:8px;padding:0 20px 14px}
+/* Availability bar — rank-1 signal, full-width, high-contrast */
+.avail-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;font-size:.82rem;font-weight:600;line-height:1}
+.avail-bar.now{background:var(--avail);color:var(--avail-text)}
+.avail-bar.from{background:var(--today-bg);color:var(--today-ring)}
+.avail-bar.full{background:var(--booked);color:var(--booked-text)}
+.avail-bar-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0}
+.avail-bar-window{margin-left:auto;font-weight:500;font-size:.75rem;opacity:.8}
+/* Price region */
+.prop-price{display:flex;align-items:baseline;gap:8px;padding:8px 16px 4px}
 .prop-price-main{font-family:'Inter',sans-serif;font-size:1.25rem;font-weight:700;color:var(--text);letter-spacing:-.02em}
 .prop-price-per{font-size:.78rem;color:var(--muted)}
 .prop-price-yr{font-size:.74rem;color:var(--muted);margin-left:auto;white-space:nowrap}
 /* Action hierarchy — Share (primary) dominates; Details quiet; Enquire tertiary */
-.card-actions{display:flex;gap:10px;padding:0 14px 12px;background:var(--surface)}
+.card-actions{display:flex;gap:8px;padding:10px 14px 14px;background:var(--surface)}
 .btn-share{flex:2;min-width:0;padding:13px;background:var(--primary);border:1.5px solid var(--primary);border-radius:10px;color:#fff;font-family:'Sora',sans-serif;font-size:.86rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px;text-decoration:none;white-space:nowrap}
 .btn-share:hover{background:var(--primary-2);border-color:var(--primary-2)}
 .btn-ghost{flex:1;min-width:0;padding:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text-2);font-family:'Sora',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;white-space:nowrap}
@@ -286,7 +293,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input class="search-input" id="search" placeholder="Filter properties…" oninput="doFilter()" />
     </div>
-    <div class="live-pill"><div class="live-dot"></div>Live</div>
+    <div class="live-pill" id="last-updated"><div class="live-dot"></div>Live</div>
     <button class="refresh-btn" onclick="doRefresh()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       Refresh
@@ -299,11 +306,6 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       Photos, real-time availability, pricing, share links, and visit scheduling — all in one place.
     </div>
     <button class="welcome-banner-close" onclick="dismissWelcome()" title="Dismiss">×</button>
-  </div>
-  <div class="legend-bar">
-    <div class="legend-item"><div class="swatch sw-avail"></div>Available</div>
-    <div class="legend-item"><div class="swatch sw-booked"></div>Booked</div>
-    <div class="legend-item"><div class="swatch sw-today"></div>Today</div>
   </div>
   <div class="filter-bar" id="filter-bar" style="display:none">
     <span class="filter-label">Bedrooms</span>
@@ -809,7 +811,7 @@ async function boot() {
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('app').classList.add('on');
   document.getElementById('prop-count').textContent=properties.length+' propert'+(properties.length===1?'y':'ies');
-  track('page_view'); renderBedroomFilter(); showSkeletons(); await loadAll(); render();
+  track('page_view'); renderBedroomFilter(); showSkeletons(); await loadAll(); render(); setLastUpdated();
 
   // Deep-link to a specific property — broadcasts use this so an agent
   // tapping a per-property link in WhatsApp lands directly on its modal
@@ -971,51 +973,38 @@ function render() {
   grid.innerHTML=filtered.map((p,i)=>{
     const booked=avail[p.id]||new Set();
     const info=PROPS[p.id];
-    const waNum=(info&&info.waNumber)||'6281246357778';
-    const waName=(info&&info.waContactName)||'Era';
-    const waMsg=encodeURIComponent('Hi '+waName+', I\'d like to schedule a visit for '+p.name+'.');
-    const waUrl='https://wa.me/'+waNum+'?text='+waMsg;
-    // Unit type stays as a small chip; pricing moves to its own region below.
-    const typeChip=(info&&info.unitType)?'<div class="prop-meta"><span class="chip">'+esc(info.unitType)+'</span></div>':'';
     const av=availLabel(booked);
-    const heroPill=av?'<span class="avail-pill '+av.cls+' prop-hero-pill">'+av.pill+'</span>':'';
     const heroPos=(info&&info.coverPosition)||'50% 50%';
     const heroInner=p.photo
       ?'<img class="prop-hero-img" src="'+p.photo+'" alt="'+esc(p.name)+'" loading="lazy" style="object-position:'+heroPos+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><div class="prop-hero-ph" style="display:none">'+icon('home','lg')+'</div>'
       :'<div class="prop-hero-ph">'+icon('home','lg')+'</div>';
-    // Compact availability summary (replaces the per-card 6-month grid).
-    let calSummary;
+    let availBar;
     if(!av){
-      calSummary='<div class="cal-summary full"><span class="cal-summary-dot"></span><span class="cal-summary-main">Booked out</span><span class="cal-summary-sub">check back soon</span></div>';
+      availBar='<div class="avail-bar full"><span class="avail-bar-dot"></span><span>Fully booked</span><span class="avail-bar-window">check back soon</span></div>';
     } else if(av.cls==='avail-now'){
-      calSummary='<div class="cal-summary now"><span class="cal-summary-dot"></span><span class="cal-summary-main">Available now</span><span class="cal-summary-sub">next '+av.window+' days open</span></div>';
+      availBar='<div class="avail-bar now"><span class="avail-bar-dot"></span><span>Available now</span><span class="avail-bar-window">'+av.window+' days</span></div>';
     } else {
-      calSummary='<div class="cal-summary from"><span class="cal-summary-dot"></span><span class="cal-summary-main">Free from '+esc(av.from)+'</span><span class="cal-summary-sub">'+av.window+'-day window</span></div>';
+      availBar='<div class="avail-bar from"><span class="avail-bar-dot"></span><span>From '+esc(av.from)+'</span><span class="avail-bar-window">'+av.window+' days</span></div>';
     }
-    // Prominent price region (Law of Proximity / Common Region).
     let priceRow='';
     if(info&&(info.monthly||info.yearly)){
       priceRow='<div class="prop-price">'
-        +(info.monthly?'<span class="prop-price-main">'+esc(info.monthly)+'</span><span class="prop-price-per">/ month</span>':'')
-        +(info.yearly?'<span class="prop-price-yr">'+esc(info.yearly)+' / yr</span>':'')
+        +(info.monthly?'<span class="prop-price-main">'+fmtPrice(info.monthly)+'</span><span class="prop-price-per">/ mo</span>':'')
+        +(info.yearly?'<span class="prop-price-yr">'+fmtPrice(info.yearly)+' / yr</span>':'')
         +'</div>';
     }
-    return '<div class="prop-card" style="animation-delay:'+i*0.04+'s">'
-      +'<div class="prop-hero" title="View details &amp; photos" onclick="openModal(\''+p.id+'\')">'+heroInner+heroPill+'</div>'
+    return '<div class="prop-card">'
+      +'<div class="prop-hero" title="View details &amp; photos" onclick="openModal(\''+p.id+'\')">'+heroInner+'</div>'
+      +availBar
+      +priceRow
       +'<div class="prop-head">'
       +'<div style="flex:1;min-width:0"><div class="prop-name">'+esc(p.name)+'</div>'
       +(info&&info.tag?'<div class="loc-tag" onclick="copyMapsLink(event,\''+p.id+'\')" title="Copy Google Maps link">'+icon('mapPin')+'<span>'+esc(info.tag)+'</span>'+(info.location?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="copy-ic"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>':'')+'</div>'
         :(p.type?'<div class="prop-type">'+esc(p.type)+'</div>':''))
-      +typeChip
       +'</div></div>'
-      +calSummary
-      +priceRow
       +'<div class="card-actions">'
-      +'<button class="btn-share" onclick="shareCard(\''+p.id+'\',\''+esc(p.name)+'\')">'+icon('share','sm')+'<span class="btn-label">Share with client</span></button>'
+      +'<button class="btn-share" onclick="shareCard(\''+p.id+'\',\''+esc(p.name)+'\')">'+icon('share','sm')+'<span class="btn-label">Share</span></button>'
       +(info?'<button class="btn-ghost" onclick="openModal(\''+p.id+'\')">'+icon('info','sm')+'<span class="btn-label">Details</span></button>':'')
-      +'</div>'
-      +'<div class="enquire-row">'
-      +'<a class="enquire-btn" href="'+waUrl+'" target="_blank" rel="noopener" onclick="track(\'whatsapp_click\',\''+p.id+'\',\''+esc(p.name)+'\')">'+icon('whatsapp','sm')+'<span>Enquire or book a visit</span></a>'
       +'</div>'
       +'</div>';
   }).join('');
@@ -1070,11 +1059,23 @@ function availLabel(booked){
   return{cls:'avail-from',pill:'From '+fromTxt,window:winCapped,from:fromTxt};
 }
 
+function fmtPrice(p){return p?p.replace(/(\d+)jt/i,'IDR $1M'):'';}
+
+let _lastUpdateTs=null;
+function setLastUpdated(){
+  _lastUpdateTs=Date.now();
+  const el=document.getElementById('last-updated');
+  if(!el)return;
+  el.innerHTML='<div class="live-dot"></div>Updated just now';
+  setTimeout(()=>{if(el&&_lastUpdateTs&&Date.now()-_lastUpdateTs<120000)el.innerHTML='<div class="live-dot"></div>Updated 1m ago';},61000);
+}
+
 function doFilter(){query=document.getElementById('search').value;render();}
 async function doRefresh(){
   track('refresh');
   const btn=document.querySelector('.refresh-btn');btn.style.opacity='.5';
   avail={};showSkeletons();await loadAll();render();btn.style.opacity='';
+  setLastUpdated();
 }
 
 let customListings = [];
