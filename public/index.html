@@ -481,7 +481,7 @@ const PROPS={
 };
 
 // ── MODAL ──
-let modalPropId=null, carPhotos=[], carIdx=0;
+let modalPropId=null, carPhotos=[], carIdx=0, carBusy=false;
 
 // Build a Google Maps "search → embed" URL from the listing's area tag,
 // appended with ", Bali" for disambiguation. No API key required. Used when
@@ -606,64 +606,75 @@ async function loadCarousel(propId,folderId) {
   if(!carPhotos.length) document.getElementById('carousel-loading').innerHTML='<span style="color:var(--muted)">No photos available yet</span>';
 }
 
-function showCarPhoto() {
+function preloadAdjacent(){
+  if(carPhotos.length<=1)return;
+  [1,-1,2].forEach(off=>{const i=new Image();i.src=carPhotos[(carIdx+off+carPhotos.length)%carPhotos.length];});
+}
+
+function showCarPhoto(){
   const img=document.getElementById('carousel-img');
   document.getElementById('carousel-loading').style.display='none';
-  img.style.display='block'; img.src=carPhotos[carIdx];
+  const src=carPhotos[carIdx];
   if(carPhotos.length>1){
     document.getElementById('carousel-prev').style.display='flex';
     document.getElementById('carousel-next').style.display='flex';
     document.getElementById('carousel-counter').style.display='block';
     document.getElementById('carousel-counter').textContent=(carIdx+1)+' / '+carPhotos.length;
   }
+  img.style.transition='none'; img.style.transform='translateX(0)';
+  img.style.opacity='0';
+  const p=new Image();let done=false;
+  const apply=()=>{if(done)return;done=true;img.src=src;img.style.display='block';requestAnimationFrame(()=>requestAnimationFrame(()=>{img.style.transition='opacity .2s ease';img.style.opacity='1';}));preloadAdjacent();};
+  p.onload=p.onerror=apply; setTimeout(apply,600); p.src=src;
 }
 
-function carNav(dir){carIdx=(carIdx+dir+carPhotos.length)%carPhotos.length;showCarPhoto();}
+function carNav(dir){
+  if(carBusy||carPhotos.length<=1)return;
+  carIdx=(carIdx+dir+carPhotos.length)%carPhotos.length;
+  showCarPhoto();
+}
 
 (function(){
   const el=document.getElementById('carousel');
   const img=document.getElementById('carousel-img');
-  let startX=0,startY=0,isHoriz=null,busy=false;
+  let startX=0,startY=0,isHoriz=null;
   el.addEventListener('touchstart',e=>{
-    if(e.touches.length!==1||busy)return;
+    if(e.touches.length!==1||carBusy)return;
     startX=e.touches[0].clientX; startY=e.touches[0].clientY; isHoriz=null;
     img.style.transition='none';
   },{passive:true});
   el.addEventListener('touchmove',e=>{
-    if(!carPhotos.length||e.touches.length!==1||busy)return;
+    if(!carPhotos.length||e.touches.length!==1||carBusy)return;
     const dx=e.touches[0].clientX-startX, dy=e.touches[0].clientY-startY;
     if(isHoriz===null) isHoriz=Math.abs(dx)>Math.abs(dy);
     if(!isHoriz)return;
     e.preventDefault();
-    const cdx=Math.max(-el.offsetWidth,Math.min(el.offsetWidth,dx));
-    img.style.transform='translateX('+cdx+'px)';
+    img.style.transform='translateX('+Math.max(-el.offsetWidth,Math.min(el.offsetWidth,dx))+'px)';
   },{passive:false});
   el.addEventListener('touchend',e=>{
-    if(!carPhotos.length||!isHoriz||busy){isHoriz=null;return;}
+    if(!carPhotos.length||!isHoriz||carBusy){isHoriz=null;return;}
     const dx=e.changedTouches[0].clientX-startX;
     isHoriz=null;
-    if(Math.abs(dx)>50){
-      busy=true;
-      const dir=dx<0?1:-1;
-      const nextIdx=(carIdx+dir+carPhotos.length)%carPhotos.length;
-      img.style.transition='transform 0.2s ease-in';
-      img.style.transform='translateX('+(dx<0?'-110%':'110%')+')';
-      setTimeout(()=>{
-        carIdx=nextIdx; img.src=carPhotos[carIdx];
-        document.getElementById('carousel-counter').textContent=(carIdx+1)+' / '+carPhotos.length;
-        img.style.transition='none';
-        img.style.transform='translateX('+(dx<0?'110%':'-110%')+')';
-        requestAnimationFrame(()=>requestAnimationFrame(()=>{
-          img.style.transition='transform 0.2s ease-out';
-          img.style.transform='translateX(0)';
-          setTimeout(()=>{busy=false;},200);
-        }));
-      },200);
-    } else {
-      img.style.transition='transform 0.2s ease-out';
-      img.style.transform='translateX(0)';
-    }
-  },{passive:true});
+    if(Math.abs(dx)<50){img.style.transition='transform .2s ease-out';img.style.transform='translateX(0)';return;}
+    carBusy=true;
+    const nextIdx=(carIdx+(dx<0?1:-1)+carPhotos.length)%carPhotos.length;
+    const nextSrc=carPhotos[nextIdx];
+    const outTo=dx<0?'-110%':'110%', inFrom=dx<0?'110%':'-110%';
+    // Preload next image in parallel with slide-out so slide-in is never blank
+    const imgReady=new Promise(res=>{const p=new Image();p.onload=p.onerror=res;setTimeout(res,800);p.src=nextSrc;});
+    img.style.transition='transform .25s ease-in';
+    img.style.transform='translateX('+outTo+')';
+    Promise.all([imgReady,new Promise(res=>setTimeout(res,250))]).then(()=>{
+      carIdx=nextIdx; img.src=nextSrc;
+      document.getElementById('carousel-counter').textContent=(carIdx+1)+' / '+carPhotos.length;
+      img.style.transition='none'; img.style.transform='translateX('+inFrom+')';
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        img.style.transition='transform .25s ease-out';
+        img.style.transform='translateX(0)';
+        setTimeout(()=>{carBusy=false;preloadAdjacent();},250);
+      }));
+    });
+  },{passive:false});
 })();
 
 // Modal tabs — click scrolls to section; IntersectionObserver tracks active tab
