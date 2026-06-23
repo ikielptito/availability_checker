@@ -129,7 +129,8 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .sw-today{width:10px;height:10px;border-radius:2px;background:var(--today-bg);border:1.5px solid var(--today-ring)}
 .prop-grid{padding:20px 24px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
 @media(max-width:760px){.prop-grid{grid-template-columns:1fr;padding:14px}.topbar{padding:0 14px;gap:10px}.search-wrap{width:140px}.legend-bar{padding:9px 14px}}
-.prop-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;animation:fadeUp .3s ease both;box-shadow:var(--shadow)}
+.prop-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
+.prop-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(120,90,40,.1),0 1px 2px rgba(120,90,40,.06)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .prop-head{padding:10px 16px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .prop-name{font-family:'Inter',sans-serif;font-size:1.2rem;font-weight:700;line-height:1.25;color:var(--text);letter-spacing:-.02em}
@@ -174,6 +175,8 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .avail-bar.now{background:var(--avail);color:var(--avail-text)}
 .avail-bar.from{background:var(--today-bg);color:var(--today-ring)}
 .avail-bar.full{background:var(--booked);color:var(--booked-text)}
+.avail-bar.warn{background:#fef3cd;color:#7a6010}
+.prop-card.kb-focused{outline:2px solid var(--primary);outline-offset:2px}
 .avail-bar-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0}
 .avail-bar-window{margin-left:auto;font-weight:500;font-size:.75rem;opacity:.8}
 .avail-prose{font-size:.85rem;color:var(--text-2);line-height:1.6;padding:0 0 10px}
@@ -232,6 +235,12 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .carousel-counter{position:absolute;bottom:10px;right:12px;background:rgba(0,0,0,.5);color:#fff;font-size:.7rem;padding:3px 8px;border-radius:10px}
 .carousel-loading{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:.82rem;flex-direction:column;gap:10px}
 .carousel-spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+/* MODAL TABS */
+.modal-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;scrollbar-width:none;flex-shrink:0;position:sticky;top:0;z-index:5}
+.modal-tabs::-webkit-scrollbar{display:none}
+.modal-tab{padding:10px 16px;font-family:'Sora',sans-serif;font-size:.75rem;font-weight:600;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s}
+.modal-tab:hover{color:var(--text-2)}
+.modal-tab.active{color:var(--text);border-bottom-color:var(--primary)}
 /* MODAL SECTIONS */
 .modal-section{padding:20px 22px;border-bottom:1px solid var(--border);background:var(--surface)}
 .modal-section:last-child{border-bottom:none}
@@ -346,12 +355,18 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
         <button class="carousel-nav carousel-next" onclick="carNav(1)" style="display:none" id="carousel-next" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-lg"><polyline points="9 18 15 12 9 6"/></svg></button>
         <div class="carousel-counter" id="carousel-counter" style="display:none"></div>
       </div>
+      <div class="modal-tabs" id="modal-tabs">
+        <button class="modal-tab active" data-target="modal-availability-section">Availability</button>
+        <button class="modal-tab" data-target="modal-pricing-section">Pricing</button>
+        <button class="modal-tab" data-target="modal-overview-section">Details</button>
+        <button class="modal-tab" data-target="map-section">Location</button>
+      </div>
       <div class="modal-section" id="modal-availability-section">
         <div class="modal-section-title">Availability</div>
         <div class="avail-prose" id="modal-avail-prose"></div>
         <div class="cal-scroll"><div class="cal-months" id="modal-calendar"></div></div>
       </div>
-      <div class="modal-section">
+      <div class="modal-section" id="modal-pricing-section">
         <div class="modal-section-title">Pricing</div>
         <div id="modal-pricing"></div>
         <div style="margin-top:12px">
@@ -363,7 +378,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
           <div id="modal-yearly-inclusions"></div>
         </div>
       </div>
-      <div class="modal-section">
+      <div class="modal-section" id="modal-overview-section">
         <div class="modal-section-title">Overview</div>
         <div class="overview-text" id="modal-overview"></div>
       </div>
@@ -392,7 +407,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 </div>
 
 <script>
-let properties=[], avail={}, query='', bedroomFilter='all';
+let properties=[], avail={}, failedAvail=new Set(), query='', bedroomFilter='all';
 function getBedrooms(propId){
   const info=PROPS[propId]; if(!info) return null;
   if(typeof info.bedrooms==='number') return info.bedrooms;
@@ -705,6 +720,25 @@ function carNav(dir){carIdx=(carIdx+dir+carPhotos.length)%carPhotos.length;showC
   },{passive:true});
 })();
 
+// Modal tabs — click scrolls to section; IntersectionObserver tracks active tab
+(function(){
+  document.querySelectorAll('.modal-tab').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const el=document.getElementById(btn.dataset.target);
+      if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+  });
+  const TABS=['modal-availability-section','modal-pricing-section','modal-overview-section','map-section'];
+  const body=document.querySelector('.modal-body');
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting)
+        document.querySelectorAll('.modal-tab').forEach(t=>t.classList.toggle('active',t.dataset.target===e.target.id));
+    });
+  },{threshold:0.25,root:body});
+  TABS.forEach(id=>{const el=document.getElementById(id);if(el)obs.observe(el);});
+})();
+
 // One share helper for both card and modal (Occam's Razor). Native share
 // sheet on mobile, clipboard fallback on desktop. Peak-End Rule: always
 // give a clear, affirming confirmation on the button itself.
@@ -758,9 +792,34 @@ function copyMapsLink(e, propId) {
 
 function shareCard(propId,name){ doShare(propId, event.currentTarget); }
 
+let _kbFocusId=null;
+function _kbMove(dir){
+  const cards=[...document.querySelectorAll('.prop-card[data-id]')];
+  if(!cards.length)return;
+  if(!_kbFocusId){_kbFocusId=dir>0?cards[0].dataset.id:cards[cards.length-1].dataset.id;}
+  else{const ids=cards.map(c=>c.dataset.id);const i=ids.indexOf(_kbFocusId);_kbFocusId=ids[Math.max(0,Math.min(ids.length-1,i+dir))]||_kbFocusId;}
+  cards.forEach(c=>c.classList.toggle('kb-focused',c.dataset.id===_kbFocusId));
+  const fc=document.querySelector('.prop-card.kb-focused');
+  if(fc)fc.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
 document.addEventListener('keydown',e=>{
-  if(document.getElementById('modal').classList.contains('open')&&e.key==='Escape')closeModal({target:null});
+  const modalOpen=document.getElementById('modal').classList.contains('open');
+  if(modalOpen){if(e.key==='Escape')closeModal({target:null});return;}
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();_kbMove(1);}
+  else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();_kbMove(-1);}
+  else if((e.key==='Enter'||e.key===' ')&&_kbFocusId){e.preventDefault();openModal(_kbFocusId);}
 });
+
+// Swipe-down to dismiss modal on mobile (#18)
+(function(){
+  const box=document.getElementById('modal-box');
+  let _sy=0;
+  box.addEventListener('touchstart',e=>{if(e.touches.length===1)_sy=e.touches[0].clientY;},{passive:true});
+  box.addEventListener('touchend',e=>{
+    if(!document.getElementById('modal').classList.contains('open'))return;
+    if(e.changedTouches[0].clientY-_sy>90)closeModal({target:null});
+  },{passive:true});
+})();
 
 
 // ── ANALYTICS ──
@@ -933,6 +992,7 @@ function rangesToSet(ranges) {
 }
 
 async function loadAll() {
+  failedAvail.clear();
   await Promise.all(properties.map(async p=>{
     const info=PROPS[p.id]||{};
     // Card photo precedence: admin-picked cover → existing (Hostex cover) →
@@ -959,7 +1019,7 @@ async function loadAll() {
       avail[p.id]=booked;
       return;
     }
-    try{avail[p.id]=await fetchAvail(p.id);}catch{avail[p.id]=new Set();}
+    try{avail[p.id]=await fetchAvail(p.id);}catch{avail[p.id]=new Set();failedAvail.add(p.id);}
   }));
 }
 
@@ -993,7 +1053,9 @@ function render() {
       ?'<img class="prop-hero-img" src="'+p.photo+'" alt="'+esc(p.name)+'" loading="lazy" style="object-position:'+heroPos+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><div class="prop-hero-ph" style="display:none">'+icon('home','lg')+'</div>'
       :'<div class="prop-hero-ph">'+icon('home','lg')+'</div>';
     let availBar;
-    if(!av){
+    if(failedAvail.has(p.id)){
+      availBar='<div class="avail-bar warn"><span class="avail-bar-dot"></span><span>Calendar unavailable</span><span class="avail-bar-window">try refresh</span></div>';
+    } else if(!av){
       availBar='<div class="avail-bar full"><span class="avail-bar-dot"></span><span>Fully booked</span><span class="avail-bar-window">check back soon</span></div>';
     } else if(av.cls==='avail-now'){
       availBar='<div class="avail-bar now"><span class="avail-bar-dot"></span><span>Available now</span><span class="avail-bar-window">'+av.window+' days</span></div>';
@@ -1007,8 +1069,8 @@ function render() {
         +(info.yearly?'<span class="prop-price-yr">'+fmtPrice(info.yearly)+' / yr</span>':'')
         +'</div>';
     }
-    return _cxHdr+'<div class="prop-card">'
-      +'<div class="prop-hero" title="View details &amp; photos" onclick="openModal(\''+p.id+'\')">'+heroInner+'</div>'
+    return _cxHdr+'<div class="prop-card" data-id="'+p.id+'" onclick="openModal(\''+p.id+'\')">'
+      +'<div class="prop-hero" title="View photos &amp; details">'+heroInner+'</div>'
       +availBar
       +priceRow
       +'<div class="prop-head">'
@@ -1017,8 +1079,8 @@ function render() {
         :(p.type?'<div class="prop-type">'+esc(p.type)+'</div>':''))
       +'</div></div>'
       +'<div class="card-actions">'
-      +'<button class="btn-share" onclick="shareCard(\''+p.id+'\',\''+esc(p.name)+'\')">'+icon('share','sm')+'<span class="btn-label">Share</span></button>'
-      +(info?'<button class="btn-ghost" onclick="openModal(\''+p.id+'\')">'+icon('info','sm')+'<span class="btn-label">Details</span></button>':'')
+      +'<button class="btn-share" onclick="event.stopPropagation();shareCard(\''+p.id+'\',\''+esc(p.name)+'\')">'+icon('share','sm')+'<span class="btn-label">Share</span></button>'
+      +(info?'<button class="btn-ghost" onclick="event.stopPropagation();openModal(\''+p.id+'\')">'+icon('info','sm')+'<span class="btn-label">Details</span></button>':'')
       +'</div>'
       +'</div>';
   }).join('');
