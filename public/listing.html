@@ -39,7 +39,7 @@
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--border);
     padding: 0 32px;
-    height: 56px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -125,7 +125,6 @@
     align-items: center;
     padding: 8px 16px;
     border-radius: 20px;
-    letter-spacing: 0.06em;
     cursor: pointer;
     transition: background 0.2s;
     -webkit-tap-highlight-color: rgba(255,255,255,0.15);
@@ -433,14 +432,14 @@
 
 <!-- ERROR -->
 <div class="state-screen" id="error" style="display:none">
-  <div style="font-size:2rem">⚠️</div>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:40px;height:40px;color:var(--muted)"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
   <span id="error-msg">Listing not found.</span>
 </div>
 
 <!-- LISTING -->
 <div id="listing" style="display:none">
   <div class="hero" id="hero">
-    <div class="hero-placeholder" id="hero-placeholder">🏠</div>
+    <div class="hero-placeholder" id="hero-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px;opacity:.3"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
     <img class="hero-img" id="hero-img" src="" alt="" style="display:none" onclick="openLb(0)" />
     <div class="hero-overlay"></div>
     <div class="hero-label" id="photo-count" onclick="openLb(0)" style="display:none"></div>
@@ -717,7 +716,7 @@ async function loadPhotos(folderId) {
     heroImg.style.display = 'block';
     const countLabel = document.getElementById('photo-count');
     countLabel.style.display = 'block';
-    countLabel.textContent = d.photos.length + ' photos';
+    countLabel.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> ' + d.photos.length + ' photos';
 
     // Gallery grid
     const grid = document.getElementById('gallery-grid');
