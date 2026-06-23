@@ -100,10 +100,12 @@ async function serve(req, res) {
   return res.status(200).send(html);
 }
 
+function fmtP(p) { return p ? p.replace(/(\d+)jt/i, 'IDR $1M') : ''; }
+
 function composeDescription(l) {
   const bits = [l.unitType, l.tag].filter(Boolean).join(' · ');
   const price = l.monthly
-    ? `${l.monthly}/mo` + (l.yearly ? ` · ${l.yearly}/yr` : '')
+    ? fmtP(l.monthly) + '/mo' + (l.yearly ? ` · ${fmtP(l.yearly)}/yr` : '')
     : null;
   const intro = l.overview ? l.overview.replace(/\s+/g, ' ').slice(0, 90).trim() + (l.overview.length > 90 ? '…' : '') : null;
   return [bits, price, intro].filter(Boolean).join(' · ');

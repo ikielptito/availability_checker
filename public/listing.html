@@ -287,6 +287,14 @@
 
   .inclusion-row::before { content: '✓ '; color: var(--green); }
 
+  /* Availability banner — shown to client after calendar fetch */
+  .listing-avail{display:flex;align-items:center;gap:10px;padding:13px 20px;border-radius:12px;font-family:'Sora',sans-serif;font-size:.85rem;font-weight:600;margin-bottom:24px}
+  .listing-avail.now{background:#dfe9dd;color:#2a6a3a}
+  .listing-avail.from{background:#f5e6e1;color:#c8402a}
+  .listing-avail.full{background:#f2ddd6;color:#a8331f}
+  .listing-avail-dot{width:9px;height:9px;border-radius:50%;background:currentColor;flex-shrink:0}
+  .listing-avail-window{margin-left:auto;font-size:.75rem;font-weight:500;opacity:.8}
+
   /* .wa-block / .wa-cta / .wa-note removed — listing pages are anonymous */
 
   /* MAP */
@@ -467,6 +475,12 @@
           <div id="yearly-inclusions-list"></div>
         </div>
       </div>
+    </div>
+
+    <div class="listing-avail" id="listing-avail" style="display:none">
+      <span class="listing-avail-dot"></span>
+      <span id="listing-avail-text"></span>
+      <span class="listing-avail-window" id="listing-avail-window"></span>
     </div>
 
     <div class="details-grid" id="details-grid"></div>
@@ -653,6 +667,58 @@ async function boot() {
       '<div class="inclusion-row">' + esc(i) + '</div>'
     ).join('');
   }
+
+  // Availability banner — fetch calendar and show to client
+  (async () => {
+    try {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      const booked = new Set();
+      if (listing.custom) {
+        const r = await fetch('/api/ical?slug=' + encodeURIComponent(listing.slug));
+        if (r.ok) { const d = await r.json(); (d.booked || []).forEach(s => booked.add(s)); }
+      } else if (listing.hostexId) {
+        const endD = new Date(today.getFullYear(), today.getMonth() + 6, 0);
+        const r = await fetch('/api/calendar?id=' + listing.hostexId + '&start_date=' + todayStr + '&end_date=' + endD.toISOString().split('T')[0]);
+        if (r.ok) {
+          const d = await r.json();
+          (d.data?.items || d.data || d.items || []).forEach(day => {
+            if (day.status === 'booked' || day.available === false || day.blocked === true) booked.add(day.date || day.day);
+          });
+        }
+      }
+      let firstFree = null, firstIdx = 0;
+      for (let i = 0; i < 180; i++) {
+        const d = new Date(today); d.setDate(d.getDate() + i);
+        if (!booked.has(d.toISOString().split('T')[0])) { firstFree = d; firstIdx = i; break; }
+      }
+      const el = document.getElementById('listing-avail');
+      const txtEl = document.getElementById('listing-avail-text');
+      const winEl = document.getElementById('listing-avail-window');
+      if (!firstFree) {
+        el.className = 'listing-avail full';
+        txtEl.textContent = 'Fully booked';
+        winEl.textContent = 'check back soon';
+      } else {
+        let win = 0;
+        for (let i = firstIdx; i < 180; i++) {
+          const d = new Date(today); d.setDate(d.getDate() + i);
+          if (booked.has(d.toISOString().split('T')[0])) break; win++;
+        }
+        const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const winStr = (win >= 180 ? '180+' : win) + ' days';
+        if (firstIdx === 0) {
+          el.className = 'listing-avail now';
+          txtEl.textContent = 'Available now';
+        } else {
+          el.className = 'listing-avail from';
+          txtEl.textContent = 'Available from ' + MN[firstFree.getMonth()] + ' ' + firstFree.getDate();
+        }
+        winEl.textContent = winStr;
+      }
+      el.style.display = 'flex';
+    } catch {}
+  })();
 
   // Map (embed + Open-in-Maps shortcut + Copy-pin button)
   if (listing.mapEmbed) {
