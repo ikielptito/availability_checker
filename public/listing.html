@@ -202,12 +202,11 @@
   }
 
   .detail-section-title {
-    font-size: 0.66rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
     color: var(--muted);
-    font-weight: 500;
-    margin-bottom: 12px;
+    font-weight: 600;
+    margin-bottom: 10px;
   }
 
   .detail-row {
@@ -239,9 +238,12 @@
   }
 
   .pricing-left h3 {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.1rem;
-    margin-bottom: 12px;
+    font-family: 'Sora', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin-bottom: 14px;
   }
 
   .price-row {
@@ -252,10 +254,11 @@
   }
 
   .price-amount {
-    font-size: 1.5rem;
-    font-weight: 500;
+    font-size: 1.6rem;
+    font-weight: 700;
     color: var(--text);
-    font-family: 'Playfair Display', serif;
+    font-family: 'Sora', sans-serif;
+    letter-spacing: -0.02em;
   }
 
   .price-period {
@@ -270,10 +273,10 @@
   }
 
   .inclusions-title {
-    font-size: 0.66rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
     color: var(--muted);
+    font-weight: 600;
     margin-bottom: 8px;
   }
 
@@ -444,20 +447,10 @@
     <div class="property-tag" id="prop-tag"></div>
     <h1 class="property-title" id="prop-title"></h1>
     <a class="property-location" id="prop-location" target="_blank">
-      📍 <span id="prop-location-text"></span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span id="prop-location-text"></span>
     </a>
     <p class="overview" id="prop-overview"></p>
-
-    <div class="details-grid" id="details-grid"></div>
-
-    <section class="map-section" id="map-section" style="display:none">
-      <h2 class="map-title">Location</h2>
-      <div class="map-wrap">
-        <iframe class="map-iframe" id="map-iframe" src="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-        <button class="map-copy" id="map-copy" type="button" onclick="copyMapPin()">⧉ Copy pin</button>
-        <a class="map-open" id="map-open" href="#" target="_blank" rel="noopener">📍 Open in Maps</a>
-      </div>
-    </section>
 
     <div class="pricing-block">
       <div class="pricing-left">
@@ -473,6 +466,17 @@
         </div>
       </div>
     </div>
+
+    <div class="details-grid" id="details-grid"></div>
+
+    <section class="map-section" id="map-section" style="display:none">
+      <h2 class="map-title">Location</h2>
+      <div class="map-wrap">
+        <iframe class="map-iframe" id="map-iframe" src="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <button class="map-copy" id="map-copy" type="button" onclick="copyMapPin()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy pin</button>
+        <a class="map-open" id="map-open" href="#" target="_blank" rel="noopener"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Open in Maps</a>
+      </div>
+    </section>
 
     <div class="gallery-section">
       <h2 class="gallery-title">Photos</h2>
@@ -578,6 +582,7 @@ function getSlug() {
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+function fmtPrice(p) { return p ? p.replace(/(\d+)jt/i, 'IDR $1M') : ''; }
 
 async function boot() {
   const slug = getSlug();
@@ -630,9 +635,9 @@ async function boot() {
   // Pricing
   const priceRows = document.getElementById('price-rows');
   let priceHtml = '';
-  if (listing.monthly) priceHtml += '<div class="price-row"><span class="price-amount">' + esc(listing.monthly) + '</span><span class="price-period">/ month</span></div>';
-  if (listing.yearly) priceHtml += '<div class="price-row"><span class="price-amount">' + esc(listing.yearly) + '</span><span class="price-period">/ year</span></div>';
-  if (listing.yearly2) priceHtml += '<div class="price-row"><span class="price-amount">' + esc(listing.yearly2) + '</span><span class="price-period">/ 2 years</span></div>';
+  if (listing.monthly) priceHtml += '<div class="price-row"><span class="price-amount">' + fmtPrice(listing.monthly) + '</span><span class="price-period">/ month</span></div>';
+  if (listing.yearly) priceHtml += '<div class="price-row"><span class="price-amount">' + fmtPrice(listing.yearly) + '</span><span class="price-period">/ year</span></div>';
+  if (listing.yearly2) priceHtml += '<div class="price-row"><span class="price-amount">' + fmtPrice(listing.yearly2) + '</span><span class="price-period">/ 2 years</span></div>';
   priceRows.innerHTML = priceHtml;
 
   // Inclusions
@@ -709,7 +714,7 @@ async function loadPhotos(folderId) {
     heroImg.style.display = 'block';
     const countLabel = document.getElementById('photo-count');
     countLabel.style.display = 'block';
-    countLabel.textContent = '📷 ' + d.photos.length + ' photos';
+    countLabel.textContent = d.photos.length + ' photos';
 
     // Gallery grid
     const grid = document.getElementById('gallery-grid');

@@ -133,7 +133,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .prop-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(120,90,40,.1),0 1px 2px rgba(120,90,40,.06)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .prop-head{padding:10px 16px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.prop-name{font-family:'Inter',sans-serif;font-size:1.2rem;font-weight:700;line-height:1.25;color:var(--text);letter-spacing:-.02em}
+.prop-name{font-family:'Inter',sans-serif;font-size:1.05rem;font-weight:700;line-height:1.3;color:var(--text);letter-spacing:-.015em}
 .prop-type{font-size:.7rem;font-weight:600;color:var(--muted);letter-spacing:.09em;text-transform:uppercase;margin-top:4px}
 .prop-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;align-items:center}
 .chip{font-size:.72rem;font-weight:500;padding:3px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--text-2);white-space:nowrap}
@@ -144,7 +144,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .prop-photo{width:64px;height:64px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);cursor:pointer;transition:opacity .2s}
 .prop-photo:hover{opacity:.85}
 .prop-photo-placeholder{width:64px;height:64px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem}
-.prop-hero{position:relative;width:100%;aspect-ratio:3/2;background:var(--surface2);cursor:pointer;overflow:hidden;border-bottom:1px solid var(--border)}
+.prop-hero{position:relative;width:100%;aspect-ratio:3/2;background:var(--surface2);overflow:hidden}
 .prop-hero-img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
 .prop-hero:hover .prop-hero-img{transform:scale(1.03)}
 .prop-hero-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;color:var(--subtle)}
@@ -244,7 +244,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 /* MODAL SECTIONS */
 .modal-section{padding:20px 22px;border-bottom:1px solid var(--border);background:var(--surface)}
 .modal-section:last-child{border-bottom:none}
-.modal-section-title{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-2);font-weight:700;margin-bottom:12px}
+.modal-section-title{font-size:.72rem;letter-spacing:.04em;color:var(--muted);font-weight:600;margin-bottom:10px}
 .overview-text{font-size:.95rem;line-height:1.7;color:var(--text)}
 .detail-cols{display:flex;gap:24px;flex-wrap:wrap}
 .detail-col{flex:1;min-width:160px}
@@ -567,9 +567,9 @@ function openModal(propId) {
     _avL.cls==='avail-now'?'Available now · '+_avL.window+' days open':
     'Available from '+_avL.from+' · '+_avL.window+' days open';
   let ph='';
-  if(info.monthly) ph+='<div class="price-row"><span class="price-amount">'+esc(info.monthly)+'</span><span class="price-period">/ month</span></div>';
-  if(info.yearly) ph+='<div class="price-row"><span class="price-amount">'+esc(info.yearly)+'</span><span class="price-period">/ year</span></div>';
-  if(info.yearly2) ph+='<div class="price-row"><span class="price-amount">'+esc(info.yearly2)+'</span><span class="price-period">/ 2 years</span></div>';
+  if(info.monthly) ph+='<div class="price-row"><span class="price-amount">'+fmtPrice(info.monthly)+'</span><span class="price-period">/ month</span></div>';
+  if(info.yearly) ph+='<div class="price-row"><span class="price-amount">'+fmtPrice(info.yearly)+'</span><span class="price-period">/ year</span></div>';
+  if(info.yearly2) ph+='<div class="price-row"><span class="price-amount">'+fmtPrice(info.yearly2)+'</span><span class="price-period">/ 2 years</span></div>';
   document.getElementById('modal-pricing').innerHTML=ph;
   document.getElementById('modal-inclusions').innerHTML=(info.inclusions||[]).map(i=>'<div class="inclusion-row">'+esc(i)+'</div>').join('');
   const yInc=info.yearlyInclusions||[];
