@@ -60,24 +60,6 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .brand-mark-sub{font-family:'Sora',sans-serif;font-weight:500;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:#b89968;margin-top:3px;white-space:nowrap}
 @media(max-width:600px){.brand-mark-name{font-size:1rem;letter-spacing:.03em}.brand-mark-sub{font-size:.56rem;margin-top:2px}}
 
-/* Welcome banner — shown once on first visit, dismissible */
-.welcome-banner{
-  position:relative;margin:14px 28px 0;padding:14px 18px 14px 22px;
-  background:linear-gradient(135deg,#faf8f4 0%,#f3efe6 100%);
-  border:1px solid #e5dcc8;border-left:3px solid #b89968;border-radius:12px;
-  display:flex;align-items:center;gap:14px;font-family:'Sora',sans-serif;
-  color:var(--text-2);font-size:.88rem;line-height:1.5;
-  animation:welcome-slide-in .35s ease-out;
-}
-.welcome-banner strong{color:var(--text);font-weight:600}
-.welcome-banner-close{
-  position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;
-  font-size:1.2rem;color:var(--subtle);padding:4px 8px;line-height:1;border-radius:6px;
-}
-.welcome-banner-close:hover{background:rgba(0,0,0,.04);color:var(--text-2)}
-@keyframes welcome-slide-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-@media(max-width:600px){.welcome-banner{margin:12px 16px 0;padding:12px 36px 12px 16px;font-size:.82rem}}
-
 /* Install-to-home-screen prompt */
 .install-prompt{
   position:fixed;left:16px;right:16px;bottom:16px;z-index:300;
@@ -115,7 +97,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .refresh-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text-2);padding:7px 14px;font-family:'Sora',sans-serif;font-size:.8rem;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .refresh-btn:hover{color:var(--text);border-color:var(--subtle);background:var(--surface2)}.refresh-btn svg{width:12px;height:12px}
 .filter-bar{padding:14px 28px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--surface);flex-wrap:wrap}
-.filter-label{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-2)}
+.filter-label{font-size:.72rem;font-weight:600;letter-spacing:.03em;color:var(--muted)}
 .filter-chips{display:flex;gap:6px;flex-wrap:wrap}
 .filter-chip{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-2);font-family:'Sora',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
 .filter-chip:hover{border-color:var(--primary);color:var(--primary)}
@@ -268,8 +250,8 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .map-open-btn:hover{background:var(--surface2)}
 .map-copy-btn{position:absolute;top:10px;left:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'Sora',sans-serif;font-size:.78rem;font-weight:500;padding:7px 13px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .2s;box-shadow:var(--shadow)}
 .map-copy-btn:hover{background:var(--surface2)}
-.loc-tag{display:inline-flex;align-items:center;gap:6px;margin-top:6px;min-height:34px;padding:7px 12px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:.74rem;font-weight:500;color:var(--text-2);cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:rgba(200,64,42,.12)}
-.loc-tag:hover,.loc-tag:active{border-color:var(--primary);color:var(--primary);background:var(--primary-soft)}
+.loc-tag{display:inline-flex;align-items:center;gap:5px;margin-top:4px;padding:4px 0;font-size:.75rem;font-weight:400;color:var(--muted);cursor:pointer;transition:color .15s;-webkit-tap-highlight-color:rgba(194,106,74,.1)}
+.loc-tag:hover,.loc-tag:active{color:var(--primary)}
 .loc-tag .icon{width:13px;height:13px;opacity:.7;flex-shrink:0}
 .loc-tag .copy-ic{width:13px;height:13px;opacity:.75;margin-left:1px;flex-shrink:0}
 .loc-tag:hover .copy-ic,.loc-tag:active .copy-ic{opacity:1}
@@ -311,14 +293,6 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       Refresh
     </button>
-  </div>
-  <!-- Welcome banner — shown once per agent on first visit -->
-  <div class="welcome-banner" id="welcome-banner" style="display:none">
-    <div>
-      <strong>Welcome to the Samba Rentals Agent Portal.</strong>
-      Photos, real-time availability, pricing, share links, and visit scheduling — all in one place.
-    </div>
-    <button class="welcome-banner-close" onclick="dismissWelcome()" title="Dismiss">×</button>
   </div>
   <div class="filter-bar" id="filter-bar" style="display:none">
     <span class="filter-label">Bedrooms</span>
@@ -896,23 +870,10 @@ async function boot() {
     }
   }
 
-  // Welcome banner — first visit only. Stored in localStorage so we never
-  // nag an agent twice. New-device sessions get it again, which is fine.
-  if (!localStorage.getItem('samba_welcomed')) {
-    const banner = document.getElementById('welcome-banner');
-    if (banner) banner.style.display = '';
-  }
-
   // Install-to-home-screen prompt. Shows ~5s after data loads, gives the
   // agent time to see real listings first so the value is obvious.
   setTimeout(maybeShowInstallPrompt, 5000);
 }
-
-window.dismissWelcome = function() {
-  localStorage.setItem('samba_welcomed', '1');
-  const b = document.getElementById('welcome-banner');
-  if (b) b.style.display = 'none';
-};
 
 // ── Install-to-home-screen flow ─────────────────────────────────────
 // Two paths: Android/Chrome fires beforeinstallprompt (native install),
@@ -1024,8 +985,16 @@ async function loadAll() {
 }
 
 function showSkeletons() {
-  const sk=()=>'<div class="skel-mo"><div class="skel-bar skel-lbl"></div><div class="skel-grid">'+Array(35).fill('<div class="skel-cell"></div>').join('')+'</div></div>';
-  document.getElementById('grid').innerHTML=properties.map(()=>'<div class="skel-card"><div class="skel-head"><div style="flex:1"><div class="skel-bar" style="height:13px;width:50%;margin-bottom:6px"></div><div class="skel-bar" style="height:8px;width:28%"></div></div></div><div class="skel-body">'+Array(6).fill(0).map(sk).join('')+'</div></div>').join('');
+  document.getElementById('grid').innerHTML=properties.map(()=>(
+    '<div class="skel-card">'
+    +'<div class="skel-bar" style="width:100%;height:200px;border-radius:0"></div>'
+    +'<div style="padding:10px 16px 4px"><div class="skel-bar" style="height:34px;border-radius:6px"></div></div>'
+    +'<div style="padding:8px 16px 4px"><div class="skel-bar" style="height:18px;width:50%;border-radius:4px"></div></div>'
+    +'<div style="padding:5px 16px 0"><div class="skel-bar" style="height:12px;width:72%;border-radius:4px"></div></div>'
+    +'<div style="padding:4px 16px 0"><div class="skel-bar" style="height:10px;width:38%;border-radius:4px"></div></div>'
+    +'<div style="padding:10px 14px 14px;display:flex;gap:8px"><div class="skel-bar" style="flex:1.5;height:36px;border-radius:8px"></div><div class="skel-bar" style="flex:1;height:36px;border-radius:8px"></div></div>'
+    +'</div>'
+  )).join('');
 }
 
 function render() {
@@ -1040,6 +1009,9 @@ function render() {
     if(bedroomFilter!=='all'){const b=getBedrooms(p.id); if(b!==+bedroomFilter) return false;}
     return true;
   });
+  document.getElementById('prop-count').textContent=
+    filtered.length===properties.length?properties.length+(properties.length===1?' property':' properties'):
+    filtered.length+' of '+properties.length;
   if(!filtered.length){grid.innerHTML='<div class="empty-state">No properties match "'+esc(query)+'"</div>';return;}
   let _cxPrev='';
   grid.innerHTML=filtered.map((p,i)=>{
