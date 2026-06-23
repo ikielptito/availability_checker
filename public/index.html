@@ -87,7 +87,8 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 @media(min-width:600px){.install-prompt{left:auto;right:24px;bottom:24px;max-width:380px}}
 .topbar-count{font-size:.72rem;font-weight:500;color:var(--text-2);padding:4px 11px;background:var(--surface);border-radius:20px;border:1px solid var(--border);white-space:nowrap}
 .spacer{flex:1}
-.search-wrap{position:relative;width:220px}
+.search-wrap{position:relative;width:220px;transition:width .25s ease}
+@media(min-width:761px){.search-wrap:focus-within{width:300px}}
 .search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);width:14px;height:14px;pointer-events:none}
 .search-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px 8px 32px;font-family:'Sora',sans-serif;font-size:.85rem;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
 .search-input::placeholder{color:var(--subtle)}.search-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(200,64,42,.15)}
@@ -103,14 +104,8 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .filter-chip:hover{border-color:var(--primary);color:var(--primary)}
 .filter-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
 @media(max-width:520px){.filter-bar{padding:12px 14px}}
-.legend-bar{padding:11px 28px;display:flex;align-items:center;gap:22px;border-bottom:1px solid var(--border);background:var(--surface)}
-.legend-item{display:flex;align-items:center;gap:7px;font-size:.72rem;font-weight:600;color:var(--text-2);letter-spacing:.08em;text-transform:uppercase}
-.swatch{width:24px;height:10px;border-radius:3px}
-.sw-avail{background:var(--avail);border:1px solid var(--avail-border)}
-.sw-booked{background:var(--booked);border:1px solid var(--booked-border)}
-.sw-today{width:10px;height:10px;border-radius:2px;background:var(--today-bg);border:1.5px solid var(--today-ring)}
 .prop-grid{padding:20px 24px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
-@media(max-width:760px){.prop-grid{grid-template-columns:1fr;padding:14px}.topbar{padding:0 14px;gap:10px}.search-wrap{width:140px}.legend-bar{padding:9px 14px}}
+@media(max-width:760px){.prop-grid{grid-template-columns:1fr;padding:14px}.topbar{padding:0 14px;gap:10px}.search-wrap{width:140px}}
 .prop-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
 .prop-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(120,90,40,.1),0 1px 2px rgba(120,90,40,.06)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -130,7 +125,6 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .prop-hero-img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
 .prop-hero:hover .prop-hero-img{transform:scale(1.03)}
 .prop-hero-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;color:var(--subtle)}
-.prop-hero-pill{position:absolute;top:12px;right:12px;z-index:2;backdrop-filter:blur(6px);box-shadow:0 1px 4px rgba(0,0,0,.18)}
 .cal-scroll{overflow-x:auto;padding:16px 20px 18px;scrollbar-width:thin;scrollbar-color:var(--subtle) transparent}
 .cal-scroll::-webkit-scrollbar{height:4px}.cal-scroll::-webkit-scrollbar-thumb{background:var(--subtle);border-radius:4px}
 .cal-months{display:flex;gap:18px;min-width:max-content}
@@ -143,15 +137,6 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .day.booked{background:var(--booked);color:var(--booked-text);font-weight:600}
 .day.past{opacity:.3}.day.empty{background:transparent}
 .day.today{outline:2px solid var(--today-ring);outline-offset:-1px;font-weight:700;color:var(--today-ring);background:var(--today-bg)}
-/* Compact availability summary — replaces the per-card 6-month grid.
-   Mental Model: lead with "is it available?" One glanceable line. */
-.cal-summary{display:flex;align-items:center;gap:9px;padding:13px 20px;border-top:1px solid var(--border)}
-.cal-summary-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-.cal-summary.now .cal-summary-dot{background:var(--avail-text)}
-.cal-summary.from .cal-summary-dot{background:var(--primary)}
-.cal-summary.full .cal-summary-dot{background:var(--booked-text)}
-.cal-summary-main{font-size:.86rem;font-weight:600;color:var(--text)}
-.cal-summary-sub{font-size:.78rem;color:var(--muted);margin-left:auto;white-space:nowrap}
 /* Availability bar — rank-1 signal, full-width, high-contrast */
 .avail-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;font-size:.82rem;font-weight:600;line-height:1}
 .avail-bar.now{background:var(--avail);color:var(--avail-text)}
@@ -175,22 +160,10 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .btn-ghost:hover{background:var(--surface2);border-color:var(--subtle);color:var(--text)}
 .btn-share .btn-label,.btn-ghost .btn-label{overflow:hidden;text-overflow:ellipsis}
 .btn-share.shared-ok,.modal-action-primary.shared-ok{background:var(--avail-text);border-color:var(--avail-text)}
-/* Enquire — bordered sage button. Clear ≥44px tap target so agents can
-   actually find it on mobile, but visually subordinate to the solid clay
-   "Share" button above so Von Restorff on the share primary still holds. */
-.enquire-row{padding:0 14px 14px;background:var(--surface)}
-.enquire-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:44px;padding:11px 14px;background:var(--surface);border:1.5px solid var(--avail-border);border-radius:10px;color:var(--avail-text);font-family:'Sora',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all .2s;-webkit-tap-highlight-color:rgba(42,106,58,.12)}
-.enquire-btn:hover,.enquire-btn:active{background:var(--avail);border-color:var(--avail-text)}
-.enquire-btn .icon{width:16px;height:16px;flex-shrink:0}
-@media(max-width:520px){.card-actions{gap:8px;padding:0 12px 12px}.btn-share{font-size:.82rem;padding:13px 8px}.btn-ghost{font-size:.78rem;padding:13px 8px}.cal-summary{padding:12px 16px}.prop-price{padding:0 16px 12px}}
+@media(max-width:520px){.card-actions{gap:8px;padding:0 12px 12px}.btn-share{font-size:.82rem;padding:13px 8px}.btn-ghost{font-size:.78rem;padding:13px 8px}.prop-price{padding:0 16px 12px}}
 .skel-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
-.skel-head{padding:14px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
 .skel-bar{border-radius:4px;background:var(--surface2);animation:shimmer 1.4s ease-in-out infinite}
 @keyframes shimmer{0%,100%{opacity:.6}50%{opacity:1}}
-.skel-body{padding:16px 20px 18px;display:flex;gap:18px}
-.skel-mo{width:165px;flex-shrink:0}.skel-lbl{height:9px;width:60px;margin:0 auto 7px}
-.skel-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1.5px}
-.skel-cell{aspect-ratio:1;border-radius:3px;background:var(--surface2);animation:shimmer 1.4s ease-in-out infinite}
 .empty-state{grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--text-2);font-size:.95rem;font-weight:500}
 .complex-header{grid-column:1/-1;font-family:'Inter',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:16px 4px 4px}
 .complex-header:first-child{padding-top:0}
@@ -1012,7 +985,11 @@ function render() {
   document.getElementById('prop-count').textContent=
     filtered.length===properties.length?properties.length+(properties.length===1?' property':' properties'):
     filtered.length+' of '+properties.length;
-  if(!filtered.length){grid.innerHTML='<div class="empty-state">No properties match "'+esc(query)+'"</div>';return;}
+  if(!filtered.length){
+    const _msg=query?'No properties match <strong>'+esc(query)+'</strong>':'No properties in this filter';
+    grid.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:36px;height:36px;color:var(--subtle);margin-bottom:10px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p style="margin:0 0 16px;font-size:.9rem">'+_msg+'</p><button class="btn-ghost" style="display:inline-flex;margin:0 auto" onclick="clearSearch()">Clear filters</button></div>';
+    return;
+  }
   let _cxPrev='';
   grid.innerHTML=filtered.map((p,i)=>{
     const _cxCur=complexOf(p.name);
@@ -1119,6 +1096,7 @@ function setLastUpdated(){
 }
 
 function doFilter(){query=document.getElementById('search').value;render();}
+function clearSearch(){const s=document.getElementById('search');s.value='';query='';bedroomFilter='all';history.replaceState(null,'',location.pathname);renderBedroomFilter();render();}
 async function doRefresh(){
   track('refresh');
   const btn=document.querySelector('.refresh-btn');btn.style.opacity='.5';
