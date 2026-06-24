@@ -17,6 +17,8 @@ const HORIZON_DAYS = 180;
 const LONG_WINDOW_DAYS = 30;
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const PORTAL_BASE = 'https://sambarentals.vercel.app';
+const DEFAULT_WA_CONTACT = 'Era';
+const DEFAULT_WA_NUMBER = '6281246357778';
 
 // Default catalog (Hostex IDs → slug/name/tag/pricing) — kept in sync with
 // api/listings.js DEFAULTS. We inline the names so the digest is self-contained
@@ -130,8 +132,8 @@ export default async function handler(req, res) {
         yearly: merged.yearly || null,
         yearly2: merged.yearly2 || null,
         portalUrl: `${PORTAL_BASE}/l/${merged.slug}`,
-        waContactName: merged.waContactName || null,
-        waNumber: merged.waNumber || null,
+        waContactName: merged.waContactName || DEFAULT_WA_CONTACT,
+        waNumber: merged.waNumber || DEFAULT_WA_NUMBER,
         isCustom: false,
         isHidden: false,
         availability,
@@ -164,8 +166,8 @@ export default async function handler(req, res) {
       yearly: c.yearly || null,
       yearly2: c.yearly2 || null,
       portalUrl: `${PORTAL_BASE}/l/${c.slug}`,
-      waContactName: c.waContactName || null,
-      waNumber: c.waNumber || null,
+      waContactName: c.waContactName || DEFAULT_WA_CONTACT,
+      waNumber: c.waNumber || DEFAULT_WA_NUMBER,
       isCustom: true,
       isHidden: false,
       availability,
