@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>List Your Property — Samba Rentals</title>
+<meta name="description" content="Submit your villa or apartment for listing on the Samba Rentals agent portal.">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#faf8f4">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600&family=Sora:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#faf8f4;--surface:#ffffff;--surface2:#f3efe6;--border:#e8e2d8;--text:#1a1814;--text-2:#3d3a32;--muted:#8a8478;--subtle:#b5ac9a;--primary:#c26a4a;--primary-2:#a55638;--primary-soft:#f5ebe6;--accent:#b89968;--shadow:0 4px 12px rgba(120,90,40,.07),0 1px 2px rgba(120,90,40,.05);--avail:#dfe9dd;--avail-text:#2a6a3a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14.5px;-webkit-font-smoothing:antialiased}
+
+.topbar{position:sticky;top:0;z-index:100;background:rgba(250,248,244,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:0 24px;height:48px;display:flex;align-items:center;gap:14px}
+.brand-mark{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;line-height:1;flex-shrink:0;text-decoration:none}
+.brand-mark-name{font-family:'Playfair Display',serif;font-weight:600;font-size:1.15rem;letter-spacing:.04em;color:#1a1814;white-space:nowrap}
+.brand-mark-sub{font-family:'Sora',sans-serif;font-weight:500;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:#b89968;margin-top:3px;white-space:nowrap}
+
+.page{max-width:680px;margin:0 auto;padding:32px 20px 80px}
+
+.page-header{margin-bottom:32px}
+.page-title{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:600;letter-spacing:.02em;margin-bottom:8px}
+.page-subtitle{color:var(--muted);font-size:.88rem;line-height:1.6}
+
+.section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow)}
+.section-title{font-family:'Inter',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:-.01em;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.section-number{background:var(--primary);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:600;flex-shrink:0}
+
+.field{margin-bottom:16px}
+.field:last-child{margin-bottom:0}
+.field-label{display:block;font-size:.78rem;font-weight:500;color:var(--text-2);margin-bottom:5px;letter-spacing:.01em}
+.field-label .req{color:var(--primary);margin-left:2px}
+.field-hint{font-size:.72rem;color:var(--muted);margin-top:3px;line-height:1.4}
+
+input[type="text"],input[type="email"],input[type="url"],input[type="tel"],input[type="number"],select,textarea{
+  width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;
+  font-family:'Sora',sans-serif;font-size:.85rem;color:var(--text);background:var(--bg);
+  transition:border-color .15s,box-shadow .15s;outline:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(184,153,104,.12)}
+textarea{resize:vertical;min-height:80px}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a8478' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:500px){.row,.row-3{grid-template-columns:1fr}}
+
+.checklist{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px}
+@media(max-width:500px){.checklist{grid-template-columns:1fr}}
+.checklist label{display:flex;align-items:center;gap:7px;font-size:.82rem;cursor:pointer;padding:4px 0}
+.checklist input[type="checkbox"]{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;flex-shrink:0}
+
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+
+.submit-btn{
+  display:block;width:100%;padding:14px;border:none;border-radius:10px;
+  background:var(--primary);color:#fff;font-family:'Sora',sans-serif;font-size:.92rem;
+  font-weight:500;cursor:pointer;transition:background .15s;letter-spacing:.01em;
+}
+.submit-btn:hover{background:var(--primary-2)}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed}
+
+.success-msg{display:none;text-align:center;padding:40px 20px}
+.success-msg.show{display:block}
+.success-icon{font-size:2.5rem;margin-bottom:12px}
+.success-title{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:600;margin-bottom:8px}
+.success-text{color:var(--muted);font-size:.88rem;line-height:1.6}
+
+.add-row-btn{
+  background:none;border:1px dashed var(--border);border-radius:8px;padding:8px 14px;
+  font-family:'Sora',sans-serif;font-size:.78rem;color:var(--muted);cursor:pointer;
+  transition:border-color .15s,color .15s;width:100%;margin-top:8px;
+}
+.add-row-btn:hover{border-color:var(--accent);color:var(--text-2)}
+
+.dynamic-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.dynamic-row input{flex:1}
+.remove-row{background:none;border:none;color:var(--subtle);cursor:pointer;font-size:1.1rem;padding:4px;line-height:1}
+.remove-row:hover{color:var(--primary)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brand-mark" href="/">
+    <span class="brand-mark-name">Samba</span>
+    <span class="brand-mark-sub">Rentals</span>
+  </a>
+</div>
+
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">List Your Property</h1>
+    <p class="page-subtitle">Fill out the details below and we'll get your property listed on the Samba Rentals agent portal. All fields marked with <span style="color:var(--primary)">*</span> are required.</p>
+  </div>
+
+  <form id="listing-form" autocomplete="off">
+
+    <!-- 1. Contact -->
+    <div class="section">
+      <div class="section-title"><span class="section-number">1</span> Contact Information</div>
+      <div class="row">
+        <div class="field">
+          <label class="field-label">Your name <span class="req">*</span></label>
+          <input type="text" name="contactName" required>
+        </div>
+        <div class="field">
+          <label class="field-label">WhatsApp number <span class="req">*</span></label>
+          <input type="tel" name="waNumber" required placeholder="e.g. 6281234567890">
+          <div class="field-hint">Include country code, no spaces or dashes</div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Email</label>
+        <input type="email" name="email" placeholder="Optional">
+      </div>
+    </div>
+
+    <!-- 2. Property basics -->
+    <div class="section">
+      <div class="section-title"><span class="section-number">2</span> Property Details</div>
+      <div class="field">
+        <label class="field-label">Property name <span class="req">*</span></label>
+        <input type="text" name="propertyName" required placeholder="e.g. Villa Serenity">
+      </div>
+      <div class="row">
+        <div class="field">
+          <label class="field-label">Property type <span class="req">*</span></label>
+          <select name="propertyType" required>
+            <option value="">Select...</option>
+            <option value="villa">Villa</option>
+            <option value="apartment">Apartment</option>
+            <option value="studio">Studio</option>
+            <option value="townhouse">Townhouse</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Area / neighbourhood <span class="req">*</span></label>
+          <input type="text" name="area" required placeholder="e.g. Batu Bolong, Canggu">
+        </div>
+      </div>
+      <div class="row-3">
+        <div class="field">
+          <label class="field-label">Bedrooms <span class="req">*</span></label>
+          <select name="bedrooms" required>
+            <option value="">Select...</option>
+            <option value="studio">Studio</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5+</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Bathrooms <span class="req">*</span></label>
+          <select name="bathrooms" required>
+            <option value="">Select...</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4+</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Building size (m&sup2;)</label>
+          <input type="number" name="buildingSize" placeholder="e.g. 120">
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Land size (m&sup2;)</label>
+        <input type="number" name="landSize" placeholder="e.g. 300">
+      </div>
+    </div>
+
+    <!-- 3. Description & features -->
+    <div class="section">
+      <div class="section-title"><span class="section-number">3</span> Description & Features</div>
+      <div class="field">
+        <label class="field-label">Property overview <span class="req">*</span></label>
+        <textarea name="overview" rows="4" required placeholder="Describe the property — what makes it special, the vibe, the layout, any standout design or lifestyle details..."></textarea>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Property features</label>
+        <div class="field-hint" style="margin-bottom:8px">Check all that apply</div>
+        <div class="checklist">
+          <label><input type="checkbox" name="features" value="Private swimming pool"> Private swimming pool</label>
+          <label><input type="checkbox" name="features" value="Shared swimming pool"> Shared swimming pool</label>
+          <label><input type="checkbox" name="features" value="Fully furnished"> Fully furnished</label>
+          <label><input type="checkbox" name="features" value="Fully equipped kitchen"> Fully equipped kitchen</label>
+          <label><input type="checkbox" name="features" value="Air-conditioning"> Air-conditioning</label>
+          <label><input type="checkbox" name="features" value="High-speed fibre internet"> High-speed fibre internet</label>
+          <label><input type="checkbox" name="features" value="Hot water"> Hot water</label>
+          <label><input type="checkbox" name="features" value="Parking"> Parking</label>
+          <label><input type="checkbox" name="features" value="Garden"> Garden</label>
+          <label><input type="checkbox" name="features" value="Rooftop"> Rooftop</label>
+          <label><input type="checkbox" name="features" value="Laundry area"> Laundry area</label>
+          <label><input type="checkbox" name="features" value="Security / CCTV"> Security / CCTV</label>
+          <label><input type="checkbox" name="features" value="Outdoor shower"> Outdoor shower</label>
+          <label><input type="checkbox" name="features" value="Bathtub"> Bathtub</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Additional features</label>
+        <div class="field-hint" style="margin-bottom:8px">Anything not covered above — add one per line</div>
+        <div id="extra-features"></div>
+        <button type="button" class="add-row-btn" onclick="addDynamicRow('extra-features','e.g. Terrazzo bathrooms')">+ Add feature</button>
+      </div>
+    </div>
+
+    <!-- 4. Location -->
+    <div class="section">
+      <div class="section-title"><span class="section-number">4</span> Location</div>
+      <div class="field">
+        <label class="field-label">Google Maps link</label>
+        <input type="url" name="mapLink" placeholder="Paste a Google Maps share link">
+        <div class="field-hint">Open Google Maps, find your property, tap Share and copy the link</div>
+      </div>
+      <div class="field">
+        <label class="field-label">Location highlights</label>
+        <div class="field-hint" style="margin-bottom:8px">Nearby amenities, landmarks, distances — add one per line</div>
+        <div id="location-highlights"></div>
+        <button type="button" class="add-row-btn" onclick="addDynamicRow('location-highlights','e.g. 5-min walk to Pererenan Beach')">+ Add highlight</button>
+      </div>
+    </div>
+
+    <!-- 5. Pricing -->
+    <div class="section">
+      <div class="section-title"><span class="section-number">5</span> Pricing</div>
+      <div class="field-hint" style="margin-bottom:12px">Enter prices in IDR (millions). For example, enter "27" for IDR 27,000,000.</div>
+      <div class="row-3">
+        <div class="field">
+          <label class="field-label">Monthly price (jt) <span class="req">*</span></label>
+          <input type="number" name="monthly" required placeholder="e.g. 27">
+        </div>
+        <div class="field">
+          <label class="field-label">Yearly price (jt) <span class="req">*</span></label>
+          <input type="number" name="yearly" required placeholder="e.g. 270">
+        </div>
+        <div class="field">
+          <label class="field-label">2-year price (jt)</label>
+          <input type="number" name="yearly2" placeholder="Optional">
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Minimum stay</label>
+        <select name="minStay">
+          <option value="">Select...</option>
+          <option value="1 month">1 month</option>
+          <option value="3 months">3 months</option>
+          <option value="6 months">6 months</option>
+          <option value="1 year">1 year</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 6. Inclusions -->
+    <div class="section">
+      <div class="section-title"><span class="section-number">6</span> Monthly Inclusions</div>
+      <div class="field-hint" style="margin-bottom:12px">What's included in the monthly rental price?</div>
+      <div class="checklist">
+        <label><input type="checkbox" name="inclusions" value="Electricity"> Electricity</label>
+        <label><input type="checkbox" name="inclusions" value="Water"> Water</label>
+        <label><input type="checkbox" name="inclusions" value="High-speed fibre internet"> High-speed fibre internet</label>
+        <label><input type="checkbox" name="inclusions" value="Drinking water & cooking gas"> Drinking water & cooking gas</label>
+        <label><input type="checkbox" name="inclusions" value="Housekeeping 2x weekly"> Housekeeping 2x weekly</label>
+        <label><input type="checkbox" name="inclusions" value="Housekeeping 3x weekly"> Housekeeping 3x weekly</label>
+        <label><input type="checkbox" name="inclusions" value="Housekeeping daily"> Housekeeping daily</label>
+        <label><input type="checkbox" name="inclusions" value="Pool maintenance"> Pool maintenance</label>
+        <label><input type="checkbox" name="inclusions" value="Garden maintenance"> Garden maintenance</label>
+        <label><input type="checkbox" name="inclusions" value="Linen & towels changed weekly"> Linen & towels changed weekly</label>
+        <label><input type="checkbox" name="inclusions" value="Banjar fee & trash collection"> Banjar fee & trash collection</label>
+        <label><input type="checkbox" name="inclusions" value="Pest control"> Pest control</label>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label class="field-label">Other monthly inclusions</label>
+        <div id="extra-inclusions"></div>
+        <button type="button" class="add-row-btn" onclick="addDynamicRow('extra-inclusions','e.g. Gym access')">+ Add inclusion</button>
+      </div>
+
+      <hr class="divider">
+
+      <div class="field">
+        <label class="field-label">Yearly inclusions</label>
+        <div class="field-hint" style="margin-bottom:8px">What's included in the yearly rental price? Leave blank if same as monthly or "villa only, no services".</div>
+        <textarea name="yearlyInclusions" rows="3" placeholder="e.g. Villa only, no services included."></textarea>
+      </div>
+    </div>
+
+    <!-- 7. Photos -->
+    <div class="section">
+      <div class="section-title"><span class="section-number">7</span> Photos</div>
+      <div class="field">
+        <label class="field-label">Google Drive photos link <span class="req">*</span></label>
+        <input type="url" name="photosLink" required placeholder="Paste a Google Drive folder link">
+        <div class="field-hint">Create a Google Drive folder with your best photos and set sharing to "Anyone with the link can view". Include exterior, interior, pool, kitchen, bedrooms, bathrooms, and any standout features.</div>
+      </div>
+    </div>
+
+    <!-- 8. Availability -->
+    <div class="section">
+      <div class="section-title"><span class="section-number">8</span> Availability</div>
+      <div class="row">
+        <div class="field">
+          <label class="field-label">Available from <span class="req">*</span></label>
+          <input type="text" name="availableFrom" required placeholder="e.g. 1 July 2026 or Now">
+        </div>
+        <div class="field">
+          <label class="field-label">Booking calendar (iCal URL)</label>
+          <input type="url" name="icalUrl" placeholder="Optional — Airbnb/Hostex iCal link">
+          <div class="field-hint">If you list on Airbnb or use Hostex, paste the iCal sync URL so availability stays up to date</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. Anything else -->
+    <div class="section">
+      <div class="section-title"><span class="section-number">9</span> Anything Else</div>
+      <div class="field">
+        <label class="field-label">Additional notes</label>
+        <textarea name="notes" rows="4" placeholder="Anything else we should know — rental terms, special conditions, renovation plans, etc."></textarea>
+      </div>
+    </div>
+
+    <button type="submit" class="submit-btn" id="submit-btn">Submit Property</button>
+  </form>
+
+  <div class="success-msg" id="success-msg">
+    <div class="success-icon">&#10003;</div>
+    <div class="success-title">Submission received!</div>
+    <p class="success-text">Thanks — we'll review your property details and get back to you on WhatsApp within 24 hours to finalize the listing.</p>
+  </div>
+</div>
+
+<script>
+function addDynamicRow(containerId, placeholder) {
+  const container = document.getElementById(containerId);
+  const row = document.createElement('div');
+  row.className = 'dynamic-row';
+  row.innerHTML = '<input type="text" placeholder="' + placeholder + '">' +
+    '<button type="button" class="remove-row" onclick="this.parentElement.remove()" title="Remove">&times;</button>';
+  container.appendChild(row);
+  row.querySelector('input').focus();
+}
+
+function collectDynamicRows(containerId) {
+  return Array.from(document.querySelectorAll('#' + containerId + ' .dynamic-row input'))
+    .map(i => i.value.trim())
+    .filter(Boolean);
+}
+
+function collectChecked(name) {
+  return Array.from(document.querySelectorAll('input[name="' + name + '"]:checked'))
+    .map(cb => cb.value);
+}
+
+document.getElementById('listing-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const f = this;
+  const btn = document.getElementById('submit-btn');
+
+  const data = {
+    contactName: f.contactName.value.trim(),
+    waNumber: f.waNumber.value.trim(),
+    email: f.email.value.trim(),
+    propertyName: f.propertyName.value.trim(),
+    propertyType: f.propertyType.value,
+    area: f.area.value.trim(),
+    bedrooms: f.bedrooms.value,
+    bathrooms: f.bathrooms.value,
+    buildingSize: f.buildingSize.value,
+    landSize: f.landSize.value,
+    overview: f.overview.value.trim(),
+    features: collectChecked('features').concat(collectDynamicRows('extra-features')),
+    mapLink: f.mapLink.value.trim(),
+    locationHighlights: collectDynamicRows('location-highlights'),
+    monthly: f.monthly.value,
+    yearly: f.yearly.value,
+    yearly2: f.yearly2.value,
+    minStay: f.minStay.value,
+    inclusions: collectChecked('inclusions').concat(collectDynamicRows('extra-inclusions')),
+    yearlyInclusions: f.yearlyInclusions.value.trim(),
+    photosLink: f.photosLink.value.trim(),
+    availableFrom: f.availableFrom.value.trim(),
+    icalUrl: f.icalUrl.value.trim(),
+    notes: f.notes.value.trim(),
+    submittedAt: new Date().toISOString()
+  };
+
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  const waText = formatForWhatsApp(data);
+  const waUrl = 'https://wa.me/6281246357778?text=' + encodeURIComponent(waText);
+
+  window.open(waUrl, '_blank');
+
+  btn.textContent = 'Submit Property';
+  btn.disabled = false;
+  f.style.display = 'none';
+  document.getElementById('success-msg').classList.add('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+function formatForWhatsApp(d) {
+  let lines = [];
+  lines.push('*New Property Listing Submission*');
+  lines.push('');
+  lines.push('*Contact*');
+  lines.push('Name: ' + d.contactName);
+  lines.push('WhatsApp: ' + d.waNumber);
+  if (d.email) lines.push('Email: ' + d.email);
+  lines.push('');
+  lines.push('*Property*');
+  lines.push('Name: ' + d.propertyName);
+  lines.push('Type: ' + d.propertyType);
+  lines.push('Area: ' + d.area);
+  lines.push('Bedrooms: ' + d.bedrooms);
+  lines.push('Bathrooms: ' + d.bathrooms);
+  if (d.buildingSize) lines.push('Building: ' + d.buildingSize + 'm²');
+  if (d.landSize) lines.push('Land: ' + d.landSize + 'm²');
+  lines.push('');
+  lines.push('*Overview*');
+  lines.push(d.overview);
+  if (d.features.length) {
+    lines.push('');
+    lines.push('*Features*');
+    d.features.forEach(f => lines.push('- ' + f));
+  }
+  if (d.mapLink) {
+    lines.push('');
+    lines.push('*Location*');
+    lines.push(d.mapLink);
+  }
+  if (d.locationHighlights.length) {
+    lines.push('');
+    lines.push('*Location Highlights*');
+    d.locationHighlights.forEach(h => lines.push('- ' + h));
+  }
+  lines.push('');
+  lines.push('*Pricing*');
+  lines.push('Monthly: ' + d.monthly + 'jt');
+  lines.push('Yearly: ' + d.yearly + 'jt');
+  if (d.yearly2) lines.push('2-year: ' + d.yearly2 + 'jt');
+  if (d.minStay) lines.push('Min stay: ' + d.minStay);
+  if (d.inclusions.length) {
+    lines.push('');
+    lines.push('*Monthly Inclusions*');
+    d.inclusions.forEach(i => lines.push('- ' + i));
+  }
+  if (d.yearlyInclusions) {
+    lines.push('');
+    lines.push('*Yearly Inclusions*');
+    lines.push(d.yearlyInclusions);
+  }
+  lines.push('');
+  lines.push('*Photos*');
+  lines.push(d.photosLink);
+  lines.push('');
+  lines.push('*Availability*');
+  lines.push('From: ' + d.availableFrom);
+  if (d.icalUrl) lines.push('iCal: ' + d.icalUrl);
+  if (d.notes) {
+    lines.push('');
+    lines.push('*Notes*');
+    lines.push(d.notes);
+  }
+  return lines.join('\n');
+}
+</script>
+</body>
+</html>
