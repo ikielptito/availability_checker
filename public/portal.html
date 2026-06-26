@@ -26,6 +26,10 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .login-err{margin-top:12px;color:var(--red);font-size:0.78rem;}
 .login-foot{margin-top:24px;font-size:0.74rem;color:var(--muted);}
 .login-foot a{color:var(--accent);text-decoration:none;}
+.login-legal{margin-top:14px;font-size:0.7rem;color:var(--muted);}
+.login-legal a{color:var(--muted);text-decoration:none;}.login-legal a:hover{color:var(--text);}
+.portal-foot{margin-top:44px;padding-top:20px;border-top:1px solid var(--border);font-size:0.74rem;color:var(--muted);text-align:center;}
+.portal-foot a{color:var(--muted);text-decoration:none;}.portal-foot a:hover{color:var(--text);}
 
 /* APP */
 #app{display:none;}
@@ -110,6 +114,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
     <div id="gbtn"></div>
     <div class="login-err" id="login-err"></div>
     <div class="login-foot">Not an owner yet? <a href="/list-property">Submit a property →</a></div>
+    <div class="login-legal"><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refund">Refunds</a></div>
   </div>
 </div>
 
@@ -142,6 +147,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       <button class="add-btn" onclick="addProperty()">+ Add property</button>
     </div>
     <div id="properties"></div>
+    <div class="portal-foot"><a href="/terms">Terms of Service</a> · <a href="/privacy">Privacy Policy</a> · <a href="/refund">Refund &amp; Cancellation Policy</a></div>
   </div>
 </div>
 
