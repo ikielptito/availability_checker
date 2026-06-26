@@ -10,15 +10,15 @@
 <meta property="og:site_name" content="Samba Rentals">
 <meta property="og:title" content="Samba Rentals — Agent Portal">
 <meta property="og:description" content="Live availability across our Bali long-term rental portfolio. Photos, calendars, and instant share links — 10% commission on every booking.">
-<meta property="og:url" content="https://sambarentals.vercel.app">
-<meta property="og:image" content="https://sambarentals.vercel.app/og-portal.png">
+<meta property="og:url" content="https://sambarentals.com">
+<meta property="og:image" content="https://sambarentals.com/og-portal.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Samba Rentals — Agent Portal">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Samba Rentals — Agent Portal">
 <meta name="twitter:description" content="Live availability across our Bali long-term rental portfolio. 10% commission on every booking.">
-<meta name="twitter:image" content="https://sambarentals.vercel.app/og-portal.png">
+<meta name="twitter:image" content="https://sambarentals.com/og-portal.png">
 <!-- Favicon + installable PWA metadata -->
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
@@ -703,7 +703,7 @@ function doShare(propId, btn){
   const info=PROPS[propId]; if(!info) return;
   track('share', propId, info.name);
   const slug=SLUGS[propId];
-  const url=slug?'https://sambarentals.vercel.app/l/'+slug:'https://sambarentals.vercel.app';
+  const url=slug?location.origin+'/l/'+slug:location.origin;
   const title=info.name+(info.tag?' · '+info.tag:'');
   const flash=(txt)=>{
     if(!btn) return;

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Portal — Samba Rentals</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0f1117">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Sora:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1117;--surface:#181c27;--surface2:#1f2333;--border:#2a2f42;--text:#e8eaf2;--muted:#5a607a;--subtle:#3a4060;--accent:#4a7cf7;--green:#52c87a;--red:#e06060;--yellow:#f0c060;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+/* LOGIN */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse 60% 40% at 70% 30%,rgba(74,124,247,0.08) 0%,transparent 60%),var(--bg);}
+.login-box{width:100%;max-width:380px;padding:0 20px;text-align:center;}
+.login-brand{font-family:'Playfair Display',serif;font-size:1.9rem;margin-bottom:6px;background:linear-gradient(135deg,#e8eaf2 0%,#8090c0 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.login-sub{font-size:0.72rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:14px;}
+.login-blurb{font-size:0.85rem;color:var(--muted);line-height:1.6;margin-bottom:30px;}
+#gbtn{display:flex;justify-content:center;margin-bottom:14px;min-height:44px;}
+.dev-btn{width:100%;padding:13px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:0.85rem;cursor:pointer;}
+.dev-btn:hover{border-color:var(--accent);}
+.login-err{margin-top:12px;color:var(--red);font-size:0.78rem;}
+.login-foot{margin-top:24px;font-size:0.74rem;color:var(--muted);}
+.login-foot a{color:var(--accent);text-decoration:none;}
+
+/* APP */
+#app{display:none;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;gap:14px;}
+.brand-mark{display:flex;flex-direction:column;line-height:1;}
+.brand-mark-name{font-family:'Playfair Display',serif;font-weight:600;font-size:1.05rem;letter-spacing:.04em;color:var(--text);}
+.brand-mark-sub{font-weight:500;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--yellow);margin-top:3px;}
+.spacer{flex:1;}
+.owner-chip{display:flex;align-items:center;gap:9px;}
+.owner-avatar{width:30px;height:30px;border-radius:50%;background:var(--surface2);object-fit:cover;border:1px solid var(--border);}
+.owner-name{font-size:0.8rem;color:var(--text);}
+.owner-email{font-size:0.68rem;color:var(--muted);}
+.logout-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:6px 13px;font-family:'Sora',sans-serif;font-size:0.72rem;cursor:pointer;}
+.logout-btn:hover{color:var(--text);}
+.content{padding:28px;max-width:1100px;margin:0 auto;}
+@media(max-width:640px){.content{padding:16px;}.topbar{padding:0 16px;}.owner-email{display:none;}}
+.section-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
+.section-title{font-family:'Playfair Display',serif;font-size:1.4rem;}
+.add-btn{background:var(--accent);border:1px solid var(--accent);border-radius:8px;color:#fff;padding:8px 16px;font-family:'Sora',sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;}
+.add-btn:hover{opacity:0.88;}
+.empty-card{background:var(--surface);border:1px dashed var(--border);border-radius:14px;padding:44px 24px;text-align:center;color:var(--muted);}
+.empty-card h3{font-family:'Playfair Display',serif;color:var(--text);font-weight:600;font-size:1.1rem;margin-bottom:8px;}
+.empty-card p{font-size:0.85rem;line-height:1.6;max-width:420px;margin:0 auto;}
+
+/* PROPERTY CARDS */
+.prop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:16px;}
+.prop-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0;}
+.prop-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+.prop-name{font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--text);}
+.prop-meta{font-size:0.72rem;color:var(--muted);margin-top:3px;}
+.badge{font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;border-radius:5px;padding:3px 8px;white-space:nowrap;border:1px solid;}
+.badge.pending{background:rgba(240,192,96,0.12);color:var(--yellow);border-color:rgba(240,192,96,0.3);}
+.badge.approved{background:rgba(74,124,247,0.12);color:var(--accent);border-color:rgba(74,124,247,0.3);}
+.badge.rejected{background:rgba(224,96,96,0.12);color:var(--red);border-color:rgba(224,96,96,0.3);}
+.badge.live{background:rgba(82,200,122,0.12);color:var(--green);border-color:rgba(82,200,122,0.3);}
+.prop-sub{font-size:0.74rem;color:var(--muted);display:flex;align-items:center;gap:7px;}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.dot.on{background:var(--green);} .dot.off{background:var(--subtle);}
+.prop-actions{display:flex;gap:8px;margin-top:2px;flex-wrap:wrap;}
+.btn-sm{border-radius:7px;padding:7px 13px;font-family:'Sora',sans-serif;font-size:0.74rem;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text);}
+.btn-sm:hover{border-color:var(--accent);}
+.btn-sm.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-sm.danger:hover{border-color:var(--red);color:var(--red);}
+.prop-status-note{font-size:0.72rem;color:var(--muted);line-height:1.5;}
+.prop-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;border-top:1px solid var(--border);padding-top:12px;}
+.pstat{text-align:center;}
+.pstat-val{font-family:'Playfair Display',serif;font-size:1.25rem;line-height:1;}
+.pstat-lbl{font-size:0.58rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin-top:5px;}
+.period-toggle{display:flex;gap:4px;}
+.period-toggle button{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:5px 11px;font-family:'Sora',sans-serif;font-size:0.7rem;cursor:pointer;}
+.period-toggle button.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:560px;width:100%;}
+.modal-head{padding:20px 24px 14px;border-bottom:1px solid var(--border);}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.3rem;}
+.modal-body{padding:18px 24px;display:flex;flex-direction:column;gap:14px;}
+.frow{display:flex;gap:12px;}.frow>*{flex:1;}
+.fg label{display:block;font-size:0.66rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.fg input,.fg textarea,.fg select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 13px;font-family:'Sora',sans-serif;font-size:0.85rem;color:var(--text);outline:none;}
+.fg input:focus,.fg textarea:focus{border-color:var(--accent);}
+.fg textarea{resize:vertical;min-height:64px;}
+.fg .hint{font-size:0.66rem;color:var(--muted);text-transform:none;letter-spacing:0;margin-top:5px;}
+.modal-actions{padding:14px 24px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border);}
+.modal-err{color:var(--red);font-size:0.78rem;padding:0 24px;}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:11px 20px;border-radius:10px;font-size:0.82rem;opacity:0;transition:all .25s;z-index:300;}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-box">
+    <div class="login-brand">Samba Rentals</div>
+    <div class="login-sub">Owner Portal</div>
+    <p class="login-blurb">List your villa, track how agents engage with it, and manage your subscription — all in one place.</p>
+    <div id="gbtn"></div>
+    <div class="login-err" id="login-err"></div>
+    <div class="login-foot">Not an owner yet? <a href="/list-property">Submit a property →</a></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="brand-mark">
+      <span class="brand-mark-name">Samba Rentals</span>
+      <span class="brand-mark-sub">Owner Portal</span>
+    </div>
+    <div class="spacer"></div>
+    <div class="owner-chip">
+      <img class="owner-avatar" id="owner-avatar" alt="">
+      <div>
+        <div class="owner-name" id="owner-name"></div>
+        <div class="owner-email" id="owner-email"></div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="logout()">Sign out</button>
+  </div>
+  <div class="content">
+    <div class="section-head">
+      <div class="section-title">My Properties</div>
+      <div class="spacer"></div>
+      <div class="period-toggle" id="period-toggle">
+        <button data-p="7d" onclick="setPeriod('7d')">7d</button>
+        <button data-p="30d" class="active" onclick="setPeriod('30d')">30d</button>
+        <button data-p="all" onclick="setPeriod('all')">All</button>
+      </div>
+      <button class="add-btn" onclick="addProperty()">+ Add property</button>
+    </div>
+    <div id="properties"></div>
+  </div>
+</div>
+
+<!-- ADD / EDIT PROPERTY MODAL -->
+<div class="modal-overlay" id="prop-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="prop-modal-title">Add a property</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="f-slug">
+      <div class="fg"><label>Property name *</label><input id="f-name" placeholder="e.g. Villa Sunrise"></div>
+      <div class="frow">
+        <div class="fg"><label>Area</label><input id="f-area" placeholder="e.g. Umalas · Canggu"></div>
+        <div class="fg"><label>Unit type</label><input id="f-unitType" placeholder="e.g. 2BR Villa"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>Bedrooms</label><input id="f-bedrooms" type="number" min="0" placeholder="2"></div>
+        <div class="fg"><label>Bathrooms</label><input id="f-bathrooms" type="number" min="0" placeholder="2"></div>
+      </div>
+      <div class="fg"><label>Overview</label><textarea id="f-overview" placeholder="A short description of the property."></textarea></div>
+      <div class="frow">
+        <div class="fg"><label>Monthly price</label><input id="f-monthly" placeholder="e.g. 35jt"></div>
+        <div class="fg"><label>Yearly price</label><input id="f-yearly" placeholder="e.g. 350jt"></div>
+      </div>
+      <div class="fg"><label>Key features</label><textarea id="f-features" placeholder="One per line&#10;Private pool&#10;Fully furnished"></textarea></div>
+      <div class="fg"><label>Photos (Google Drive folder link)</label><input id="f-photosLink" placeholder="https://drive.google.com/drive/folders/…">
+        <div class="hint">Share a Drive folder of photos (link sharing on). We pull images automatically.</div></div>
+      <div class="fg"><label>Google Maps link</label><input id="f-mapLink" placeholder="https://maps.app.goo.gl/…"></div>
+      <div class="frow">
+        <div class="fg"><label>WhatsApp contact name</label><input id="f-waContactName" placeholder="e.g. Ketut"></div>
+        <div class="fg"><label>WhatsApp number</label><input id="f-waNumber" placeholder="62812…"></div>
+      </div>
+    </div>
+    <div class="modal-err" id="prop-err"></div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closePropModal()">Cancel</button>
+      <button class="btn-sm primary" id="prop-save-btn" onclick="submitProperty()">Submit for review</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://accounts.google.com/gsi/client" async></script>
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script>
+const API = '/api/portal';
+const isDev = ['localhost','127.0.0.1'].includes(location.hostname);
+let appConfig=null, paddleReady=false, currentOwnerData=null;
+
+async function loadConfig(){ if(appConfig) return appConfig; const r=await api('?action=config'); appConfig=r.body||{}; return appConfig; }
+function initPaddle(){
+  if(paddleReady||!appConfig?.paddleClientToken) return;
+  if(!window.Paddle){ return setTimeout(initPaddle,200); }
+  try{
+    Paddle.Environment.set(appConfig.paddleEnv==='production'?'production':'sandbox');
+    Paddle.Setup({ token: appConfig.paddleClientToken, eventCallback: onPaddleEvent });
+    paddleReady=true;
+  }catch(e){ /* misconfigured token — subscribe() will surface it */ }
+}
+function onPaddleEvent(ev){
+  if(ev?.name==='checkout.completed'){ showToast('Payment received — activating your listing…'); pollProperties(); }
+}
+async function pollProperties(){
+  for(let i=0;i<6;i++){ await new Promise(r=>setTimeout(r,2000)); await loadProperties(); if(myProps.some(p=>p.subscription&&p.subscription.status==='active')) break; }
+}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600);}
+function loginErr(msg){document.getElementById('login-err').textContent=msg||'';}
+
+async function api(path, opts={}){
+  const r = await fetch(API+path, {credentials:'include', ...opts});
+  let body=null; try{body=await r.json();}catch{}
+  return {ok:r.ok, status:r.status, body};
+}
+
+// ── Boot: check for an existing session, else render sign-in ──
+(async function boot(){
+  const me = await api('?action=auth/me');
+  if (me.ok && me.body?.owner) return enterApp(me.body.owner);
+  renderSignIn();
+})();
+
+async function renderSignIn(){
+  if (isDev){
+    const btn=document.createElement('button');
+    btn.className='dev-btn';
+    btn.textContent='Dev sign-in (local only)';
+    btn.onclick=()=>signIn('dev-credential');
+    document.getElementById('gbtn').appendChild(btn);
+    return;
+  }
+  // Production: Google Identity Services
+  const cfg = await api('?action=config');
+  const clientId = cfg.body?.googleClientId;
+  if (!clientId){ loginErr('Sign-in is not configured yet.'); return; }
+  const start=()=>{
+    if (!window.google?.accounts?.id){ return setTimeout(start,150); }
+    google.accounts.id.initialize({ client_id: clientId, callback:(resp)=>signIn(resp.credential) });
+    google.accounts.id.renderButton(document.getElementById('gbtn'),
+      { theme:'filled_blue', size:'large', shape:'pill', text:'continue_with', width:280 });
+  };
+  start();
+}
+
+async function signIn(credential){
+  loginErr('');
+  const r = await api('?action=auth/google', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ credential })
+  });
+  if (r.ok && r.body?.owner) return enterApp(r.body.owner);
+  loginErr(r.body?.error || 'Sign-in failed.');
+}
+
+function enterApp(owner){
+  currentOwnerData=owner;
+  document.getElementById('login').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('owner-name').textContent = owner.name || owner.email;
+  document.getElementById('owner-email').textContent = owner.email || '';
+  const av=document.getElementById('owner-avatar');
+  if (owner.picture){ av.src=owner.picture; av.style.display='block'; } else { av.style.display='none'; }
+  loadProperties();
+  loadConfig().then(initPaddle);
+}
+
+async function logout(){
+  await api('?action=auth/logout', {method:'POST'});
+  location.reload();
+}
+
+// ── Properties ──
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+let myProps=[];
+let statsPeriod='30d';
+let statsBySlug={};
+
+async function loadProperties(){
+  const el=document.getElementById('properties');
+  el.innerHTML='<div class="empty-card"><p>Loading…</p></div>';
+  const r=await api('?action=properties');
+  myProps=r.body?.properties||[];
+  if(!myProps.length){
+    el.innerHTML='<div class="empty-card"><h3>No properties yet</h3><p>Add your first property to get it reviewed, published, and tracked. Each listed property is $10/month once approved.</p></div>';
+    document.getElementById('period-toggle').style.visibility='hidden';
+    return;
+  }
+  document.getElementById('period-toggle').style.visibility='visible';
+  await loadAnalytics();
+  render();
+}
+
+async function loadAnalytics(){
+  const r=await api('?action=analytics&period='+statsPeriod);
+  statsBySlug={};
+  (r.body?.properties||[]).forEach(p=>{statsBySlug[p.slug]=p;});
+}
+
+function setPeriod(p){
+  statsPeriod=p;
+  document.querySelectorAll('#period-toggle button').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
+  loadAnalytics().then(render);
+}
+
+function render(){
+  document.getElementById('properties').innerHTML='<div class="prop-grid">'+myProps.map(propCard).join('')+'</div>';
+}
+
+function propCard(p){
+  const active=p.subscription&&p.subscription.status==='active';
+  // The badge reflects the public state: live only when approved AND subscribed.
+  let badge, note;
+  if(p.status==='rejected'){badge='<span class="badge rejected">Rejected</span>';note='This submission wasn’t approved. Edit and resubmit, or contact us.';}
+  else if(p.status==='pending_review'){badge='<span class="badge pending">Pending review</span>';note='We’re reviewing your submission. You’ll be able to subscribe once it’s approved.';}
+  else if(p.status==='approved'&&active){badge='<span class="badge live">Live</span>';note='Your listing is published and visible to agents.';}
+  else {badge='<span class="badge approved">Approved</span>';note='Approved! Subscribe ($10/month) to publish it and start getting views.';}
+  const canSub=p.status==='approved'&&!active;
+  return `<div class="prop-card">
+    <div class="prop-card-top">
+      <div><div class="prop-name">${esc(p.name)}</div><div class="prop-meta">${esc(p.unitType||'')}${p.tag?' · '+esc(p.tag):''}</div></div>
+      ${badge}
+    </div>
+    <div class="prop-sub"><span class="dot ${active?'on':'off'}"></span>${active?'Subscription active':'No active subscription'}</div>
+    <div class="prop-status-note">${note}</div>
+    ${statsStrip(p.slug)}
+    <div class="prop-actions">
+      ${canSub?`<button class="btn-sm primary" onclick="subscribe('${esc(p.slug)}')">Subscribe $10/mo</button>`:''}
+      ${active?`<button class="btn-sm" onclick="manageBilling()">Manage billing</button>`:''}
+      <button class="btn-sm" onclick="editProperty('${esc(p.slug)}')">Edit</button>
+      <button class="btn-sm danger" onclick="removeProperty('${esc(p.slug)}')">Delete</button>
+    </div>
+  </div>`;
+}
+
+function statsStrip(slug){
+  const s=statsBySlug[slug];
+  if(!s) return '';
+  const cell=(v,l)=>`<div class="pstat"><div class="pstat-val">${v||0}</div><div class="pstat-lbl">${l}</div></div>`;
+  return `<div class="prop-stats">
+    ${cell(s.listing_view,'Views')}
+    ${cell(s.details_open,'Details')}
+    ${cell(s.whatsapp_click,'WhatsApp')}
+    ${cell(s.share,'Shares')}
+  </div>`;
+}
+
+// ── Add / edit modal ──
+let editingSlug=null;
+
+function addProperty(){ openPropModal(null); }
+
+function editProperty(slug){
+  openPropModal(slug, myProps.find(p=>p.slug===slug));
+}
+
+function openPropModal(slug, rec){
+  editingSlug=slug;
+  document.getElementById('prop-modal-title').textContent=slug?'Edit property':'Add a property';
+  document.getElementById('prop-save-btn').textContent=slug?'Save changes':'Submit for review';
+  document.getElementById('f-slug').value=slug||'';
+  rec=rec||{};
+  document.getElementById('f-name').value=rec.name||'';
+  document.getElementById('f-area').value=rec.tag||'';
+  document.getElementById('f-unitType').value=rec.unitType||'';
+  document.getElementById('f-bedrooms').value=rec.bedrooms||'';
+  document.getElementById('f-bathrooms').value=rec.bathrooms||'';
+  document.getElementById('f-overview').value=rec.overview||'';
+  document.getElementById('f-monthly').value=rec.monthly||'';
+  document.getElementById('f-yearly').value=rec.yearly||'';
+  // Drop the auto-generated "X Bedrooms · Y Bathrooms" line from the editable list.
+  document.getElementById('f-features').value=(rec.features||[]).filter(f=>!/Bedroom.*Bathroom/.test(f)).join('\n');
+  document.getElementById('f-photosLink').value=rec.folder?('https://drive.google.com/drive/folders/'+rec.folder):'';
+  document.getElementById('f-mapLink').value=rec.location||'';
+  document.getElementById('f-waContactName').value=rec.waContactName||'';
+  document.getElementById('f-waNumber').value=rec.waNumber||'';
+  document.getElementById('prop-err').textContent='';
+  document.getElementById('prop-modal').classList.add('open');
+}
+function closePropModal(){ document.getElementById('prop-modal').classList.remove('open'); }
+
+async function submitProperty(){
+  const g=id=>document.getElementById('f-'+id).value;
+  const data={
+    name:g('name'), area:g('area'), unitType:g('unitType'),
+    bedrooms:g('bedrooms'), bathrooms:g('bathrooms'), overview:g('overview'),
+    monthly:g('monthly'), yearly:g('yearly'),
+    features:g('features').split('\n').map(s=>s.trim()).filter(Boolean),
+    photosLink:g('photosLink'), mapLink:g('mapLink'),
+    waContactName:g('waContactName'), waNumber:g('waNumber'),
+  };
+  if(!data.name.trim()){document.getElementById('prop-err').textContent='Property name is required.';return;}
+  const btn=document.getElementById('prop-save-btn');btn.disabled=true;btn.textContent='Saving…';
+  const r=await api('?action=property',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:editingSlug||'',data})});
+  btn.disabled=false;btn.textContent=editingSlug?'Save changes':'Submit for review';
+  if(!r.ok){document.getElementById('prop-err').textContent=r.body?.error||'Could not save.';return;}
+  closePropModal();
+  showToast(editingSlug?'Saved.':'Submitted for review.');
+  loadProperties();
+}
+
+async function removeProperty(slug){
+  if(!confirm('Delete this property? This cannot be undone.'))return;
+  const r=await api('?action=property&slug='+encodeURIComponent(slug),{method:'DELETE'});
+  if(!r.ok){showToast(r.body?.error||'Could not delete.');return;}
+  showToast('Deleted.');loadProperties();
+}
+
+async function subscribe(slug){
+  await loadConfig();
+  if(!appConfig.paddleClientToken||!appConfig.paddlePriceId){ showToast('Billing isn’t set up yet — check back soon.'); return; }
+  initPaddle();
+  if(!window.Paddle||!paddleReady){ showToast('Payment system still loading — try again in a moment.'); return; }
+  Paddle.Checkout.open({
+    items:[{ priceId: appConfig.paddlePriceId, quantity:1 }],
+    customData:{ ownerSub: currentOwnerData?.sub||'', slug },
+    customer: currentOwnerData?.email ? { email: currentOwnerData.email } : undefined,
+    settings:{ displayMode:'overlay', theme:'dark', successUrl: location.origin+'/portal' }
+  });
+}
+
+async function manageBilling(){
+  const r=await fetch('/api/billing?action=portal-session',{method:'POST',credentials:'include'});
+  let b=null; try{b=await r.json();}catch{}
+  if(r.ok&&b?.url){ window.open(b.url,'_blank'); }
+  else { showToast(b?.error||'Could not open billing portal.'); }
+}
+</script>
+</body>
+</html>

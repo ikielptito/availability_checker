@@ -90,6 +90,14 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .check-row{display:flex;align-items:center;gap:8px;font-size:0.78rem;color:var(--muted);cursor:pointer;user-select:none;}
 .check-row input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;}
 .custom-badge{font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;background:rgba(82,200,122,0.15);color:var(--green);border:1px solid rgba(82,200,122,0.3);border-radius:4px;padding:2px 7px;margin-left:8px;vertical-align:middle;}
+.status-badge{font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;border:1px solid;border-radius:4px;padding:2px 7px;margin-left:6px;vertical-align:middle;}
+.status-badge.pending{background:rgba(240,192,96,0.15);color:#f0c060;border-color:rgba(240,192,96,0.3);}
+.status-badge.approved{background:rgba(74,124,247,0.15);color:#4a7cf7;border-color:rgba(74,124,247,0.3);}
+.status-badge.rejected{background:rgba(224,96,96,0.15);color:#e06060;border-color:rgba(224,96,96,0.3);}
+.owner-note{font-size:0.66rem;color:var(--muted);margin-top:4px;}
+.review-btn{border-radius:7px;padding:7px 13px;font-family:inherit;font-size:0.74rem;cursor:pointer;border:1px solid var(--border);background:var(--surface2,#1f2333);color:var(--text);}
+.review-btn.approve{background:rgba(74,124,247,0.15);border-color:rgba(74,124,247,0.4);color:#7ba0fb;}
+.review-btn.reject{background:rgba(224,96,96,0.12);border-color:rgba(224,96,96,0.35);color:#e88;}
 .empty-hint{padding:24px;border:1px dashed var(--border);border-radius:14px;color:var(--muted);font-size:0.8rem;text-align:center;margin-bottom:24px;}
 
 /* TOAST */
@@ -172,7 +180,8 @@ async function loadListings() {
   document.getElementById('app').style.display = 'block';
   document.getElementById('content').innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading listings…</div>';
   try {
-    const r = await fetch('/api/listings');
+    const r = await fetch('/api/listings?all=1', { headers: { 'Authorization': 'Bearer ' + adminPw } });
+    if (r.status === 401) { showGate('Session expired. Please log in again.'); return; }
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const { listings } = await r.json();
     renderListings(listings);
@@ -187,7 +196,9 @@ function extractFolderId(url) {
 }
 
 function renderListings(listings) {
-  const customs = listings.filter(l => l.custom);
+  // Pending owner submissions float to the top so they're reviewed first.
+  const rank = l => (l.ownerSub && l.status === 'pending_review') ? 0 : 1;
+  const customs = listings.filter(l => l.custom).sort((a, b) => rank(a) - rank(b));
   const defaults = listings.filter(l => !l.custom);
   const html =
     `<div class="section-head">
@@ -323,10 +334,12 @@ function customCard(l, isNew) {
     <div class="listing-card" id="card-${slug}">
       <div class="card-header">
         <div>
-          <div class="card-title">${isNew ? 'New Property' : esc(l.name)}<span class="custom-badge">custom</span></div>
+          <div class="card-title">${isNew ? 'New Property' : esc(l.name)}<span class="custom-badge">custom</span>${statusBadge(l)}</div>
           <div class="card-slug">${isNew ? 'slug auto-generated from name' : slug}</div>
+          ${l.ownerSub ? `<div class="owner-note">Owner-submitted listing${l.status === 'approved' ? ' · public once subscription is active' : ''}</div>` : ''}
         </div>
         <div style="display:flex;gap:10px">
+          ${(!isNew && l.status === 'pending_review') ? `<button class="review-btn approve" onclick="setListingStatus('${slug}','approved')">Approve</button><button class="review-btn reject" onclick="setListingStatus('${slug}','rejected')">Reject</button>` : ''}
           ${isNew ? '' : `<button class="delete-btn" onclick="deleteCustom('${slug}')">Delete</button>`}
           <button class="save-btn" id="save-${slug}" onclick="saveCustom('${slug}', ${isNew})">${isNew ? 'Create' : 'Save'}</button>
         </div>
@@ -532,6 +545,32 @@ async function saveCustom(cardSlug, isNew) {
   } finally {
     btn.disabled = false;
     btn.textContent = isNew ? 'Create' : 'Save';
+  }
+}
+
+function statusBadge(l) {
+  if (!l || !l.ownerSub) return '';
+  const s = l.status || 'pending_review';
+  const label = s === 'approved' ? 'Approved' : s === 'rejected' ? 'Rejected' : 'Pending review';
+  const cls = s === 'approved' ? 'approved' : s === 'rejected' ? 'rejected' : 'pending';
+  return `<span class="status-badge ${cls}">${label}</span>`;
+}
+
+async function setListingStatus(slug, status) {
+  const verb = status === 'approved' ? 'Approve' : 'Reject';
+  if (!confirm(verb + ' "' + slug + '"?')) return;
+  try {
+    const r = await fetch('/api/listings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminPw },
+      body: JSON.stringify({ action: 'set-status', slug, status }),
+    });
+    if (r.status === 401) { showGate('Session expired. Please log in again.'); return; }
+    if (!r.ok) { const err = await r.json().catch(() => ({})); throw new Error(err.error || 'HTTP ' + r.status); }
+    showToast(verb + 'd ' + slug, 'success');
+    loadListings();
+  } catch(e) {
+    showToast(verb + ' failed: ' + e.message, 'error');
   }
 }
 

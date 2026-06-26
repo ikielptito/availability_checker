@@ -10,6 +10,12 @@ process.env.KV_REST_API_TOKEN = 't';
 process.env.DASHBOARD_PASSWORD = 'Bissli2024';
 process.env.HOSTEX_TOKEN = 'fake';
 process.env.GOOGLE_API_KEY = 'fake';
+process.env.GOOGLE_CLIENT_ID = 'dev-client-id';
+process.env.PADDLE_ENV = 'sandbox';
+process.env.PADDLE_API_KEY = 'dev-paddle-key';
+process.env.PADDLE_CLIENT_TOKEN = 'test_dev_client_token';
+process.env.PADDLE_PRICE_ID = 'pri_dev_10mo';
+process.env.PADDLE_WEBHOOK_SECRET = 'pdl_ntfset_devsecret';
 process.env.DIGEST_SHARED_SECRET = 'dev_secret';
 process.env.CRM_BASE_URL = 'http://localhost:3456/__crm_mock';
 const __crmCalls = [];
@@ -20,7 +26,8 @@ function exec(cmd) {
   const [op, ...a] = cmd;
   switch (op) {
     case 'GET': return store.has(a[0]) ? store.get(a[0]) : null;
-    case 'SET': store.set(a[0], a[1]); return 'OK';
+    case 'SET': store.set(a[0], a[1]); return 'OK'; // ignores EX/extra args (no TTL in mock)
+    case 'DEL': { let n = 0; for (const k of a) { if (store.delete(k)) n++; sets.delete(k); hashes.delete(k); lists.delete(k); } return n; }
     case 'INCR': { const v = (parseInt(store.get(a[0])) || 0) + 1; store.set(a[0], String(v)); return v; }
     case 'HINCRBY': { if (!hashes.has(a[0])) hashes.set(a[0], new Map()); const h = hashes.get(a[0]); const v = (parseInt(h.get(a[1])) || 0) + parseInt(a[2]); h.set(a[1], String(v)); return v; }
     case 'HGETALL': { const h = hashes.get(a[0]); if (!h) return []; const o = []; for (const [k, v] of h) o.push(k, v); return o; }
@@ -55,6 +62,22 @@ globalThis.fetch = async (url, opts = {}) => {
     const key = decodeURIComponent(u.slice('http://kv/set/'.length));
     store.set(key, opts.body);
     return { json: async () => ({ result: 'OK' }) };
+  }
+  if (u.includes('oauth2.googleapis.com/tokeninfo')) {
+    // Mock Google ID-token verification for the owner portal. Any non-empty
+    // id_token resolves to a fixed dev owner whose aud matches GOOGLE_CLIENT_ID.
+    const idToken = new URL(u).searchParams.get('id_token');
+    if (!idToken) return { ok: false, status: 400, json: async () => ({ error: 'missing' }) };
+    return { ok: true, status: 200, json: async () => ({
+      sub: 'dev-owner-1', email: 'owner@example.com', email_verified: true,
+      name: 'Dev Owner', picture: '', aud: process.env.GOOGLE_CLIENT_ID,
+    }) };
+  }
+  if (u.includes('sandbox-api.paddle.com/customers/') && u.includes('/portal-sessions')) {
+    // Mock Paddle customer-portal session creation for the owner portal.
+    return { ok: true, status: 200, json: async () => ({
+      data: { urls: { general: { overview: 'https://sandbox-customer-portal.paddle.com/cpl_mock_session' } } },
+    }) };
   }
   if (u.includes('api.hostex.io/v3/properties')) {
     return { status: 200, json: async () => ({ data: { properties: HOSTEX_PROPS } }) };
@@ -165,8 +188,8 @@ const server = http.createServer(async (req, res) => {
       const name = u.pathname.slice(5).replace(/\/$/, '');
       if (name === 'gdrive') {
         // Dev override: loadable placeholder thumbs so the admin cover picker
-        // can be exercised visually (real gdrive.js builds lh3 URLs from ids
-        // that don't exist in the mock).
+        // can be exercised visually (real media.js?source=drive builds lh3 URLs
+        // from ids that don't exist in the mock).
         const photos = ['a', 'b', 'c'].map((s, i) => ({
           id: 'ph' + (i + 1),
           url: `https://picsum.photos/seed/${s}/800/600`,
@@ -175,13 +198,18 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ photos }));
       }
-      const mod = handlers[name];
+      // Old proxy endpoints folded into media.js — mirrors the vercel.json rewrites.
+      const MEDIA_ALIAS = { properties: 'hostex-properties', photos: 'hostex-photos' };
+      let target = name;
+      if (MEDIA_ALIAS[name]) { u.searchParams.set('source', MEDIA_ALIAS[name]); target = 'media'; }
+      const mod = handlers[target];
       if (!mod) { res.writeHead(404); return res.end('{"error":"no such api"}'); }
       let body = '';
       for await (const chunk of req) body += chunk;
       let parsed = null;
       try { parsed = body ? JSON.parse(body) : null; } catch {}
-      const fakeReq = { method: req.method, headers: req.headers, query: Object.fromEntries(u.searchParams), body: parsed };
+      // rawBody is needed by api/billing.js to verify the Paddle webhook signature.
+      const fakeReq = { method: req.method, headers: req.headers, query: Object.fromEntries(u.searchParams), body: parsed, rawBody: body };
       return void await mod.default(fakeReq, shimRes(res));
     }
     // /l/<slug> → /api/listing-page?slug=<slug> (matches vercel.json rewrite)
@@ -192,6 +220,7 @@ const server = http.createServer(async (req, res) => {
     }
     let file;
     if (u.pathname === '/admin') file = 'admin.html';
+    else if (u.pathname === '/portal') file = 'portal.html';
     else {
       const candidate = u.pathname.replace(/^\//, '');
       file = candidate && fs.existsSync(path.join(ROOT, 'public', candidate)) ? candidate : 'index.html';

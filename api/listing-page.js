@@ -17,7 +17,7 @@ let _listingsCacheAt = 0;
 const TEMPLATE_TTL_MS = 5 * 60 * 1000;
 const LISTINGS_TTL_MS = 60 * 1000;
 
-const PORTAL_BASE = 'https://sambarentals.vercel.app';
+const PORTAL_BASE = 'https://sambarentals.com';
 const FALLBACK_OG = `${PORTAL_BASE}/og-portal.png`;
 
 export default async function handler(req, res) {
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
 async function serve(req, res) {
   const slug = (req.query?.slug || '').toLowerCase();
   const proto = req.headers['x-forwarded-proto'] || 'https';
-  const host = req.headers.host || 'sambarentals.vercel.app';
+  const host = req.headers.host || 'sambarentals.com';
 
   // Lazy-load listing.html over HTTPS (the static handler serves it
   // directly from public/). Cached per-Lambda-instance for 5 minutes.

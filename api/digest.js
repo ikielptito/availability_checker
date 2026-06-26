@@ -16,7 +16,7 @@
 const HORIZON_DAYS = 180;
 const LONG_WINDOW_DAYS = 30;
 const CACHE_TTL_MS = 30 * 60 * 1000;
-const PORTAL_BASE = 'https://sambarentals.vercel.app';
+const PORTAL_BASE = 'https://sambarentals.com';
 const DEFAULT_WA_CONTACT = 'Era';
 const DEFAULT_WA_NUMBER = '6281246357778';
 

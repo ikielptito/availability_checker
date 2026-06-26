@@ -59,6 +59,16 @@ const DEFAULTS = {
 const CUSTOM_KEY = 'custom_properties';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+// Public visibility for a custom listing. Admin-curated listings (no ownerSub)
+// behave as before — visible unless hidden. Owner-submitted listings must be
+// both approved AND carry an active subscription.
+function listingVisible(c, sub) {
+  if (c.hidden) return false;
+  if (!c.ownerSub) return true;
+  if (c.status !== 'approved') return false;
+  return !!(sub && sub.status === 'active');
+}
+
 function cleanStr(v) { return typeof v === 'string' ? v.trim() : ''; }
 // Cover focal point as "X% Y%" (0–100 each). Falls back to centered.
 function cleanPos(v) { const s = cleanStr(v); return /^\d{1,3}% \d{1,3}%$/.test(s) ? s : '50% 50%'; }
@@ -130,7 +140,21 @@ export default async function handler(req, res) {
       ...DEFAULTS[slug],
       ...(kvResults[i] || {}),
     }));
-    const customListings = Object.values(customMap || {}).map(c => ({ ...c, custom: true }));
+    const customAll = Object.values(customMap || {});
+
+    // Admin view (?all=1, authenticated): every custom listing incl. drafts.
+    if (req.query.all === '1' && checkAuth()) {
+      const customListings = customAll.map(c => ({ ...c, custom: true }));
+      return res.status(200).json({ listings: [...listings, ...customListings] });
+    }
+
+    // Public view: hide owner listings that aren't approved + actively subscribed.
+    const ownerSlugs = customAll.filter(c => c.ownerSub).map(c => c.slug);
+    const subList = await Promise.all(ownerSlugs.map(s => kvGet(`sub:${s}`)));
+    const subBySlug = Object.fromEntries(ownerSlugs.map((s, i) => [s, subList[i]]));
+    const customListings = customAll
+      .filter(c => listingVisible(c, subBySlug[c.slug]))
+      .map(c => ({ ...c, custom: true }));
     return res.status(200).json({ listings: [...listings, ...customListings] });
   }
 
@@ -148,6 +172,23 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     if (!checkAuth()) return res.status(401).json({ error: 'Unauthorized' });
+
+    // Review action: approve / reject an owner-submitted listing.
+    if (req.body?.action === 'set-status') {
+      const { slug, status } = req.body;
+      if (!['approved', 'rejected', 'pending_review'].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status' });
+      }
+      const all = await kvGet(CUSTOM_KEY) || {};
+      if (!all[slug]) return res.status(404).json({ error: 'Not found' });
+      all[slug].status = status;
+      all[slug].updatedAt = Date.now();
+      await kvSet(CUSTOM_KEY, all);
+      // Sync CRM: approval makes it eligible to go live (once subscribed); a
+      // rejection pulls it out. Visibility is still gated by subscription.
+      await notifyCrmSync(slug, status === 'approved' ? 'upsert' : 'delete');
+      return res.status(200).json({ ok: true, slug, status });
+    }
 
     const { slug, data, custom } = req.body || {};
     if (!slug || !/^[a-z0-9-]{2,60}$/.test(slug)) return res.status(400).json({ error: 'Invalid slug' });
@@ -181,6 +222,10 @@ export default async function handler(req, res) {
         waContactName: cleanStr(data.waContactName),
         bookedRanges: Array.isArray(data.bookedRanges) ? cleanRanges(data.bookedRanges) : existing.bookedRanges || [],
         hidden: !!data.hidden,
+        // Ownership/review fields are owned by the portal + review flow; never
+        // clobbered by an admin content edit.
+        ownerSub: existing.ownerSub || null,
+        status: existing.status || undefined,
         createdAt: existing.createdAt || Date.now(),
         updatedAt: Date.now(),
       };
