@@ -64,8 +64,13 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 // both approved AND carry an active subscription.
 function listingVisible(c, sub) {
   if (c.hidden) return false;
-  if (!c.ownerSub) return true;
-  if (c.status !== 'approved') return false;
+  // Pure admin-curated listing with no owner assigned: always public.
+  if (!c.ownerSub && !c.ownerEmail) return true;
+  // Owner-linked listings must not be pending review or rejected.
+  if (c.status === 'pending_review' || c.status === 'rejected') return false;
+  // Complimentary (comped) listings stay public for free; otherwise an active
+  // subscription is required.
+  if (c.comped) return true;
   return !!(sub && sub.status === 'active');
 }
 
@@ -190,6 +195,22 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, slug, status });
     }
 
+    // Pre-assign an existing listing to an owner by email. When that person
+    // signs in with the matching Google email, the portal claims it (sets
+    // ownerSub). `comped` keeps it publicly visible for free. ownerSub is NOT
+    // set here — it is filled in on first sign-in.
+    if (req.body?.action === 'assign-owner') {
+      const { slug, ownerEmail, comped } = req.body;
+      const all = await kvGet(CUSTOM_KEY) || {};
+      if (!all[slug]) return res.status(404).json({ error: 'Not found' });
+      all[slug].ownerEmail = ownerEmail ? String(ownerEmail).trim().toLowerCase() : null;
+      all[slug].comped = !!comped;
+      if (!all[slug].status) all[slug].status = 'approved';
+      all[slug].updatedAt = Date.now();
+      await kvSet(CUSTOM_KEY, all);
+      return res.status(200).json({ ok: true, slug, ownerEmail: all[slug].ownerEmail, comped: all[slug].comped, status: all[slug].status });
+    }
+
     const { slug, data, custom } = req.body || {};
     if (!slug || !/^[a-z0-9-]{2,60}$/.test(slug)) return res.status(400).json({ error: 'Invalid slug' });
 
@@ -225,6 +246,8 @@ export default async function handler(req, res) {
         // Ownership/review fields are owned by the portal + review flow; never
         // clobbered by an admin content edit.
         ownerSub: existing.ownerSub || null,
+        ownerEmail: existing.ownerEmail || null,
+        comped: !!existing.comped,
         status: existing.status || undefined,
         createdAt: existing.createdAt || Date.now(),
         updatedAt: Date.now(),

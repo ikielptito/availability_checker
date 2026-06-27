@@ -320,25 +320,28 @@ function render(){
 }
 
 function propCard(p){
-  const active=p.subscription&&p.subscription.status==='active';
-  // The badge reflects the public state: live only when approved AND subscribed.
+  const comped=!!p.comped;
+  const active=comped||(p.subscription&&p.subscription.status==='active');
+  // The badge reflects the public state: live when approved AND (subscribed OR complimentary).
   let badge, note;
   if(p.status==='rejected'){badge='<span class="badge rejected">Rejected</span>';note='This submission wasn’t approved. Edit and resubmit, or contact us.';}
   else if(p.status==='pending_review'){badge='<span class="badge pending">Pending review</span>';note='We’re reviewing your submission. You’ll be able to subscribe once it’s approved.';}
+  else if(comped){badge='<span class="badge live">Live</span>';note='Complimentary listing — published for free. You have full access to its analytics.';}
   else if(p.status==='approved'&&active){badge='<span class="badge live">Live</span>';note='Your listing is published and visible to agents.';}
   else {badge='<span class="badge approved">Approved</span>';note='Approved! Subscribe ($10/month) to publish it and start getting views.';}
-  const canSub=p.status==='approved'&&!active;
+  const canSub=p.status==='approved'&&!active&&!comped;
+  const subLine=comped?'Complimentary — no charge':(active?'Subscription active':'No active subscription');
   return `<div class="prop-card">
     <div class="prop-card-top">
       <div><div class="prop-name">${esc(p.name)}</div><div class="prop-meta">${esc(p.unitType||'')}${p.tag?' · '+esc(p.tag):''}</div></div>
       ${badge}
     </div>
-    <div class="prop-sub"><span class="dot ${active?'on':'off'}"></span>${active?'Subscription active':'No active subscription'}</div>
+    <div class="prop-sub"><span class="dot ${active?'on':'off'}"></span>${subLine}</div>
     <div class="prop-status-note">${note}</div>
     ${statsStrip(p.slug)}
     <div class="prop-actions">
       ${canSub?`<button class="btn-sm primary" onclick="subscribe('${esc(p.slug)}')">Subscribe $10/mo</button>`:''}
-      ${active?`<button class="btn-sm" onclick="manageBilling()">Manage billing</button>`:''}
+      ${(active&&!comped)?`<button class="btn-sm" onclick="manageBilling()">Manage billing</button>`:''}
       <button class="btn-sm" onclick="editProperty('${esc(p.slug)}')">Edit</button>
       <button class="btn-sm danger" onclick="removeProperty('${esc(p.slug)}')">Delete</button>
     </div>

@@ -91,7 +91,7 @@ export default async function handler(req, res) {
     if (action === 'properties' && req.method === 'GET') {
       const owner = await currentOwner(req, { kvGet });
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
-      return listProperties(res, owner, { kvGet });
+      return listProperties(res, owner, { kvGet, kvSet });
     }
     if (action === 'property' && req.method === 'POST') {
       const owner = await currentOwner(req, { kvGet });
@@ -183,9 +183,11 @@ function publicOwner(o) {
 const CUSTOM_KEY = 'custom_properties';
 
 // ── Owner property CRUD ─────────────────────────────────────────────
-async function listProperties(res, owner, { kvGet }) {
-  const slugs = (await kvGet(`owner_listings:${owner.sub}`)) || [];
+async function listProperties(res, owner, { kvGet, kvSet }) {
   const customMap = (await kvGet(CUSTOM_KEY)) || {};
+  // Claim any listings an admin pre-assigned to this owner's email.
+  await claimByEmail(owner, customMap, { kvGet, kvSet });
+  const slugs = (await kvGet(`owner_listings:${owner.sub}`)) || [];
   const subs = await Promise.all(slugs.map(s => kvGet(`sub:${s}`)));
   const properties = slugs
     .map((slug, i) => {
@@ -195,11 +197,31 @@ async function listProperties(res, owner, { kvGet }) {
       return {
         ...c,
         status: c.status || 'pending_review',
+        comped: !!c.comped,
         subscription: subs[i] ? { status: subs[i].status } : null,
       };
     })
     .filter(Boolean);
   return res.status(200).json({ properties });
+}
+
+// Link listings an admin pre-assigned to owner.email (via assign-owner) to this
+// signed-in owner: set ownerSub and add to the owner_listings index. Mutates
+// customMap in place and persists if anything changed.
+async function claimByEmail(owner, customMap, { kvGet, kvSet }) {
+  if (!owner.email) return;
+  const email = owner.email.toLowerCase();
+  const toClaim = Object.keys(customMap).filter(slug => {
+    const c = customMap[slug];
+    return c && c.ownerEmail && String(c.ownerEmail).toLowerCase() === email && c.ownerSub !== owner.sub;
+  });
+  if (!toClaim.length) return;
+  for (const slug of toClaim) customMap[slug].ownerSub = owner.sub;
+  await kvSet(CUSTOM_KEY, customMap);
+  const owned = (await kvGet(`owner_listings:${owner.sub}`)) || [];
+  let changed = false;
+  for (const slug of toClaim) if (!owned.includes(slug)) { owned.push(slug); changed = true; }
+  if (changed) await kvSet(`owner_listings:${owner.sub}`, owned);
 }
 
 // Per-owner analytics, scoped to the owner's listings (propId = c_<slug>).
