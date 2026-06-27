@@ -343,12 +343,15 @@ function buildOwnerListing(slug, data, existing, ownerSub, status) {
     mapEmbed: existing?.mapEmbed || '',
     overview: cleanStr(data.overview),
     features: [...bbFeature, ...cleanLines(data.features)],
-    inclusions: cleanLines(data.inclusions),
-    yearlyInclusions: cleanLines(data.yearlyInclusions),
-    locationHighlights: cleanLines(data.locationHighlights),
+    // Fields below: take the submitted value when the form provided one,
+    // otherwise keep whatever the listing already had (so editing through a
+    // form that omits a field never silently wipes it).
+    inclusions: data.inclusions !== undefined ? cleanLines(data.inclusions) : (existing?.inclusions || []),
+    yearlyInclusions: data.yearlyInclusions !== undefined ? cleanLines(data.yearlyInclusions) : (existing?.yearlyInclusions || []),
+    locationHighlights: data.locationHighlights !== undefined ? cleanLines(data.locationHighlights) : (existing?.locationHighlights || []),
     monthly: cleanStr(data.monthly),
     yearly: cleanStr(data.yearly),
-    yearly2: cleanStr(data.yearly2),
+    yearly2: data.yearly2 !== undefined ? cleanStr(data.yearly2) : (existing?.yearly2 || ''),
     folder: extractFolderId(data.photosLink || data.folder),
     waNumber: cleanStr(data.waNumber).replace(/[^0-9]/g, ''),
     waContactName: cleanStr(data.waContactName),
@@ -356,7 +359,11 @@ function buildOwnerListing(slug, data, existing, ownerSub, status) {
     bathrooms: bath || undefined,
     bookedRanges: existing?.bookedRanges || [],
     hidden: false,
+    // Ownership + complimentary flags are never set from the edit form — always
+    // carried over so an owner edit can't strip its own free/linked status.
     ownerSub,
+    ownerEmail: existing?.ownerEmail || null,
+    comped: !!existing?.comped,
     status,
     createdAt: existing?.createdAt || Date.now(),
     updatedAt: Date.now(),

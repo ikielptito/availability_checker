@@ -172,11 +172,17 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       <div class="frow">
         <div class="fg"><label>Monthly price</label><input id="f-monthly" placeholder="e.g. 35jt"></div>
         <div class="fg"><label>Yearly price</label><input id="f-yearly" placeholder="e.g. 350jt"></div>
+        <div class="fg"><label>2-year price</label><input id="f-yearly2" placeholder="optional"></div>
       </div>
       <div class="fg"><label>Key features</label><textarea id="f-features" placeholder="One per line&#10;Private pool&#10;Fully furnished"></textarea></div>
+      <div class="fg"><label>Monthly inclusions</label><textarea id="f-inclusions" placeholder="One per line&#10;Wifi · Drinking water&#10;Housekeeping 2× weekly"></textarea></div>
+      <div class="fg"><label>Yearly inclusions</label><textarea id="f-yearlyInclusions" placeholder="One per line (leave blank if none)"></textarea></div>
+      <div class="fg"><label>Location highlights</label><textarea id="f-locationHighlights" placeholder="One per line&#10;5-min walk to the beach&#10;Cafés &amp; gym nearby"></textarea></div>
       <div class="fg"><label>Photos (Google Drive folder link)</label><input id="f-photosLink" placeholder="https://drive.google.com/drive/folders/…">
         <div class="hint">Share a Drive folder of photos (link sharing on). We pull images automatically.</div></div>
       <div class="fg"><label>Google Maps link</label><input id="f-mapLink" placeholder="https://maps.app.goo.gl/…"></div>
+      <div class="fg"><label>Availability calendar (iCal link)</label><input id="f-icalUrl" placeholder="https://…/calendar.ics">
+        <div class="hint">Optional — an Airbnb/Hostex calendar export link. Booked dates sync automatically.</div></div>
       <div class="frow">
         <div class="fg"><label>WhatsApp contact name</label><input id="f-waContactName" placeholder="e.g. Ketut"></div>
         <div class="fg"><label>WhatsApp number</label><input id="f-waNumber" placeholder="62812…"></div>
@@ -383,10 +389,15 @@ function openPropModal(slug, rec){
   document.getElementById('f-overview').value=rec.overview||'';
   document.getElementById('f-monthly').value=rec.monthly||'';
   document.getElementById('f-yearly').value=rec.yearly||'';
+  document.getElementById('f-yearly2').value=rec.yearly2||'';
   // Drop the auto-generated "X Bedrooms · Y Bathrooms" line from the editable list.
   document.getElementById('f-features').value=(rec.features||[]).filter(f=>!/Bedroom.*Bathroom/.test(f)).join('\n');
+  document.getElementById('f-inclusions').value=(rec.inclusions||[]).join('\n');
+  document.getElementById('f-yearlyInclusions').value=(rec.yearlyInclusions||[]).join('\n');
+  document.getElementById('f-locationHighlights').value=(rec.locationHighlights||[]).join('\n');
   document.getElementById('f-photosLink').value=rec.folder?('https://drive.google.com/drive/folders/'+rec.folder):'';
   document.getElementById('f-mapLink').value=rec.location||'';
+  document.getElementById('f-icalUrl').value=rec.icalUrl||'';
   document.getElementById('f-waContactName').value=rec.waContactName||'';
   document.getElementById('f-waNumber').value=rec.waNumber||'';
   document.getElementById('prop-err').textContent='';
@@ -396,12 +407,16 @@ function closePropModal(){ document.getElementById('prop-modal').classList.remov
 
 async function submitProperty(){
   const g=id=>document.getElementById('f-'+id).value;
+  const lines=id=>g(id).split('\n').map(s=>s.trim()).filter(Boolean);
   const data={
     name:g('name'), area:g('area'), unitType:g('unitType'),
     bedrooms:g('bedrooms'), bathrooms:g('bathrooms'), overview:g('overview'),
-    monthly:g('monthly'), yearly:g('yearly'),
-    features:g('features').split('\n').map(s=>s.trim()).filter(Boolean),
-    photosLink:g('photosLink'), mapLink:g('mapLink'),
+    monthly:g('monthly'), yearly:g('yearly'), yearly2:g('yearly2'),
+    features:lines('features'),
+    inclusions:lines('inclusions'),
+    yearlyInclusions:lines('yearlyInclusions'),
+    locationHighlights:lines('locationHighlights'),
+    photosLink:g('photosLink'), mapLink:g('mapLink'), icalUrl:g('icalUrl'),
     waContactName:g('waContactName'), waNumber:g('waNumber'),
   };
   if(!data.name.trim()){document.getElementById('prop-err').textContent='Property name is required.';return;}
