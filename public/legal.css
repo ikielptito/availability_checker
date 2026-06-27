@@ -1,0 +1,24 @@
+/* Shared styling for the legal pages (terms / privacy / refund). */
+:root{--bg:#0f1117;--surface:#181c27;--border:#2a2f42;--text:#e8eaf2;--muted:#9aa1bd;--accent:#4a7cf7;--yellow:#f0c060;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sora',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:15px;}
+.legal-topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;gap:14px;}
+.legal-topbar a{display:flex;flex-direction:column;line-height:1;text-decoration:none;}
+.brand-name{font-family:'Playfair Display',serif;font-weight:600;font-size:1.05rem;letter-spacing:.04em;color:var(--text);}
+.brand-sub{font-weight:500;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--yellow);margin-top:3px;}
+.legal-topbar .spacer{flex:1;}
+.legal-nav{display:flex;gap:18px;}
+.legal-nav a{font-size:.8rem;color:var(--muted);text-decoration:none;}
+.legal-nav a:hover{color:var(--text);}
+.legal-wrap{max-width:760px;margin:0 auto;padding:48px 24px 80px;}
+.legal-wrap h1{font-family:'Playfair Display',serif;font-size:2rem;margin-bottom:6px;}
+.legal-updated{color:var(--muted);font-size:.8rem;margin-bottom:34px;}
+.legal-wrap h2{font-family:'Playfair Display',serif;font-size:1.25rem;margin:34px 0 12px;}
+.legal-wrap p{margin-bottom:14px;color:#cfd4e8;}
+.legal-wrap ul{margin:0 0 14px 22px;color:#cfd4e8;}
+.legal-wrap li{margin-bottom:7px;}
+.legal-wrap a{color:var(--accent);text-decoration:none;}
+.legal-wrap a:hover{text-decoration:underline;}
+.legal-wrap strong{color:var(--text);}
+.legal-foot{border-top:1px solid var(--border);margin-top:40px;padding-top:22px;font-size:.8rem;color:var(--muted);}
+.legal-foot a{color:var(--accent);text-decoration:none;}
