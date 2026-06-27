@@ -351,12 +351,12 @@ function propCard(p){
 function statsStrip(slug){
   const s=statsBySlug[slug];
   if(!s) return '';
-  const cell=(v,l)=>`<div class="pstat"><div class="pstat-val">${v||0}</div><div class="pstat-lbl">${l}</div></div>`;
+  const cell=(v,l,t)=>`<div class="pstat" title="${t}"><div class="pstat-val">${v||0}</div><div class="pstat-lbl">${l}</div></div>`;
   return `<div class="prop-stats">
-    ${cell(s.listing_view,'Views')}
-    ${cell(s.details_open,'Details')}
-    ${cell(s.whatsapp_click,'WhatsApp')}
-    ${cell(s.share,'Shares')}
+    ${cell(s.details_open,'Agent views','Times an agent opened this villa’s details in the portal')}
+    ${cell(s.share,'Shares','Times an agent shared this villa’s link')}
+    ${cell(s.listing_view,'Link opens','Times the shared listing link was opened (e.g. by a guest)')}
+    ${cell(s.whatsapp_click,'WhatsApp','Times someone clicked the WhatsApp contact button')}
   </div>`;
 }
 
