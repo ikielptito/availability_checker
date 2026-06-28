@@ -14,20 +14,50 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
 
-/* LOGIN */
-#login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse 60% 40% at 70% 30%,rgba(74,124,247,0.08) 0%,transparent 60%),var(--bg);}
-.login-box{width:100%;max-width:380px;padding:0 20px;text-align:center;}
-.login-brand{font-family:'Playfair Display',serif;font-size:1.9rem;margin-bottom:6px;background:linear-gradient(135deg,#e8eaf2 0%,#8090c0 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.login-sub{font-size:0.72rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:14px;}
-.login-blurb{font-size:0.85rem;color:var(--muted);line-height:1.6;margin-bottom:30px;}
-#gbtn{display:flex;justify-content:center;margin-bottom:14px;min-height:44px;}
-.dev-btn{width:100%;padding:13px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:0.85rem;cursor:pointer;}
+/* LANDING (signed-out) */
+#login{min-height:100vh;}
+.lp-nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;padding:13px 28px;background:rgba(15,17,23,0.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);}
+.lp-nav .brand-mark{display:flex;flex-direction:column;line-height:1;}
+.lp-nav-name{font-family:'Playfair Display',serif;font-weight:600;font-size:1.05rem;letter-spacing:.04em;color:var(--text);}
+.lp-nav-sub{font-weight:500;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--yellow);margin-top:3px;}
+.lp-nav .spacer{flex:1;}
+.lp-cta{background:var(--accent);border:none;border-radius:8px;color:#fff;padding:9px 17px;font-family:'Sora',sans-serif;font-size:0.8rem;font-weight:500;cursor:pointer;transition:opacity .2s;white-space:nowrap;}
+.lp-cta:hover{opacity:.9;}
+.lp-hero{text-align:center;padding:74px 24px 58px;max-width:760px;margin:0 auto;background:radial-gradient(ellipse 75% 55% at 50% 0%,rgba(74,124,247,0.10) 0%,transparent 70%);}
+.lp-eyebrow{font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--yellow);margin-bottom:18px;}
+.lp-h1{font-family:'Playfair Display',serif;font-size:2.8rem;line-height:1.08;margin-bottom:20px;}
+.lp-sub{font-size:1.04rem;color:var(--muted);line-height:1.6;max-width:600px;margin:0 auto 30px;}
+#gbtn{display:flex;justify-content:center;min-height:44px;}
+.dev-btn{padding:13px 22px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:0.85rem;cursor:pointer;}
 .dev-btn:hover{border-color:var(--accent);}
-.login-err{margin-top:12px;color:var(--red);font-size:0.78rem;}
-.login-foot{margin-top:24px;font-size:0.74rem;color:var(--muted);}
-.login-foot a{color:var(--accent);text-decoration:none;}
-.login-legal{margin-top:14px;font-size:0.7rem;color:var(--muted);}
-.login-legal a{color:var(--muted);text-decoration:none;}.login-legal a:hover{color:var(--text);}
+.login-err{margin-top:12px;color:var(--red);font-size:0.78rem;min-height:1em;}
+.lp-hero-note{margin-top:14px;font-size:0.8rem;color:var(--muted);}
+.lp-trust{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:22px 24px;display:flex;flex-wrap:wrap;gap:10px 36px;justify-content:center;align-items:center;color:var(--muted);font-size:0.82rem;}
+.lp-trust b{color:var(--text);font-family:'Playfair Display',serif;font-size:1.05rem;margin-right:5px;}
+.lp-section{max-width:980px;margin:0 auto;padding:62px 24px;}
+.lp-kicker{text-align:center;font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--yellow);margin-bottom:10px;}
+.lp-h2{font-family:'Playfair Display',serif;font-size:1.9rem;text-align:center;margin-bottom:38px;}
+.lp-steps,.lp-benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+.lp-step,.lp-benefit{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;}
+.lp-step-n{width:34px;height:34px;border-radius:50%;background:rgba(74,124,247,0.15);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:600;margin-bottom:14px;}
+.lp-step h3,.lp-benefit h3{font-family:'Playfair Display',serif;font-size:1.12rem;margin-bottom:8px;}
+.lp-step p,.lp-benefit p{color:var(--muted);font-size:0.9rem;line-height:1.6;}
+.lp-benefit .ic{font-size:1.5rem;margin-bottom:10px;}
+.lp-pricing{max-width:420px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:34px 30px;text-align:center;}
+.lp-price{font-family:'Playfair Display',serif;font-size:3rem;line-height:1;}
+.lp-price span{font-size:1rem;color:var(--muted);font-family:'Sora',sans-serif;}
+.lp-price-sub{color:var(--muted);font-size:0.85rem;margin:8px 0 22px;}
+.lp-price-list{text-align:left;display:flex;flex-direction:column;gap:11px;margin-bottom:26px;}
+.lp-price-list div{display:flex;gap:10px;font-size:0.9rem;color:#cfd4e8;}
+.lp-price-list .ck{color:var(--green);font-weight:700;}
+.lp-faq{max-width:740px;}
+.lp-qa{border-bottom:1px solid var(--border);padding:18px 0;}
+.lp-qa h3{font-size:0.98rem;margin-bottom:8px;}
+.lp-qa p{color:var(--muted);font-size:0.9rem;line-height:1.6;}
+.lp-cta-band{text-align:center;padding:54px 24px;background:radial-gradient(ellipse 60% 70% at 50% 50%,rgba(74,124,247,0.10),transparent 70%);}
+.lp-footer{border-top:1px solid var(--border);padding:28px 24px;text-align:center;color:var(--muted);font-size:0.8rem;line-height:1.9;}
+.lp-footer a{color:var(--accent);text-decoration:none;}.lp-footer a:hover{text-decoration:underline;}
+@media(max-width:760px){.lp-h1{font-size:2.05rem;}.lp-steps,.lp-benefits{grid-template-columns:1fr;}.lp-section{padding:46px 20px;}.lp-nav{padding:12px 18px;}}
 .portal-foot{margin-top:44px;padding-top:20px;border-top:1px solid var(--border);font-size:0.74rem;color:var(--muted);text-align:center;}
 .portal-foot a{color:var(--muted);text-decoration:none;}.portal-foot a:hover{color:var(--text);}
 
@@ -105,17 +135,88 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 </head>
 <body>
 
-<!-- LOGIN -->
+<!-- LANDING (signed-out) -->
 <div id="login">
-  <div class="login-box">
-    <div class="login-brand">Samba Rentals</div>
-    <div class="login-sub">Owner Portal</div>
-    <p class="login-blurb">List your villa, track how agents engage with it, and manage your subscription — all in one place.</p>
+  <nav class="lp-nav">
+    <div class="brand-mark">
+      <span class="lp-nav-name">Samba Rentals</span>
+      <span class="lp-nav-sub">For Villa Owners</span>
+    </div>
+    <div class="spacer"></div>
+    <button class="lp-cta" onclick="scrollToSignIn()">List your villa</button>
+  </nav>
+
+  <header class="lp-hero">
+    <div class="lp-eyebrow">Bali Villa Owners &amp; Managers</div>
+    <h1 class="lp-h1">Get your villa in front of 250+ Bali rental agents.</h1>
+    <p class="lp-sub">Samba Rentals lists your property to the network of agents placing long-term tenants across Canggu, Pererenan, and beyond — and shows you exactly how much interest it's getting. $10/month per villa. Cancel anytime.</p>
     <div id="gbtn"></div>
     <div class="login-err" id="login-err"></div>
-    <div class="login-foot">Not an owner yet? <a href="/list-property">Submit a property →</a></div>
-    <div class="login-legal"><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refund">Refunds</a></div>
+    <div class="lp-hero-note">Sign in with Google to list your first villa in minutes.</div>
+  </header>
+
+  <div class="lp-trust">
+    <span><b>250+</b>rental agents</span>
+    <span><b>Canggu · Pererenan · Bali</b></span>
+    <span><b>$10</b>/ month per villa</span>
   </div>
+
+  <section class="lp-section">
+    <div class="lp-kicker">How it works</div>
+    <h2 class="lp-h2">Listed in three steps</h2>
+    <div class="lp-steps">
+      <div class="lp-step"><div class="lp-step-n">1</div><h3>Submit your villa</h3><p>Sign in with Google and add your property — photos, pricing, and the essentials. It only takes a few minutes.</p></div>
+      <div class="lp-step"><div class="lp-step-n">2</div><h3>We review &amp; publish</h3><p>Our team checks your listing over and publishes it to our network of 250+ rental agents across Bali.</p></div>
+      <div class="lp-step"><div class="lp-step-n">3</div><h3>Track the interest</h3><p>Watch agents view, share, and enquire about your villa — with live analytics in your portal.</p></div>
+    </div>
+  </section>
+
+  <section class="lp-section">
+    <div class="lp-kicker">Why Samba</div>
+    <h2 class="lp-h2">Real distribution, real numbers</h2>
+    <div class="lp-benefits">
+      <div class="lp-benefit"><div class="ic">📣</div><h3>A real agent network</h3><p>Your villa reaches 250+ active rental agents working across Bali — not a passive listings board nobody checks.</p></div>
+      <div class="lp-benefit"><div class="ic">📊</div><h3>Know your demand</h3><p>Per-villa analytics show how many agents viewed, shared, and messaged about your property each week.</p></div>
+      <div class="lp-benefit"><div class="ic">🪶</div><h3>Flat, fair, flexible</h3><p>Just $10/month per villa. Edit your listing anytime, list as many villas as you like, and cancel whenever.</p></div>
+    </div>
+  </section>
+
+  <section class="lp-section">
+    <div class="lp-kicker">Pricing</div>
+    <h2 class="lp-h2">Simple, per-villa pricing</h2>
+    <div class="lp-pricing">
+      <div class="lp-price">$10<span> / month</span></div>
+      <div class="lp-price-sub">per listed villa</div>
+      <div class="lp-price-list">
+        <div><span class="ck">✓</span> Listed to 250+ Bali rental agents</div>
+        <div><span class="ck">✓</span> Live per-villa analytics</div>
+        <div><span class="ck">✓</span> Edit your listing anytime</div>
+        <div><span class="ck">✓</span> Cancel anytime — no lock-in</div>
+      </div>
+      <button class="lp-cta" style="width:100%;padding:13px" onclick="scrollToSignIn()">List your villa</button>
+    </div>
+  </section>
+
+  <section class="lp-section lp-faq">
+    <div class="lp-kicker">FAQ</div>
+    <h2 class="lp-h2">Questions, answered</h2>
+    <div class="lp-qa"><h3>Who are the agents?</h3><p>A network of 250+ independent rental agents working across Bali to place long-term tenants in villas like yours.</p></div>
+    <div class="lp-qa"><h3>How do bookings happen?</h3><p>When an agent has an interested tenant, they reach out to you directly using the contact details on your listing. You stay in control of every deal.</p></div>
+    <div class="lp-qa"><h3>How does billing work?</h3><p>$10/month per villa, charged securely through Paddle. Cancel anytime from your portal — your listing stays live until the end of the period you've paid for.</p></div>
+    <div class="lp-qa"><h3>Can I list more than one villa?</h3><p>Yes. Each villa is its own listing at $10/month. Add as many as you like from your portal.</p></div>
+    <div class="lp-qa"><h3>What does a good listing need?</h3><p>A clear name, a short description, your pricing, and a link to your photos. The clearer the listing, the more agent interest it tends to get.</p></div>
+  </section>
+
+  <section class="lp-cta-band">
+    <h2 class="lp-h2" style="margin-bottom:20px">Ready to get your villa seen?</h2>
+    <button class="lp-cta" style="padding:13px 26px;font-size:0.9rem" onclick="scrollToSignIn()">List your villa</button>
+  </section>
+
+  <footer class="lp-footer">
+    <div>Not ready to sign up? <a href="/list-property">Submit a property via WhatsApp →</a></div>
+    <div><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refund">Refunds</a></div>
+    <div>© 2026 Samba Rentals · Bali, Indonesia</div>
+  </footer>
 </div>
 
 <!-- APP -->
@@ -223,6 +324,7 @@ async function pollProperties(){
 }
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600);}
+function scrollToSignIn(){const g=document.getElementById('gbtn');if(g)g.scrollIntoView({behavior:'smooth',block:'center'});}
 function loginErr(msg){document.getElementById('login-err').textContent=msg||'';}
 
 async function api(path, opts={}){
