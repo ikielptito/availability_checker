@@ -1,6 +1,6 @@
 {
-  "name": "Samba Rentals — Agent Portal",
-  "short_name": "Samba Agent",
+  "name": "Samba — Agent Portal",
+  "short_name": "Samba",
   "description": "Photos, real-time availability, pricing, share links, and visit scheduling — every Samba listing in one place.",
   "start_url": "/?source=pwa",
   "scope": "/",
