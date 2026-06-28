@@ -101,12 +101,7 @@ async function webhook(req, res, { kvGet, kvSet }) {
   if (req.body != null) candidates.push(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
 
   const raw = candidates.find(c => verifyPaddleSignature(c, sig, secret));
-  if (!raw) return res.status(401).json({ error: 'Invalid signature', _debug: {
-    hasRawBody: typeof req.rawBody === 'string',
-    bodyType: req.body === undefined ? 'undefined' : (Buffer.isBuffer(req.body) ? 'buffer' : typeof req.body),
-    candidateLens: candidates.map(c => c.length),
-    sigPresent: !!sig,
-  } });
+  if (!raw) return res.status(401).json({ error: 'Invalid signature' });
 
   let evt;
   try { evt = JSON.parse(raw); } catch { return res.status(400).json({ error: 'Bad JSON' }); }
