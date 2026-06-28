@@ -219,7 +219,7 @@ const server = http.createServer(async (req, res) => {
       return void await handlers['listing-page'].default(fakeReq, shimRes(res));
     }
     let file;
-    const CLEAN = { '/admin':'admin.html', '/portal':'portal.html', '/terms':'terms.html', '/privacy':'privacy.html', '/refund':'refund.html' };
+    const CLEAN = { '/admin':'admin.html', '/portal':'portal.html', '/home':'home.html', '/list-property':'list-property.html', '/terms':'terms.html', '/privacy':'privacy.html', '/refund':'refund.html' };
     if (CLEAN[u.pathname]) file = CLEAN[u.pathname];
     else {
       const candidate = u.pathname.replace(/^\//, '');

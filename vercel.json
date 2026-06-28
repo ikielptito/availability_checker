@@ -5,6 +5,7 @@
     { "source": "/api/photos", "destination": "/api/media?source=hostex-photos" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/home", "destination": "/home.html" },
     { "source": "/list-property", "destination": "/list-property.html" },
     { "source": "/portal", "destination": "/portal.html" },
     { "source": "/terms", "destination": "/terms.html" },
