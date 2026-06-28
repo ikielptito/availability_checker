@@ -142,7 +142,8 @@ tr:hover td{background:var(--surface2);}
 <div id="login">
   <div class="login-box">
     <div class="login-brand">Analytics</div>
-    <div class="login-sub">Samba Rentals · Owner Dashboard</div>
+    <img src="/logo-samba.png" alt="Samba" style="height:36px;margin-bottom:8px">
+    <div class="login-sub">Owner Dashboard</div>
     <label class="login-label">Password</label>
     <input class="login-input" id="pwd" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" />
     <button class="login-btn" onclick="doLogin()">Access Dashboard</button>
@@ -153,10 +154,9 @@ tr:hover td{background:var(--surface2);}
 <!-- APP -->
 <div id="app">
   <div class="topbar">
-    <div class="brand-mark" aria-label="Samba Rentals Agent Portal — Analytics">
-      <span class="brand-mark-name">Samba Rentals</span>
-      <span class="brand-mark-sub">Analytics</span>
-    </div>
+    <a class="brand-mark" aria-label="Samba" style="text-decoration:none">
+      <img src="/logo-samba.png" alt="Samba" style="height:28px">
+    </a>
     <div class="spacer"></div>
     <div class="period-btns">
       <button class="period-btn" onclick="setPeriod('today',this)">Today</button>
