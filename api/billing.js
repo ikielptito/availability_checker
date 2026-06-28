@@ -88,11 +88,20 @@ async function webhook(req, res, { kvGet, kvSet }) {
   const secret = process.env.PADDLE_WEBHOOK_SECRET;
   if (!secret) return res.status(500).json({ error: 'PADDLE_WEBHOOK_SECRET not configured' });
 
-  const raw = req.rawBody != null ? req.rawBody : await getRawBody(req);
   const sig = req.headers['paddle-signature'] || '';
-  if (!verifyPaddleSignature(raw, sig, secret)) {
-    return res.status(401).json({ error: 'Invalid signature' });
-  }
+
+  // Collect candidate raw-body representations. Vercel's Node runtime often
+  // pre-parses the JSON body (consuming the stream), so the live-stream read
+  // can come back empty — in that case fall back to re-serializing the parsed
+  // body. Paddle sends compact JSON, which round-trips byte-for-byte through
+  // JSON.parse → JSON.stringify, so the HMAC still matches.
+  const candidates = [];
+  if (typeof req.rawBody === 'string') candidates.push(req.rawBody);
+  try { const sb = await getRawBody(req); if (sb) candidates.push(sb); } catch { /* not a stream */ }
+  if (req.body != null) candidates.push(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+
+  const raw = candidates.find(c => verifyPaddleSignature(c, sig, secret));
+  if (!raw) return res.status(401).json({ error: 'Invalid signature' });
 
   let evt;
   try { evt = JSON.parse(raw); } catch { return res.status(400).json({ error: 'Bad JSON' }); }
