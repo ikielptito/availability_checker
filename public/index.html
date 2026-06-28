@@ -47,17 +47,11 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .error-title{font-family:'Inter',sans-serif;font-size:1.6rem;font-weight:700;letter-spacing:-.02em;color:var(--text)}
 .error-msg{color:var(--text-2);font-size:.9rem;max-width:380px;line-height:1.7}
 #app{display:none}#app.on{display:block}
-.topbar{position:sticky;top:0;z-index:100;background:rgba(250,248,244,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:14px}
-.topbar-brand{font-family:'Inter',sans-serif;font-size:1.5rem;font-weight:700;color:var(--text);letter-spacing:-.025em;white-space:nowrap}
-
-/* Text wordmark for the nav — full logo lockup lives on OG/home-screen/welcome
-   surfaces only; here we need something that stays legible at 36–48px tall and
-   reads cleanly next to UI controls. Two-line stacked treatment in the brand
-   serif keeps the family identity without trying to cram the marketing
-   wordmark into a daily-use shell. */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(250,248,244,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;gap:18px}
 .brand-mark{display:flex;align-items:center;flex-shrink:0;text-decoration:none}
-.brand-mark img{height:72px}
-@media(max-width:600px){.brand-mark img{height:44px}}
+.brand-mark img{height:140px}
+.topbar-title{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:600;color:var(--text);white-space:nowrap;border-left:1px solid var(--border);padding-left:18px}
+@media(max-width:600px){.brand-mark img{height:56px}.topbar-title{font-size:.95rem;padding-left:12px}}
 @media(max-width:560px){.topbar-count,.live-pill{display:none}}
 
 /* Install-to-home-screen prompt */
@@ -254,6 +248,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
     <a class="brand-mark" href="/" aria-label="Samba">
       <img src="/logo-samba.png" alt="Samba">
     </a>
+    <span class="topbar-title">Agent Portal</span>
     <span class="topbar-count" id="prop-count"></span>
     <div class="spacer"></div>
     <div class="search-wrap">
