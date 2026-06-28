@@ -28,11 +28,10 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 
 /* APP */
 #app{display:none;}
-.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;gap:16px;}
-.topbar-brand{font-family:'Playfair Display',serif;font-size:1rem;color:var(--text);}
-.brand-mark{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;line-height:1;flex-shrink:0}
-.brand-mark-name{font-family:'Playfair Display',serif;font-weight:600;font-size:1.05rem;letter-spacing:.04em;color:var(--text);white-space:nowrap}
-.brand-mark-sub{font-family:'Sora',sans-serif;font-weight:500;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--yellow);margin-top:3px;white-space:nowrap}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 28px;display:flex;align-items:center;gap:16px;}
+.brand-mark{display:flex;align-items:center;flex-shrink:0;text-decoration:none}
+.brand-mark img{height:72px}
+@media(max-width:600px){.topbar{padding:8px 16px}.brand-mark img{height:44px}}
 .spacer{flex:1;}
 .period-btns{display:flex;gap:4px;}
 .period-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:5px 12px;font-family:'Sora',sans-serif;font-size:0.72rem;cursor:pointer;transition:all 0.2s;}
@@ -142,8 +141,7 @@ tr:hover td{background:var(--surface2);}
 <div id="login">
   <div class="login-box">
     <div class="login-brand">Analytics</div>
-    <img src="/logo-samba.png" alt="Samba" style="height:96px;margin-bottom:4px">
-    <div class="login-sub" style="margin-bottom:8px">Connecting Owners &amp; Agents</div>
+    <img src="/logo-samba.png" alt="Samba" style="height:96px;margin-bottom:8px">
     <div class="login-sub">Owner Dashboard</div>
     <label class="login-label">Password</label>
     <input class="login-input" id="pwd" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" />
@@ -155,9 +153,8 @@ tr:hover td{background:var(--surface2);}
 <!-- APP -->
 <div id="app">
   <div class="topbar">
-    <a class="brand-mark" aria-label="Samba" style="text-decoration:none;display:flex;flex-direction:column;align-items:flex-start">
-      <img src="/logo-samba.png" alt="Samba" style="height:72px">
-      <span style="font-family:'Sora',sans-serif;font-size:.65rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:3px">Connecting Owners &amp; Agents</span>
+    <a class="brand-mark" aria-label="Samba">
+      <img src="/logo-samba.png" alt="Samba">
     </a>
     <div class="spacer"></div>
     <div class="period-btns">

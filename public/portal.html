@@ -65,9 +65,8 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 /* APP */
 #app{display:none;}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;gap:14px;}
-.brand-mark{display:flex;flex-direction:column;line-height:1;}
-.brand-mark-name{font-family:'Playfair Display',serif;font-weight:600;font-size:1.05rem;letter-spacing:.04em;color:var(--text);}
-.brand-mark-sub{font-weight:500;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--yellow);margin-top:3px;}
+.brand-mark{display:flex;align-items:center;flex-shrink:0;}
+.brand-mark img{height:72px;}
 .spacer{flex:1;}
 .owner-chip{display:flex;align-items:center;gap:9px;}
 .owner-avatar{width:30px;height:30px;border-radius:50%;background:var(--surface2);object-fit:cover;border:1px solid var(--border);}
@@ -76,7 +75,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .logout-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:6px 13px;font-family:'Sora',sans-serif;font-size:0.72rem;cursor:pointer;}
 .logout-btn:hover{color:var(--text);}
 .content{padding:28px;max-width:1100px;margin:0 auto;}
-@media(max-width:640px){.content{padding:16px;}.topbar{padding:0 16px;}.owner-email{display:none;}}
+@media(max-width:640px){.content{padding:16px;}.topbar{padding:8px 16px;}.owner-email{display:none;}.brand-mark img{height:44px;}}
 .section-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
 .section-title{font-family:'Playfair Display',serif;font-size:1.4rem;}
 .add-btn{background:var(--accent);border:1px solid var(--accent);border-radius:8px;color:#fff;padding:8px 16px;font-family:'Sora',sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;}
@@ -139,9 +138,8 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 <!-- LANDING (signed-out) -->
 <div id="login">
   <nav class="lp-nav">
-    <div class="brand-mark" style="display:flex;flex-direction:column;align-items:flex-start">
-      <img src="/logo-samba.png" alt="Samba" style="height:72px">
-      <span style="font-family:'Sora',sans-serif;font-size:.65rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:3px">Connecting Owners &amp; Agents</span>
+    <div class="brand-mark">
+      <img src="/logo-samba.png" alt="Samba">
     </div>
     <div class="spacer"></div>
     <button class="lp-cta" onclick="scrollToSignIn()">List your villa</button>
@@ -223,9 +221,8 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 <!-- APP -->
 <div id="app">
   <div class="topbar">
-    <div class="brand-mark" style="display:flex;flex-direction:column;align-items:flex-start">
-      <img src="/logo-samba.png" alt="Samba" style="height:72px">
-      <span style="font-family:'Sora',sans-serif;font-size:.65rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:3px">Connecting Owners &amp; Agents</span>
+    <div class="brand-mark">
+      <img src="/logo-samba.png" alt="Samba">
     </div>
     <div class="spacer"></div>
     <div class="owner-chip">

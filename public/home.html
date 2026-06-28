@@ -51,21 +51,21 @@ body {
 .nav {
   position: sticky; top: 0; z-index: 100;
   display: flex; align-items: center; gap: 14px;
-  padding: 0 32px; height: 56px;
+  padding: 10px 32px;
   background: rgba(250,248,244,.92);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
 }
-.nav-brand { display: flex; flex-direction: column; line-height: 1; text-decoration: none; }
-.nav-brand-name { font-family: 'Playfair Display', serif; font-weight: 600; font-size: 1.15rem; letter-spacing: .04em; color: var(--text); }
-.nav-brand-sub { font-size: .58rem; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); margin-top: 3px; }
+.nav-brand { display: flex; align-items: center; text-decoration: none; }
+.nav-brand img { height: 72px; }
 .nav-spacer { flex: 1; }
 .nav-link { font-size: .82rem; font-weight: 500; color: var(--text-2); text-decoration: none; padding: 8px 14px; border-radius: 8px; transition: background .15s; }
 .nav-link:hover { background: var(--surface2); }
 .nav-cta { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-family: 'Sora', sans-serif; font-size: .82rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: background .15s; }
 .nav-cta:hover { background: var(--primary-2); }
 @media (max-width: 600px) {
-  .nav { padding: 0 16px; }
+  .nav { padding: 8px 16px; }
+  .nav-brand img { height: 44px; }
   .nav-link.hide-mobile { display: none; }
 }
 
@@ -285,9 +285,8 @@ body {
 
 <!-- ── NAV ── -->
 <nav class="nav">
-  <a class="nav-brand" href="/home" style="text-decoration:none;display:flex;flex-direction:column;align-items:flex-start">
-    <img src="/logo-samba.png" alt="Samba" style="height:72px">
-    <span style="font-family:'Sora',sans-serif;font-size:.65rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:3px">Connecting Owners &amp; Agents</span>
+  <a class="nav-brand" href="/home">
+    <img src="/logo-samba.png" alt="Samba">
   </a>
   <div class="nav-spacer"></div>
   <a class="nav-link hide-mobile" href="/">Agent Portal</a>
