@@ -241,8 +241,9 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 </head>
 <body>
 <div id="loading-screen">
-  <img src="/logo-samba.png" alt="Samba" style="height:40px">
-  <div class="loading-sub">Loading properties…</div>
+  <img src="/logo-samba.png" alt="Samba" style="height:56px">
+  <div class="loading-sub" style="margin-top:4px">Connecting Owners & Agents</div>
+  <div class="loading-sub" style="margin-top:12px">Loading properties…</div>
   <div class="loading-spinner"></div>
 </div>
 <div class="error-screen" id="error-screen">
@@ -252,8 +253,9 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 </div>
 <div id="app">
   <div class="topbar">
-    <a class="brand-mark" href="/" aria-label="Samba" style="text-decoration:none">
-      <img src="/logo-samba.png" alt="Samba" style="height:30px">
+    <a class="brand-mark" href="/" aria-label="Samba" style="text-decoration:none;display:flex;flex-direction:column;align-items:flex-start">
+      <img src="/logo-samba.png" alt="Samba" style="height:40px">
+      <span class="brand-mark-sub" style="font-family:'Sora',sans-serif;font-size:.52rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--subtle);margin-top:2px">Connecting Owners &amp; Agents</span>
     </a>
     <span class="topbar-count" id="prop-count"></span>
     <div class="spacer"></div>
