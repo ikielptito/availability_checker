@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     });
     const agents = await r.json();
     if (Array.isArray(agents)) {
-      results.agents = agents.filter(a => !a.is_test && a.whatsapp).length;
+      results.agents = agents.filter(a => !a.is_test && a.wa_num).length;
     }
   } catch {}
 
