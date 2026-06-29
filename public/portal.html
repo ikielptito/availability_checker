@@ -430,11 +430,11 @@ function propCard(p){
   const active=comped||(p.subscription&&p.subscription.status==='active');
   // The badge reflects the public state: live when approved AND (subscribed OR complimentary).
   let badge, note;
-  if(p.status===’rejected’){badge=’<span class="badge rejected">Rejected</span>’;note=’This submission was not approved. Edit and resubmit, or contact us.’;}
-  else if(p.status===’pending_review’){badge=’<span class="badge pending">Pending review</span>’;note=’We are reviewing your submission. Your listing will go live once approved.’;}
-  else if(comped){badge=’<span class="badge live">Live</span>’;note=’Complimentary listing — published for free. You have full access to its analytics.’;}
-  else if(p.status===’approved’&&active){badge=’<span class="badge live">Live</span>’;note=’Your listing is published and visible to agents.’;}
-  else {badge=’<span class="badge approved">Approved</span>’;note=’Approved! Subscribe below to publish it and start getting views.’;}
+  if(p.status==='rejected'){badge='<span class="badge rejected">Rejected</span>';note='This submission was not approved. Edit and resubmit, or contact us.';}
+  else if(p.status==='pending_review'){badge='<span class="badge pending">Pending review</span>';note='We are reviewing your submission. Your listing will go live once approved.';}
+  else if(comped){badge='<span class="badge live">Live</span>';note='Complimentary listing — published for free. You have full access to its analytics.';}
+  else if(p.status==='approved'&&active){badge='<span class="badge live">Live</span>';note='Your listing is published and visible to agents.';}
+  else {badge='<span class="badge approved">Approved</span>';note='Approved! Subscribe below to publish it and start getting views.';}
   const canSub=p.status==='approved'&&!active&&!comped;
   const subLine=comped?'Complimentary — no charge':(active?'Subscription active':'No active subscription');
   return `<div class="prop-card">
@@ -459,8 +459,8 @@ function statsStrip(slug){
   if(!s) return '';
   const cell=(v,l,t)=>`<div class="pstat" title="${t}"><div class="pstat-val">${v||0}</div><div class="pstat-lbl">${l}</div></div>`;
   return `<div class="prop-stats">
-    ${cell(s.details_open,’Agent views’,’Times an agent opened this villa in the portal’)}
-    ${cell(s.share,’Shares’,’Times an agent shared this villa’)}
+    ${cell(s.details_open,'Agent views','Times an agent opened this villa in the portal')}
+    ${cell(s.share,'Shares','Times an agent shared this villa')}
     ${cell(s.listing_view,'Link opens','Times the shared listing link was opened (e.g. by a guest)')}
     ${cell(s.whatsapp_click,'WhatsApp','Times someone clicked the WhatsApp contact button')}
   </div>`;
@@ -541,7 +541,7 @@ async function removeProperty(slug){
 
 async function subscribe(slug){
   await loadConfig();
-  if(!appConfig.paddleClientToken||!appConfig.paddlePriceId){ showToast(‘Billing is not set up yet — check back soon.’); return; }
+  if(!appConfig.paddleClientToken||!appConfig.paddlePriceId){ showToast('Billing is not set up yet — check back soon.'); return; }
   initPaddle();
   if(!window.Paddle||!paddleReady){ showToast('Payment system still loading — try again in a moment.'); return; }
   Paddle.Checkout.open({
