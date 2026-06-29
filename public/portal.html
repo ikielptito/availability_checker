@@ -22,6 +22,9 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .lp-nav-name{font-family:'Playfair Display',serif;font-weight:600;font-size:1.05rem;letter-spacing:.04em;color:var(--text);}
 .lp-nav-sub{font-weight:500;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--yellow);margin-top:3px;}
 .lp-nav .spacer{flex:1;}
+.lp-nav .brand-mark{text-decoration:none;cursor:pointer;}
+.lp-navlink{font-size:0.82rem;font-weight:500;color:var(--text-2);text-decoration:none;padding:8px 13px;border-radius:8px;transition:background .15s;}
+.lp-navlink:hover{background:var(--surface2);}
 .lp-cta{background:var(--accent);border:none;border-radius:8px;color:#fff;padding:9px 17px;font-family:'Sora',sans-serif;font-size:0.8rem;font-weight:500;cursor:pointer;transition:opacity .2s;white-space:nowrap;}
 .lp-cta:hover{opacity:.9;}
 .lp-hero{text-align:center;padding:74px 24px 58px;max-width:760px;margin:0 auto;background:radial-gradient(ellipse 75% 55% at 50% 0%,rgba(194,106,74,0.08) 0%,transparent 70%);}
@@ -58,14 +61,14 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .lp-cta-band{text-align:center;padding:54px 24px;background:radial-gradient(ellipse 60% 70% at 50% 50%,rgba(194,106,74,0.08),transparent 70%);}
 .lp-footer{border-top:1px solid var(--border);padding:28px 24px;text-align:center;color:var(--muted);font-size:0.8rem;line-height:1.9;}
 .lp-footer a{color:var(--accent);text-decoration:none;}.lp-footer a:hover{text-decoration:underline;}
-@media(max-width:760px){.lp-h1{font-size:2.05rem;}.lp-steps,.lp-benefits{grid-template-columns:1fr;}.lp-section{padding:46px 20px;}.lp-nav{padding:12px 18px;}}
+@media(max-width:760px){.lp-h1{font-size:2.05rem;}.lp-steps,.lp-benefits{grid-template-columns:1fr;}.lp-section{padding:46px 20px;}.lp-nav{padding:12px 18px;}.hide-mobile{display:none;}}
 .portal-foot{margin-top:44px;padding-top:20px;border-top:1px solid var(--border);font-size:0.74rem;color:var(--muted);text-align:center;}
 .portal-foot a{color:var(--muted);text-decoration:none;}.portal-foot a:hover{color:var(--text);}
 
 /* APP */
 #app{display:none;}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;gap:14px;}
-.brand-mark{display:flex;align-items:center;flex-shrink:0;}
+.brand-mark{display:flex;align-items:center;flex-shrink:0;text-decoration:none;}
 .brand-mark img{height:80px;}
 .spacer{flex:1;}
 .owner-chip{display:flex;align-items:center;gap:9px;}
@@ -138,10 +141,12 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 <!-- LANDING (signed-out) -->
 <div id="login">
   <nav class="lp-nav">
-    <div class="brand-mark">
+    <a class="brand-mark" href="/home" aria-label="Samba home">
       <img src="/logo-samba.png" alt="Samba">
-    </div>
+    </a>
     <div class="spacer"></div>
+    <a class="lp-navlink" href="/home">Home</a>
+    <a class="lp-navlink hide-mobile" href="/">Agent portal</a>
     <button class="lp-cta" onclick="scrollToSignIn()">List your villa</button>
   </nav>
 
@@ -221,9 +226,9 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 <!-- APP -->
 <div id="app">
   <div class="topbar">
-    <div class="brand-mark">
+    <a class="brand-mark" href="/home" aria-label="Samba home">
       <img src="/logo-samba.png" alt="Samba">
-    </div>
+    </a>
     <div class="spacer"></div>
     <div class="owner-chip">
       <img class="owner-avatar" id="owner-avatar" alt="">
