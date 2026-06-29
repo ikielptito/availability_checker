@@ -112,6 +112,9 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .fg .hint{font-size:0.66rem;color:var(--muted);text-transform:none;letter-spacing:0;margin-top:5px;}
 .modal-actions{padding:14px 24px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border);}
 .modal-err{color:var(--red);font-size:0.78rem;padding:0 24px;}
+.checkout-price{font-family:'Playfair Display',serif;font-size:2rem;line-height:1;}
+.checkout-price span{font-size:0.9rem;color:var(--muted);font-family:'Sora',sans-serif;}
+.checkout-blurb{color:var(--muted);font-size:0.85rem;line-height:1.55;margin-top:-4px;}
 
 /* TOAST */
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:11px 20px;border-radius:10px;font-size:0.82rem;opacity:0;transition:all .25s;z-index:300;}
@@ -235,6 +238,28 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
   </div>
 </div>
 
+<div class="modal-overlay" id="checkout-modal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-head">
+      <div class="modal-title">List your villa</div>
+    </div>
+    <div class="modal-body">
+      <div class="checkout-price">$10 <span>/ month per villa</span></div>
+      <p class="checkout-blurb">Your listing goes live to 250+ Bali rental agents the moment payment is confirmed. Cancel anytime.</p>
+      <div class="fg">
+        <label>Promo code <span style="text-transform:none;letter-spacing:0;color:var(--subtle)">(optional)</span></label>
+        <input id="f-promo" placeholder="e.g. FREEMONTH" autocomplete="off" spellcheck="false" style="text-transform:uppercase">
+        <div class="hint">Have a code? Enter it and we'll apply it at checkout.</div>
+      </div>
+    </div>
+    <div class="modal-err" id="checkout-err"></div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeCheckout()">Cancel</button>
+      <button class="btn-sm primary" id="checkout-go" onclick="goToPayment()">Continue to payment</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script src="https://accounts.google.com/gsi/client" async></script>
@@ -252,7 +277,7 @@ function initPaddle(){
     Paddle.Environment.set(appConfig.paddleEnv==='production'?'production':'sandbox');
     Paddle.Setup({ token: appConfig.paddleClientToken, eventCallback: onPaddleEvent });
     paddleReady=true;
-  }catch(e){ /* misconfigured token — subscribe() will surface it */ }
+  }catch(e){ /* misconfigured token — goToPayment() will surface it */ }
 }
 function onPaddleEvent(ev){
   if(ev?.name==='checkout.completed'){ showToast('Payment received — activating your listing…'); pollProperties(); }
@@ -386,7 +411,7 @@ function propCard(p){
     <div class="prop-status-note">${note}</div>
     ${statsStrip(p.slug)}
     <div class="prop-actions">
-      ${canSub?`<button class="btn-sm primary" onclick="subscribe('${esc(p.slug)}')">Subscribe $10/mo</button>`:''}
+      ${canSub?`<button class="btn-sm primary" onclick="openCheckout('${esc(p.slug)}')">Subscribe $10/mo</button>`:''}
       ${(active&&!comped)?`<button class="btn-sm" onclick="manageBilling()">Manage billing</button>`:''}
       <button class="btn-sm" onclick="editProperty('${esc(p.slug)}')">Edit</button>
       <button class="btn-sm danger" onclick="removeProperty('${esc(p.slug)}')">Delete</button>
@@ -467,9 +492,9 @@ async function submitProperty(){
   const wasNew=!editingSlug;
   const newSlug=r.body?.slug||editingSlug||'';
   closePropModal();
-  showToast(wasNew?'Submitted — opening payment…':'Saved.');
+  showToast(wasNew?'Submitted — almost there.':'Saved.');
   await loadProperties();
-  if(wasNew && newSlug) subscribe(newSlug);
+  if(wasNew && newSlug) openCheckout(newSlug);
 }
 
 async function removeProperty(slug){
@@ -479,17 +504,40 @@ async function removeProperty(slug){
   showToast('Deleted.');loadProperties();
 }
 
-async function subscribe(slug){
+// ── Checkout: confirm price + optional promo code, then open Paddle ──
+let checkoutSlug=null;
+function openCheckout(slug){
+  checkoutSlug=slug;
+  document.getElementById('f-promo').value='';
+  document.getElementById('checkout-err').textContent='';
+  const btn=document.getElementById('checkout-go');btn.disabled=false;btn.textContent='Continue to payment';
+  document.getElementById('checkout-modal').classList.add('open');
+}
+function closeCheckout(){ document.getElementById('checkout-modal').classList.remove('open'); }
+
+async function goToPayment(){
+  const slug=checkoutSlug;
+  const promo=document.getElementById('f-promo').value.trim().toUpperCase();
   await loadConfig();
-  if(!appConfig.paddleClientToken||!appConfig.paddlePriceId){ showToast('Billing is not set up yet — check back soon.'); return; }
+  if(!appConfig.paddleClientToken||!appConfig.paddlePriceId){ document.getElementById('checkout-err').textContent='Billing is not set up yet — check back soon.'; return; }
   initPaddle();
-  if(!window.Paddle||!paddleReady){ showToast('Payment system still loading — try again in a moment.'); return; }
-  Paddle.Checkout.open({
+  if(!window.Paddle||!paddleReady){ document.getElementById('checkout-err').textContent='Payment system still loading — try again in a moment.'; return; }
+  closeCheckout();
+  launchPaddle(slug, promo);
+}
+
+function launchPaddle(slug, promo){
+  const opts={
     items:[{ priceId: appConfig.paddlePriceId, quantity:1 }],
     customData:{ ownerSub: currentOwnerData?.sub||'', slug },
     customer: currentOwnerData?.email ? { email: currentOwnerData.email } : undefined,
-    settings:{ displayMode:'overlay', theme:'dark', successUrl: location.origin+'/portal' }
-  });
+    // Keep Paddle's own discount field available as a fallback inside the overlay.
+    settings:{ displayMode:'overlay', theme:'dark', successUrl: location.origin+'/portal', showAddDiscounts:true, allowDiscountRemoval:true }
+  };
+  // Pre-apply a promo code so the discounted price shows immediately. Paddle
+  // validates it; an invalid code surfaces in the overlay, not here.
+  if(promo) opts.discountCode=promo;
+  Paddle.Checkout.open(opts);
 }
 
 async function manageBilling(){
