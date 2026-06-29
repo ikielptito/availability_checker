@@ -400,7 +400,7 @@ async function loadProperties(){
   const r=await api('?action=properties');
   myProps=r.body?.properties||[];
   if(!myProps.length){
-    el.innerHTML='<div class="empty-card"><h3>No properties yet</h3><p>Add your first property to get it reviewed, published, and tracked. Each listed property is $10/month once approved.</p></div>';
+    el.innerHTML='<div class="empty-card"><h3>No properties yet</h3><p>Add your first property to get it listed and tracked. $10/month per property.</p></div>';
     document.getElementById('period-toggle').style.visibility='hidden';
     return;
   }
@@ -431,10 +431,10 @@ function propCard(p){
   // The badge reflects the public state: live when approved AND (subscribed OR complimentary).
   let badge, note;
   if(p.status==='rejected'){badge='<span class="badge rejected">Rejected</span>';note='This submission wasn’t approved. Edit and resubmit, or contact us.';}
-  else if(p.status==='pending_review'){badge='<span class="badge pending">Pending review</span>';note='We’re reviewing your submission. You’ll be able to subscribe once it’s approved.';}
+  else if(p.status===’pending_review’){badge=’<span class="badge pending">Pending review</span>’;note=’We’re reviewing your submission. Your listing will go live once approved.’;}
   else if(comped){badge='<span class="badge live">Live</span>';note='Complimentary listing — published for free. You have full access to its analytics.';}
   else if(p.status==='approved'&&active){badge='<span class="badge live">Live</span>';note='Your listing is published and visible to agents.';}
-  else {badge='<span class="badge approved">Approved</span>';note='Approved! Subscribe ($10/month) to publish it and start getting views.';}
+  else {badge='<span class="badge approved">Approved</span>';note='Approved! Subscribe below to publish it and start getting views.';}
   const canSub=p.status==='approved'&&!active&&!comped;
   const subLine=comped?'Complimentary — no charge':(active?'Subscription active':'No active subscription');
   return `<div class="prop-card">
@@ -478,7 +478,7 @@ function editProperty(slug){
 function openPropModal(slug, rec){
   editingSlug=slug;
   document.getElementById('prop-modal-title').textContent=slug?'Edit property':'Add a property';
-  document.getElementById('prop-save-btn').textContent=slug?'Save changes':'Submit for review';
+  document.getElementById('prop-save-btn').textContent=slug?'Save changes':'Submit & subscribe';
   document.getElementById('f-slug').value=slug||'';
   rec=rec||{};
   document.getElementById('f-name').value=rec.name||'';
@@ -522,11 +522,14 @@ async function submitProperty(){
   if(!data.name.trim()){document.getElementById('prop-err').textContent='Property name is required.';return;}
   const btn=document.getElementById('prop-save-btn');btn.disabled=true;btn.textContent='Saving…';
   const r=await api('?action=property',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:editingSlug||'',data})});
-  btn.disabled=false;btn.textContent=editingSlug?'Save changes':'Submit for review';
+  btn.disabled=false;btn.textContent=editingSlug?'Save changes':'Submit & subscribe';
   if(!r.ok){document.getElementById('prop-err').textContent=r.body?.error||'Could not save.';return;}
+  const wasNew=!editingSlug;
+  const newSlug=r.body?.slug||editingSlug||'';
   closePropModal();
-  showToast(editingSlug?'Saved.':'Submitted for review.');
-  loadProperties();
+  showToast(wasNew?'Submitted — opening payment…':'Saved.');
+  await loadProperties();
+  if(wasNew && newSlug) subscribe(newSlug);
 }
 
 async function removeProperty(slug){
