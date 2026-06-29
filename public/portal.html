@@ -43,7 +43,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .lp-step-n{width:34px;height:34px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:600;margin-bottom:14px;}
 .lp-step h3,.lp-benefit h3{font-family:'Playfair Display',serif;font-size:1.12rem;margin-bottom:8px;}
 .lp-step p,.lp-benefit p{color:var(--muted);font-size:0.9rem;line-height:1.6;}
-.lp-benefit .ic{font-size:1.5rem;margin-bottom:10px;}
+.lp-benefit .ic{margin-bottom:10px;width:32px;height:32px;color:var(--clay,#b5764c);}
 .lp-pricing{max-width:420px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:34px 30px;text-align:center;box-shadow:var(--shadow);}
 .lp-price{font-family:'Playfair Display',serif;font-size:3rem;line-height:1;}
 .lp-price span{font-size:1rem;color:var(--muted);font-family:'Sora',sans-serif;}
@@ -174,9 +174,9 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
     <div class="lp-kicker">Why Samba</div>
     <h2 class="lp-h2">Real distribution, real numbers</h2>
     <div class="lp-benefits">
-      <div class="lp-benefit"><div class="ic">📣</div><h3>A real agent network</h3><p>Your villa reaches 250+ active rental agents working across Bali — not a passive listings board nobody checks.</p></div>
-      <div class="lp-benefit"><div class="ic">📊</div><h3>Know your demand</h3><p>Per-villa analytics show how many agents viewed, shared, and messaged about your property each week.</p></div>
-      <div class="lp-benefit"><div class="ic">🪶</div><h3>Flat, fair, flexible</h3><p>Just $10/month per villa. Edit your listing anytime, list as many villas as you like, and cancel whenever.</p></div>
+      <div class="lp-benefit"><div class="ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><h3>A real agent network</h3><p>Your villa reaches 250+ active rental agents working across Bali — not a passive listings board nobody checks.</p></div>
+      <div class="lp-benefit"><div class="ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div><h3>Know your demand</h3><p>Per-villa analytics show how many agents viewed, shared, and messaged about your property each week.</p></div>
+      <div class="lp-benefit"><div class="ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><h3>Flat, fair, flexible</h3><p>Just $10/month per villa. Edit your listing anytime, list as many villas as you like, and cancel whenever.</p></div>
     </div>
   </section>
 
@@ -430,11 +430,11 @@ function propCard(p){
   const active=comped||(p.subscription&&p.subscription.status==='active');
   // The badge reflects the public state: live when approved AND (subscribed OR complimentary).
   let badge, note;
-  if(p.status==='rejected'){badge='<span class="badge rejected">Rejected</span>';note='This submission wasn’t approved. Edit and resubmit, or contact us.';}
-  else if(p.status===’pending_review’){badge=’<span class="badge pending">Pending review</span>’;note=’We’re reviewing your submission. Your listing will go live once approved.’;}
-  else if(comped){badge='<span class="badge live">Live</span>';note='Complimentary listing — published for free. You have full access to its analytics.';}
-  else if(p.status==='approved'&&active){badge='<span class="badge live">Live</span>';note='Your listing is published and visible to agents.';}
-  else {badge='<span class="badge approved">Approved</span>';note='Approved! Subscribe below to publish it and start getting views.';}
+  if(p.status===’rejected’){badge=’<span class="badge rejected">Rejected</span>’;note=’This submission was not approved. Edit and resubmit, or contact us.’;}
+  else if(p.status===’pending_review’){badge=’<span class="badge pending">Pending review</span>’;note=’We are reviewing your submission. Your listing will go live once approved.’;}
+  else if(comped){badge=’<span class="badge live">Live</span>’;note=’Complimentary listing — published for free. You have full access to its analytics.’;}
+  else if(p.status===’approved’&&active){badge=’<span class="badge live">Live</span>’;note=’Your listing is published and visible to agents.’;}
+  else {badge=’<span class="badge approved">Approved</span>’;note=’Approved! Subscribe below to publish it and start getting views.’;}
   const canSub=p.status==='approved'&&!active&&!comped;
   const subLine=comped?'Complimentary — no charge':(active?'Subscription active':'No active subscription');
   return `<div class="prop-card">
@@ -459,8 +459,8 @@ function statsStrip(slug){
   if(!s) return '';
   const cell=(v,l,t)=>`<div class="pstat" title="${t}"><div class="pstat-val">${v||0}</div><div class="pstat-lbl">${l}</div></div>`;
   return `<div class="prop-stats">
-    ${cell(s.details_open,'Agent views','Times an agent opened this villa’s details in the portal')}
-    ${cell(s.share,'Shares','Times an agent shared this villa’s link')}
+    ${cell(s.details_open,’Agent views’,’Times an agent opened this villa in the portal’)}
+    ${cell(s.share,’Shares’,’Times an agent shared this villa’)}
     ${cell(s.listing_view,'Link opens','Times the shared listing link was opened (e.g. by a guest)')}
     ${cell(s.whatsapp_click,'WhatsApp','Times someone clicked the WhatsApp contact button')}
   </div>`;
@@ -541,7 +541,7 @@ async function removeProperty(slug){
 
 async function subscribe(slug){
   await loadConfig();
-  if(!appConfig.paddleClientToken||!appConfig.paddlePriceId){ showToast('Billing isn’t set up yet — check back soon.'); return; }
+  if(!appConfig.paddleClientToken||!appConfig.paddlePriceId){ showToast(‘Billing is not set up yet — check back soon.’); return; }
   initPaddle();
   if(!window.Paddle||!paddleReady){ showToast('Payment system still loading — try again in a moment.'); return; }
   Paddle.Checkout.open({
