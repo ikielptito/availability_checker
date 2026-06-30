@@ -112,6 +112,32 @@ export default async function handler(req, res) {
     });
   }
 
+  // Derive a listing's cover photo from its Google Drive folder (first image
+  // by name) when no coverPhotoId was set in admin. Cached in KV so the Drive
+  // API is hit once per folder. Guarantees share previews show a real villa
+  // photo rather than the generic portal card. Owner edits clear this cache
+  // (see api/portal.js saveProperty) so newly added photos are picked up.
+  const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+  async function deriveCover(folder) {
+    if (!folder) return '';
+    const cached = await kvGet(`autocover:${folder}`);
+    if (typeof cached === 'string') return cached;
+    if (!GOOGLE_API_KEY) return '';
+    try {
+      const url = `https://www.googleapis.com/drive/v3/files?q='${folder}'+in+parents+and+mimeType+contains+'image/'&fields=files(id,name)&key=${GOOGLE_API_KEY}&pageSize=150`;
+      const data = await (await fetch(url)).json();
+      const files = (data.files || []).slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+      const id = files.length ? files[0].id : '';
+      await kvSet(`autocover:${folder}`, id);
+      return id;
+    } catch { return ''; }
+  }
+  async function fillCovers(arr) {
+    await Promise.all(arr.map(async (l) => {
+      if (!l.coverPhotoId && l.folder) { const id = await deriveCover(l.folder); if (id) l.coverPhotoId = id; }
+    }));
+  }
+
   function checkAuth() {
     const adminPw = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSWORD;
     if (!adminPw) return true;
@@ -150,7 +176,9 @@ export default async function handler(req, res) {
     // Admin view (?all=1, authenticated): every custom listing incl. drafts.
     if (req.query.all === '1' && checkAuth()) {
       const customListings = customAll.map(c => ({ ...c, custom: true }));
-      return res.status(200).json({ listings: [...listings, ...customListings] });
+      const out = [...listings, ...customListings];
+      await fillCovers(out);
+      return res.status(200).json({ listings: out });
     }
 
     // Public view: hide owner listings that aren't approved + actively subscribed.
@@ -160,7 +188,9 @@ export default async function handler(req, res) {
     const customListings = customAll
       .filter(c => listingVisible(c, subBySlug[c.slug]))
       .map(c => ({ ...c, custom: true }));
-    return res.status(200).json({ listings: [...listings, ...customListings] });
+    const out = [...listings, ...customListings];
+    await fillCovers(out);
+    return res.status(200).json({ listings: out });
   }
 
   if (req.method === 'DELETE') {

@@ -106,7 +106,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);-webki
     if(!villas.length){ content.innerHTML=head+'<div class="state"><h2>No villas yet</h2><p>Check back soon.</p></div>'; return; }
     var cards=villas.map(function(l){
       var ph=photoUrl(l);
-      var hero=ph?'<div class="vhero"><img src="'+ph+'" alt="'+esc(l.name)+'" loading="lazy"></div>':'<div class="vhero"><div class="vhero-ph">Photo coming soon</div></div>';
+      var hero=ph?'<div class="vhero"><img src="'+ph+'" alt="'+esc(l.name)+'" loading="lazy" onerror="this.style.display=\'none\'"></div>':'<div class="vhero"><div class="vhero-ph">Photo coming soon</div></div>';
       var price=l.monthly?'<div class="vprice"><b>'+fmtPrice(l.monthly)+'</b> <span>/ mo</span></div>':'';
       return '<a class="vcard" href="/l/'+encodeURIComponent(l.slug)+'">'
         +hero

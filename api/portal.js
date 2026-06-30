@@ -96,7 +96,7 @@ export default async function handler(req, res) {
     if (action === 'property' && req.method === 'POST') {
       const owner = await currentOwner(req, { kvGet });
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
-      return saveProperty(req, res, owner, { kvGet, kvSet });
+      return saveProperty(req, res, owner, { kvGet, kvSet, kvDel });
     }
     if (action === 'property' && req.method === 'DELETE') {
       const owner = await currentOwner(req, { kvGet });
@@ -442,7 +442,7 @@ async function ownerAnalytics(req, res, owner, { kvGet, kvPipeline }) {
 }
 function zeroEvents() { return Object.fromEntries(PEVENTS.map(e => [e, 0])); }
 
-async function saveProperty(req, res, owner, { kvGet, kvSet }) {
+async function saveProperty(req, res, owner, { kvGet, kvSet, kvDel }) {
   const data = req.body?.data || {};
   const name = cleanStr(data.name);
   if (!name) return res.status(400).json({ error: 'Property name is required' });
@@ -468,6 +468,10 @@ async function saveProperty(req, res, owner, { kvGet, kvSet }) {
 
   all[slug] = buildOwnerListing(slug, data, existing, owner.sub, status);
   await kvSet(CUSTOM_KEY, all);
+
+  // Drop any cached auto-derived cover so a freshly added/changed photo folder
+  // is re-scanned by api/listings.js on the next read.
+  if (all[slug].folder) await kvDel(`autocover:${all[slug].folder}`);
 
   // Track ownership index.
   const owned = (await kvGet(`owner_listings:${owner.sub}`)) || [];
