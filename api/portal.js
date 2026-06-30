@@ -109,6 +109,32 @@ export default async function handler(req, res) {
       return ownerAnalytics(req, res, owner, { kvGet, kvPipeline });
     }
 
+    // ── Agent account actions (favourites, notes, shortlists, profile) ──
+    if (action === 'favorite' && req.method === 'POST') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      return toggleFavorite(req, res, owner, { kvSet });
+    }
+    if (action === 'note' && req.method === 'POST') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      return setNote(req, res, owner, { kvSet });
+    }
+    if (action === 'list' && req.method === 'POST') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      return handleList(req, res, owner, { kvSet, kvDel });
+    }
+    if (action === 'profile' && req.method === 'POST') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      return saveProfile(req, res, owner, { kvGet, kvSet });
+    }
+    // Public, unauthenticated: an agent's shareable profile or a shared shortlist.
+    if (action === 'agent-public' && req.method === 'GET') {
+      return agentPublic(req, res, { kvGet });
+    }
+
     return res.status(400).json({ error: 'Unknown action' });
   } catch (e) {
     return res.status(500).json({ error: 'Server error', detail: e.message });
@@ -139,6 +165,11 @@ async function authGoogle(req, res, { kvGet, kvSet, kvSetEx }) {
     picture: info.picture || existing?.picture || '',
     createdAt: existing?.createdAt || new Date().toISOString(),
     paddleCustomerId: existing?.paddleCustomerId || null,
+    // Agent-account capabilities — preserved across sign-ins.
+    favorites: Array.isArray(existing?.favorites) ? existing.favorites : [],
+    notes: existing?.notes && typeof existing.notes === 'object' ? existing.notes : {},
+    lists: Array.isArray(existing?.lists) ? existing.lists : [],
+    profile: existing?.profile && typeof existing.profile === 'object' ? existing.profile : {},
   };
   await kvSet(key, owner);
 
@@ -177,7 +208,145 @@ function clearCookie(secure) {
 }
 
 function publicOwner(o) {
-  return { sub: o.sub, email: o.email, name: o.name, picture: o.picture };
+  return {
+    sub: o.sub, email: o.email, name: o.name, picture: o.picture,
+    favorites: Array.isArray(o.favorites) ? o.favorites : [],
+    notes: o.notes && typeof o.notes === 'object' ? o.notes : {},
+    lists: Array.isArray(o.lists) ? o.lists : [],
+    profile: o.profile && typeof o.profile === 'object' ? o.profile : {},
+  };
+}
+
+// ── Agent account: favourites, notes, shortlists, public profile ─────
+function normSlug(s) { return cleanStr(s).toLowerCase().replace(/[^a-z0-9-]/g, ''); }
+
+async function toggleFavorite(req, res, owner, { kvSet }) {
+  const slug = normSlug(req.body?.slug);
+  if (!slug) return res.status(400).json({ error: 'Missing slug' });
+  const favs = Array.isArray(owner.favorites) ? owner.favorites : [];
+  const i = favs.indexOf(slug);
+  if (i >= 0) favs.splice(i, 1); else favs.unshift(slug);
+  owner.favorites = favs;
+  await kvSet(`owner:${owner.sub}`, owner);
+  return res.status(200).json({ ok: true, favorited: i < 0, favorites: favs });
+}
+
+async function setNote(req, res, owner, { kvSet }) {
+  const slug = normSlug(req.body?.slug);
+  if (!slug) return res.status(400).json({ error: 'Missing slug' });
+  const text = cleanStr(req.body?.text).slice(0, 2000);
+  const notes = owner.notes && typeof owner.notes === 'object' ? owner.notes : {};
+  if (text) notes[slug] = text; else delete notes[slug];
+  owner.notes = notes;
+  await kvSet(`owner:${owner.sub}`, owner);
+  return res.status(200).json({ ok: true, notes });
+}
+
+async function handleList(req, res, owner, { kvSet, kvDel }) {
+  owner.lists = Array.isArray(owner.lists) ? owner.lists : [];
+  const lists = owner.lists;
+  const op = cleanStr(req.body?.op);
+  const findList = id => lists.find(l => l.id === id);
+  if (op === 'create') {
+    lists.unshift({ id: crypto.randomBytes(6).toString('hex'), name: cleanStr(req.body?.name).slice(0, 80) || 'Untitled list', slugs: [], shareId: null });
+  } else if (op === 'rename') {
+    const l = findList(cleanStr(req.body?.id)); if (!l) return res.status(404).json({ error: 'List not found' });
+    l.name = cleanStr(req.body?.name).slice(0, 80) || l.name;
+  } else if (op === 'delete') {
+    const id = cleanStr(req.body?.id); const l = findList(id);
+    if (l?.shareId) await kvDel(`share:${l.shareId}`);
+    owner.lists = lists.filter(x => x.id !== id);
+  } else if (op === 'add' || op === 'remove') {
+    const l = findList(cleanStr(req.body?.id)); if (!l) return res.status(404).json({ error: 'List not found' });
+    const slug = normSlug(req.body?.slug); if (!slug) return res.status(400).json({ error: 'Missing slug' });
+    const i = l.slugs.indexOf(slug);
+    if (op === 'add' && i < 0) l.slugs.push(slug);
+    if (op === 'remove' && i >= 0) l.slugs.splice(i, 1);
+  } else if (op === 'share') {
+    const l = findList(cleanStr(req.body?.id)); if (!l) return res.status(404).json({ error: 'List not found' });
+    if (!l.shareId) { l.shareId = crypto.randomBytes(6).toString('hex'); await kvSet(`share:${l.shareId}`, { sub: owner.sub, listId: l.id }); }
+  } else if (op === 'unshare') {
+    const l = findList(cleanStr(req.body?.id)); if (!l) return res.status(404).json({ error: 'List not found' });
+    if (l.shareId) { await kvDel(`share:${l.shareId}`); l.shareId = null; }
+  } else {
+    return res.status(400).json({ error: 'Unknown list op' });
+  }
+  await kvSet(`owner:${owner.sub}`, owner);
+  return res.status(200).json({ ok: true, lists: owner.lists });
+}
+
+async function saveProfile(req, res, owner, { kvGet, kvSet }) {
+  const p = owner.profile && typeof owner.profile === 'object' ? owner.profile : {};
+  const displayName = cleanStr(req.body?.displayName).slice(0, 80) || owner.name || '';
+  p.displayName = displayName;
+  p.agency = cleanStr(req.body?.agency).slice(0, 80);
+  p.waNumber = cleanStr(req.body?.waNumber).replace(/[^0-9]/g, '');
+  p.public = !!req.body?.public;
+  // Stable public handle, generated once and never reassigned.
+  if (!p.handle) {
+    const base = slugify(displayName || owner.email || 'agent');
+    let handle = base, n = 2;
+    while (true) {
+      const taken = await kvGet(`handle:${handle}`);
+      if (!taken || taken === owner.sub) break;
+      handle = `${base}-${n++}`;
+    }
+    p.handle = handle;
+    await kvSet(`handle:${handle}`, owner.sub);
+  }
+  // Best-effort CRM link by WhatsApp number (same CRM call as home-stats.js).
+  if (p.waNumber && !p.crmAgentId) {
+    try {
+      const crmBase = process.env.CRM_BASE_URL || 'https://kaya-agent-crm.vercel.app';
+      const r = await fetch(`${crmBase}/api/supabase`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'get_agents' }) });
+      const agents = await r.json();
+      if (Array.isArray(agents)) {
+        const tail = p.waNumber.slice(-8);
+        const match = agents.find(a => a.wa_num && String(a.wa_num).replace(/[^0-9]/g, '').endsWith(tail));
+        if (match) p.crmAgentId = match.id || match.agent_id || null;
+      }
+    } catch {}
+  }
+  owner.profile = p;
+  await kvSet(`owner:${owner.sub}`, owner);
+  return res.status(200).json({ ok: true, profile: p });
+}
+
+// Public read: an agent's shareable profile (by handle) or a shared shortlist
+// (by share id). Returns only a safe profile subset + the villa slugs to show.
+async function agentPublic(req, res, { kvGet }) {
+  const handle = cleanStr(req.query.handle);
+  const share = cleanStr(req.query.share);
+  let owner = null, slugs = [], listName = null;
+  if (share) {
+    const map = await kvGet(`share:${share}`);
+    if (!map?.sub) return res.status(404).json({ error: 'Not found' });
+    owner = await kvGet(`owner:${map.sub}`);
+    const list = (owner?.lists || []).find(l => l.id === map.listId);
+    if (!owner || !list) return res.status(404).json({ error: 'Not found' });
+    slugs = list.slugs || [];
+    listName = list.name || null;
+  } else if (handle) {
+    const sub = await kvGet(`handle:${handle}`);
+    if (!sub) return res.status(404).json({ error: 'Not found' });
+    owner = await kvGet(`owner:${sub}`);
+    if (!owner || !owner.profile?.public) return res.status(404).json({ error: 'Not found' });
+    slugs = Array.isArray(owner.favorites) ? owner.favorites : [];
+  } else {
+    return res.status(400).json({ error: 'Missing handle or share' });
+  }
+  const pr = owner.profile || {};
+  return res.status(200).json({
+    profile: {
+      displayName: pr.displayName || owner.name || 'Agent',
+      agency: pr.agency || '',
+      waNumber: pr.waNumber || '',
+      picture: owner.picture || '',
+      handle: pr.handle || '',
+    },
+    listName,
+    slugs,
+  });
 }
 
 const CUSTOM_KEY = 'custom_properties';

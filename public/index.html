@@ -118,6 +118,18 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .prop-hero{position:relative;width:100%;aspect-ratio:3/2;background:var(--surface2);overflow:hidden}
 .prop-hero-img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
 .prop-hero:hover .prop-hero-img{transform:scale(1.03)}
+.fav-heart{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.85);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;transition:transform .12s,background .15s;backdrop-filter:blur(2px)}
+.fav-heart:hover{transform:scale(1.08);background:#fff}
+.fav-heart svg{width:19px;height:19px;fill:none;stroke:#1a1814;stroke-width:2.2}
+.fav-heart.on svg{fill:#c26a4a;stroke:#c26a4a}
+.saved-banner{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:16px}
+.saved-banner b{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--text)}
+.saved-banner button{margin-left:auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text-2);padding:7px 13px;font-family:'Sora',sans-serif;font-size:.78rem;cursor:pointer}
+.modal-note{margin:0 20px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.modal-note-lbl{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.modal-note textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Sora',sans-serif;font-size:.85rem;color:var(--text);outline:none;resize:vertical;min-height:54px;box-sizing:border-box}
+.modal-note textarea:focus{border-color:var(--primary)}
+.modal-note-hint{font-size:.68rem;color:var(--subtle);margin-top:6px}
 .prop-hero-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;color:var(--subtle)}
 .cal-scroll{overflow-x:auto;padding:16px 20px 18px;scrollbar-width:thin;scrollbar-color:var(--subtle) transparent}
 .cal-scroll::-webkit-scrollbar{height:4px}.cal-scroll::-webkit-scrollbar-thumb{background:var(--subtle);border-radius:4px}
@@ -260,6 +272,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       Refresh
     </button>
+    <div id="samba-nav"></div>
   </div>
   <div class="filter-bar" id="filter-bar" style="display:none">
     <span class="filter-label">Bedrooms</span>
@@ -295,6 +308,11 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
         <button class="carousel-nav carousel-prev" onclick="carNav(-1)" style="display:none" id="carousel-prev" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-lg"><polyline points="15 18 9 12 15 6"/></svg></button>
         <button class="carousel-nav carousel-next" onclick="carNav(1)" style="display:none" id="carousel-next" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-lg"><polyline points="9 18 15 12 9 6"/></svg></button>
         <div class="carousel-counter" id="carousel-counter" style="display:none"></div>
+      </div>
+      <div class="modal-note" id="modal-note-box" style="display:none">
+        <div class="modal-note-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg> Private note <span style="text-transform:none;letter-spacing:0;color:var(--subtle)">— only you can see this</span></div>
+        <textarea id="modal-note" placeholder="e.g. owner flexible on price · free from August…" onblur="saveNote()"></textarea>
+        <div class="modal-note-hint">Saves automatically when you click away.</div>
       </div>
       <div class="modal-tabs" id="modal-tabs">
         <button class="modal-tab active" data-target="modal-availability-section">Availability</button>
@@ -352,8 +370,10 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
   <div style="margin-top:8px">© 2026 Samba · Bali, Indonesia</div>
 </footer>
 
+<script src="/nav.js"></script>
 <script>
 let properties=[], avail={}, failedAvail=new Set(), query='', bedroomFilter='all';
+let myFavorites=new Set(), myNotes={}, savedView=false;
 function getBedrooms(propId){
   const info=PROPS[propId]; if(!info) return null;
   if(typeof info.bedrooms==='number') return info.bedrooms;
@@ -497,6 +517,12 @@ function openModal(propId) {
   const info=PROPS[propId]; if(!info) return;
   track('details_open', propId, info.name);
   modalPropId=propId;
+  // Private agent note (signed-in only).
+  const _noteBox=document.getElementById('modal-note-box');
+  if(window.SambaNav && SambaNav.isSignedIn()){
+    _noteBox.style.display='';
+    document.getElementById('modal-note').value=myNotes[SLUGS[propId]||'']||'';
+  } else { _noteBox.style.display='none'; }
   document.getElementById('modal-title').textContent=info.name;
   document.getElementById('modal-overview').textContent=info.overview||'';
   let detailsHtml='<div class="detail-col"><div class="modal-section-title">Features</div>'+
@@ -792,6 +818,7 @@ if (URL_AID && /^[a-zA-Z0-9_-]{1,64}$/.test(URL_AID)) {
   if (URL_REF) sessionStorage.setItem('samba_session_src', URL_REF);
 }
 if (URL_PARAMS.get('bedrooms')) bedroomFilter = URL_PARAMS.get('bedrooms');
+if (URL_PARAMS.get('view') === 'saved') savedView = true;
 const SESSION_SRC = sessionStorage.getItem('samba_session_src') || 'portal';
 
 function getAgentId() {
@@ -990,22 +1017,31 @@ function render() {
     const hay=(p.name+' '+(p.type||'')+' '+((info&&info.tag)||'')+' '+((info&&info.unitType)||'')).toLowerCase();
     if(!hay.includes(q)) return false;
     if(bedroomFilter!=='all'){const b=getBedrooms(p.id); if(b!==+bedroomFilter) return false;}
+    if(savedView && !myFavorites.has(SLUGS[p.id])) return false;
     return true;
   });
+  const savedBanner=savedView
+    ?'<div class="saved-banner"><b>Saved villas</b><span style="color:var(--muted);font-size:.82rem">'+myFavorites.size+' saved</span><button onclick="setSavedView(false)">Show all villas</button></div>'
+    :'';
   document.getElementById('prop-count').textContent=
     filtered.length===properties.length?properties.length+(properties.length===1?' property':' properties'):
     filtered.length+' of '+properties.length;
   if(!filtered.length){
-    const _msg=query?'No properties match <strong>'+esc(query)+'</strong>':'No properties in this filter';
-    grid.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:36px;height:36px;color:var(--subtle);margin-bottom:10px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p style="margin:0 0 16px;font-size:.9rem">'+_msg+'</p><button class="btn-ghost" style="display:inline-flex;margin:0 auto" onclick="clearSearch()">Clear filters</button></div>';
+    const _msg=savedView?'No saved villas yet — tap the ♥ on any villa to save it'
+      :(query?'No properties match <strong>'+esc(query)+'</strong>':'No properties in this filter');
+    const _btn=savedView?'<button class="btn-ghost" style="display:inline-flex;margin:0 auto" onclick="setSavedView(false)">Browse all villas</button>'
+      :'<button class="btn-ghost" style="display:inline-flex;margin:0 auto" onclick="clearSearch()">Clear filters</button>';
+    grid.innerHTML=savedBanner+'<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:36px;height:36px;color:var(--subtle);margin-bottom:10px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p style="margin:0 0 16px;font-size:.9rem">'+_msg+'</p>'+_btn+'</div>';
     return;
   }
   let _cxPrev='';
-  grid.innerHTML=filtered.map((p,i)=>{
+  grid.innerHTML=savedBanner+filtered.map((p,i)=>{
     const _cxCur=complexOf(p.name);
     const _cxHdr=_cxCur!==_cxPrev?(_cxPrev=_cxCur,'<div class="complex-header">'+esc(_cxCur)+(PROPS[p.id]&&PROPS[p.id].tag?' <span class="complex-tag">'+esc(PROPS[p.id].tag)+'</span>':'')+' </div>'):'';
     const booked=avail[p.id]||new Set();
     const info=PROPS[p.id];
+    const slug=SLUGS[p.id]||'';
+    const isFav=myFavorites.has(slug);
     const av=availLabel(booked);
     const heroPos=(info&&info.coverPosition)||'50% 50%';
     const heroInner=p.photo
@@ -1029,7 +1065,9 @@ function render() {
         +'</div>';
     }
     return _cxHdr+'<div class="prop-card" data-id="'+p.id+'" onclick="openModal(\''+p.id+'\')">'
-      +'<div class="prop-hero" title="View photos &amp; details">'+heroInner+'</div>'
+      +'<div class="prop-hero" title="View photos &amp; details">'+heroInner
+        +'<button class="fav-heart'+(isFav?' on':'')+'" onclick="event.stopPropagation();toggleFav(\''+slug+'\')" aria-label="'+(isFav?'Remove from saved':'Save villa')+'" title="'+(isFav?'Saved':'Save')+'"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>'
+        +'</div>'
       +availBar
       +priceRow
       +'<div class="prop-head">'
@@ -1105,6 +1143,37 @@ function setLastUpdated(){
   setTimeout(()=>{if(el&&_lastUpdateTs&&Date.now()-_lastUpdateTs<120000)el.innerHTML='<div class="live-dot"></div>Updated 1m ago';},61000);
 }
 
+function toggleFav(slug){
+  if(!slug || !window.SambaNav) return;
+  if(!SambaNav.isSignedIn()){ SambaNav.requireSignIn(function(){ toggleFav(slug); }); return; }
+  // Optimistic toggle, then reconcile with the server's authoritative list.
+  if(myFavorites.has(slug)) myFavorites.delete(slug); else myFavorites.add(slug);
+  render();
+  fetch('/api/portal?action=favorite',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:slug})})
+    .then(function(r){return r.json();})
+    .then(function(b){ if(b&&Array.isArray(b.favorites)){ myFavorites=new Set(b.favorites); SambaNav.updateFavorites(b.favorites); render(); } })
+    .catch(function(){});
+}
+function setSavedView(on){ savedView=on; history.replaceState(null,'',on?'?view=saved':location.pathname); render(); }
+function saveNote(){
+  const slug=SLUGS[modalPropId]||'';
+  if(!slug || !window.SambaNav || !SambaNav.isSignedIn()) return;
+  const text=document.getElementById('modal-note').value;
+  if((myNotes[slug]||'')===text) return;
+  myNotes[slug]=text;
+  fetch('/api/portal?action=note',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:slug,text:text})})
+    .then(function(r){return r.json();}).then(function(b){ if(b&&b.notes) myNotes=b.notes; }).catch(function(){});
+}
+// Sync favourites/notes from the shared account whenever auth state changes.
+window.addEventListener('load',function(){
+  if(!window.SambaNav) return;
+  SambaNav.onChange(function(acc){
+    myFavorites=new Set((acc&&acc.favorites)||[]);
+    myNotes=(acc&&acc.notes)||{};
+    if(savedView && !acc){ savedView=false; }
+    render();
+  });
+});
 function doFilter(){query=document.getElementById('search').value;render();}
 function clearSearch(){const s=document.getElementById('search');s.value='';query='';bedroomFilter='all';history.replaceState(null,'',location.pathname);renderBedroomFilter();render();}
 async function doRefresh(){
