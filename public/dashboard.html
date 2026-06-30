@@ -7,17 +7,17 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<meta name="theme-color" content="#0f1117">
+<meta name="theme-color" content="#faf8f4">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Sora:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0f1117;--surface:#181c27;--surface2:#1f2333;--border:#2a2f42;--text:#e8eaf2;--muted:#5a607a;--accent:#4a7cf7;--green:#52c87a;--red:#e06060;--yellow:#f0c060;--orange:#e08040;--purple:#9a6cf7;}
+:root{--bg:#faf8f4;--surface:#ffffff;--surface2:#f3efe6;--border:#e8e2d8;--text:#1a1814;--muted:#8a8478;--subtle:#b5ac9a;--accent:#c26a4a;--accent-2:#a55638;--green:#2a6a3a;--red:#b5453a;--yellow:#b8860b;--orange:#cc7a3b;--purple:#8a6cb0;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
 
 /* LOGIN */
-#login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse 60% 40% at 70% 30%,rgba(74,124,247,0.08) 0%,transparent 60%),var(--bg);}
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse 60% 40% at 70% 30%,rgba(194,106,74,0.08) 0%,transparent 60%),var(--bg);}
 .login-box{width:100%;max-width:360px;padding:0 20px;}
-.login-brand{font-family:'Playfair Display',serif;font-size:1.8rem;margin-bottom:6px;background:linear-gradient(135deg,#e8eaf2 0%,#8090c0 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.login-brand{font-family:'Playfair Display',serif;font-size:1.8rem;margin-bottom:6px;color:var(--accent);}
 .login-sub{font-size:0.72rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:32px;}
 .login-label{font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:block;}
 .login-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 16px;font-family:'Sora',sans-serif;font-size:0.85rem;color:var(--text);outline:none;transition:border-color 0.2s;}
@@ -53,7 +53,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .notify-modal-body{padding:18px 24px 8px;}
 .mode-card{display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border);border-radius:10px;cursor:pointer;margin-bottom:10px;transition:all 0.15s;background:var(--surface2);}
 .mode-card:hover{border-color:var(--subtle);}
-.mode-card.selected{border-color:var(--accent);background:rgba(74,124,247,0.08);}
+.mode-card.selected{border-color:var(--accent);background:rgba(194,106,74,0.08);}
 .mode-radio{width:18px;height:18px;border:2px solid var(--subtle);border-radius:50%;flex-shrink:0;margin-top:1px;position:relative;}
 .mode-card.selected .mode-radio{border-color:var(--accent);}
 .mode-card.selected .mode-radio::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--accent);}
@@ -329,11 +329,11 @@ function render(data) {
         Daily Activity${period === 'all' ? ' · last 90 days' : ''}
       </div>
       <div class="chart-legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#4a7cf7"></div>Sessions</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#52c87a"></div>Details Opened</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#9a6cf7"></div>Listing Views</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#e08040"></div>WhatsApp</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#e06060"></div>Active Agents</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#c26a4a"></div>Sessions</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2a6a3a"></div>Details Opened</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#8a6cb0"></div>Listing Views</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#c9a227"></div>WhatsApp</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3a6ea5"></div>Active Agents</div>
       </div>
       <div class="chart-wrap">
         <canvas id="activity-chart" height="180"></canvas>
@@ -445,23 +445,23 @@ function drawChart(series) {
   const ch = H - pad.top - pad.bottom;
 
   const metrics = [
-    { key: 'sessions', color: '#4a7cf7' },
-    { key: 'details_open', color: '#52c87a' },
-    { key: 'listing_view', color: '#9a6cf7' },
-    { key: 'whatsapp_click', color: '#e08040' },
-    { key: 'agents', color: '#e06060' },
+    { key: 'sessions', color: '#c26a4a' },
+    { key: 'details_open', color: '#2a6a3a' },
+    { key: 'listing_view', color: '#8a6cb0' },
+    { key: 'whatsapp_click', color: '#c9a227' },
+    { key: 'agents', color: '#3a6ea5' },
   ];
 
   const maxVal = Math.max(...series.flatMap(d => metrics.map(m => d[m.key])), 1);
   const step = cw / Math.max(series.length - 1, 1);
 
   // Grid
-  ctx.strokeStyle = '#2a2f42';
+  ctx.strokeStyle = '#e8e2d8';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
     const y = pad.top + (ch / 4) * i;
     ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
-    ctx.fillStyle = '#5a607a';
+    ctx.fillStyle = '#8a8478';
     ctx.font = '10px Sora,sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText(Math.round(maxVal * (1 - i / 4)), pad.left - 4, y + 4);
@@ -493,7 +493,7 @@ function drawChart(series) {
 
   // X labels (show every N days)
   const labelEvery = series.length <= 7 ? 1 : series.length <= 30 ? 5 : 14;
-  ctx.fillStyle = '#5a607a';
+  ctx.fillStyle = '#8a8478';
   ctx.font = '10px Sora,sans-serif';
   ctx.textAlign = 'center';
   series.forEach((d, i) => {
