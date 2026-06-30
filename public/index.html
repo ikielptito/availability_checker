@@ -659,6 +659,7 @@ function openModal(propId) {
   waBtn.onclick=()=>track('whatsapp_click',propId,info.name);
   document.getElementById('modal').classList.add('open');
   document.body.style.overflow='hidden';
+  const _tabs=document.getElementById('snav-tabs');if(_tabs)_tabs.style.display='none';
   loadCarousel(propId,info.folder);
 }
 
@@ -666,6 +667,7 @@ function closeModal(e) {
   if(e && e.target!==document.getElementById('modal')) return;
   document.getElementById('modal').classList.remove('open');
   document.body.style.overflow='';
+  const _tabs=document.getElementById('snav-tabs');if(_tabs)_tabs.style.display='';
   document.getElementById('carousel-img').style.display='none';
   document.getElementById('carousel-loading').style.display='flex';
   document.getElementById('carousel-loading').innerHTML='<div class="carousel-spinner"></div><span>Loading photos…</span>';
