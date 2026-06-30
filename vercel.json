@@ -12,11 +12,13 @@
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/refund", "destination": "/refund.html" },
     { "source": "/l/(.*)", "destination": "/api/listing-page?slug=$1" },
+    { "source": "/a/(.*)", "destination": "/api/listing-page?agent=$1" },
+    { "source": "/s/(.*)", "destination": "/api/listing-page?list=$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "functions": {
     "api/listing-page.js": {
-      "includeFiles": "public/listing.html"
+      "includeFiles": "public/*.html"
     }
   },
   "crons": [

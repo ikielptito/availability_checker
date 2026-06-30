@@ -12,6 +12,8 @@
 
 let _htmlCache = null;
 let _htmlCacheAt = 0;
+let _agentHtmlCache = null;
+let _agentHtmlCacheAt = 0;
 let _listingsCache = null;
 let _listingsCacheAt = 0;
 const TEMPLATE_TTL_MS = 5 * 60 * 1000;
@@ -33,9 +35,16 @@ export default async function handler(req, res) {
 }
 
 async function serve(req, res) {
-  const slug = (req.query?.slug || '').toLowerCase();
-  const proto = req.headers['x-forwarded-proto'] || 'https';
   const host = req.headers.host || 'sambarentals.com';
+  const proto = req.headers['x-forwarded-proto'] || (/^localhost|^127\./.test(host) ? 'http' : 'https');
+
+  // /a/<handle> and /s/<shareId> render the agent profile / shortlist page
+  // with OG tags whose image is the first villa's cover photo.
+  const agentHandle = (req.query?.agent || '').toString();
+  const shareId = (req.query?.list || '').toString();
+  if (agentHandle || shareId) return serveAgent(req, res, { proto, host, agentHandle, shareId });
+
+  const slug = (req.query?.slug || '').toLowerCase();
 
   // Lazy-load listing.html over HTTPS (the static handler serves it
   // directly from public/). Cached per-Lambda-instance for 5 minutes.
@@ -97,6 +106,75 @@ async function serve(req, res) {
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=86400');
+  return res.status(200).send(html);
+}
+
+async function getListings(proto, host) {
+  if (Date.now() - _listingsCacheAt > LISTINGS_TTL_MS) {
+    try {
+      const lr = await fetch(`${proto}://${host}/api/listings`);
+      const j = await lr.json();
+      _listingsCache = j.listings || [];
+      _listingsCacheAt = Date.now();
+    } catch {}
+  }
+  return _listingsCache || [];
+}
+
+async function serveAgent(req, res, { proto, host, agentHandle, shareId }) {
+  // Lazy-load the agent.html template (served statically from public/).
+  if (!_agentHtmlCache || Date.now() - _agentHtmlCacheAt > TEMPLATE_TTL_MS) {
+    const tr = await fetch(`${proto}://${host}/agent.html`);
+    if (!tr.ok) throw new Error(`agent.html fetch ${tr.status}`);
+    _agentHtmlCache = await tr.text();
+    _agentHtmlCacheAt = Date.now();
+  }
+
+  // Resolve the public profile / shortlist (profile + villa slugs).
+  let prof = null, slugs = [], listName = null;
+  try {
+    const q = shareId ? `share=${encodeURIComponent(shareId)}` : `handle=${encodeURIComponent(agentHandle)}`;
+    const ar = await fetch(`${proto}://${host}/api/portal?action=agent-public&${q}`);
+    if (ar.ok) { const j = await ar.json(); prof = j.profile || null; slugs = j.slugs || []; listName = j.listName || null; }
+  } catch {}
+
+  // OG image = the first villa's cover photo (falls back to the portal card).
+  let image = FALLBACK_OG;
+  if (slugs.length) {
+    const listings = await getListings(proto, host);
+    const first = listings.find(l => l.slug === slugs[0] && l.coverPhotoId);
+    if (first) image = `https://lh3.googleusercontent.com/d/${first.coverPhotoId}=w1200-h630-c`;
+  }
+
+  const who = (prof && prof.displayName) || 'An agent';
+  const n = slugs.length;
+  const title = listName ? `${listName} — Samba Rentals` : `${who}'s villa picks — Samba Rentals`;
+  const desc = prof
+    ? `${n} hand-picked Bali villa${n === 1 ? '' : 's'}${prof.agency ? ' · ' + prof.agency : ''} — view details, photos, and live availability.`
+    : 'Hand-picked Bali villas on Samba Rentals.';
+  const url = `${PORTAL_BASE}${shareId ? '/s/' + shareId : '/a/' + agentHandle}`;
+
+  const tags = `
+    <title>${esc(title)}</title>
+    <meta name="description" content="${esc(desc)}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Samba Rentals">
+    <meta property="og:title" content="${esc(title)}">
+    <meta property="og:description" content="${esc(desc)}">
+    <meta property="og:url" content="${esc(url)}">
+    <meta property="og:image" content="${esc(image)}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="${esc(title)}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${esc(title)}">
+    <meta name="twitter:description" content="${esc(desc)}">
+    <meta name="twitter:image" content="${esc(image)}">
+  `.trim();
+
+  const html = _agentHtmlCache.replace(/<title>[\s\S]*?<\/title>/, tags);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=600');
   return res.status(200).send(html);
 }
 
