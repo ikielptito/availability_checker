@@ -410,7 +410,8 @@ function propCard(p){
   else if(p.status==='approved'&&active){badge='<span class="badge live">Live</span>';note='Your listing is published and visible to agents.';}
   else {badge='<span class="badge approved">Approved</span>';note='Approved! Subscribe below to publish it and start getting views.';}
   const canSub=p.status==='approved'&&!active&&!comped;
-  const subLine=comped?'Complimentary — no charge':(active?'Subscription active':'No active subscription');
+  const promo=!!(p.subscription&&p.subscription.source==='promo'&&p.subscription.status==='active');
+  const subLine=comped?'Complimentary — no charge':(promo?'Free month active':(active?'Subscription active':'No active subscription'));
   return `<div class="prop-card">
     <div class="prop-card-top">
       <div><div class="prop-name">${esc(p.name)}</div><div class="prop-meta">${esc(p.unitType||'')}${p.tag?' · '+esc(p.tag):''}</div></div>
@@ -421,7 +422,7 @@ function propCard(p){
     ${statsStrip(p.slug)}
     <div class="prop-actions">
       ${canSub?`<button class="btn-sm primary" onclick="openCheckout('${esc(p.slug)}')">Activate listing</button>`:''}
-      ${(active&&!comped)?`<button class="btn-sm" onclick="manageBilling()">Manage billing</button>`:''}
+      ${(active&&!comped&&!promo)?`<button class="btn-sm" onclick="manageBilling()">Manage billing</button>`:''}
       <button class="btn-sm" onclick="editProperty('${esc(p.slug)}')">Edit</button>
       <button class="btn-sm danger" onclick="removeProperty('${esc(p.slug)}')">Delete</button>
     </div>
