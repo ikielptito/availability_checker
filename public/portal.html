@@ -53,6 +53,9 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .brand-mark{display:flex;align-items:center;flex-shrink:0;text-decoration:none;}
 .brand-mark img{height:80px;}
 .spacer{flex:1;}
+.howto-link{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;color:var(--text);font-family:'Sora',sans-serif;font-size:0.8rem;font-weight:500;text-decoration:none;white-space:nowrap;padding:6px 11px;border-radius:7px;border:1px solid var(--border);}
+.howto-link:hover{color:#c26a4a;border-color:#c26a4a;}
+.howto-link svg{width:15px;height:15px;flex-shrink:0;}
 .owner-chip{display:flex;align-items:center;gap:9px;}
 .owner-avatar{width:30px;height:30px;border-radius:50%;background:var(--surface2);object-fit:cover;border:1px solid var(--border);}
 .owner-name{font-size:0.8rem;color:var(--text);}
@@ -60,7 +63,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .logout-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:6px 13px;font-family:'Sora',sans-serif;font-size:0.72rem;cursor:pointer;}
 .logout-btn:hover{color:var(--text);}
 .content{padding:28px;max-width:1100px;margin:0 auto;}
-@media(max-width:640px){.content{padding:16px;}.topbar{padding:8px 16px;}.owner-email{display:none;}.brand-mark img{height:56px;}}
+@media(max-width:640px){.content{padding:16px;}.topbar{padding:8px 16px;}.owner-email{display:none;}.brand-mark img{height:56px;}.owner-chip,.logout-btn{display:none;}.howto-link span{display:none;}.howto-link{padding:8px;}}
 .section-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
 .section-title{font-family:'Playfair Display',serif;font-size:1.4rem;}
 .add-btn{background:var(--accent);border:1px solid var(--accent);border-radius:8px;color:#fff;padding:8px 16px;font-family:'Sora',sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;}
@@ -168,6 +171,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       <img src="/logo-samba.png" alt="Samba">
     </a>
     <div class="spacer"></div>
+    <a class="howto-link" href="/home" title="How it works"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>How it works</span></a>
     <div id="samba-nav"></div>
     <div class="owner-chip">
       <img class="owner-avatar" id="owner-avatar" alt="">

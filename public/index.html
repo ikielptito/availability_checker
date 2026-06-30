@@ -50,6 +50,9 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .topbar{position:sticky;top:0;z-index:100;background:rgba(250,248,244,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;gap:18px}
 .brand-mark{display:flex;align-items:center;flex-shrink:0;text-decoration:none}
 .brand-mark img{height:80px}
+.howto-link{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;color:#3d3a32;font-family:'Sora',sans-serif;font-size:.82rem;font-weight:500;text-decoration:none;white-space:nowrap;padding:7px 11px;border-radius:8px;border:1px solid var(--border)}
+.howto-link svg{width:15px;height:15px;flex-shrink:0}
+.howto-link:hover{color:#c26a4a;border-color:#c26a4a}
 .topbar-title{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:600;color:var(--text);white-space:nowrap;border-left:1px solid var(--border);padding-left:18px}
 @media(max-width:600px){.brand-mark img{height:56px}.topbar-title{font-size:.95rem;padding-left:12px}}
 @media(max-width:560px){.topbar-count,.live-pill{display:none}}
@@ -99,7 +102,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .filter-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
 @media(max-width:520px){.filter-bar{padding:12px 14px}}
 .prop-grid{padding:20px 24px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
-@media(max-width:760px){.prop-grid{grid-template-columns:1fr;padding:14px}.topbar{padding:10px 14px;gap:10px}.topbar-title,.topbar-count,.live-pill,.refresh-btn,.topbar .spacer{display:none}.search-wrap{flex:1;width:auto}}
+@media(max-width:760px){.prop-grid{grid-template-columns:1fr;padding:14px}.topbar{padding:10px 14px;gap:10px}.topbar-title,.topbar-count,.live-pill,.refresh-btn,.topbar .spacer,.howto-link span{display:none}.howto-link{padding:8px}.search-wrap{flex:1;width:auto}}
 /* Smaller desktops/tablets: drop secondary topbar text so the tab links fit */
 @media(min-width:761px) and (max-width:1180px){.topbar-title,.topbar-count,.live-pill{display:none}}
 /* Mobile: denser horizontal cards (image left, details right) */
@@ -322,6 +325,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       Refresh
     </button>
+    <a class="howto-link" href="/home" title="How it works"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>How it works</span></a>
     <div id="samba-nav"></div>
   </div>
   <div class="filter-bar" id="filter-bar" style="display:none">
