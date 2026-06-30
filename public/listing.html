@@ -416,6 +416,16 @@
     color: var(--muted);
   }
 
+  /* Personalized agent contact bar (shown when shared via ?a=handle) */
+  #agent-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; display: none; align-items: center; gap: 12px; padding: 12px 18px calc(12px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.98); backdrop-filter: blur(10px); border-top: 1px solid var(--border); box-shadow: 0 -4px 20px rgba(60,45,20,.08); }
+  #agent-bar .agent-bar-photo { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--surface2); flex-shrink: 0; }
+  #agent-bar .agent-bar-info { flex: 1; min-width: 0; }
+  #agent-bar .agent-bar-name { font-weight: 600; font-size: 0.95rem; color: var(--text); }
+  #agent-bar .agent-bar-sub { font-size: 0.76rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #agent-bar .agent-bar-wa { display: inline-flex; align-items: center; gap: 8px; background: #25a35a; color: #fff; text-decoration: none; padding: 11px 18px; border-radius: 10px; font-size: 0.9rem; font-weight: 600; white-space: nowrap; }
+  #agent-bar .agent-bar-wa:hover { background: #1f8c4d; }
+  @media(min-width: 760px) { #agent-bar { justify-content: center; } #agent-bar .agent-bar-info { flex: 0 1 auto; margin-right: 8px; } }
+
   @media(max-width: 600px) {
     .hero { height: 50vh; }
     .content { padding: 32px 20px 60px; }
@@ -507,6 +517,19 @@
 
 <footer>© Samba · Bali, Indonesia</footer>
 
+<!-- Personalized agent contact (populated when the link carries ?a=<handle>) -->
+<div id="agent-bar">
+  <img class="agent-bar-photo" id="agent-bar-photo" alt="" style="display:none">
+  <div class="agent-bar-info">
+    <div class="agent-bar-name" id="agent-bar-name"></div>
+    <div class="agent-bar-sub" id="agent-bar-sub">Your agent</div>
+  </div>
+  <a class="agent-bar-wa" id="agent-bar-wa" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.8-1.5A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-2.8.9.9-2.8-.2-.3A8 8 0 1 1 12 20zm4.4-5.6c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1-.2.2-.6.8-.7.9-.1.2-.3.2-.5.1-.7-.3-1.4-.6-2-1.5-.2-.3.2-.3.5-.9.1-.1 0-.3 0-.4 0-.1-.5-1.3-.7-1.7-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.4.1-.6.3-.2.2-.8.8-.8 1.9s.8 2.2.9 2.3c.1.2 1.6 2.5 4 3.4.6.3 1 .4 1.4.5.6.2 1.1.2 1.5.1.5-.1 1.4-.6 1.6-1.1.2-.5.2-1 .1-1.1-.1-.1-.2-.1-.4-.2z"/></svg>
+    Contact
+  </a>
+</div>
+
 <!-- LIGHTBOX -->
 <div class="lb-overlay" id="lb" onclick="lbClickOverlay(event)">
   <button class="lb-close" onclick="closeLb()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
@@ -528,6 +551,27 @@ let LISTING = null, PROP_ID = null;
 const URL_PARAMS = new URLSearchParams(window.location.search);
 const URL_REF = URL_PARAMS.get('ref') || null;
 const URL_AID = URL_PARAMS.get('aid') || null;
+const URL_AGENT = URL_PARAMS.get('a') || null;
+
+// When an agent shares with ?a=<handle>, show a "Contact <agent>" bar with the
+// agent's photo + WhatsApp (their contact, never the owner's — see note above).
+function renderAgentBar() {
+  if (!URL_AGENT || !/^[a-z0-9-]{1,60}$/.test(URL_AGENT)) return;
+  fetch('/api/portal?action=agent-public&handle=' + encodeURIComponent(URL_AGENT))
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d || !d.profile || !d.profile.waNumber) return;
+      var p = d.profile;
+      var photo = document.getElementById('agent-bar-photo');
+      if (p.photo) { photo.src = p.photo; photo.style.display = ''; }
+      document.getElementById('agent-bar-name').textContent = p.displayName || 'Your agent';
+      document.getElementById('agent-bar-sub').textContent = p.agency || 'Your Samba agent';
+      var msg = 'Hi ' + (p.displayName || '') + ', I’m interested in ' + (LISTING ? LISTING.name : 'this villa') + ' — ' + location.href;
+      document.getElementById('agent-bar-wa').href = 'https://wa.me/' + p.waNumber.replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(msg);
+      document.getElementById('agent-bar').style.display = 'flex';
+      document.body.style.paddingBottom = '84px';
+    }).catch(function () {});
+}
 if (URL_AID && /^[a-zA-Z0-9_-]{1,64}$/.test(URL_AID)) {
   localStorage.setItem('samba_agent_id', URL_AID);
   if (URL_REF) sessionStorage.setItem('samba_session_src', URL_REF);
@@ -683,6 +727,7 @@ async function boot() {
   track('listing_view', PROP_ID, listing.name);
 
   document.title = listing.name + ' · Samba Rentals';
+  renderAgentBar();
 
   // Fill content
   document.getElementById('prop-tag').textContent = listing.tag || '';

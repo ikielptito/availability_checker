@@ -78,7 +78,8 @@ export default async function handler(req, res) {
     if (action === 'auth/me' && req.method === 'GET') {
       const owner = await currentOwner(req, { kvGet });
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
-      return res.status(200).json({ owner: publicOwner(owner) });
+      const owned = (await kvGet(`owner_listings:${owner.sub}`)) || [];
+      return res.status(200).json({ owner: { ...publicOwner(owner), hasListings: owned.length > 0 } });
     }
     if (action === 'auth/logout' && req.method === 'POST') {
       const token = readSessionToken(req);
@@ -282,6 +283,13 @@ async function saveProfile(req, res, owner, { kvGet, kvSet }) {
   p.agency = cleanStr(req.body?.agency).slice(0, 80);
   p.waNumber = cleanStr(req.body?.waNumber).replace(/[^0-9]/g, '');
   p.public = !!req.body?.public;
+  // Optional custom avatar: a small in-browser-compressed data URL. Cap size so
+  // the account record stays light (auth/me returns it on every load).
+  if (req.body?.photo !== undefined) {
+    const photo = cleanStr(req.body.photo);
+    if (!photo) p.photo = '';
+    else if (/^data:image\/(png|jpe?g|webp);base64,/.test(photo) && photo.length <= 200000) p.photo = photo;
+  }
   // Stable public handle, generated once and never reassigned.
   if (!p.handle) {
     const base = slugify(displayName || owner.email || 'agent');
@@ -330,8 +338,10 @@ async function agentPublic(req, res, { kvGet }) {
     const sub = await kvGet(`handle:${handle}`);
     if (!sub) return res.status(404).json({ error: 'Not found' });
     owner = await kvGet(`owner:${sub}`);
-    if (!owner || !owner.profile?.public) return res.status(404).json({ error: 'Not found' });
-    slugs = Array.isArray(owner.favorites) ? owner.favorites : [];
+    if (!owner) return res.status(404).json({ error: 'Not found' });
+    // Contact details resolve for any existing handle (the agent opts in by
+    // sharing with ?a=handle); their saved-villa list only shows when public.
+    slugs = owner.profile?.public && Array.isArray(owner.favorites) ? owner.favorites : [];
   } else {
     return res.status(400).json({ error: 'Missing handle or share' });
   }
@@ -341,8 +351,10 @@ async function agentPublic(req, res, { kvGet }) {
       displayName: pr.displayName || owner.name || 'Agent',
       agency: pr.agency || '',
       waNumber: pr.waNumber || '',
-      picture: owner.picture || '',
+      photo: pr.photo || owner.picture || '',
+      picture: pr.photo || owner.picture || '',
       handle: pr.handle || '',
+      public: !!pr.public,
     },
     listName,
     slugs,

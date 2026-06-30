@@ -99,7 +99,22 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .filter-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
 @media(max-width:520px){.filter-bar{padding:12px 14px}}
 .prop-grid{padding:20px 24px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
-@media(max-width:760px){.prop-grid{grid-template-columns:1fr;padding:14px}.topbar{padding:8px 14px;gap:10px}.search-wrap{width:140px}}
+@media(max-width:760px){.prop-grid{grid-template-columns:1fr;padding:14px}.topbar{padding:10px 14px;gap:10px}.topbar-title,.topbar-count,.live-pill,.refresh-btn,.topbar .spacer{display:none}.search-wrap{flex:1;width:auto}}
+/* Smaller desktops/tablets: drop secondary topbar text so the tab links fit */
+@media(min-width:761px) and (max-width:1180px){.topbar-title,.topbar-count,.live-pill{display:none}}
+/* Mobile: denser horizontal cards (image left, details right) */
+@media(max-width:600px){
+  .prop-card{display:flex;align-items:stretch}
+  .prop-hero{flex:0 0 122px;aspect-ratio:auto;height:auto;min-height:100%}
+  .card-body{flex:1;min-width:0;display:flex;flex-direction:column}
+  .prop-price{padding:10px 14px 2px}
+  .prop-head{padding:2px 14px}
+  .prop-price-main{font-size:1.15rem}
+  .card-actions{margin-top:auto;padding:8px 12px 12px;gap:6px}
+  .card-actions .btn-share,.card-actions .btn-ghost{flex:1;padding:10px 4px;font-size:.78rem}
+  .fav-heart{width:30px;height:30px;top:7px;right:7px}
+  .fav-heart svg{width:16px;height:16px}
+}
 .prop-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
 .prop-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(120,90,40,.1),0 1px 2px rgba(120,90,40,.06)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -775,7 +790,10 @@ function doShare(propId, btn){
   const info=PROPS[propId]; if(!info) return;
   track('share', propId, info.name);
   const slug=SLUGS[propId];
-  const url=slug?location.origin+'/l/'+slug:location.origin;
+  let url=slug?location.origin+'/l/'+slug:location.origin;
+  // Personalise the share so the client sees a "Contact {agent}" card.
+  const handle=window.SambaNav&&SambaNav.account&&SambaNav.account.profile&&SambaNav.account.profile.handle;
+  if(slug&&handle) url+='?a='+encodeURIComponent(handle);
   const title=info.name+(info.tag?' · '+info.tag:'');
   const flash=(txt)=>{
     if(!btn) return;
@@ -1127,6 +1145,7 @@ function render() {
       +'<div class="prop-hero" title="View photos &amp; details">'+heroInner
         +'<button class="fav-heart'+(isFav?' on':'')+'" onclick="event.stopPropagation();toggleFav(\''+slug+'\')" aria-label="'+(isFav?'Remove from saved':'Save villa')+'" title="'+(isFav?'Saved':'Save')+'"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>'
         +'</div>'
+      +'<div class="card-body">'
       +availBar
       +priceRow
       +'<div class="prop-head">'
@@ -1137,6 +1156,7 @@ function render() {
       +'<div class="card-actions">'
       +'<button class="btn-share" onclick="event.stopPropagation();shareCard(\''+p.id+'\',\''+esc(p.name)+'\')">'+icon('share','sm')+'<span class="btn-label">Share</span></button>'
       +(info?'<button class="btn-ghost" onclick="event.stopPropagation();openModal(\''+p.id+'\')">'+icon('info','sm')+'<span class="btn-label">Details</span></button>':'')
+      +'</div>'
       +'</div>'
       +'</div>';
   }).join('');

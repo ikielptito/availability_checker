@@ -168,6 +168,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       <img src="/logo-samba.png" alt="Samba">
     </a>
     <div class="spacer"></div>
+    <div id="samba-nav"></div>
     <div class="owner-chip">
       <img class="owner-avatar" id="owner-avatar" alt="">
       <div>
@@ -547,5 +548,6 @@ async function manageBilling(){
   else { showToast(b?.error||'Could not open billing portal.'); }
 }
 </script>
+<script src="/nav.js"></script>
 </body>
 </html>
