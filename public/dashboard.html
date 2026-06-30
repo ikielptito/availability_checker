@@ -133,6 +133,11 @@ tr:hover td{background:var(--surface2);}
 .loading-state{padding:40px;text-align:center;color:var(--muted);}
 .spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
 @keyframes spin{to{transform:rotate(360deg);}}
+/* Embedded in the /admin Analytics tab: hide the standalone chrome. */
+body.embed #login{display:none!important;}
+body.embed .brand-mark{display:none;}
+body.embed .topbar{border-bottom:none;padding-top:4px;}
+body.embed .content{padding-top:8px;}
 </style>
 </head>
 <body>
@@ -654,11 +659,18 @@ async function confirmNotify() {
   }
 }
 
-// Auto-login if previously authenticated in session
-const savedPwd = sessionStorage.getItem('dash_pwd');
+// Embedded inside the /admin console (Analytics tab): inherit the admin login
+// via shared same-origin sessionStorage and drop the redundant chrome so it
+// reads as one app.
+const isEmbed = new URLSearchParams(location.search).get('embed') === '1';
+if (isEmbed) document.body.classList.add('embed');
+
+// Auto-login: when embedded use the admin console's password; otherwise the
+// dashboard's own remembered password.
+const savedPwd = (isEmbed && sessionStorage.getItem('admin_pw')) || sessionStorage.getItem('dash_pwd');
 if (savedPwd) {
   authToken = savedPwd;
-  document.getElementById('pwd').value = savedPwd;
+  const inp = document.getElementById('pwd'); if (inp) inp.value = savedPwd;
   loadData();
 }
 

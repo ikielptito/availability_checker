@@ -4,11 +4,15 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Password check (shared between analytics GET and notify-agents POST —
-  // both are dashboard-side operations behind DASHBOARD_PASSWORD).
+  // Password check (shared between analytics GET and notify-agents POST).
+  // Accept ADMIN_PASSWORD too so the unified /admin console's single login
+  // works for the embedded analytics tab regardless of which env var is set.
   const auth = req.headers.authorization || '';
   const pwd = process.env.DASHBOARD_PASSWORD || 'samba2024';
-  if (auth !== `Bearer ${pwd}`) return res.status(401).json({ error: 'Unauthorized' });
+  const adminPwd = process.env.ADMIN_PASSWORD || '';
+  if (auth !== `Bearer ${pwd}` && !(adminPwd && auth === `Bearer ${adminPwd}`)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   // ── POST → notify-agents (manual broadcast preview/fire) ──────────
   // Folded into this handler to stay under Vercel Hobby plan's 12-function

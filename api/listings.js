@@ -162,6 +162,12 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
+    // Admin: list promo codes (with redemption counts) for the console.
+    if (req.query.promos === '1') {
+      if (!checkAuth()) return res.status(401).json({ error: 'Unauthorized' });
+      const promos = (await kvGet('promo_codes')) || {};
+      return res.status(200).json({ promos });
+    }
     const slugs = Object.keys(DEFAULTS);
     const [customMap, ...kvResults] = await Promise.all([
       kvGet(CUSTOM_KEY),
@@ -207,6 +213,30 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     if (!checkAuth()) return res.status(401).json({ error: 'Unauthorized' });
+
+    // Promo codes: create/update or delete (free-month activation codes used by
+    // the owner checkout while card billing is offline). Stored in `promo_codes`,
+    // the same store api/portal.js redeemPromo validates against.
+    if (req.body?.action === 'promo-save') {
+      const code = String(req.body.code || '').trim().toUpperCase();
+      if (!/^[A-Z0-9]{3,24}$/.test(code)) return res.status(400).json({ error: 'Code must be 3–24 letters or numbers.' });
+      const promos = (await kvGet('promo_codes')) || {};
+      const ex = promos[code] || { redemptions: 0 };
+      const durationDays = Math.max(1, parseInt(req.body.durationDays, 10) || ex.durationDays || 30);
+      const active = req.body.active !== false;
+      let maxR = req.body.maxRedemptions;
+      maxR = (maxR === '' || maxR == null) ? null : (Math.max(1, parseInt(maxR, 10) || 0) || null);
+      promos[code] = { type: 'free_month', durationDays, active, maxRedemptions: maxR, redemptions: ex.redemptions || 0, redeemedBy: ex.redeemedBy || [], updatedAt: Date.now() };
+      await kvSet('promo_codes', promos);
+      return res.status(200).json({ ok: true, promos });
+    }
+    if (req.body?.action === 'promo-delete') {
+      const code = String(req.body.code || '').trim().toUpperCase();
+      const promos = (await kvGet('promo_codes')) || {};
+      delete promos[code];
+      await kvSet('promo_codes', promos);
+      return res.status(200).json({ ok: true, promos });
+    }
 
     // Review action: approve / reject an owner-submitted listing.
     if (req.body?.action === 'set-status') {

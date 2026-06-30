@@ -109,6 +109,17 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .loading-state{padding:60px;text-align:center;color:var(--muted);}
 .spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
 @keyframes spin{to{transform:rotate(360deg);}}
+
+/* TABS */
+.admin-tabs{display:flex;gap:4px;overflow-x:auto;}
+.admin-tabs::-webkit-scrollbar{display:none;}
+.atab{background:none;border:none;color:var(--muted);font-family:'Sora',sans-serif;font-size:0.8rem;font-weight:500;padding:8px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+.atab:hover{color:var(--text);background:var(--surface2);}
+.atab.on{color:var(--accent);background:var(--surface2);}
+.atab-count{background:var(--yellow);color:#0f1117;border-radius:10px;font-size:0.62rem;font-weight:700;padding:1px 6px;min-width:16px;text-align:center;}
+.atab-count:empty{display:none;}
+.admin-frame{width:100%;height:calc(100vh - 130px);border:none;background:var(--bg);border-radius:12px;}
+@media(max-width:640px){.admin-tabs{gap:0;}.atab{padding:7px 8px;font-size:0.72rem;}.topbar-sub{display:none;}}
 </style>
 </head>
 <body>
@@ -128,12 +139,20 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 <div id="app">
   <div class="topbar">
     <span class="topbar-brand">Admin</span>
-    <span class="topbar-sub">Listings</span>
+    <div class="admin-tabs">
+      <button class="atab on" data-tab="approvals" onclick="showTab('approvals')">Approvals <span class="atab-count" id="approvals-count"></span></button>
+      <button class="atab" data-tab="listings" onclick="showTab('listings')">Listings</button>
+      <button class="atab" data-tab="analytics" onclick="showTab('analytics')">Analytics</button>
+      <button class="atab" data-tab="promos" onclick="showTab('promos')">Promo codes</button>
+    </div>
     <div class="spacer"></div>
     <button class="logout-btn" onclick="logout()">Log out</button>
   </div>
-  <div class="content" id="content">
-    <div class="loading-state"><div class="spinner"></div>Loading listings…</div>
+  <div class="content">
+    <div id="tab-approvals" class="tabpane"><div class="loading-state"><div class="spinner"></div>Loading…</div></div>
+    <div id="tab-listings" class="tabpane" style="display:none"></div>
+    <div id="tab-analytics" class="tabpane" style="display:none"><iframe id="analytics-frame" class="admin-frame" title="Analytics"></iframe></div>
+    <div id="tab-promos" class="tabpane" style="display:none"></div>
   </div>
 </div>
 
@@ -176,19 +195,143 @@ function showToast(msg, type) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
 }
 
+let activeTab = 'approvals';
+function showTab(t) {
+  activeTab = t;
+  document.querySelectorAll('.atab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  ['approvals','listings','analytics','promos'].forEach(k => {
+    const el = document.getElementById('tab-' + k); if (el) el.style.display = k === t ? '' : 'none';
+  });
+  if (t === 'analytics') { const f = document.getElementById('analytics-frame'); if (f && !f.src) f.src = '/dashboard.html?embed=1'; }
+  if (t === 'promos') loadPromos();
+}
+
+let allListings = [];
 async function loadListings() {
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  document.getElementById('content').innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading listings…</div>';
+  document.getElementById('tab-approvals').innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>';
   try {
     const r = await fetch('/api/listings?all=1', { headers: { 'Authorization': 'Bearer ' + adminPw } });
     if (r.status === 401) { showGate('Session expired. Please log in again.'); return; }
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const { listings } = await r.json();
-    renderListings(listings);
+    allListings = listings;
+    renderApprovalsTab(listings);
+    renderListingsTab(listings);
   } catch(e) {
-    document.getElementById('content').innerHTML = '<div class="loading-state">Could not load listings: ' + e.message + '</div>';
+    document.getElementById('tab-approvals').innerHTML = '<div class="loading-state">Could not load: ' + e.message + '</div>';
   }
+}
+
+// ── Approvals tab: owner submissions awaiting review ──
+function renderApprovalsTab(listings) {
+  const pending = listings.filter(l => l.ownerSub && l.status === 'pending_review');
+  const countEl = document.getElementById('approvals-count');
+  if (countEl) countEl.textContent = pending.length ? String(pending.length) : '';
+  const head = `<div class="section-head"><div><h2>Pending approvals</h2><div class="hint">Owner-submitted listings awaiting review</div></div></div>`;
+  if (!pending.length) {
+    document.getElementById('tab-approvals').innerHTML = head + '<div class="empty-hint">Nothing waiting for review. 🎉</div>';
+    return;
+  }
+  document.getElementById('tab-approvals').innerHTML = head + pending.map(approvalCard).join('');
+}
+function approvalCard(l) {
+  const price = [l.monthly && (l.monthly + '/mo'), l.yearly && (l.yearly + '/yr')].filter(Boolean).join(' · ') || 'no price set';
+  return `<div class="listing-card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">${esc(l.name || l.slug)}${statusBadge(l)}</div>
+        <div class="card-slug">${esc(l.slug)}</div>
+        <div class="owner-note">Owner: ${esc(l.ownerEmail || l.ownerSub || '—')}</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="review-btn approve" onclick="setListingStatus('${l.slug}','approved')">Approve</button>
+        <button class="review-btn reject" onclick="setListingStatus('${l.slug}','rejected')">Reject</button>
+        <button class="review-btn" onclick="openInListings('${l.slug}')">Open in Listings →</button>
+      </div>
+    </div>
+    <div style="font-size:0.8rem;color:var(--muted)">${esc(l.unitType || '')}${l.tag ? ' · ' + esc(l.tag) : ''} · ${esc(price)}</div>
+  </div>`;
+}
+function openInListings(slug) {
+  showTab('listings');
+  setTimeout(() => { const c = document.getElementById('card-' + slug); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80);
+}
+
+// ── Promo codes tab ──
+let promosCache = {};
+async function loadPromos() {
+  document.getElementById('tab-promos').innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>';
+  try {
+    const r = await fetch('/api/listings?promos=1', { headers: { 'Authorization': 'Bearer ' + adminPw } });
+    if (r.status === 401) { showGate('Session expired. Please log in again.'); return; }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const { promos } = await r.json();
+    promosCache = promos || {};
+    renderPromosTab(promosCache);
+  } catch(e) {
+    document.getElementById('tab-promos').innerHTML = '<div class="loading-state">Could not load promo codes: ' + e.message + '</div>';
+  }
+}
+function renderPromosTab(promos) {
+  const codes = Object.keys(promos || {}).sort();
+  const form = `<div class="section-head"><div><h2>Promo codes</h2><div class="hint">Free-month activation codes for the owner checkout</div></div></div>
+    <div class="listing-card">
+      <div class="section-label">Create a code</div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">Code</label><input class="field-input" id="promo-new-code" placeholder="e.g. LAUNCH30" style="text-transform:uppercase" /></div>
+        <div class="field-group"><label class="field-label">Free days</label><input class="field-input" id="promo-new-days" type="number" min="1" value="30" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">Max redemptions <span class="field-hint">(blank = unlimited)</span></label><input class="field-input" id="promo-new-max" type="number" min="1" placeholder="unlimited" /></div>
+        <div class="field-group" style="justify-content:flex-end"><button class="add-btn" onclick="createPromo()">+ Create code</button></div>
+      </div>
+    </div>`;
+  const list = !codes.length
+    ? '<div class="empty-hint">No promo codes yet. Create one above.</div>'
+    : codes.map(c => {
+        const p = promos[c];
+        const disabled = p.active === false;
+        const cap = p.maxRedemptions ? (`${p.redemptions || 0} / ${p.maxRedemptions} redeemed`) : (`${p.redemptions || 0} redeemed · unlimited`);
+        return `<div class="listing-card">
+          <div class="card-header" style="border-bottom:none;margin-bottom:0;padding-bottom:0">
+            <div>
+              <div class="card-title">${esc(c)} <span class="status-badge ${disabled ? 'rejected' : 'approved'}">${disabled ? 'disabled' : 'active'}</span></div>
+              <div class="card-slug" style="text-transform:none;letter-spacing:0">${p.durationDays || 30} free days · ${cap}</div>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button class="review-btn" onclick="togglePromo('${esc(c)}')">${disabled ? 'Enable' : 'Disable'}</button>
+              <button class="delete-btn" onclick="deletePromo('${esc(c)}')">Delete</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+  document.getElementById('tab-promos').innerHTML = form + list;
+}
+async function promoApi(body) {
+  try {
+    const r = await fetch('/api/listings', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminPw }, body: JSON.stringify(body) });
+    if (r.status === 401) { showGate('Session expired. Please log in again.'); return; }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    promosCache = d.promos || {};
+    renderPromosTab(promosCache);
+    showToast('Saved', 'success');
+  } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+}
+function createPromo() {
+  const code = document.getElementById('promo-new-code').value.trim().toUpperCase();
+  if (!/^[A-Z0-9]{3,24}$/.test(code)) { showToast('Code must be 3–24 letters or numbers.', 'error'); return; }
+  promoApi({ action: 'promo-save', code, durationDays: document.getElementById('promo-new-days').value, maxRedemptions: document.getElementById('promo-new-max').value, active: true });
+}
+function togglePromo(code) {
+  const p = promosCache[code] || {};
+  promoApi({ action: 'promo-save', code, durationDays: p.durationDays, maxRedemptions: p.maxRedemptions == null ? '' : p.maxRedemptions, active: p.active === false });
+}
+function deletePromo(code) {
+  if (!confirm('Delete code ' + code + '? Anyone holding it can no longer redeem.')) return;
+  promoApi({ action: 'promo-delete', code });
 }
 
 function extractFolderId(url) {
@@ -196,7 +339,7 @@ function extractFolderId(url) {
   return m ? m[1] : null;
 }
 
-function renderListings(listings) {
+function renderListingsTab(listings) {
   // Pending owner submissions float to the top so they're reviewed first.
   const rank = l => (l.ownerSub && l.status === 'pending_review') ? 0 : 1;
   const customs = listings.filter(l => l.custom).sort((a, b) => rank(a) - rank(b));
@@ -211,7 +354,7 @@ function renderListings(listings) {
       '<div class="empty-hint">No custom properties yet. Click "+ Add Property" to create one.</div>') +
     `<div class="section-head" style="margin-top:36px"><div><h2>Hostex Listings</h2><div class="hint">Synced from Hostex — details editable here</div></div></div>` +
     defaults.map(l => defaultCard(l)).join('');
-  document.getElementById('content').innerHTML = html;
+  document.getElementById('tab-listings').innerHTML = html;
 
   // Load drive previews for all listings
   listings.forEach(l => {
