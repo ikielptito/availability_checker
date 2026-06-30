@@ -141,7 +141,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
   <header class="lp-hero">
     <div class="lp-eyebrow">Owner Portal</div>
     <h1 class="lp-h1">Sign in to list your villa.</h1>
-    <p class="lp-sub">Add your villa, manage your listings, and track agent interest — all in one place. $10/month per villa, cancel anytime.</p>
+    <p class="lp-sub">Add your villa, manage your listings, and track agent interest — all in one place. IDR 150k/month per villa, cancel anytime.</p>
     <div id="gbtn"></div>
     <div class="login-err" id="login-err"></div>
     <div class="lp-hero-note">New here? Signing in with Google creates your owner account automatically.</div>
@@ -150,7 +150,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
   <div class="lp-trust">
     <span><b>250+</b>rental agents</span>
     <span><b>Canggu · Pererenan · Bali</b></span>
-    <span><b>$10</b>/ month per villa</span>
+    <span><b>IDR 150k</b>/ month per villa</span>
   </div>
 
   <div class="lp-newhere">
@@ -249,18 +249,20 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       <div class="modal-title">List your villa</div>
     </div>
     <div class="modal-body">
-      <div class="checkout-price">$10 <span>/ month per villa</span></div>
-      <p class="checkout-blurb">Your listing goes live to 250+ Bali rental agents the moment payment is confirmed. Cancel anytime.</p>
+      <div class="checkout-price">IDR 150k <span>/ month per villa</span></div>
+      <p class="checkout-blurb">Your listing goes live to 250+ Bali rental agents as soon as it's activated. Cancel anytime.</p>
+      <button class="btn-sm" disabled style="width:100%;opacity:.5;cursor:not-allowed">Pay by card — temporarily unavailable</button>
+      <p class="hint" style="margin-top:2px">Card billing is being finalised. Have a promo code? Enter it below to activate your listing now.</p>
       <div class="fg">
-        <label>Promo code <span style="text-transform:none;letter-spacing:0;color:var(--subtle)">(optional)</span></label>
+        <label>Promo code</label>
         <input id="f-promo" placeholder="e.g. FREEMONTH" autocomplete="off" spellcheck="false" style="text-transform:uppercase">
-        <div class="hint">Have a code? Enter it and we'll apply it at checkout.</div>
+        <div class="hint">Activates this listing free for one month.</div>
       </div>
     </div>
     <div class="modal-err" id="checkout-err"></div>
     <div class="modal-actions">
       <button class="btn-sm" onclick="closeCheckout()">Cancel</button>
-      <button class="btn-sm primary" id="checkout-go" onclick="goToPayment()">Continue to payment</button>
+      <button class="btn-sm primary" id="checkout-go" onclick="applyPromo()">Apply code &amp; go live</button>
     </div>
   </div>
 </div>
@@ -372,7 +374,7 @@ async function loadProperties(){
   const r=await api('?action=properties');
   myProps=r.body?.properties||[];
   if(!myProps.length){
-    el.innerHTML='<div class="empty-card"><h3>No properties yet</h3><p>Add your first property to get it listed and tracked. $10/month per property.</p></div>';
+    el.innerHTML='<div class="empty-card"><h3>No properties yet</h3><p>Add your first property to get it listed and tracked. IDR 150k/month per property.</p></div>';
     document.getElementById('period-toggle').style.visibility='hidden';
     return;
   }
@@ -418,7 +420,7 @@ function propCard(p){
     <div class="prop-status-note">${note}</div>
     ${statsStrip(p.slug)}
     <div class="prop-actions">
-      ${canSub?`<button class="btn-sm primary" onclick="openCheckout('${esc(p.slug)}')">Subscribe $10/mo</button>`:''}
+      ${canSub?`<button class="btn-sm primary" onclick="openCheckout('${esc(p.slug)}')">Activate listing</button>`:''}
       ${(active&&!comped)?`<button class="btn-sm" onclick="manageBilling()">Manage billing</button>`:''}
       <button class="btn-sm" onclick="editProperty('${esc(p.slug)}')">Edit</button>
       <button class="btn-sm danger" onclick="removeProperty('${esc(p.slug)}')">Delete</button>
@@ -511,16 +513,36 @@ async function removeProperty(slug){
   showToast('Deleted.');loadProperties();
 }
 
-// ── Checkout: confirm price + optional promo code, then open Paddle ──
+// ── Checkout: card billing is offline, so a promo code is the activation path ──
 let checkoutSlug=null;
 function openCheckout(slug){
   checkoutSlug=slug;
   document.getElementById('f-promo').value='';
   document.getElementById('checkout-err').textContent='';
-  const btn=document.getElementById('checkout-go');btn.disabled=false;btn.textContent='Continue to payment';
+  const btn=document.getElementById('checkout-go');btn.disabled=false;btn.textContent='Apply code & go live';
   document.getElementById('checkout-modal').classList.add('open');
 }
 function closeCheckout(){ document.getElementById('checkout-modal').classList.remove('open'); }
+
+// Redeem a promo code to activate this listing for free (one month). When card
+// billing returns, goToPayment()/launchPaddle() below can be re-wired to the
+// greyed-out pay button.
+async function applyPromo(){
+  const slug=checkoutSlug;
+  const code=document.getElementById('f-promo').value.trim().toUpperCase();
+  const err=document.getElementById('checkout-err'); err.textContent='';
+  if(!code){ err.textContent='Enter your promo code to activate this listing.'; return; }
+  const btn=document.getElementById('checkout-go'); btn.disabled=true; btn.textContent='Applying…';
+  const r=await api('?action=redeem-promo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug,code})});
+  btn.disabled=false; btn.textContent='Apply code & go live';
+  if(r.ok && r.body && r.body.ok){
+    closeCheckout();
+    showToast(r.body.alreadyActive?'This listing is already live.':'Code applied — your listing is live, free for one month.');
+    loadProperties();
+  } else {
+    err.textContent=(r.body && r.body.error) || 'Could not apply that code.';
+  }
+}
 
 async function goToPayment(){
   const slug=checkoutSlug;

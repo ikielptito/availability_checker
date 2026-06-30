@@ -109,6 +109,13 @@ export default async function handler(req, res) {
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
       return ownerAnalytics(req, res, owner, { kvGet, kvPipeline });
     }
+    // Redeem a promo code to activate a listing for free (stopgap while card
+    // billing is offline). Writes an active sub:{slug} with promo metadata.
+    if (action === 'redeem-promo' && req.method === 'POST') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      return redeemPromo(req, res, owner, { kvGet, kvSet });
+    }
 
     // ── Agent account actions (favourites, notes, shortlists, profile) ──
     if (action === 'favorite' && req.method === 'POST') {
@@ -363,6 +370,58 @@ async function agentPublic(req, res, { kvGet }) {
 
 const CUSTOM_KEY = 'custom_properties';
 
+// Promo codes (KV: `promo_codes`). Seeded lazily with these defaults the first
+// time a code is redeemed, so FREEMONTH works out of the box. To add or disable
+// codes, edit the `promo_codes` KV value (e.g. add a key, set active:false, or
+// cap maxRedemptions). `type:'free_month'` ⇒ activates a listing for
+// durationDays at no charge.
+const DEFAULT_PROMOS = {
+  FREEMONTH: { type: 'free_month', durationDays: 30, active: true, maxRedemptions: null, redemptions: 0 },
+};
+
+// Redeem a promo code against one of the owner's listings. Validates ownership
+// and the code, then writes an active sub:{slug} (status 'active' so the listing
+// goes public) tagged source:'promo' with an expiry, and records the redemption.
+async function redeemPromo(req, res, owner, { kvGet, kvSet }) {
+  const slug = normSlug(req.body?.slug);
+  const code = cleanStr(req.body?.code).toUpperCase();
+  if (!slug || !code) return res.status(400).json({ error: 'Enter your promo code.' });
+
+  // Ownership check.
+  const owned = (await kvGet(`owner_listings:${owner.sub}`)) || [];
+  const customMap = (await kvGet(CUSTOM_KEY)) || {};
+  if (!owned.includes(slug) || !customMap[slug] || customMap[slug].ownerSub !== owner.sub) {
+    return res.status(403).json({ error: 'That property isn’t yours.' });
+  }
+
+  // Load the promo store, seeding defaults so FREEMONTH works on a fresh install.
+  let promos = (await kvGet('promo_codes')) || {};
+  for (const k of Object.keys(DEFAULT_PROMOS)) { if (!promos[k]) promos[k] = { ...DEFAULT_PROMOS[k] }; }
+  const promo = promos[code];
+  if (!promo || promo.active === false) return res.status(400).json({ error: 'That code isn’t valid.' });
+  if (promo.maxRedemptions != null && (promo.redemptions || 0) >= promo.maxRedemptions) {
+    return res.status(400).json({ error: 'That code has been fully redeemed.' });
+  }
+
+  // Don't double-apply over an already-active subscription.
+  const existing = await kvGet(`sub:${slug}`);
+  if (existing && existing.status === 'active') {
+    return res.status(200).json({ ok: true, alreadyActive: true, subscription: { status: 'active', source: existing.source || null, expiresAt: existing.expiresAt || null } });
+  }
+
+  const now = Date.now();
+  const days = promo.durationDays || 30;
+  const expiresAt = now + days * 86400000;
+  await kvSet(`sub:${slug}`, { status: 'active', source: 'promo', code, plan: 'promo_free_month', startedAt: now, expiresAt });
+
+  promo.redemptions = (promo.redemptions || 0) + 1;
+  promo.redeemedBy = (promo.redeemedBy || []).concat([{ sub: owner.sub, slug, at: now }]).slice(-1000);
+  promos[code] = promo;
+  await kvSet('promo_codes', promos);
+
+  return res.status(200).json({ ok: true, subscription: { status: 'active', source: 'promo', expiresAt } });
+}
+
 // ── Owner property CRUD ─────────────────────────────────────────────
 async function listProperties(res, owner, { kvGet, kvSet }) {
   const customMap = (await kvGet(CUSTOM_KEY)) || {};
@@ -379,7 +438,7 @@ async function listProperties(res, owner, { kvGet, kvSet }) {
         ...c,
         status: c.status || 'pending_review',
         comped: !!c.comped,
-        subscription: subs[i] ? { status: subs[i].status } : null,
+        subscription: subs[i] ? { status: subs[i].status, source: subs[i].source || null, expiresAt: subs[i].expiresAt || null } : null,
       };
     })
     .filter(Boolean);
