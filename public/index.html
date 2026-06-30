@@ -130,6 +130,41 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .modal-note textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Sora',sans-serif;font-size:.85rem;color:var(--text);outline:none;resize:vertical;min-height:54px;box-sizing:border-box}
 .modal-note textarea:focus{border-color:var(--primary)}
 .modal-note-hint{font-size:.68rem;color:var(--subtle);margin-top:6px}
+.shortlists-wrap{padding:8px 28px 40px;max-width:880px;margin:0 auto}
+.sl-top{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.sl-top h1{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--text)}
+.sl-top .spacer{flex:1}
+.sl-new{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:9px 16px;font-family:'Sora',sans-serif;font-size:.82rem;font-weight:500;cursor:pointer}
+.sl-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:var(--shadow)}
+.sl-card-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sl-name{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--text);background:none;border:none;border-bottom:1px solid transparent;padding:2px 0;outline:none;flex:1;min-width:0}
+.sl-name:focus{border-bottom-color:var(--accent)}
+.sl-count{font-size:.74rem;color:var(--muted);white-space:nowrap}
+.sl-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.sl-chip{display:inline-flex;align-items:center;gap:7px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 8px 6px 12px;font-size:.8rem;color:var(--text-2)}
+.sl-chip button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1;padding:0 2px}
+.sl-chip button:hover{color:var(--accent)}
+.sl-empty{color:var(--subtle);font-size:.82rem;margin-bottom:14px}
+.sl-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sl-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text-2);padding:7px 13px;font-family:'Sora',sans-serif;font-size:.78rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.sl-btn:hover{color:var(--text);border-color:var(--subtle)}
+.sl-btn.danger:hover{color:var(--accent);border-color:var(--accent)}
+.sl-link{flex:1;min-width:180px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 11px;font-size:.74rem;color:var(--text-2);word-break:break-all}
+/* Villa picker */
+.pk-ov{position:fixed;inset:0;background:rgba(26,24,20,.5);z-index:250;display:none;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow-y:auto}
+.pk-ov.open{display:flex}
+.pk-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:480px;width:100%;max-height:84vh;display:flex;flex-direction:column}
+.pk-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.pk-head .modal-title{font-size:1.1rem}
+.pk-search{margin:12px 20px 6px;width:calc(100% - 40px);background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-family:'Sora',sans-serif;font-size:.85rem;color:var(--text);outline:none}
+.pk-list{overflow-y:auto;padding:6px 12px 12px}
+.pk-row{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;cursor:pointer}
+.pk-row:hover{background:var(--surface2)}
+.pk-row .pk-check{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--subtle);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pk-row.on .pk-check{background:var(--accent);border-color:var(--accent);color:#fff}
+.pk-row .pk-nm{font-size:.86rem;color:var(--text)}
+.pk-row .pk-mt{font-size:.72rem;color:var(--muted)}
+.pk-foot{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end}
 .prop-hero-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;color:var(--subtle)}
 .cal-scroll{overflow-x:auto;padding:16px 20px 18px;scrollbar-width:thin;scrollbar-color:var(--subtle) transparent}
 .cal-scroll::-webkit-scrollbar{height:4px}.cal-scroll::-webkit-scrollbar-thumb{background:var(--subtle);border-radius:4px}
@@ -279,6 +314,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
     <div class="filter-chips" id="bedroom-chips"></div>
   </div>
   <div class="prop-grid" id="grid"></div>
+  <div class="shortlists-wrap" id="shortlists" style="display:none"></div>
 
   <!-- Install-to-home-screen prompt — iOS shows manual instructions, Android/Chrome shows native install button -->
   <div class="install-prompt" id="install-prompt" style="display:none">
@@ -370,10 +406,20 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
   <div style="margin-top:8px">© 2026 Samba · Bali, Indonesia</div>
 </footer>
 
+<div class="pk-ov" id="pk-ov">
+  <div class="pk-box">
+    <div class="pk-head"><div class="modal-title" id="pk-title">Add villas</div></div>
+    <input class="pk-search" id="pk-search" placeholder="Search villas…" oninput="renderPicker()">
+    <div class="pk-list" id="pk-list"></div>
+    <div class="pk-foot"><button class="sl-new" onclick="closePicker()">Done</button></div>
+  </div>
+</div>
+
 <script src="/nav.js"></script>
 <script>
 let properties=[], avail={}, failedAvail=new Set(), query='', bedroomFilter='all';
 let myFavorites=new Set(), myNotes={}, savedView=false;
+let myLists=[], shortlistsView=false, pickerListId=null, pickerQuery='';
 function getBedrooms(propId){
   const info=PROPS[propId]; if(!info) return null;
   if(typeof info.bedrooms==='number') return info.bedrooms;
@@ -819,6 +865,7 @@ if (URL_AID && /^[a-zA-Z0-9_-]{1,64}$/.test(URL_AID)) {
 }
 if (URL_PARAMS.get('bedrooms')) bedroomFilter = URL_PARAMS.get('bedrooms');
 if (URL_PARAMS.get('view') === 'saved') savedView = true;
+if (URL_PARAMS.get('view') === 'shortlists') shortlistsView = true;
 const SESSION_SRC = sessionStorage.getItem('samba_session_src') || 'portal';
 
 function getAgentId() {
@@ -1009,6 +1056,18 @@ function showSkeletons() {
 
 function render() {
   const grid=document.getElementById('grid');
+  const slEl=document.getElementById('shortlists');
+  if(shortlistsView){
+    grid.style.display='none';
+    document.getElementById('filter-bar').style.display='none';
+    if(slEl) slEl.style.display='';
+    document.getElementById('prop-count').textContent='';
+    renderShortlists();
+    return;
+  }
+  if(slEl) slEl.style.display='none';
+  grid.style.display='';
+  renderBedroomFilter();
   const q=query.toLowerCase();
   const filtered=properties.filter(p=>{
     // Postel's Law: accept location/area queries too ("Canggu", "Pererenan"),
@@ -1170,10 +1229,83 @@ window.addEventListener('load',function(){
   SambaNav.onChange(function(acc){
     myFavorites=new Set((acc&&acc.favorites)||[]);
     myNotes=(acc&&acc.notes)||{};
-    if(savedView && !acc){ savedView=false; }
+    myLists=(acc&&acc.lists)||[];
+    if(!acc){ savedView=false; shortlistsView=false; }
     render();
+    if(shortlistsView) renderShortlists();
   });
+  // If the page loaded straight into the shortlists view but the account
+  // hasn't resolved yet, prompt sign-in.
+  if(shortlistsView){ setTimeout(function(){ if(!SambaNav.isSignedIn()) SambaNav.requireSignIn(function(){ setShortlistsView(true); }); }, 600); }
 });
+
+// ── Client shortlists ──
+function setSavedViewOff(){ savedView=false; }
+function setShortlistsView(on){
+  shortlistsView=on;
+  if(on){ savedView=false; if(window.SambaNav && !SambaNav.isSignedIn()){ SambaNav.requireSignIn(function(){ setShortlistsView(true); }); return; } }
+  history.replaceState(null,'',on?'?view=shortlists':location.pathname);
+  render();
+  if(on) renderShortlists();
+}
+function listApi(payload){
+  return fetch('/api/portal?action=list',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(function(r){return r.json();}).then(function(b){ if(b&&Array.isArray(b.lists)){ myLists=b.lists; if(window.SambaNav&&SambaNav.account) SambaNav.account.lists=b.lists; renderShortlists(); } return b; });
+}
+function createList(){ const name=prompt('Name this shortlist (e.g. "Shortlist for Sarah")'); if(name===null) return; listApi({op:'create',name:name}); }
+function renameList(id,el){ const name=el.value.trim(); listApi({op:'rename',id:id,name:name}); }
+function deleteList(id){ if(!confirm('Delete this shortlist? The share link will stop working.')) return; listApi({op:'delete',id:id}); }
+function removeFromList(id,slug){ listApi({op:'remove',id:id,slug:slug}); }
+function shareList(id){ listApi({op:'share',id:id}); }
+function copyShare(url,btn){ navigator.clipboard.writeText(url).then(function(){ const t=btn.textContent; btn.textContent='Copied!'; setTimeout(function(){btn.textContent=t;},1400); }); }
+
+function nameForSlug(slug){
+  const hostexId=Object.keys(SLUGS).find(function(id){return SLUGS[id]===slug;});
+  const info=hostexId&&PROPS[hostexId];
+  return info?info.name:slug;
+}
+function renderShortlists(){
+  const el=document.getElementById('shortlists'); if(!el) return;
+  let html='<div class="sl-top"><h1>My shortlists</h1><div class="spacer"></div><button class="sl-new" onclick="createList()">+ New shortlist</button></div>';
+  if(!myLists.length){
+    html+='<div class="sl-card"><div class="sl-empty">No shortlists yet. Create one to curate villas for a specific client, then share a clean link with them.</div></div>';
+  }
+  myLists.forEach(function(l){
+    const chips=(l.slugs||[]).map(function(s){return '<span class="sl-chip">'+esc(nameForSlug(s))+'<button onclick="removeFromList(\''+l.id+'\',\''+s+'\')" title="Remove" aria-label="Remove">&times;</button></span>';}).join('');
+    const shareUrl=l.shareId?(location.origin+'/s/'+l.shareId):'';
+    const shareRow=l.shareId
+      ?'<span class="sl-link">'+esc(shareUrl)+'</span><button class="sl-btn" onclick="copyShare(\''+shareUrl+'\',this)">Copy link</button>'
+      :'<button class="sl-btn" onclick="shareList(\''+l.id+'\')">Create share link</button>';
+    html+='<div class="sl-card">'
+      +'<div class="sl-card-head"><input class="sl-name" value="'+esc(l.name||'')+'" onchange="renameList(\''+l.id+'\',this)"><span class="sl-count">'+(l.slugs||[]).length+' villa'+((l.slugs||[]).length===1?'':'s')+'</span></div>'
+      +(chips?'<div class="sl-chips">'+chips+'</div>':'<div class="sl-empty">No villas yet — add some below.</div>')
+      +'<div class="sl-actions"><button class="sl-btn" onclick="openPicker(\''+l.id+'\')">+ Add villas</button>'+shareRow+'<button class="sl-btn danger" onclick="deleteList(\''+l.id+'\')">Delete</button></div>'
+      +'</div>';
+  });
+  el.innerHTML=html;
+}
+
+// Villa picker (toggle villas into a list)
+function openPicker(listId){ pickerListId=listId; pickerQuery=''; document.getElementById('pk-search').value=''; document.getElementById('pk-ov').classList.add('open'); renderPicker(); }
+function closePicker(){ document.getElementById('pk-ov').classList.remove('open'); pickerListId=null; }
+function renderPicker(){
+  pickerQuery=(document.getElementById('pk-search').value||'').toLowerCase();
+  const list=myLists.find(function(l){return l.id===pickerListId;}); if(!list) return;
+  const inList=new Set(list.slugs||[]);
+  const rows=properties.map(function(p){
+    const slug=SLUGS[p.id]||''; const info=PROPS[p.id];
+    const hay=(p.name+' '+((info&&info.tag)||'')).toLowerCase();
+    if(pickerQuery && !hay.includes(pickerQuery)) return '';
+    const on=inList.has(slug);
+    return '<div class="pk-row'+(on?' on':'')+'" onclick="pickToggle(\''+slug+'\')"><div class="pk-check">'+(on?'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':'')+'</div><div><div class="pk-nm">'+esc(p.name)+'</div>'+((info&&info.tag)?'<div class="pk-mt">'+esc(info.tag)+'</div>':'')+'</div></div>';
+  }).join('');
+  document.getElementById('pk-list').innerHTML=rows||'<div style="padding:18px;color:var(--subtle);font-size:.85rem">No villas match.</div>';
+}
+function pickToggle(slug){
+  const list=myLists.find(function(l){return l.id===pickerListId;}); if(!list) return;
+  const has=(list.slugs||[]).includes(slug);
+  listApi({op:has?'remove':'add',id:pickerListId,slug:slug}).then(function(){ renderPicker(); });
+}
 function doFilter(){query=document.getElementById('search').value;render();}
 function clearSearch(){const s=document.getElementById('search');s.value='';query='';bedroomFilter='all';history.replaceState(null,'',location.pathname);renderBedroomFilter();render();}
 async function doRefresh(){
