@@ -346,6 +346,8 @@ function enterApp(owner){
   if (owner.picture){ av.src=owner.picture; av.style.display='block'; } else { av.style.display='none'; }
   loadProperties();
   loadConfig().then(initPaddle);
+  // Deep-link from the "List a property" sub-tab → open the add form.
+  if (new URLSearchParams(location.search).get('view') === 'new') setTimeout(addProperty, 0);
 }
 
 async function logout(){
