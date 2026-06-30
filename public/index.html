@@ -1253,13 +1253,19 @@ window.addEventListener('load',function(){
     myFavorites=new Set((acc&&acc.favorites)||[]);
     myNotes=(acc&&acc.notes)||{};
     myLists=(acc&&acc.lists)||[];
-    if(!acc){ savedView=false; shortlistsView=false; }
+    // Re-derive the saved/shortlists view from the URL on every auth change.
+    // The first onChange fires with a null account (before the session
+    // resolves); without re-deriving here, a URL-driven ?view=shortlists load
+    // would get wiped and fall back to the grid. Signed-out ⇒ grid only.
+    var v=new URLSearchParams(location.search).get('view');
+    if(acc){ savedView=(v==='saved'); shortlistsView=(v==='shortlists'); }
+    else { savedView=false; shortlistsView=false; }
     render();
-    if(shortlistsView) renderShortlists();
   });
-  // If the page loaded straight into the shortlists view but the account
-  // hasn't resolved yet, prompt sign-in.
-  if(shortlistsView){ setTimeout(function(){ if(!SambaNav.isSignedIn()) SambaNav.requireSignIn(function(){ setShortlistsView(true); }); }, 600); }
+  // Landed straight on the shortlists view while logged out → prompt sign-in.
+  if(new URLSearchParams(location.search).get('view')==='shortlists'){
+    setTimeout(function(){ if(!SambaNav.isSignedIn()) SambaNav.requireSignIn(function(){ setShortlistsView(true); }); }, 600);
+  }
 });
 
 // ── Client shortlists ──
