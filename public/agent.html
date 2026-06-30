@@ -50,19 +50,19 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);-webki
 </style>
 </head>
 <body>
+<!-- Client-facing share page: Samba branding is intentionally NOT a link, and
+     the app nav is omitted, so renters can't navigate into the agent portal and
+     reach owners directly. The agent is the only contact path here. -->
 <div class="topbar">
-  <a class="brand-mark" href="/" aria-label="Samba"><img src="/logo-samba.png" alt="Samba"></a>
-  <div class="spacer"></div>
-  <div id="samba-nav"></div>
+  <span class="brand-mark" aria-label="Samba"><img src="/logo-samba.png" alt="Samba"></span>
 </div>
 
 <div class="wrap">
   <div id="content"><div class="state">Loading…</div></div>
 </div>
 
-<div class="foot">Powered by <a href="/home">Samba Rentals</a> · Bali's villa rental network</div>
+<div class="foot">Powered by Samba Rentals · Bali's villa rental network</div>
 
-<script src="/nav.js"></script>
 <script>
 (function(){
   var path = location.pathname.split('/').filter(Boolean); // ['a','handle'] or ['s','shareId']
@@ -90,7 +90,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);-webki
 
   function renderError(msg){
     document.title='Samba Rentals';
-    content.innerHTML='<div class="state"><h2>'+esc(msg)+'</h2><p><a href="/" style="color:var(--accent);text-decoration:none">Browse all villas →</a></p></div>';
+    content.innerHTML='<div class="state"><h2>'+esc(msg)+'</h2></div>';
   }
 
   function renderProfile(p, listName, villas){
@@ -104,11 +104,15 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);-webki
       +wa+'</div>';
     var sub='<p class="agent-sub">'+(listName?esc(listName)+' — ':'')+villas.length+' villa'+(villas.length===1?'':'s')+(mode==='share'?' hand-picked for you':' saved by '+name)+'</p>';
     if(!villas.length){ content.innerHTML=head+'<div class="state"><h2>No villas yet</h2><p>Check back soon.</p></div>'; return; }
+    // Carry the agent handle onto each villa link so the listing page keeps this
+    // agent as the only contact (never exposes the owner).
+    var handle=p.handle||(mode==='handle'?key:'');
+    var aParam=handle?('?a='+encodeURIComponent(handle)):'';
     var cards=villas.map(function(l){
       var ph=photoUrl(l);
       var hero=ph?'<div class="vhero"><img src="'+ph+'" alt="'+esc(l.name)+'" loading="lazy" onerror="this.style.display=\'none\'"></div>':'<div class="vhero"><div class="vhero-ph">Photo coming soon</div></div>';
       var price=l.monthly?'<div class="vprice"><b>'+fmtPrice(l.monthly)+'</b> <span>/ mo</span></div>':'';
-      return '<a class="vcard" href="/l/'+encodeURIComponent(l.slug)+'">'
+      return '<a class="vcard" href="/l/'+encodeURIComponent(l.slug)+aParam+'">'
         +hero
         +'<div class="vbody"><div class="vname">'+esc(l.name)+'</div>'
         +(l.tag?'<div class="vmeta">'+esc(l.tag)+'</div>':'')
