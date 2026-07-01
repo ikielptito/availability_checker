@@ -39,22 +39,22 @@ const TROPICANA = {
   locationHighlights: ['5-min to Pererenan', '10-min to Canggu', 'Quiet residential area'],
 };
 
-const DEFAULTS = {
-  'haus-1':       { ...HAUS,      slug: 'haus-1', unitType: '1BR Apartment',       hostexId: '11621510', name: 'HAUS Canggu – Unit 1',    monthly: '27jt', yearly: '270jt', yearly2: '', folder: '1xkEkRprYDCIfSCwCmfuPgcszI5kakOKF' },
-  'haus-2':       { ...HAUS,      slug: 'haus-2', unitType: '1BR Apartment',       hostexId: '11621511', name: 'HAUS Canggu – Unit 2',    monthly: '27jt', yearly: '270jt', yearly2: '', folder: '11Pr1akQilpBkgT37BhbajsneP7Ekijmu' },
-  'haus-4':       { ...HAUS,      slug: 'haus-4', unitType: '1BR Apartment',       hostexId: '11621512', name: 'HAUS Canggu – Unit 4',    monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1qpdTd5oDxIbGkISxgSTKNJ3BtYM_aDEw' },
-  'haus-5':       { ...HAUS,      slug: 'haus-5', unitType: '1BR Apartment',       hostexId: '11621513', name: 'HAUS Canggu – Unit 5',    monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1mxfot6q9JVF2C22wPpVzyNP8zVotJURr' },
-  'lanehaus-1':   { ...LANE,      slug: 'lanehaus-1', unitType: '1BR Townhouse',   hostexId: '11621507', name: 'LaneHAUS – Unit 1',       monthly: '24jt', yearly: '240jt', yearly2: '', folder: '1f6mhoH36L-uY5ncGq5LHhq2_dMS_20cd' },
-  'lanehaus-3':   { ...LANE,      slug: 'lanehaus-3', unitType: '1BR Townhouse',   hostexId: '11621509', name: 'LaneHAUS – Unit 3',       monthly: '22jt', yearly: '220jt', yearly2: '', folder: '1OY71DdG07xakOCCMZJAz4CqiI4EQm24F' },
-  'villa-saturno':{ ...SATURNO,   slug: 'villa-saturno', unitType: '3BR Villa',hostexId: '12552236', name: 'Villa Saturno',           monthly: '40jt', yearly: '350jt', yearly2: '600jt', folder: '19Fh1nnnN6pvR3Ia4Pd2opB-J1D0hj1fZ' },
-  'tropicana-a4': { ...TROPICANA, slug: 'tropicana-a4', unitType: '1BR Villa', hostexId: '12484483', name: 'Tropicana Valley – Unit A4', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-a5': { ...TROPICANA, slug: 'tropicana-a5', unitType: '1BR Villa', hostexId: '12450063', name: 'Tropicana Valley – Unit A5', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-b2': { ...TROPICANA, slug: 'tropicana-b2', unitType: '1BR Villa', hostexId: '12566585', name: 'Tropicana Valley – Unit B2', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-b3': { ...TROPICANA, slug: 'tropicana-b3', unitType: '1BR Villa', hostexId: '12566586', name: 'Tropicana Valley – Unit B3', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-b4': { ...TROPICANA, slug: 'tropicana-b4', unitType: '1BR Villa', hostexId: '12606732', name: 'Tropicana Valley – Unit B4', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-b5': { ...TROPICANA, slug: 'tropicana-b5', unitType: '1BR Villa', hostexId: '12566587', name: 'Tropicana Valley – Unit B5', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
-  'tropicana-b6': { ...TROPICANA, slug: 'tropicana-b6', unitType: '1BR Villa', hostexId: '12566588', name: 'Tropicana Valley – Unit B6', monthly: '30jt', yearly: '300jt', yearly2: '', folder: '1voeHZet0DspSnBeLeAIWarz-FPqUCUAr' },
+// Per-unit identity/price/folder comes from the shared canonical catalog
+// (lib/catalog.js) so it can't drift from api/digest.js / api/check-availability.js.
+// The building-level constants above (tag, location, map, overview, features,
+// inclusions…) are the portal's presentation layer and stay here.
+import { UNITS } from '../lib/catalog.js';
+const BUILDING = {
+  'haus-1': HAUS, 'haus-2': HAUS, 'haus-4': HAUS, 'haus-5': HAUS,
+  'lanehaus-1': LANE, 'lanehaus-3': LANE,
+  'villa-saturno': SATURNO,
+  'tropicana-a4': TROPICANA, 'tropicana-a5': TROPICANA, 'tropicana-b2': TROPICANA,
+  'tropicana-b3': TROPICANA, 'tropicana-b4': TROPICANA, 'tropicana-b5': TROPICANA, 'tropicana-b6': TROPICANA,
 };
+const DEFAULTS = Object.fromEntries(UNITS.map(u => [u.slug, {
+  ...BUILDING[u.slug], slug: u.slug, unitType: u.unitType, hostexId: u.hostexId,
+  name: u.name, monthly: u.monthly, yearly: u.yearly, yearly2: u.yearly2, folder: u.folder,
+}]));
 
 const CUSTOM_KEY = 'custom_properties';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;

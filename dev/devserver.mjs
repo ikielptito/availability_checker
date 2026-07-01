@@ -37,6 +37,7 @@ function exec(cmd) {
     case 'LPUSH': { if (!lists.has(a[0])) lists.set(a[0], []); lists.get(a[0]).unshift(a[1]); return lists.get(a[0]).length; }
     case 'LTRIM': { const l = lists.get(a[0]) || []; lists.set(a[0], l.slice(parseInt(a[1]), parseInt(a[2]) + 1)); return 'OK'; }
     case 'LRANGE': { const l = lists.get(a[0]) || []; return l.slice(parseInt(a[1]), parseInt(a[2]) + 1); }
+    case 'EXPIRE': return 1; // no TTL in the mock; accept so rate-limit writes don't throw
     default: throw new Error('unhandled op ' + op);
   }
 }

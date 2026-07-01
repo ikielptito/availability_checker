@@ -120,6 +120,18 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .atab-count:empty{display:none;}
 .admin-frame{width:100%;height:calc(100vh - 130px);border:none;background:var(--bg);border-radius:12px;}
 @media(max-width:640px){.admin-tabs{gap:0;}.atab{padding:7px 8px;font-size:0.72rem;}.topbar-sub{display:none;}}
+
+/* Empty / errors */
+.empty-state{padding:56px 24px;text-align:center;color:var(--muted);}
+.empty-state h3{font-family:'Playfair Display',serif;color:var(--text);font-size:1.15rem;margin-bottom:8px;}
+.empty-state p{font-size:0.85rem;max-width:420px;margin:0 auto;line-height:1.6;}
+.err-list{display:flex;flex-direction:column;gap:10px;}
+.err-row{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--red,#a8331f);border-radius:10px;padding:12px 14px;}
+.err-row-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px;}
+.err-ctx{font-family:'Sora',sans-serif;font-size:0.74rem;font-weight:600;color:var(--red,#a8331f);background:#f2ddd6;border-radius:5px;padding:2px 8px;}
+.err-ts{font-size:0.7rem;color:var(--muted);white-space:nowrap;}
+.err-msg{font-size:0.85rem;color:var(--text);line-height:1.5;}
+.err-stack{margin-top:8px;font-family:'JetBrains Mono','SF Mono',monospace;font-size:0.68rem;color:var(--muted);white-space:pre-wrap;word-break:break-word;background:var(--surface2);border-radius:6px;padding:8px 10px;overflow-x:auto;}
 </style>
 </head>
 <body>
@@ -144,6 +156,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       <button class="atab" data-tab="listings" onclick="showTab('listings')">Listings</button>
       <button class="atab" data-tab="analytics" onclick="showTab('analytics')">Analytics</button>
       <button class="atab" data-tab="promos" onclick="showTab('promos')">Promo codes</button>
+      <button class="atab" data-tab="errors" onclick="showTab('errors')">Errors <span class="atab-count" id="errors-count"></span></button>
     </div>
     <div class="spacer"></div>
     <button class="logout-btn" onclick="logout()">Log out</button>
@@ -153,6 +166,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
     <div id="tab-listings" class="tabpane" style="display:none"></div>
     <div id="tab-analytics" class="tabpane" style="display:none"><iframe id="analytics-frame" class="admin-frame" title="Analytics"></iframe></div>
     <div id="tab-promos" class="tabpane" style="display:none"></div>
+    <div id="tab-errors" class="tabpane" style="display:none"></div>
   </div>
 </div>
 
@@ -199,11 +213,35 @@ let activeTab = 'approvals';
 function showTab(t) {
   activeTab = t;
   document.querySelectorAll('.atab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  ['approvals','listings','analytics','promos'].forEach(k => {
+  ['approvals','listings','analytics','promos','errors'].forEach(k => {
     const el = document.getElementById('tab-' + k); if (el) el.style.display = k === t ? '' : 'none';
   });
   if (t === 'analytics') { const f = document.getElementById('analytics-frame'); if (f && !f.src) f.src = '/dashboard.html?embed=1'; }
   if (t === 'promos') loadPromos();
+  if (t === 'errors') loadErrors();
+}
+
+async function loadErrors() {
+  const pane = document.getElementById('tab-errors');
+  pane.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>';
+  try {
+    const r = await fetch('/api/dashboard?errors=1', { headers: { 'Authorization': 'Bearer ' + adminPw } });
+    if (r.status === 401) return showGate('Session expired — sign in again.');
+    const { errors } = await r.json();
+    document.getElementById('errors-count').textContent = errors && errors.length ? errors.length : '';
+    if (!errors || !errors.length) {
+      pane.innerHTML = '<div class="empty-state"><h3>No errors logged</h3><p>Server errors captured across the portal and billing show up here, newest first.</p></div>';
+      return;
+    }
+    pane.innerHTML = '<div class="err-list">' + errors.map(e =>
+      '<div class="err-row"><div class="err-row-top"><span class="err-ctx">' + esc(e.context || 'unknown') + '</span>'
+      + '<span class="err-ts">' + esc(new Date(e.ts).toLocaleString()) + '</span></div>'
+      + '<div class="err-msg">' + esc(e.message || '') + '</div>'
+      + (e.stack ? '<pre class="err-stack">' + esc(e.stack) + '</pre>' : '') + '</div>'
+    ).join('') + '</div>';
+  } catch (err) {
+    pane.innerHTML = '<div class="empty-state"><h3>Could not load errors</h3><p>' + esc(err.message) + '</p></div>';
+  }
 }
 
 let allListings = [];

@@ -332,6 +332,10 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
     <span class="filter-label">Bedrooms</span>
     <div class="filter-chips" id="bedroom-chips"></div>
   </div>
+  <div class="filter-bar" id="sort-bar">
+    <span class="filter-label">Sort</span>
+    <div class="filter-chips" id="sort-chips"></div>
+  </div>
   <div class="prop-grid" id="grid"></div>
   <div class="shortlists-wrap" id="shortlists" style="display:none"></div>
 
@@ -351,7 +355,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 
 <!-- DETAIL MODAL -->
 <div class="modal-overlay" id="modal" onclick="closeModal(event)">
-  <div class="modal" id="modal-box">
+  <div class="modal" id="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
     <div class="modal-header">
       <div class="modal-title" id="modal-title"></div>
       <button class="modal-close" onclick="closeModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
@@ -437,7 +441,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 
 <script src="/nav.js"></script>
 <script>
-let properties=[], avail={}, failedAvail=new Set(), query='', bedroomFilter='all';
+let properties=[], avail={}, failedAvail=new Set(), query='', bedroomFilter='all', sortMode='default';
 let myFavorites=new Set(), myNotes={}, savedView=false;
 let myLists=[], shortlistsView=false, pickerListId=null, pickerQuery='';
 function getBedrooms(propId){
@@ -495,7 +499,7 @@ const MONTHS=['January','February','March','April','May','June','July','August',
 const DOWS=['Su','Mo','Tu','We','Th','Fr','Sa'];
 const p2=n=>String(n).padStart(2,'0');
 const ds=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const todayStr=ds(TODAY);
 
 const _SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ICONCLS">';
@@ -549,6 +553,9 @@ const TROPICANA={
   yearlyInclusions:['Villa only, no services included.'],
 };
 
+// Hard-coded fallback catalog. This is a first-paint stopgap only: loadListingMeta()
+// overlays the authoritative values from /api/listings (sourced from lib/catalog.js)
+// at runtime, so keep this roughly in step but treat the API as canonical.
 const PROPS={
   11621510:{...HAUS,name:'HAUS Canggu – Unit 1',monthly:'27jt',yearly:'270jt',folder:'1xkEkRprYDCIfSCwCmfuPgcszI5kakOKF'},
   11621511:{...HAUS,name:'HAUS Canggu – Unit 2',monthly:'27jt',yearly:'270jt',folder:'11Pr1akQilpBkgT37BhbajsneP7Ekijmu'},
@@ -556,7 +563,7 @@ const PROPS={
   11621513:{...HAUS,name:'HAUS Canggu – Unit 5',monthly:'30jt',yearly:'300jt',folder:'1mxfot6q9JVF2C22wPpVzyNP8zVotJURr'},
   11621507:{...LANE,name:'LaneHAUS – Unit 1',monthly:'24jt',yearly:'240jt',folder:'1f6mhoH36L-uY5ncGq5LHhq2_dMS_20cd'},
   11621509:{...LANE,name:'LaneHAUS – Unit 3',monthly:'22jt',yearly:'220jt',folder:'1OY71DdG07xakOCCMZJAz4CqiI4EQm24F'},
-  12552236:{...SATURNO,name:'Villa Saturno',monthly:'40jt',yearly:'350jt',yearly2:'600jt',folder:'10MCsy3Z83H2zYGjH1JxtTn3dqpkceBd_'},
+  12552236:{...SATURNO,name:'Villa Saturno',monthly:'40jt',yearly:'350jt',yearly2:'600jt',folder:'19Fh1nnnN6pvR3Ia4Pd2opB-J1D0hj1fZ'},
   12484483:{...TROPICANA,name:'Tropicana Valley – A4',monthly:'30jt',yearly:'300jt',folder:'1voeHZet0DspSnBeLeAIWarz-FPqUCUAr'},
   12450063:{...TROPICANA,name:'Tropicana Valley – A5',monthly:'30jt',yearly:'300jt',folder:'1voeHZet0DspSnBeLeAIWarz-FPqUCUAr'},
   12566585:{...TROPICANA,name:'Tropicana Valley – B2',monthly:'30jt',yearly:'300jt',folder:'1voeHZet0DspSnBeLeAIWarz-FPqUCUAr'},
@@ -665,11 +672,19 @@ function openModal(propId) {
   document.getElementById('modal').classList.add('open');
   document.body.style.overflow='hidden';
   const _tabs=document.getElementById('snav-tabs');if(_tabs)_tabs.style.display='none';
+  // A11y: remember what opened the modal, then move focus into it so keyboard
+  // and screen-reader users land inside the dialog (and return on close).
+  _modalLastFocus=document.activeElement;
+  requestAnimationFrame(()=>document.getElementById('modal-box').focus());
   loadCarousel(propId,info.folder);
 }
+let _modalLastFocus=null;
 
 function closeModal(e) {
-  if(e && e.target!==document.getElementById('modal')) return;
+  // Only the overlay-backdrop click should be filtered (ignore clicks that
+  // bubbled up from inside the modal). Programmatic closes — Escape, swipe,
+  // the ✕ button — pass a non-click sentinel (or nothing) and always close.
+  if(e && e.type==='click' && e.target!==document.getElementById('modal')) return;
   document.getElementById('modal').classList.remove('open');
   document.body.style.overflow='';
   const _tabs=document.getElementById('snav-tabs');if(_tabs)_tabs.style.display='';
@@ -681,6 +696,9 @@ function closeModal(e) {
   document.getElementById('carousel-counter').style.display='none';
   document.getElementById('map-iframe').src='';
   carPhotos=[]; carIdx=0;
+  // A11y: return focus to whatever opened the modal.
+  if(_modalLastFocus&&_modalLastFocus.focus){try{_modalLastFocus.focus();}catch(e){}}
+  _modalLastFocus=null;
 }
 
 async function loadCarousel(propId,folderId) {
@@ -858,7 +876,20 @@ function _kbMove(dir){
 }
 document.addEventListener('keydown',e=>{
   const modalOpen=document.getElementById('modal').classList.contains('open');
-  if(modalOpen){if(e.key==='Escape')closeModal({target:null});return;}
+  if(modalOpen){
+    if(e.key==='Escape'){closeModal({target:null});return;}
+    // Trap Tab within the dialog so focus can't wander to the page behind it.
+    if(e.key==='Tab'){
+      const box=document.getElementById('modal-box');
+      const f=box.querySelectorAll('a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])');
+      const vis=[...f].filter(el=>el.offsetParent!==null||el===box);
+      if(!vis.length)return;
+      const first=vis[0],last=vis[vis.length-1],cur=document.activeElement;
+      if(e.shiftKey&&(cur===first||cur===box)){e.preventDefault();last.focus();}
+      else if(!e.shiftKey&&cur===last){e.preventDefault();first.focus();}
+    }
+    return;
+  }
   if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();_kbMove(1);}
   else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();_kbMove(-1);}
   else if((e.key==='Enter'||e.key===' ')&&_kbFocusId){e.preventDefault();openModal(_kbFocusId);}
@@ -937,7 +968,7 @@ async function boot() {
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('app').classList.add('on');
   document.getElementById('prop-count').textContent=properties.length+' propert'+(properties.length===1?'y':'ies');
-  track('page_view'); renderBedroomFilter(); showSkeletons(); await loadAll(); render(); setLastUpdated();
+  track('page_view'); renderBedroomFilter(); renderSortChips(); showSkeletons(); await loadAll(); render(); setLastUpdated();
 
   // Deep-link to a specific property — broadcasts use this so an agent
   // tapping a per-property link in WhatsApp lands directly on its modal
@@ -1104,13 +1135,15 @@ function render() {
     if(savedView && !myFavorites.has(SLUGS[p.id])) return false;
     return true;
   });
+  const sorted=sortedFiltered(filtered);
+  const filtered2=sorted;
   const savedBanner=savedView
     ?'<div class="saved-banner"><b>Saved villas</b><span style="color:var(--muted);font-size:.82rem">'+myFavorites.size+' saved</span><button onclick="setSavedView(false)">Show all villas</button></div>'
     :'';
   document.getElementById('prop-count').textContent=
-    filtered.length===properties.length?properties.length+(properties.length===1?' property':' properties'):
-    filtered.length+' of '+properties.length;
-  if(!filtered.length){
+    filtered2.length===properties.length?properties.length+(properties.length===1?' property':' properties'):
+    filtered2.length+' of '+properties.length;
+  if(!filtered2.length){
     const _msg=savedView?'No saved villas yet — tap the ♥ on any villa to save it'
       :(query?'No properties match <strong>'+esc(query)+'</strong>':'No properties in this filter');
     const _btn=savedView?'<button class="btn-ghost" style="display:inline-flex;margin:0 auto" onclick="setSavedView(false)">Browse all villas</button>'
@@ -1119,9 +1152,9 @@ function render() {
     return;
   }
   let _cxPrev='';
-  grid.innerHTML=savedBanner+filtered.map((p,i)=>{
+  grid.innerHTML=savedBanner+filtered2.map((p,i)=>{
     const _cxCur=complexOf(p.name);
-    const _cxHdr=_cxCur!==_cxPrev?(_cxPrev=_cxCur,'<div class="complex-header">'+esc(_cxCur)+(PROPS[p.id]&&PROPS[p.id].tag?' <span class="complex-tag">'+esc(PROPS[p.id].tag)+'</span>':'')+' </div>'):'';
+    const _cxHdr=(sortMode==='default'&&_cxCur!==_cxPrev)?(_cxPrev=_cxCur,'<div class="complex-header">'+esc(_cxCur)+(PROPS[p.id]&&PROPS[p.id].tag?' <span class="complex-tag">'+esc(PROPS[p.id].tag)+'</span>':'')+' </div>'):'';
     const booked=avail[p.id]||new Set();
     const info=PROPS[p.id];
     const slug=SLUGS[p.id]||'';
@@ -1137,9 +1170,11 @@ function render() {
     } else if(!av){
       availBar='<div class="avail-bar full"><span class="avail-bar-dot"></span><span>Fully booked</span><span class="avail-bar-window">check back soon</span></div>';
     } else if(av.cls==='avail-now'){
-      availBar='<div class="avail-bar now"><span class="avail-bar-dot"></span><span>Available now</span><span class="avail-bar-window">'+av.window+' days</span></div>';
+      const moLabel=av.window>=30?Math.round(av.window/30)+'mo · ':'';
+      availBar='<div class="avail-bar now"><span class="avail-bar-dot"></span><span>Available now</span><span class="avail-bar-window">'+moLabel+av.window+' days</span></div>';
     } else {
-      availBar='<div class="avail-bar from"><span class="avail-bar-dot"></span><span>From '+esc(av.from)+'</span><span class="avail-bar-window">'+av.window+' days</span></div>';
+      const moLabel=av.window>=30?Math.round(av.window/30)+'mo · ':'';
+      availBar='<div class="avail-bar from"><span class="avail-bar-dot"></span><span>From '+esc(av.from)+'</span><span class="avail-bar-window">'+moLabel+av.window+' days</span></div>';
     }
     let priceRow='';
     if(info&&(info.monthly||info.yearly)){
@@ -1216,6 +1251,65 @@ function availLabel(booked){
   if(ds(firstFree)===todayStr)return{cls:'avail-now',pill:'Available now',window:winCapped,from:null};
   const fromTxt=MONTHS[firstFree.getMonth()].slice(0,3)+' '+firstFree.getDate();
   return{cls:'avail-from',pill:'From '+fromTxt,window:winCapped,from:fromTxt};
+}
+
+// Sort helpers — reuse the booked-set data that availLabel reads.
+// Returns {firstFreeIdx, window} where firstFreeIdx is days from today
+// to the first available date, and window is the consecutive free run.
+function availData(propId){
+  const booked=avail[propId]||new Set();
+  let firstIdx=-1;
+  for(let i=0;i<180;i++){
+    const d=new Date(TODAY);d.setDate(d.getDate()+i);
+    if(!booked.has(ds(d))){firstIdx=i;break;}
+  }
+  if(firstIdx<0) return {firstFreeIdx:Infinity,window:0};
+  let win=0;
+  for(let i=firstIdx;i<180;i++){
+    const d=new Date(TODAY);d.setDate(d.getDate()+i);
+    if(booked.has(ds(d)))break;
+    win++;
+  }
+  return {firstFreeIdx:firstIdx,window:win};
+}
+
+const SORT_OPTIONS=[
+  {key:'default',label:'Default'},
+  {key:'avail-now',label:'Available now'},
+  {key:'avail-week',label:'This week'},
+  {key:'checkin',label:'Check-in date'},
+  {key:'duration',label:'Stay duration'},
+];
+function renderSortChips(){
+  document.getElementById('sort-chips').innerHTML=SORT_OPTIONS.map(o=>
+    '<button class="filter-chip'+(sortMode===o.key?' active':'')+'" onclick="setSort(\''+o.key+'\')">'+esc(o.label)+(o.key==='duration'?' ↓':o.key==='checkin'?' ↑':'')+'</button>'
+  ).join('');
+}
+function setSort(key){
+  sortMode=key;
+  renderSortChips();
+  render();
+}
+
+function sortedFiltered(list){
+  if(sortMode==='default') return list;
+  const scored=list.map(p=>{
+    const ad=availData(p.id);
+    return {p,firstFreeIdx:ad.firstFreeIdx,window:ad.window};
+  });
+  if(sortMode==='avail-now'){
+    return scored.filter(s=>s.firstFreeIdx===0).map(s=>s.p);
+  }
+  if(sortMode==='avail-week'){
+    return scored.filter(s=>s.firstFreeIdx<=7).sort((a,b)=>a.firstFreeIdx-b.firstFreeIdx).map(s=>s.p);
+  }
+  if(sortMode==='checkin'){
+    return scored.sort((a,b)=>a.firstFreeIdx-b.firstFreeIdx).map(s=>s.p);
+  }
+  if(sortMode==='duration'){
+    return scored.sort((a,b)=>b.window-a.window).map(s=>s.p);
+  }
+  return list;
 }
 
 function fmtPrice(p){return p?p.replace(/(\d+)jt/i,'IDR $1M'):'';}
@@ -1340,7 +1434,7 @@ function pickToggle(slug){
   listApi({op:has?'remove':'add',id:pickerListId,slug:slug}).then(function(){ renderPicker(); });
 }
 function doFilter(){query=document.getElementById('search').value;render();}
-function clearSearch(){const s=document.getElementById('search');s.value='';query='';bedroomFilter='all';history.replaceState(null,'',location.pathname);renderBedroomFilter();render();}
+function clearSearch(){const s=document.getElementById('search');s.value='';query='';bedroomFilter='all';sortMode='default';history.replaceState(null,'',location.pathname);renderBedroomFilter();renderSortChips();render();}
 async function doRefresh(){
   track('refresh');
   const btn=document.querySelector('.refresh-btn');btn.style.opacity='.5';

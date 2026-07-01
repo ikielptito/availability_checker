@@ -7,6 +7,7 @@
 // Checkout itself is opened client-side with Paddle.js (see portal.html) — the webhook
 // is the source of truth that flips a listing to "Live".
 import crypto from 'node:crypto';
+import { logError } from '../lib/errlog.js';
 
 // Disable Vercel's automatic body parsing so we can read the exact raw bytes the
 // Paddle signature was computed over.
@@ -58,6 +59,7 @@ export default async function handler(req, res) {
     }
     return res.status(400).json({ error: 'Unknown action' });
   } catch (e) {
+    await logError(kvUrl, kvToken, `billing:${action || req.method}`, e);
     return res.status(500).json({ error: 'Server error', detail: e.message });
   }
 }

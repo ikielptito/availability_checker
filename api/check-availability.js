@@ -10,24 +10,11 @@
 // matching Hostex reservation semantics. Auth: Bearer DIGEST_SHARED_SECRET
 // (same secret the digest uses), or CRON_SECRET for internal callers.
 
-// Hostex catalog (id -> slug/name) — mirrors api/digest.js DEFAULTS. Inlined so
-// the endpoint resolves slugs even when the listings KV blob is empty.
-const HOSTEX = {
-  'haus-1':        { id: '11621510', name: 'HAUS Canggu – Unit 1' },
-  'haus-2':        { id: '11621511', name: 'HAUS Canggu – Unit 2' },
-  'haus-4':        { id: '11621512', name: 'HAUS Canggu – Unit 4' },
-  'haus-5':        { id: '11621513', name: 'HAUS Canggu – Unit 5' },
-  'lanehaus-1':    { id: '11621507', name: 'LaneHAUS – Unit 1' },
-  'lanehaus-3':    { id: '11621509', name: 'LaneHAUS – Unit 3' },
-  'villa-saturno': { id: '12552236', name: 'Villa Saturno' },
-  'tropicana-a4':  { id: '12484483', name: 'Tropicana Valley – Unit A4' },
-  'tropicana-a5':  { id: '12450063', name: 'Tropicana Valley – Unit A5' },
-  'tropicana-b2':  { id: '12566585', name: 'Tropicana Valley – Unit B2' },
-  'tropicana-b3':  { id: '12566586', name: 'Tropicana Valley – Unit B3' },
-  'tropicana-b4':  { id: '12606732', name: 'Tropicana Valley – Unit B4' },
-  'tropicana-b5':  { id: '12566587', name: 'Tropicana Valley – Unit B5' },
-  'tropicana-b6':  { id: '12566588', name: 'Tropicana Valley – Unit B6' },
-};
+// Hostex catalog (slug -> id/name), derived from the shared canonical catalog
+// so it can never drift from api/digest.js / api/listings.js. Inlined shape is
+// kept ({ id, name }) so the rest of this file is unchanged.
+import { UNITS } from '../lib/catalog.js';
+const HOSTEX = Object.fromEntries(UNITS.map(u => [u.slug, { id: u.hostexId, name: u.name }]));
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_RANGE_DAYS = 400;

@@ -20,29 +20,28 @@ const PORTAL_BASE = 'https://sambarentals.com';
 const DEFAULT_WA_CONTACT = 'Era';
 const DEFAULT_WA_NUMBER = '6281246357778';
 
-// Default catalog (Hostex IDs → slug/name/tag/pricing) — kept in sync with
-// api/listings.js DEFAULTS. We inline the names so the digest is self-contained
-// even when the listings KV blob is empty (first deploy, fresh dev server).
-// `order` groups buildings together with units in sequence (HAUS block,
-// then LaneHAUS, then Villa Saturno, then Tropicana) — consumers render
-// lists in this order. `unitType` feeds the WhatsApp line format
-// ("1BR Apartment"). Both are overridable per-listing via /admin (KV).
-const DEFAULTS = {
-  '11621510': { order: 10, slug: 'haus-1',        name: 'HAUS Canggu – Unit 1',      unitType: '1BR Apartment', tag: 'Batu Bolong, Canggu',    monthly: '27jt', yearly: '270jt' },
-  '11621511': { order: 11, slug: 'haus-2',        name: 'HAUS Canggu – Unit 2',      unitType: '1BR Apartment', tag: 'Batu Bolong, Canggu',    monthly: '27jt', yearly: '270jt' },
-  '11621512': { order: 12, slug: 'haus-4',        name: 'HAUS Canggu – Unit 4',      unitType: '1BR Apartment', tag: 'Batu Bolong, Canggu',    monthly: '30jt', yearly: '300jt' },
-  '11621513': { order: 13, slug: 'haus-5',        name: 'HAUS Canggu – Unit 5',      unitType: '1BR Apartment', tag: 'Batu Bolong, Canggu',    monthly: '30jt', yearly: '300jt' },
-  '11621507': { order: 20, slug: 'lanehaus-1',    name: 'LaneHAUS – Unit 1',          unitType: '1BR Townhouse', tag: 'Pererenan',              monthly: '24jt', yearly: '240jt' },
-  '11621509': { order: 21, slug: 'lanehaus-3',    name: 'LaneHAUS – Unit 3',          unitType: '1BR Townhouse', tag: 'Pererenan',              monthly: '22jt', yearly: '220jt' },
-  '12552236': { order: 30, slug: 'villa-saturno', name: 'Villa Saturno',              unitType: '3BR Villa',     tag: 'Padang Linjong, Canggu', monthly: '40jt', yearly: '350jt', yearly2: '600jt' },
-  '12484483': { order: 40, slug: 'tropicana-a4',  name: 'Tropicana Valley – Unit A4', unitType: '1BR Villa',     tag: 'Tumbak Bayuh, Pererenan', monthly: '30jt', yearly: '300jt' },
-  '12450063': { order: 41, slug: 'tropicana-a5',  name: 'Tropicana Valley – Unit A5', unitType: '1BR Villa',     tag: 'Tumbak Bayuh, Pererenan', monthly: '30jt', yearly: '300jt' },
-  '12566585': { order: 42, slug: 'tropicana-b2',  name: 'Tropicana Valley – Unit B2', unitType: '1BR Villa',     tag: 'Tumbak Bayuh, Pererenan', monthly: '30jt', yearly: '300jt' },
-  '12566586': { order: 43, slug: 'tropicana-b3',  name: 'Tropicana Valley – Unit B3', unitType: '1BR Villa',     tag: 'Tumbak Bayuh, Pererenan', monthly: '30jt', yearly: '300jt' },
-  '12606732': { order: 44, slug: 'tropicana-b4',  name: 'Tropicana Valley – Unit B4', unitType: '1BR Villa',     tag: 'Tumbak Bayuh, Pererenan', monthly: '30jt', yearly: '300jt' },
-  '12566587': { order: 45, slug: 'tropicana-b5',  name: 'Tropicana Valley – Unit B5', unitType: '1BR Villa',     tag: 'Tumbak Bayuh, Pererenan', monthly: '30jt', yearly: '300jt' },
-  '12566588': { order: 46, slug: 'tropicana-b6',  name: 'Tropicana Valley – Unit B6', unitType: '1BR Villa',     tag: 'Tumbak Bayuh, Pererenan', monthly: '30jt', yearly: '300jt' },
+// Default catalog (Hostex IDs → slug/name/tag/pricing). Identity/price/order
+// come from the shared canonical catalog (lib/catalog.js) so they can't drift
+// from api/listings.js / api/check-availability.js. The area `tag` is kept
+// here because the digest uses WhatsApp-tuned wording that deliberately differs
+// from the portal's building tags (e.g. "Tumbak Bayuh, Pererenan" vs the
+// portal's "Buduk · Near Canggu"). All fields stay overridable per-listing via
+// /admin (KV). `unitType` feeds the WhatsApp line format ("1BR Apartment").
+import { UNITS } from '../lib/catalog.js';
+const DIGEST_TAG = {
+  haus: 'Batu Bolong, Canggu', lanehaus: 'Pererenan',
+  'villa-saturno': 'Padang Linjong, Canggu', tropicana: 'Tumbak Bayuh, Pererenan',
 };
+function digestTag(slug) {
+  if (slug.startsWith('haus-')) return DIGEST_TAG.haus;
+  if (slug.startsWith('lanehaus-')) return DIGEST_TAG.lanehaus;
+  if (slug.startsWith('tropicana-')) return DIGEST_TAG.tropicana;
+  return DIGEST_TAG[slug] || '';
+}
+const DEFAULTS = Object.fromEntries(UNITS.map(u => [u.hostexId, {
+  order: u.order, slug: u.slug, name: u.name, unitType: u.unitType,
+  tag: digestTag(u.slug), monthly: u.monthly, yearly: u.yearly, yearly2: u.yearly2,
+}]));
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

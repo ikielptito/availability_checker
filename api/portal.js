@@ -9,6 +9,7 @@
 // No npm deps: Google token verification uses Google's tokeninfo endpoint,
 // sessions are random tokens stored in KV with a TTL, cookies are httpOnly.
 import crypto from 'node:crypto';
+import { logError } from '../lib/errlog.js';
 
 const SESSION_COOKIE = 'samba_session';
 const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days
@@ -145,6 +146,7 @@ export default async function handler(req, res) {
 
     return res.status(400).json({ error: 'Unknown action' });
   } catch (e) {
+    await logError(kvUrl, kvToken, `portal:${action || req.method}`, e);
     return res.status(500).json({ error: 'Server error', detail: e.message });
   }
 }

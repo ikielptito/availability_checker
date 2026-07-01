@@ -46,29 +46,16 @@ async function serve(req, res) {
 
   const slug = (req.query?.slug || '').toLowerCase();
 
-  // Lazy-load listing.html over HTTPS (the static handler serves it
-  // directly from public/). Cached per-Lambda-instance for 5 minutes.
-  if (!_htmlCache || Date.now() - _htmlCacheAt > TEMPLATE_TTL_MS) {
-    const tr = await fetch(`${proto}://${host}/listing.html`);
-    if (!tr.ok) throw new Error(`listing.html fetch ${tr.status}`);
-    _htmlCache = await tr.text();
-    _htmlCacheAt = Date.now();
-  }
-
-  // Fetch listing metadata (60s cache so back-to-back shares of the same
-  // property are nearly free)
-  let listing = null;
-  if (slug) {
-    if (Date.now() - _listingsCacheAt > LISTINGS_TTL_MS) {
-      try {
-        const lr = await fetch(`${proto}://${host}/api/listings`);
-        const j = await lr.json();
-        _listingsCache = j.listings || [];
-        _listingsCacheAt = Date.now();
-      } catch {}
-    }
-    listing = (_listingsCache || []).find(l => l.slug === slug && !l.hidden);
-  }
+  // Fetch the template and the listings metadata concurrently. On a cold
+  // Lambda both caches are empty, and these are independent requests, so
+  // running them in parallel shaves a full round-trip off first-share preview
+  // latency (the scraper is waiting on this response). listing.html is served
+  // statically from public/; listings has its own 60s cache.
+  await Promise.all([
+    ensureTemplate(proto, host),
+    slug ? getListings(proto, host) : Promise.resolve(),
+  ]);
+  const listing = slug ? (_listingsCache || []).find(l => l.slug === slug && !l.hidden) : null;
 
   // Compose tags. When the listing isn't found (404 case), the generic
   // portal OG card + brand wording still renders, so the link is never
@@ -109,6 +96,27 @@ async function serve(req, res) {
   return res.status(200).send(html);
 }
 
+// Lazy-load + cache listing.html (5-min per-Lambda TTL). Served statically
+// from public/, so we fetch it over HTTPS rather than reading from disk (the
+// function bundle doesn't include public/).
+async function ensureTemplate(proto, host) {
+  if (_htmlCache && Date.now() - _htmlCacheAt <= TEMPLATE_TTL_MS) return _htmlCache;
+  const tr = await fetch(`${proto}://${host}/listing.html`);
+  if (!tr.ok) throw new Error(`listing.html fetch ${tr.status}`);
+  _htmlCache = await tr.text();
+  _htmlCacheAt = Date.now();
+  return _htmlCache;
+}
+
+async function ensureAgentTemplate(proto, host) {
+  if (_agentHtmlCache && Date.now() - _agentHtmlCacheAt <= TEMPLATE_TTL_MS) return _agentHtmlCache;
+  const tr = await fetch(`${proto}://${host}/agent.html`);
+  if (!tr.ok) throw new Error(`agent.html fetch ${tr.status}`);
+  _agentHtmlCache = await tr.text();
+  _agentHtmlCacheAt = Date.now();
+  return _agentHtmlCache;
+}
+
 async function getListings(proto, host) {
   if (Date.now() - _listingsCacheAt > LISTINGS_TTL_MS) {
     try {
@@ -122,21 +130,15 @@ async function getListings(proto, host) {
 }
 
 async function serveAgent(req, res, { proto, host, agentHandle, shareId }) {
-  // Lazy-load the agent.html template (served statically from public/).
-  if (!_agentHtmlCache || Date.now() - _agentHtmlCacheAt > TEMPLATE_TTL_MS) {
-    const tr = await fetch(`${proto}://${host}/agent.html`);
-    if (!tr.ok) throw new Error(`agent.html fetch ${tr.status}`);
-    _agentHtmlCache = await tr.text();
-    _agentHtmlCacheAt = Date.now();
-  }
-
-  // Resolve the public profile / shortlist (profile + villa slugs).
+  // Load the agent.html template and the public profile/shortlist concurrently
+  // (independent requests) so a cold Lambda doesn't serialize two round-trips.
+  const q = shareId ? `share=${encodeURIComponent(shareId)}` : `handle=${encodeURIComponent(agentHandle)}`;
   let prof = null, slugs = [], listName = null;
-  try {
-    const q = shareId ? `share=${encodeURIComponent(shareId)}` : `handle=${encodeURIComponent(agentHandle)}`;
-    const ar = await fetch(`${proto}://${host}/api/portal?action=agent-public&${q}`);
-    if (ar.ok) { const j = await ar.json(); prof = j.profile || null; slugs = j.slugs || []; listName = j.listName || null; }
-  } catch {}
+  const [, profRes] = await Promise.all([
+    ensureAgentTemplate(proto, host),
+    fetch(`${proto}://${host}/api/portal?action=agent-public&${q}`).then(r => r.ok ? r.json() : null).catch(() => null),
+  ]);
+  if (profRes) { prof = profRes.profile || null; slugs = profRes.slugs || []; listName = profRes.listName || null; }
 
   // OG image = the first villa's cover photo (falls back to the portal card).
   let image = FALLBACK_OG;

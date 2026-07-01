@@ -12,6 +12,25 @@ export default async function handler(req, res) {
   const { event, propId, propName, agentId, newSession, src } = req.body || {};
   if (!event || !/^[a-z_]{1,32}$/.test(event)) return res.status(400).json({ error: 'Missing or invalid event' });
 
+  // Rate limit: this endpoint is public and writes analytics counters, so cap
+  // it per-IP per-minute to stop a loop from inflating the view/share numbers we
+  // show owners. Over the cap we silently accept (200) but don't record — clients
+  // never see an error, so a real burst just drops the overflow.
+  const RATE_LIMIT_PER_MIN = 150;
+  const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+  const minute = Math.floor(Date.now() / 60000);
+  try {
+    const rlKey = `rl:track:${ip}:${minute}`;
+    const rlRes = await fetch(`${url}/pipeline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify([['INCR', rlKey], ['EXPIRE', rlKey, '120']]),
+    });
+    const rl = await rlRes.json().catch(() => null);
+    const count = Array.isArray(rl) ? parseInt(rl[0]?.result) || 0 : 0;
+    if (count > RATE_LIMIT_PER_MIN) return res.status(200).json({ ok: true, throttled: true });
+  } catch { /* if the limiter itself fails, fall through and record normally */ }
+
   const now = Date.now();
   const day = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const month = day.slice(0, 7); // YYYY-MM

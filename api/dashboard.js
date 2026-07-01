@@ -24,6 +24,23 @@ export default async function handler(req, res) {
   const token = process.env.KV_REST_API_TOKEN;
   if (!url || !token) return res.status(500).json({ error: 'Redis not configured' });
 
+  // Recent captured errors (from lib/errlog.js) for the admin console.
+  if (req.query.errors === '1') {
+    try {
+      const r = await fetch(`${url}/pipeline`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify([['LRANGE', 'errors:recent', '0', '199']]),
+      });
+      const d = await r.json();
+      const raw = (Array.isArray(d) ? d[0]?.result : null) || [];
+      const errors = raw.map(v => { try { return JSON.parse(v); } catch { return null; } }).filter(Boolean);
+      return res.status(200).json({ errors });
+    } catch (e) {
+      return res.status(502).json({ error: 'Could not read errors', detail: e.message });
+    }
+  }
+
   const period = ['today', '7d', '30d', '90d', 'all'].includes(req.query.period) ? req.query.period : '7d';
   const nDays = period === 'today' ? 1 : period === '7d' ? 7 : period === '30d' ? 30 : 90;
   const days = [];
