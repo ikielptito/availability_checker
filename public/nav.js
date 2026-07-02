@@ -38,13 +38,14 @@
   .snav-stab svg{width:17px;height:17px;flex-shrink:0}
   .snav-stab .snav-av{width:22px;height:22px}
   /* Tier 1 — floating glass portal bar (mobile) */
-  #snav-tabs{position:fixed;left:16px;right:16px;bottom:16px;z-index:900;display:none;background:rgba(255,255,255,.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:none;border-radius:28px;padding:10px;gap:8px;height:84px;box-sizing:border-box;box-shadow:0 8px 30px rgba(0,0,0,.08)}
-  #snav-tabs .snav-ptab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-family:'Geist',-apple-system,sans-serif;font-size:.72rem;font-weight:600;color:#8a8478;text-decoration:none;padding:6px 4px;border-radius:20px;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
+  #snav-tabs{position:fixed;left:16px;right:16px;bottom:16px;z-index:900;display:none;background:rgba(255,255,255,.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:none;border-radius:26px;padding:8px;gap:10px;height:76px;box-sizing:border-box;box-shadow:0 8px 30px rgba(0,0,0,.08)}
+  #snav-tabs .snav-ptab{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:'Geist',-apple-system,sans-serif;font-size:.72rem;font-weight:600;color:#8a8478;text-decoration:none;padding:5px 4px;border-radius:19px;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
+  #snav-tabs .snav-ptab+.snav-ptab::before{content:'';position:absolute;left:-5.5px;top:22%;height:56%;width:1px;background:#F1ECE7}
   #snav-tabs .snav-ptab.on{color:#C46E4B;background:#F6E7DE}
-  #snav-tabs .snav-ptab svg{width:22px;height:22px}
+  #snav-tabs .snav-ptab svg{width:21px;height:21px}
   @media(max-width:760px){
     #snav-tabs{display:flex}
-    body{padding-bottom:124px}
+    body{padding-bottom:112px}
     #snav-sub{padding:8px 16px 0;gap:8px}
     #snav-sub .snav-seg{display:none}
   }
@@ -106,13 +107,14 @@
     list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
     out: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+    person: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
   };
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function initials(n) { return (n || 'A').trim().split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join('').toUpperCase(); }
 
   // ── Portal + sub-tab model ──
   var PORTALS = [
-    { key: 'agent', label: 'Agent Portal', href: '/', icon: I.browse },
+    { key: 'agent', label: 'Agent Portal', href: '/', icon: I.person },
     { key: 'owner', label: 'Owner Portal', href: '/portal', icon: I.dashboard },
   ];
   function curPortal() { return /^\/portal/.test(location.pathname) ? 'owner' : 'agent'; }
