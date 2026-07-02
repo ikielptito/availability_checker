@@ -21,7 +21,14 @@
 
   // ── Styles ──
   var css = `
-  #samba-nav{display:none}
+  #samba-nav{display:flex;flex:1;min-width:0;justify-content:flex-end}
+  #snav-sub.inline{padding:0;margin:0;max-width:none;flex:1;min-width:0;justify-content:flex-end}
+  #snav-sub.inline .snav-stab{padding:7px 9px}
+  @media(max-width:640px){
+    #snav-sub.inline .snav-stab span{display:none}
+    #snav-sub.inline .snav-stab{padding:9px}
+    #snav-sub.inline .snav-stab svg{width:19px;height:19px}
+  }
   .snav-av{width:26px;height:26px;border-radius:50%;background:#C46E4B;color:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-size:.72rem;font-weight:600}
   .snav-av img{width:100%;height:100%;object-fit:cover}
   .snav-av svg{width:16px;height:16px}
@@ -155,12 +162,16 @@
     bottom.innerHTML = PORTALS.map(function (p) {
       return '<a class="snav-ptab' + (p.key === portal ? ' on' : '') + '" href="' + p.href + '">' + p.icon + '<span>' + esc(p.label) + '</span></a>';
     }).join('');
-    // Tier 2 — sub-tab strip (below topbar)
+    // Tier 2 — sub-tab strip. Preferred mount is INSIDE the topbar row (via
+    // the #samba-nav slot) so the logo and tabs share one line; falls back to
+    // a full-width strip below the topbar on pages without the slot.
     var strip = document.getElementById('snav-sub');
     if (!strip) {
       strip = document.createElement('div'); strip.id = 'snav-sub';
+      var host = document.getElementById('samba-nav');
       var tb = document.querySelector('.topbar');
-      if (tb && tb.parentNode) tb.parentNode.insertBefore(strip, tb.nextSibling);
+      if (host) { strip.className = 'inline'; host.appendChild(strip); }
+      else if (tb && tb.parentNode) tb.parentNode.insertBefore(strip, tb.nextSibling);
       else document.body.insertBefore(strip, document.body.firstChild);
     }
     var seg = '<div class="snav-seg">' + PORTALS.map(function (p) {
