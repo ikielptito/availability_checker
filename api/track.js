@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const token = process.env.KV_REST_API_TOKEN;
   if (!url || !token) return res.status(500).json({ error: 'Redis not configured' });
 
-  const { event, propId, propName, agentId, newSession, src } = req.body || {};
+  const { event, propId, propName, agentId, newSession, src, stage } = req.body || {};
   if (!event || !/^[a-z_]{1,32}$/.test(event)) return res.status(400).json({ error: 'Missing or invalid event' });
 
   // Rate limit: this endpoint is public and writes analytics counters, so cap
@@ -47,6 +47,18 @@ export default async function handler(req, res) {
       ['INCR', 'total:sessions'],
       ['INCR', `day:${day}:sessions`],
       ['INCR', `month:${month}:sessions`]
+    );
+  }
+
+  // Funnel stages: the frontend flags the FIRST engagement / enquiry of a
+  // session, so these counters are unique sessions per stage — comparable to
+  // `sessions` above, unlike raw event counters which can exceed it.
+  if (stage === 'engaged' || stage === 'enquired') {
+    const k = stage === 'engaged' ? 'eng_sessions' : 'wa_sessions';
+    cmds.push(
+      ['INCR', `total:${k}`],
+      ['INCR', `day:${day}:${k}`],
+      ['INCR', `month:${month}:${k}`]
     );
   }
 

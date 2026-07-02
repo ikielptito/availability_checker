@@ -50,7 +50,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .error-title{font-size:1.6rem;font-weight:700;letter-spacing:-.02em;color:var(--text)}
 .error-msg{color:var(--text-2);font-size:.9rem;max-width:380px;line-height:1.7}
 #app{display:none}#app.on{display:block}
-.topbar{position:relative;z-index:100;padding:20px 20px 8px;display:flex;align-items:center;gap:16px;max-width:960px;margin:0 auto;width:100%}
+.topbar{position:relative;z-index:100;padding:14px 20px 4px;display:flex;align-items:center;gap:16px;max-width:960px;margin:0 auto;width:100%}
 .brand-mark{display:flex;align-items:center;flex-shrink:0;text-decoration:none}
 .brand-mark img{height:41px}
 .topbar-avatar{margin-left:auto;display:flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:4px;-webkit-tap-highlight-color:transparent}
@@ -60,7 +60,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .topbar-avatar .tb-chev{width:14px;height:14px;color:var(--subtle)}
 @media(max-width:600px){.brand-mark img{height:38px}}
 /* Search */
-.search-section{padding:10px 20px 4px;max-width:960px;margin:0 auto;width:100%}
+.search-section{padding:6px 20px 2px;max-width:960px;margin:0 auto;width:100%}
 .search-pill{position:relative;height:49px;background:var(--surface);border:var(--hairline);border-radius:999px;box-shadow:var(--shadow-float);display:flex;align-items:center;padding:0 56px 0 20px;transition:box-shadow .18s var(--ease),border-color .18s var(--ease)}
 .search-pill:focus-within{box-shadow:0 1px 2px rgba(28,25,23,.05),0 12px 32px rgba(28,25,23,.1);border-color:rgba(28,25,23,.1)}
 .search-ic{width:19px;height:19px;color:var(--subtle);margin-right:11px;flex-shrink:0}
@@ -100,7 +100,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .pop-item .pop-check{margin-left:auto;width:14px;height:14px;opacity:0;flex-shrink:0}
 .pop-item.on .pop-check{opacity:1}
 /* Count + sort row */
-.count-row{display:flex;align-items:center;gap:8px;padding:12px 20px 0;max-width:960px;margin:0 auto;width:100%}
+.count-row{display:flex;align-items:center;gap:8px;padding:8px 20px 0;max-width:960px;margin:0 auto;width:100%}
 .count-title{font-size:18px;font-weight:700;letter-spacing:-.02em}
 .sort-btn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:var(--hairline);border-radius:999px;box-shadow:var(--shadow-btn);color:var(--text-2);font-family:inherit;font-size:12px;font-weight:600;letter-spacing:.01em;padding:7px 12px;cursor:pointer;white-space:nowrap;transition:transform .18s var(--ease),border-color .18s var(--ease)}
 .sort-btn:hover{border-color:rgba(28,25,23,.1)}
@@ -315,6 +315,20 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .cx-rail:empty{display:none}
 .cx-chip{flex:0 0 auto;border:var(--hairline);background:var(--surface);color:var(--text-2);font-family:inherit;font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:7px 13px;border-radius:999px;cursor:pointer;box-shadow:var(--shadow-btn);white-space:nowrap;transition:background .18s var(--ease),color .18s var(--ease),border-color .18s var(--ease);-webkit-tap-highlight-color:transparent}
 .cx-chip.on{background:var(--primary-soft);color:var(--primary);border-color:rgba(196,110,75,.22)}
+/* List view — compact scannable rows, one per property */
+.lrow{grid-column:1/-1;display:flex;align-items:center;gap:12px;background:var(--surface);border:var(--hairline);border-radius:16px;padding:9px 12px;cursor:pointer;box-shadow:var(--shadow-btn);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
+.lrow:hover{transform:translateY(-1px);box-shadow:var(--shadow-float)}
+.lrow-thumb{width:54px;height:54px;border-radius:12px;object-fit:cover;flex-shrink:0;background:var(--surface2)}
+.lrow-main{flex:1;min-width:0}
+.lrow-name{font-size:14px;font-weight:650;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow-meta{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden}
+.lrow-meta .avail-dot{width:6px;height:6px;border-radius:50%;background:#4CAF6D;flex-shrink:0}
+.lrow-meta .avail-dot.full{background:#D96C4F}
+.lrow-meta .avail-dot.warn{background:#C9A227}
+.lrow-right{text-align:right;flex-shrink:0}
+.lrow-price{font-size:13.5px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.lrow-br{font-size:11.5px;font-weight:500;color:var(--muted)}
+.lrow>.chev{width:14px;height:14px;color:var(--subtle);flex-shrink:0}
 /* Back-to-top — appears after scrolling; sits above the floating bottom nav */
 .to-top{position:fixed;right:16px;bottom:92px;z-index:880;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:var(--hairline);box-shadow:var(--shadow-float);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .2s var(--ease),transform .2s var(--ease)}
 .to-top.on{opacity:1;pointer-events:auto;transform:none}
@@ -409,10 +423,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     <a class="brand-mark" href="/" aria-label="Samba">
       <img src="/logo-samba.png" alt="Samba">
     </a>
-    <button class="topbar-avatar" id="topbar-avatar" onclick="window.SambaNav&&SambaNav.openAccount()" aria-label="Your account">
-      <span class="tb-av" id="tb-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-      <svg class="tb-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-    </button>
     <div id="samba-nav"></div>
   </div>
   <div id="browse-chrome">
@@ -423,10 +433,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         <button class="filter-fab" onclick="openAllFilters()" aria-label="All filters"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></button>
       </div>
     </div>
-    <div class="cat-row" id="cat-row"></div>
     <div class="filter-float"><div class="filter-float-inner" id="ff-inner"></div></div>
     <div class="count-row">
       <div class="count-title" id="prop-count"></div>
+      <button class="rf-btn" id="view-btn" onclick="toggleView()" aria-label="Toggle view"></button>
       <button class="sort-btn" id="sort-btn" onclick="openSortPop(event)"></button>
       <button class="rf-btn" onclick="doRefresh()" aria-label="Refresh availability" title="Refresh availability"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
     </div>
@@ -557,6 +567,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 <script>
 let properties=[], avail={}, failedAvail=new Set(), query='', bedroomFilter='all', sortMode='default';
 let availFilter='all', budgetFilter='all', durationFilter='all', pillWs=false, topPickId=null;
+let viewMode=localStorage.getItem('samba_view')||'bento'; // 'bento' | 'list'
 let myFavorites=new Set(), myNotes={}, savedView=false;
 let myLists=[], shortlistsView=false, pickerListId=null, pickerQuery='';
 function getBedrooms(propId){
@@ -623,17 +634,10 @@ function computeTopPick(){
   topPickId=bw>=30?best:null;
 }
 function renderChrome(){
-  const cat=document.getElementById('cat-row'); if(!cat) return;
-  const allOn=bedroomFilter==='all'&&durationFilter==='all'&&!pillWs;
-  let pills='<button class="cat-card'+(allOn?' on':'')+'" onclick="catAll()">'+icon('home','lg')+'<span>All properties</span></button>';
-  bedroomCounts().forEach(n=>{pills+='<button class="cat-card'+(bedroomFilter===String(n)?' on':'')+'" onclick="catBed('+n+')">'+icon('bed','lg')+'<span>'+n+' BR</span></button>';});
-  pills+='<button class="cat-card'+(durationFilter!=='all'?' on':'')+'" onclick="toggle30d()">'+icon('cal','lg')+'<span>30+ days</span></button>';
-  pills+='<button class="cat-card'+(pillWs?' on':'')+'" onclick="toggleWs()">'+icon('laptop','lg')+'<span>Workspace</span></button>';
-  cat.innerHTML=pills;
   const chev='<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
   const lbl=(opts,cur,fallback)=>{const o=opts.find(x=>x.k===cur);return (o&&cur!=='all')?o.l:fallback;};
   document.getElementById('ff-inner').innerHTML=
-    '<button class="ff-btn" onclick="openAllFilters()">'+icon('sliders','sm')+'All Filters</button>'
+    '<button class="ff-btn'+(pillWs?' set':'')+'" onclick="openAllFilters()">'+icon('sliders','sm')+'All Filters</button>'
     +'<span class="ff-sep"></span>'
     +'<button class="ff-btn'+(availFilter!=='all'?' set':'')+'" onclick="openPop(\'avail\',event)">'+lbl(AVAIL_OPTS,availFilter,'Availability')+chev+'</button>'
     +'<button class="ff-btn'+(bedroomFilter!=='all'?' set':'')+'" onclick="openPop(\'bed\',event)">'+(bedroomFilter!=='all'?bedroomFilter+' BR':'Bedrooms')+chev+'</button>'
@@ -643,12 +647,20 @@ function renderChrome(){
     +'<button class="ff-btn" onclick="openMapSheet()">'+icon('map','sm')+'Map</button>';
   const so=SORT_OPTIONS.find(o=>o.key===sortMode);
   document.getElementById('sort-btn').innerHTML='Sort: '+((so&&so.label)||'Default')+chev;
+  const vb=document.getElementById('view-btn');
+  if(vb){
+    vb.title=viewMode==='list'?'Card view':'List view';
+    vb.innerHTML=viewMode==='list'
+      ?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>'
+      :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>';
+  }
 }
-function catAll(){bedroomFilter='all';durationFilter='all';pillWs=false;history.replaceState(null,'',location.pathname);renderChrome();render();}
-function catBed(n){setBedrooms(bedroomFilter===String(n)?'all':String(n));}
+function toggleView(){
+  viewMode=viewMode==='list'?'bento':'list';
+  try{localStorage.setItem('samba_view',viewMode);}catch(e){}
+  renderChrome();render();
+}
 function setBedrooms(v){bedroomFilter=v;history.replaceState(null,'',v==='all'?location.pathname:'?bedrooms='+v);renderChrome();render();}
-function toggle30d(){durationFilter=durationFilter==='all'?'1mo':'all';renderChrome();render();}
-function toggleWs(){pillWs=!pillWs;renderChrome();render();}
 // Popover menus (shared element, fixed-positioned under the anchor)
 let popKind=null;
 function openPop(kind,ev){
@@ -677,6 +689,7 @@ function popPick(kind,val){
   else if(kind==='bed'){bedroomFilter=val;history.replaceState(null,'',val==='all'?location.pathname:'?bedrooms='+val);}
   else if(kind==='budget')budgetFilter=val;
   else if(kind==='dur')durationFilter=val;
+  else if(kind==='ws')pillWs=(val==='yes');
   else if(kind==='sort')sortMode=val;
   closePop();renderChrome();render();
 }
@@ -692,6 +705,7 @@ function renderAF(){
     +grp('Bedrooms',bedOpts,bedroomFilter,'bed')
     +grp('Budget',BUDGET_OPTS,budgetFilter,'budget')
     +grp('Duration',DUR_OPTS,durationFilter,'dur')
+    +grp('Workspace',[{k:'all',l:'Any'},{k:'yes',l:'With workspace'}],pillWs?'yes':'all','ws')
     +'<div class="af-foot"><button class="af-reset" onclick="afReset()">Reset all</button><button class="af-done" onclick="closeAllFilters()">Done</button></div>';
 }
 function afPick(kind,val){popPick(kind,val);renderAF();}
@@ -840,15 +854,6 @@ window.addEventListener('scroll',()=>{
   if(tt)tt.classList.toggle('on',window.scrollY>600);
   if(!_cxRaf){_cxRaf=true;requestAnimationFrame(()=>{_cxRaf=false;updateCxActive();});}
 },{passive:true});
-function updateTopbarAvatar(acc){
-  const el=document.getElementById('tb-av');if(!el)return;
-  if(acc){
-    const ph=(acc.profile&&acc.profile.photo)||acc.picture;
-    el.innerHTML=ph?'<img src="'+esc(ph)+'" alt="">':esc(String((acc.profile&&acc.profile.displayName)||acc.name||'A').trim().split(/\s+/).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase());
-  }else{
-    el.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
-  }
-}
 const TODAY=new Date(); TODAY.setHours(0,0,0,0);
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DOWS=['Su','Mo','Tu','We','Th','Fr','Sa'];
@@ -1182,6 +1187,16 @@ function doShare(propId, btn){
   const handle=window.SambaNav&&SambaNav.account&&SambaNav.account.profile&&SambaNav.account.profile.handle;
   if(slug&&handle) url+='?a='+encodeURIComponent(handle);
   const title=info.name+(info.tag?' · '+info.tag:'');
+  // WhatsApp/iMessage show this text above the link preview, so the client
+  // sees the essentials even before the OG card loads.
+  const facts=[];
+  const br=getBedrooms(propId); if(br)facts.push(br+' bedroom'+(br>1?'s':''));
+  const mn=monthlyNum(info); if(mn)facts.push('IDR '+mn+'M / month');
+  const av=availLabel(avail[propId]||new Set());
+  const availTxt=failedAvail.has(propId)?null:(!av?'Fully booked next 6 months':(av.cls==='avail-now'?'Available now':'Available from '+av.from));
+  const text=info.name+(info.tag?' — '+info.tag:'')
+    +(facts.length?'\n'+facts.join(' · '):'')
+    +(availTxt?'\n'+availTxt:'');
   const flash=(txt)=>{
     if(!btn) return;
     const orig=btn.innerHTML;
@@ -1190,9 +1205,9 @@ function doShare(propId, btn){
     setTimeout(()=>{btn.innerHTML=orig;btn.classList.remove('shared-ok');},2000);
   };
   if(navigator.share){
-    navigator.share({title,url}).then(()=>flash('Shared')).catch(()=>{});
+    navigator.share({title,text,url}).then(()=>flash('Shared')).catch(()=>{});
   } else {
-    navigator.clipboard.writeText(url).then(()=>flash('Link copied'));
+    navigator.clipboard.writeText(text+'\n'+url).then(()=>flash('Copied'));
   }
 }
 function shareModal(){ doShare(modalPropId, document.getElementById('modal-share-btn')); }
@@ -1298,10 +1313,19 @@ function track(event, propId, propName) {
     sessionStorage.setItem('samba_sess', '1');
     newSession = true;
   }
+  // Funnel stages are flagged once per session so the dashboard can show
+  // true conversion (sessions that engaged / enquired) rather than event
+  // volume, which over-counts when one agent opens several properties.
+  let stage = null;
+  if ((event === 'details_open' || event === 'listing_view') && !sessionStorage.getItem('samba_eng')) {
+    sessionStorage.setItem('samba_eng', '1'); stage = 'engaged';
+  } else if (event === 'whatsapp_click' && !sessionStorage.getItem('samba_wa')) {
+    sessionStorage.setItem('samba_wa', '1'); stage = 'enquired';
+  }
   fetch('/api/track', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ event, propId, propName, agentId: getAgentId(), newSession, src: SESSION_SRC })
+    body: JSON.stringify({ event, propId, propName, agentId: getAgentId(), newSession, stage, src: SESSION_SRC })
   }).catch(() => {});
 }
 
@@ -1588,6 +1612,18 @@ function render() {
       +(br?' · '+br+' BR':'')
       +(mn?' · <b>'+mn+'M/mo</b>':'')
       +'</span></div>';
+    if(viewMode==='list'){
+      const thumb=p.photo
+        ?'<img class="lrow-thumb" src="'+p.photo.replace('=w1200','=w400')+'" loading="lazy" alt="">'
+        :'<div class="lrow-thumb"></div>';
+      return _cxHdr+'<div class="lrow" onclick="openModal(\''+p.id+'\')">'
+        +thumb
+        +'<div class="lrow-main"><div class="lrow-name">'+esc(shortName(p.name))+'</div>'
+        +'<div class="lrow-meta"><span class="avail-dot'+dotCls+'"></span>'+esc(avShort)+(windowTxt?' · '+windowTxt:'')+'</div></div>'
+        +'<div class="lrow-right">'+(mn?'<div class="lrow-price">'+mn+'M/mo</div>':'')+(br?'<div class="lrow-br">'+br+' BR</div>':'')+'</div>'
+        +'<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+        +'</div>';
+    }
     const locHtml=info.tag
       ?'<div class="prop-loc" onclick="copyMapsLink(event,\''+p.id+'\')" title="Copy Google Maps link">'+icon('mapPin')+'<span>'+esc(info.tag)+'</span>'+(info.location?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="copy-ic"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>':'')+'</div>'
       :(p.type?'<div class="prop-loc"><span>'+esc(p.type)+'</span></div>':'');
@@ -1751,7 +1787,6 @@ function saveNote(){
 window.addEventListener('load',function(){
   if(!window.SambaNav) return;
   SambaNav.onChange(function(acc){
-    updateTopbarAvatar(acc);
     myFavorites=new Set((acc&&acc.favorites)||[]);
     myNotes=(acc&&acc.notes)||{};
     myLists=(acc&&acc.lists)||[];

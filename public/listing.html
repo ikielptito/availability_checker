@@ -7,14 +7,14 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<meta name="theme-color" content="#faf8f4">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Sora:wght@300;400;500&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#FAF8F5">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..750&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #faf8f4;
+    --bg: #FAF8F5;
     --surface: #ffffff;
-    --border: #e8e2d8;
-    --text: #1a1814;
+    --border: #F1ECE7;
+    --text: #1C1917;
     --muted: #8a8478;
     --accent: #c8402a;
     --green: #2a6a3a;
@@ -23,7 +23,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'Sora', sans-serif;
+    font-family: 'Geist',-apple-system,sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -91,7 +91,7 @@
     height: 70vh;
     max-height: 600px;
     position: relative;
-    background: #1a1814;
+    background: #1C1917;
     overflow: hidden;
   }
 
@@ -139,7 +139,7 @@
     align-items: center;
     justify-content: center;
     font-size: 4rem;
-    background: linear-gradient(135deg, #2a2620 0%, #1a1814 100%);
+    background: linear-gradient(135deg, #2a2620 0%, #1C1917 100%);
   }
 
   /* CONTENT */
@@ -159,7 +159,7 @@
   }
 
   .property-title {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Geist',-apple-system,sans-serif;
     font-size: 2.4rem;
     letter-spacing: -0.02em;
     line-height: 1.15;
@@ -237,7 +237,7 @@
   }
 
   .pricing-left h3 {
-    font-family: 'Sora', sans-serif;
+    font-family: 'Geist',-apple-system,sans-serif;
     font-size: 0.72rem;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -256,7 +256,7 @@
     font-size: 1.6rem;
     font-weight: 700;
     color: var(--text);
-    font-family: 'Sora', sans-serif;
+    font-family: 'Geist',-apple-system,sans-serif;
     letter-spacing: -0.02em;
   }
 
@@ -288,7 +288,7 @@
   .inclusion-row::before { content: '✓ '; color: var(--green); }
 
   /* Availability banner — shown to client after calendar fetch */
-  .listing-avail{display:flex;align-items:center;gap:10px;padding:13px 20px;border-radius:12px;font-family:'Sora',sans-serif;font-size:.85rem;font-weight:600;margin-bottom:24px}
+  .listing-avail{display:flex;align-items:center;gap:10px;padding:13px 20px;border-radius:12px;font-family:'Geist',-apple-system,sans-serif;font-size:.85rem;font-weight:600;margin-bottom:24px}
   .listing-avail.now{background:#dfe9dd;color:#2a6a3a}
   .listing-avail.from{background:#f5e6e1;color:#c8402a}
   .listing-avail.full{background:#f2ddd6;color:#a8331f}
@@ -299,12 +299,12 @@
 
   /* MAP */
   .map-section { margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid var(--border); }
-  .map-title { font-family: 'Sora', sans-serif; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 16px; }
+  .map-title { font-family: 'Geist',-apple-system,sans-serif; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 16px; }
   .map-wrap { position: relative; width: 100%; height: 320px; border-radius: 12px; overflow: hidden; background: var(--bg); border: 1px solid var(--border); }
   .map-iframe { width: 100%; height: 100%; border: none; display: block; }
-  .map-open { position: absolute; top: 12px; right: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'Sora', sans-serif; font-size: 0.78rem; padding: 8px 14px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: background 0.2s; }
+  .map-open { position: absolute; top: 12px; right: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'Geist',-apple-system,sans-serif; font-size: 0.78rem; padding: 8px 14px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: background 0.2s; }
   .map-open:hover { background: var(--bg); }
-  .map-copy { position: absolute; top: 12px; left: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'Sora', sans-serif; font-size: 0.78rem; padding: 8px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: background 0.2s; }
+  .map-copy { position: absolute; top: 12px; left: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'Geist',-apple-system,sans-serif; font-size: 0.78rem; padding: 8px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: background 0.2s; }
   .map-copy:hover { background: var(--bg); }
   .map-copy.copied { color: var(--green); border-color: var(--green); }
   @media(max-width: 600px) { .map-wrap { height: 240px; } }
@@ -313,7 +313,7 @@
   .gallery-section { margin-bottom: 48px; }
 
   .gallery-title {
-    font-family: 'Sora', sans-serif;
+    font-family: 'Geist',-apple-system,sans-serif;
     font-size: 0.72rem;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -590,10 +590,17 @@ function track(event, propId, propName) {
     sessionStorage.setItem('samba_sess', '1');
     newSession = true;
   }
+  // Once-per-session funnel stage flags — see index.html track() for why.
+  let stage = null;
+  if ((event === 'details_open' || event === 'listing_view') && !sessionStorage.getItem('samba_eng')) {
+    sessionStorage.setItem('samba_eng', '1'); stage = 'engaged';
+  } else if (event === 'whatsapp_click' && !sessionStorage.getItem('samba_wa')) {
+    sessionStorage.setItem('samba_wa', '1'); stage = 'enquired';
+  }
   fetch('/api/track', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ event, propId, propName, agentId: getAgentId(), newSession, src: SESSION_SRC })
+    body: JSON.stringify({ event, propId, propName, agentId: getAgentId(), newSession, stage, src: SESSION_SRC })
   }).catch(() => {});
 }
 

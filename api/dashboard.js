@@ -78,7 +78,7 @@ export default async function handler(req, res) {
     }));
   } catch {}
 
-  const EVENTS = ['page_view', 'listing_view', 'details_open', 'share', 'whatsapp_click', 'photo_view', 'photo_download', 'refresh', 'sessions'];
+  const EVENTS = ['page_view', 'listing_view', 'details_open', 'share', 'whatsapp_click', 'photo_view', 'photo_download', 'refresh', 'sessions', 'eng_sessions', 'wa_sessions'];
   const PEVENTS = ['listing_view', 'details_open', 'share', 'whatsapp_click', 'photo_view', 'photo_download'];
 
   const cmds = [];

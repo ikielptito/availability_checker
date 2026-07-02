@@ -21,20 +21,20 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<meta name="theme-color" content="#faf8f4">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#FAF8F5">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..750&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #faf8f4;
+  --bg: #FAF8F5;
   --surface: #ffffff;
-  --surface2: #f3efe6;
-  --border: #e8e2d8;
-  --text: #1a1814;
-  --text-2: #3d3a32;
+  --surface2: #F5F1EB;
+  --border: #F1ECE7;
+  --text: #1C1917;
+  --text-2: #514C45;
   --muted: #8a8478;
   --subtle: #b5ac9a;
-  --primary: #c26a4a;
-  --primary-2: #a55638;
+  --primary: #C46E4B;
+  --primary-2: #B8613F;
   --primary-soft: #f5ebe6;
   --green: #2a6a3a;
   --green-soft: #dfe9dd;
@@ -43,7 +43,7 @@
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: 'Sora', sans-serif;
+  font-family: 'Geist',-apple-system,sans-serif;
   background: var(--bg);
   color: var(--text);
   font-size: 15px;
@@ -65,9 +65,9 @@ body {
 .nav-spacer { flex: 1; }
 .nav-link { font-size: .82rem; font-weight: 500; color: var(--text-2); text-decoration: none; padding: 8px 14px; border-radius: 8px; transition: background .15s; }
 .nav-link:hover { background: var(--surface2); }
-.nav-cta { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-family: 'Sora', sans-serif; font-size: .82rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: background .15s; white-space: nowrap; }
+.nav-cta { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-family: 'Geist',-apple-system,sans-serif; font-size: .82rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: background .15s; white-space: nowrap; }
 .nav-cta:hover { background: var(--primary-2); }
-.nav-link { color: var(--ink, #3d3a32); font-family: 'Sora', sans-serif; font-size: .82rem; font-weight: 500; text-decoration: none; padding: 9px 6px; margin-right: 6px; white-space: nowrap; }
+.nav-link { color: var(--ink, #514C45); font-family: 'Geist',-apple-system,sans-serif; font-size: .82rem; font-weight: 500; text-decoration: none; padding: 9px 6px; margin-right: 6px; white-space: nowrap; }
 .nav-link:hover { color: var(--primary); }
 @media (max-width: 560px) { .nav-link { display: none; } .nav-brand img { height: 48px; } .nav-cta { padding: 9px 14px; } }
 @media (max-width: 600px) {
@@ -89,7 +89,7 @@ body {
   color: var(--accent); margin-bottom: 20px; font-weight: 600;
 }
 .hero h1 {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Geist',-apple-system,sans-serif;
   font-size: 3.2rem; line-height: 1.08; letter-spacing: -.02em;
   margin-bottom: 20px;
 }
@@ -100,13 +100,13 @@ body {
 .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 .btn-primary {
   background: var(--primary); color: #fff; border: none; border-radius: 10px;
-  padding: 14px 28px; font-family: 'Sora', sans-serif; font-size: .92rem;
+  padding: 14px 28px; font-family: 'Geist',-apple-system,sans-serif; font-size: .92rem;
   font-weight: 600; cursor: pointer; text-decoration: none; transition: background .15s;
 }
 .btn-primary:hover { background: var(--primary-2); }
 .btn-secondary {
   background: var(--surface); color: var(--text-2); border: 1.5px solid var(--border);
-  border-radius: 10px; padding: 14px 28px; font-family: 'Sora', sans-serif;
+  border-radius: 10px; padding: 14px 28px; font-family: 'Geist',-apple-system,sans-serif;
   font-size: .92rem; font-weight: 500; cursor: pointer; text-decoration: none;
   transition: all .15s;
 }
@@ -134,7 +134,7 @@ body {
   color: var(--accent); font-weight: 600; margin-bottom: 12px; text-align: center;
 }
 .section-title {
-  font-family: 'Playfair Display', serif; font-size: 2.2rem;
+  font-family: 'Geist',-apple-system,sans-serif; font-size: 2.2rem;
   line-height: 1.15; letter-spacing: -.015em; text-align: center; margin-bottom: 16px;
 }
 .section-sub {
@@ -266,7 +266,7 @@ body {
   background: radial-gradient(ellipse 60% 50% at 50% 100%, rgba(194,106,74,.06) 0%, transparent 70%);
 }
 .cta-banner h2 {
-  font-family: 'Playfair Display', serif; font-size: 2rem;
+  font-family: 'Geist',-apple-system,sans-serif; font-size: 2rem;
   line-height: 1.15; margin-bottom: 12px;
 }
 .cta-banner p { font-size: .95rem; color: var(--muted); line-height: 1.6; margin-bottom: 32px; }
