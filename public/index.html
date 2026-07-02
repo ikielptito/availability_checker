@@ -169,11 +169,24 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .prop-card.expanded{grid-column:1/-1}
 @media(min-width:800px){.prop-card.expanded .prop-media{aspect-ratio:16/10}}
 .prop-card.collapsed .prop-media{aspect-ratio:1/1}
-.prop-card.collapsed .prop-loc,.prop-card.collapsed .card-actions,.prop-card.collapsed .fav-heart,.prop-card.collapsed .top-pick,.prop-card.collapsed .prop-pill:not(:first-child){display:none}
-.prop-card.collapsed .prop-name{font-size:13.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prop-card.collapsed .prop-body{padding:0 11px 11px;gap:3px}
-.prop-card.collapsed .prop-pill{background:none;border:none;backdrop-filter:none;-webkit-backdrop-filter:none;padding:0;font-size:11px;color:rgba(255,255,255,.78)}
-.prop-card.collapsed .prop-gradient{background:linear-gradient(to bottom,transparent 45%,rgba(0,0,0,.74) 100%)}
+.prop-card.collapsed .prop-loc,.prop-card.collapsed .card-actions,.prop-card.collapsed .fav-heart,.prop-card.collapsed .top-pick,.prop-card.collapsed .pill-window{display:none}
+.prop-card.collapsed .prop-name{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prop-card.collapsed .prop-body{padding:0 12px 12px;gap:4px}
+.prop-card.collapsed .prop-pills{gap:9px;margin-top:0}
+.prop-card.collapsed .prop-pill{background:none;border:none;backdrop-filter:none;-webkit-backdrop-filter:none;padding:0;font-size:11.5px;color:rgba(255,255,255,.85)}
+.prop-card.collapsed .pill-price{font-weight:650;color:#fff}
+.prop-card.collapsed .prop-gradient{background:linear-gradient(to bottom,transparent 38%,rgba(0,0,0,.78) 100%)}
+/* Expand/minimize affordance — same spot on every card so the mechanic is discoverable */
+.bento-toggle{position:absolute;top:10px;left:10px;z-index:3;width:30px;height:30px;border-radius:50%;background:rgba(17,15,13,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .18s var(--ease),background .18s var(--ease);-webkit-tap-highlight-color:transparent;padding:0}
+.bento-toggle:hover{transform:scale(1.08);background:rgba(17,15,13,.55)}
+.bento-toggle:active{transform:scale(.92)}
+.bento-toggle svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bento-toggle .ic-min{display:none}
+.prop-card.expanded .bento-toggle .ic-min{display:block}
+.prop-card.expanded .bento-toggle .ic-max{display:none}
+.prop-card.expanded .top-pick{left:50px}
+/* Bento morph — per-card view-transition-names are set inline at render */
+::view-transition-group(*){animation-duration:.45s;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
 .prop-hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease)}
 .prop-card:hover .prop-hero-img{transform:scale(1.03)}
 .prop-card:active .prop-hero-img{transform:scale(1.05)}
@@ -675,23 +688,34 @@ function revealCards(){
   const io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.remove('pre');e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.05});
   cards.forEach(c=>io.observe(c));
 }
-// Bento expand/collapse: one expanded card at a time. Tapping a collapsed
-// tile expands it (collapsing the previous one); tapping the expanded card
-// opens the details modal as before.
+// Bento expand/collapse: at most one expanded card. Tapping a collapsed tile
+// (or its corner toggle) expands it; tapping the expanded card opens the
+// details modal; its corner toggle minimizes back to the tile grid.
+// expandedId: null = pick a default on render, 'none' = user collapsed all.
 let expandedId=null;
-function cardClick(ev,id){
-  const card=ev.currentTarget;
-  if(card.classList.contains('expanded')){openModal(id);return;}
-  expandedId=id;
+function setExpanded(id){
+  expandedId=(id==null)?'none':id;
   const apply=()=>{
     document.querySelectorAll('.prop-card').forEach(c=>{
-      const on=String(c.dataset.id)===String(id);
+      const on=id!=null&&String(c.dataset.id)===String(id);
       c.classList.toggle('expanded',on);
       c.classList.toggle('collapsed',!on);
     });
   };
   if(document.startViewTransition)document.startViewTransition(apply);else apply();
-  setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'nearest'}),60);
+  if(id!=null)setTimeout(()=>{
+    const card=document.querySelector('.prop-card[data-id="'+id+'"]');
+    if(card)card.scrollIntoView({behavior:'smooth',block:'center'});
+  },80);
+}
+function cardClick(ev,id){
+  if(ev.currentTarget.classList.contains('expanded')){openModal(id);return;}
+  setExpanded(id);
+}
+function toggleBento(ev,id){
+  ev.stopPropagation();
+  const card=ev.currentTarget.closest('.prop-card');
+  setExpanded(card&&card.classList.contains('expanded')?null:id);
 }
 function updateTopbarAvatar(acc){
   const el=document.getElementById('tb-av');if(!el)return;
@@ -1362,8 +1386,9 @@ function render() {
   });
   const sorted=sortedFiltered(filtered);
   const filtered2=sorted;
-  // Bento: exactly one card expanded — default to the top pick, else the first
-  if(expandedId===null||!filtered2.some(p=>String(p.id)===String(expandedId)))
+  // Bento: default one expanded card (top pick, else first). 'none' means the
+  // user minimized everything — respect that across re-renders.
+  if(expandedId!=='none'&&(expandedId===null||!filtered2.some(p=>String(p.id)===String(expandedId))))
     expandedId=filtered2.some(p=>p.id===topPickId)?topPickId:(filtered2[0]?filtered2[0].id:null);
   const savedBanner=savedView
     ?'<div class="saved-banner"><b>Saved villas</b><span style="color:var(--muted);font-size:.82rem">'+myFavorites.size+' saved</span><button onclick="setSavedView(false)">Show all villas</button></div>'
@@ -1404,16 +1429,20 @@ function render() {
     }
     const mn=monthlyNum(info);
     const pills='<div class="prop-pills">'+availPill
-      +(windowTxt?'<span class="prop-pill">'+windowTxt+'</span>':'')
-      +(mn?'<span class="prop-pill">IDR '+mn+'M / mo</span>':'')
+      +(windowTxt?'<span class="prop-pill pill-window">'+windowTxt+'</span>':'')
+      +(mn?'<span class="prop-pill pill-price">IDR '+mn+'M / mo</span>':'')
       +'</div>';
     const locHtml=info.tag
       ?'<div class="prop-loc" onclick="copyMapsLink(event,\''+p.id+'\')" title="Copy Google Maps link">'+icon('mapPin')+'<span>'+esc(info.tag)+'</span>'+(info.location?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="copy-ic"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>':'')+'</div>'
       :(p.type?'<div class="prop-loc"><span>'+esc(p.type)+'</span></div>':'');
     const isExp=String(p.id)===String(expandedId);
-    return _cxHdr+'<div class="prop-card pre '+(isExp?'expanded':'collapsed')+'" data-id="'+p.id+'" onclick="cardClick(event,\''+p.id+'\')" title="'+(isExp?'View photos &amp; details':'Expand')+'">'
+    return _cxHdr+'<div class="prop-card pre '+(isExp?'expanded':'collapsed')+'" data-id="'+p.id+'" style="view-transition-name:pc'+i+'" onclick="cardClick(event,\''+p.id+'\')" title="'+(isExp?'View photos &amp; details':'Expand')+'">'
       +'<div class="prop-media">'+heroInner
       +'<div class="prop-gradient"></div>'
+      +'<button class="bento-toggle" onclick="toggleBento(event,\''+p.id+'\')" aria-label="Expand or minimize" title="Expand / minimize">'
+      +'<svg class="ic-max" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
+      +'<svg class="ic-min" viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
+      +'</button>'
       +(p.id===topPickId?'<div class="top-pick">Top pick</div>':'')
       +'<button class="fav-heart'+(isFav?' on':'')+'" onclick="event.stopPropagation();toggleFav(\''+slug+'\')" aria-label="'+(isFav?'Remove from saved':'Save villa')+'" title="'+(isFav?'Saved':'Save')+'"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>'
       +'</div>'
