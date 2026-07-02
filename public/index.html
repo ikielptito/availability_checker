@@ -158,17 +158,22 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .spacer{flex:1}
 .prop-grid{padding:14px 20px 150px;display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;max-width:960px;margin:0 auto}
 @media(max-width:800px){.prop-grid{grid-template-columns:1fr;padding:12px 16px 150px;gap:16px}}
-/* Property card — full-bleed landscape photo, info column overlaid right */
-.prop-card{position:relative;width:100%;border-radius:24px;overflow:hidden;background:var(--surface2);box-shadow:var(--shadow);cursor:pointer;aspect-ratio:8/5;min-height:252px;transform:translateZ(0);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
+/* Property card — media on top, structured info block below (Airbnb anatomy) */
+.prop-card{position:relative;width:100%;border-radius:24px;overflow:hidden;background:var(--surface);border:var(--hairline);box-shadow:var(--shadow);cursor:pointer;transform:translateZ(0);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
 .prop-card.pre{opacity:0}
 .prop-card.in{opacity:1;animation:card-in .5s var(--ease)}
 @keyframes card-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
-.prop-card:hover{transform:translateY(-3px) scale(1.01);box-shadow:0 18px 50px rgba(0,0,0,.11)}
+.prop-card:hover{transform:translateY(-3px);box-shadow:0 2px 4px rgba(28,25,23,.04),0 16px 40px rgba(28,25,23,.09)}
+.prop-media{position:relative;aspect-ratio:4/3;background:var(--surface2);overflow:hidden}
 .prop-hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease)}
 .prop-card:hover .prop-hero-img{transform:scale(1.03)}
 .prop-card:active .prop-hero-img{transform:scale(1.05)}
-.prop-hero-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-start;padding-left:12%;color:rgba(255,255,255,.35);background:linear-gradient(160deg,#8d7d6b,#5c5044)}
-.prop-grad{position:absolute;inset:0;background:linear-gradient(90deg,transparent 28%,rgba(10,8,6,.18) 46%,rgba(10,8,6,.36) 64%,rgba(10,8,6,.44)),linear-gradient(180deg,rgba(10,8,6,.1),transparent 22%),linear-gradient(180deg,transparent 55%,rgba(10,8,6,.34))}
+.prop-hero-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--subtle);background:var(--surface2)}
+/* Availability chip — glass, bottom-left of the photo */
+.avail-chip{position:absolute;left:12px;bottom:12px;z-index:2;display:inline-flex;align-items:center;gap:6px;background:rgba(17,15,13,.44);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.16);color:#fff;font-size:12px;font-weight:500;letter-spacing:0;padding:6px 11px;border-radius:999px;white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
+.avail-dot{width:6px;height:6px;border-radius:50%;background:#8FE39A;box-shadow:0 0 8px rgba(143,227,154,.7);flex-shrink:0}
+.avail-chip.full .avail-dot{background:#F2A28E;box-shadow:0 0 8px rgba(242,162,142,.7)}
+.avail-chip.warn .avail-dot{background:#EBCE8C;box-shadow:0 0 8px rgba(235,206,140,.7)}
 .top-pick{position:absolute;top:14px;left:14px;z-index:2;background:rgba(88,96,66,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.16);color:#fff;font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;padding:7px 12px;border-radius:9px}
 .fav-heart{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.14);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;transition:transform .18s var(--ease),background .18s var(--ease);-webkit-tap-highlight-color:transparent}
 .fav-heart:hover{transform:scale(1.08);background:rgba(255,255,255,.28)}
@@ -176,24 +181,20 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .fav-heart svg{width:17px;height:17px;fill:none;stroke:#fff;stroke-width:1.8}
 .fav-heart.on svg{fill:#fff;stroke:#fff;animation:heart-pop .45s var(--ease)}
 @keyframes heart-pop{0%{transform:scale(1)}30%{transform:scale(1.35)}55%{transform:scale(.88)}75%{transform:scale(1.1)}100%{transform:scale(1)}}
-/* Overlay info column — right side, bottom-anchored (photo owns the left) */
-.prop-overlay{position:absolute;top:0;right:0;bottom:0;width:55%;min-width:200px;max-width:calc(100% - 28px);padding:14px 16px 14px 0;color:#fff;z-index:2;display:flex;flex-direction:column;justify-content:flex-end}
-.prop-row1{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
-.prop-avail{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;letter-spacing:0;color:#A9E8A4;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prop-avail.full{color:#F3C1B4}
-.prop-avail.warn{color:#F0D9A8}
-.avail-dot{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor;flex-shrink:0}
-.prop-window{font-size:12px;font-weight:500;letter-spacing:0;color:rgba(255,255,255,.78);white-space:nowrap}
-.prop-price-huge{display:flex;align-items:baseline;gap:6px;font-size:31px;font-weight:700;letter-spacing:-.025em;line-height:1.05;font-variant-numeric:tabular-nums;text-shadow:0 1px 12px rgba(0,0,0,.18)}
-.prop-price-huge .per{font-size:13.5px;font-weight:500;letter-spacing:0;color:rgba(255,255,255,.85);text-shadow:none}
-.prop-yr{font-size:13px;font-weight:500;letter-spacing:0;color:rgba(255,255,255,.7);margin-top:2px}
-.prop-sep{height:1px;background:rgba(255,255,255,.22);border:none;margin:10px 0 8px}
-.prop-name{font-size:19.5px;font-weight:650;letter-spacing:-.015em;line-height:1.15;text-shadow:0 1px 10px rgba(0,0,0,.15)}
-.prop-loc{display:flex;align-items:center;gap:5px;font-size:13.5px;font-weight:500;letter-spacing:0;color:rgba(255,255,255,.85);margin-top:3px;cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:0}
+/* Info block below the photo */
+.prop-body{padding:13px 16px 15px}
+.prop-head-row{display:flex;align-items:baseline;gap:10px}
+.prop-name{flex:1;min-width:0;font-size:16.5px;font-weight:650;letter-spacing:-.012em;line-height:1.25;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prop-window{font-size:12.5px;font-weight:500;letter-spacing:0;color:var(--muted);white-space:nowrap}
+.prop-loc{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;letter-spacing:0;color:var(--muted);margin-top:3px;cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:0}
 .prop-loc>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prop-loc .icon{width:13px;height:13px;opacity:.85}
-.prop-loc .copy-ic{width:11px;height:11px;opacity:.55}
+.prop-loc .icon{width:12.5px;height:12.5px;opacity:.8}
+.prop-loc .copy-ic{width:11px;height:11px;opacity:.5}
 .prop-loc:hover .copy-ic{opacity:1}
+.prop-price-row{display:flex;align-items:baseline;gap:5px;margin-top:10px}
+.prop-price-val{font-size:17px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--text)}
+.prop-price-per{font-size:12.5px;font-weight:500;color:var(--muted)}
+.prop-price-yr{margin-left:auto;font-size:12.5px;font-weight:500;color:var(--muted);white-space:nowrap}
 .saved-banner{grid-column:1/-1;display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:20px;padding:16px 20px;box-shadow:var(--shadow)}
 .saved-banner b{font-size:1.05rem;font-weight:650;color:var(--text)}
 .saved-banner button{margin-left:auto;background:var(--surface2);border:none;border-radius:999px;color:var(--text-2);padding:10px 16px;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer}
@@ -252,21 +253,22 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .prop-card.kb-focused{outline:2px solid var(--primary);outline-offset:3px}
 .avail-prose{font-size:.9rem;color:var(--text-2);line-height:1.7;padding:0 0 10px}
 /* Card CTAs — Share (terracotta) + Details (dark glass) */
-.card-actions{display:flex;gap:7px;margin-top:10px}
-.btn-share{flex:1;min-width:0;height:40px;background:var(--primary);border:none;border-radius:999px;color:#fff;font-family:inherit;font-size:13.5px;font-weight:600;letter-spacing:.01em;cursor:pointer;transition:background .18s var(--ease),transform .18s var(--ease);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;white-space:nowrap;box-shadow:0 2px 8px rgba(168,87,55,.3);-webkit-tap-highlight-color:transparent}
+.card-actions{display:flex;gap:8px;margin-top:12px}
+.btn-share{flex:1.1;min-width:0;height:38px;background:var(--primary);border:none;border-radius:999px;color:#fff;font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.01em;cursor:pointer;transition:background .18s var(--ease),transform .18s var(--ease);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;white-space:nowrap;box-shadow:0 2px 8px rgba(168,87,55,.28);-webkit-tap-highlight-color:transparent}
 .btn-share:hover{background:var(--primary-2)}
 .btn-share:active{background:var(--primary-3);transform:scale(.97)}
-.btn-ghost{flex:1.05;min-width:0;height:40px;background:rgba(24,21,19,.36);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.16);border-radius:999px;color:#fff;font-family:inherit;font-size:13.5px;font-weight:600;letter-spacing:.01em;cursor:pointer;transition:background .18s var(--ease),transform .18s var(--ease);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent}
-.btn-ghost:hover{background:rgba(24,21,19,.5)}
+.btn-ghost{flex:1;min-width:0;height:38px;background:var(--surface);border:var(--hairline);border-radius:999px;color:var(--text-2);font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.01em;cursor:pointer;transition:background .18s var(--ease),border-color .18s var(--ease),transform .18s var(--ease);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.btn-ghost:hover{background:var(--bg);border-color:rgba(28,25,23,.1)}
 .btn-ghost:active{transform:scale(.97)}
-.btn-ghost .arr{width:15px;height:15px}
+.btn-ghost .arr{width:14px;height:14px}
 .btn-share .btn-label,.btn-ghost .btn-label{overflow:hidden;text-overflow:ellipsis}
 .btn-share.shared-ok,.modal-action-primary.shared-ok{background:var(--avail-text);border-color:var(--avail-text)}
 /* Quiet pill button for light backgrounds (empty state, banners) */
 .btn-quiet{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:var(--hairline);border-radius:999px;box-shadow:var(--shadow-btn);color:var(--text-2);font-family:inherit;font-size:12.5px;font-weight:600;letter-spacing:.01em;padding:10px 18px;cursor:pointer;transition:transform .18s var(--ease),color .18s var(--ease)}
 .btn-quiet:hover{color:var(--text)}
 .btn-quiet:active{transform:scale(.96)}
-.skel-card{width:100%;border-radius:24px;aspect-ratio:8/5;min-height:252px;background:linear-gradient(100deg,var(--surface2) 40%,#fdfcfa 50%,var(--surface2) 60%);background-size:200% 100%;animation:shimmer 1.4s linear infinite;box-shadow:var(--shadow)}
+.skel-card{width:100%;border-radius:24px;overflow:hidden;background:var(--surface);border:var(--hairline);box-shadow:var(--shadow)}
+.skel-media{aspect-ratio:4/3;background:linear-gradient(100deg,var(--surface2) 40%,#fdfcfa 50%,var(--surface2) 60%);background-size:200% 100%;animation:shimmer 1.4s linear infinite}
 .skel-bar{border-radius:8px;background:var(--surface2);animation:shimmer-soft 1.4s ease-in-out infinite}
 @keyframes shimmer{to{background-position:-200% 0}}
 @keyframes shimmer-soft{0%,100%{opacity:.6}50%{opacity:1}}
@@ -1287,7 +1289,14 @@ async function loadAll() {
 }
 
 function showSkeletons() {
-  document.getElementById('grid').innerHTML=properties.map(()=>'<div class="skel-card"></div>').join('');
+  document.getElementById('grid').innerHTML=properties.map(()=>(
+    '<div class="skel-card"><div class="skel-media"></div>'
+    +'<div style="padding:13px 16px 15px">'
+    +'<div class="skel-bar" style="height:15px;width:55%"></div>'
+    +'<div class="skel-bar" style="height:11px;width:40%;margin-top:8px"></div>'
+    +'<div class="skel-bar" style="height:13px;width:65%;margin-top:12px"></div>'
+    +'</div></div>'
+  )).join('');
 }
 
 function render() {
@@ -1361,34 +1370,34 @@ function render() {
     const heroInner=p.photo
       ?'<img class="prop-hero-img" src="'+p.photo+'" alt="'+esc(p.name)+'" loading="lazy" style="object-position:'+heroPos+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><div class="prop-hero-ph" style="display:none">'+icon('home','xl')+'</div>'
       :'<div class="prop-hero-ph">'+icon('home','xl')+'</div>';
-    let availRow;
+    let availChip, windowTxt;
     if(failedAvail.has(p.id)){
-      availRow='<span class="prop-avail warn"><span class="avail-dot"></span>Calendar unavailable</span><span class="prop-window">try refresh</span>';
+      availChip='<span class="avail-chip warn"><span class="avail-dot"></span>Calendar unavailable</span>'; windowTxt='try refresh';
     } else if(!av){
-      availRow='<span class="prop-avail full"><span class="avail-dot"></span>Fully booked</span><span class="prop-window">next 6 months</span>';
+      availChip='<span class="avail-chip full"><span class="avail-dot"></span>Fully booked</span>'; windowTxt='next 6 months';
     } else if(av.cls==='avail-now'){
-      availRow='<span class="prop-avail"><span class="avail-dot"></span>Available now</span><span class="prop-window">'+windowLabel(av.window)+'</span>';
+      availChip='<span class="avail-chip"><span class="avail-dot"></span>Available now</span>'; windowTxt=windowLabel(av.window);
     } else {
-      availRow='<span class="prop-avail"><span class="avail-dot"></span>Available '+esc(av.from)+'</span><span class="prop-window">'+windowLabel(av.window)+'</span>';
+      availChip='<span class="avail-chip"><span class="avail-dot"></span>Available '+esc(av.from)+'</span>'; windowTxt=windowLabel(av.window);
     }
     const mn=monthlyNum(info);
     const yr=info.yearly?parseInt(info.yearly):null;
-    const priceHtml=mn?'<div class="prop-price-huge">'+mn+'M<span class="per">/ month</span></div>':'';
-    const yrHtml=yr?'<div class="prop-yr">IDR '+yr+'M / year</div>':'';
+    const priceRow=mn
+      ?'<div class="prop-price-row"><span class="prop-price-val">IDR '+mn+'M</span><span class="prop-price-per">/ month</span>'+(yr?'<span class="prop-price-yr">'+yr+'M / yr</span>':'')+'</div>'
+      :'';
     const locHtml=info.tag
       ?'<div class="prop-loc" onclick="copyMapsLink(event,\''+p.id+'\')" title="Copy Google Maps link">'+icon('mapPin')+'<span>'+esc(info.tag)+'</span>'+(info.location?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="copy-ic"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>':'')+'</div>'
-      :(p.type?'<div class="prop-loc">'+esc(p.type)+'</div>':'');
+      :(p.type?'<div class="prop-loc"><span>'+esc(p.type)+'</span></div>':'');
     return _cxHdr+'<div class="prop-card pre" data-id="'+p.id+'" onclick="openModal(\''+p.id+'\')" title="View photos &amp; details">'
-      +heroInner
-      +'<div class="prop-grad"></div>'
+      +'<div class="prop-media">'+heroInner
       +(p.id===topPickId?'<div class="top-pick">Top pick</div>':'')
       +'<button class="fav-heart'+(isFav?' on':'')+'" onclick="event.stopPropagation();toggleFav(\''+slug+'\')" aria-label="'+(isFav?'Remove from saved':'Save villa')+'" title="'+(isFav?'Saved':'Save')+'"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>'
-      +'<div class="prop-overlay">'
-      +'<div class="prop-row1">'+availRow+'</div>'
-      +priceHtml+yrHtml
-      +'<hr class="prop-sep">'
-      +'<div class="prop-name">'+esc(shortName(p.name))+'</div>'
+      +availChip
+      +'</div>'
+      +'<div class="prop-body">'
+      +'<div class="prop-head-row"><div class="prop-name">'+esc(shortName(p.name))+'</div><span class="prop-window">'+windowTxt+'</span></div>'
       +locHtml
+      +priceRow
       +'<div class="card-actions">'
       +'<button class="btn-share" onclick="event.stopPropagation();shareCard(\''+p.id+'\',\''+esc(p.name)+'\')">'+icon('share','sm')+'<span class="btn-label">Share</span></button>'
       +'<button class="btn-ghost" onclick="event.stopPropagation();openModal(\''+p.id+'\')"><span class="btn-label">Details</span>'+icon('arrowR','sm')+'</button>'

@@ -117,6 +117,12 @@ export default async function handler(req, res) {
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
       return redeemPromo(req, res, owner, { kvGet, kvSet });
     }
+    // Pre-fill the listing form from a public Airbnb / Booking.com page.
+    if (action === 'import-listing' && req.method === 'POST') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      return importListing(req, res);
+    }
 
     // ── Agent account actions (favourites, notes, shortlists, profile) ──
     if (action === 'favorite' && req.method === 'POST') {
@@ -628,4 +634,119 @@ function extractFolderId(url) {
   const s = cleanStr(url);
   const m = s.match(/\/folders\/([a-zA-Z0-9_-]+)/);
   return m ? m[1] : (/^[a-zA-Z0-9_-]{10,}$/.test(s) ? s : '');
+}
+
+// ── Listing import ───────────────────────────────────────────────────
+// Owner pastes their Airbnb / Booking.com URL; we fetch the public page
+// server-side and extract what those pages expose to link previews
+// (OG tags, JSON-LD, and Airbnb's "Villa in Canggu · 2 bedrooms · 2 baths"
+// summary line). Hostname allowlist + https-only + re-check after
+// redirects, so this can't be used to probe internal URLs (SSRF).
+const IMPORT_HOSTS = /(^|\.)airbnb\.[a-z.]{2,6}$|(^|\.)booking\.com$/i;
+
+async function importListing(req, res) {
+  let url;
+  try { url = new URL(String(req.body?.url || '').trim()); } catch { return res.status(400).json({ error: 'That does not look like a valid link' }); }
+  if (url.protocol !== 'https:' || !IMPORT_HOSTS.test(url.hostname)) {
+    return res.status(400).json({ error: 'Only Airbnb or Booking.com listing links are supported' });
+  }
+  let r;
+  try {
+    r = await fetch(url.href, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en',
+      },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch (e) {
+    return res.status(422).json({ error: 'Could not reach that page — check the link and try again' });
+  }
+  if (!IMPORT_HOSTS.test(new URL(r.url).hostname)) {
+    return res.status(422).json({ error: 'The link redirected somewhere unexpected' });
+  }
+  if (!r.ok) return res.status(422).json({ error: 'Could not open the listing (HTTP ' + r.status + '). Make sure it is public.' });
+  const html = (await r.text()).slice(0, 2500000);
+  const fields = extractListingFields(html, new URL(r.url).hostname);
+  if (!fields.name && !fields.overview && fields.bedrooms == null) {
+    return res.status(422).json({ error: 'Could not read details from that page — you can still fill the form manually' });
+  }
+  return res.status(200).json({ fields });
+}
+
+function decodeEntities(s) {
+  return String(s)
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+    .replace(/&middot;/g, '·').replace(/&nbsp;/g, ' ');
+}
+function metaContent(html, prop) {
+  const tag = (html.match(new RegExp('<meta[^>]+(?:property|name)=["\']' + prop + '["\'][^>]*>', 'i')) || [])[0];
+  if (!tag) return '';
+  const m = tag.match(/content=["']([^"']*)["']/i);
+  return m ? decodeEntities(m[1]).trim() : '';
+}
+
+function extractListingFields(html, host) {
+  const out = {};
+  const title = metaContent(html, 'og:title') || decodeEntities((html.match(/<title[^>]*>([^<]*)<\/title>/i) || [])[1] || '').trim();
+  const desc = metaContent(html, 'og:description') || metaContent(html, 'description');
+
+  // JSON-LD: Booking.com ships a Hotel schema (name/description/address);
+  // some Airbnb pages ship VacationRental.
+  let ld = null;
+  for (const m of html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      const parsed = JSON.parse(m[1].trim());
+      const arr = Array.isArray(parsed) ? parsed : [parsed];
+      const hit = arr.find(x => x && /Hotel|LodgingBusiness|VacationRental|Apartment|House|Product/i.test(String(x['@type'])));
+      if (hit) ld = hit;
+    } catch {}
+  }
+
+  // Name — strip the marketing tail Airbnb/Booking append to titles.
+  let name = (ld && typeof ld.name === 'string' && ld.name) || title;
+  name = name
+    .split(/ [-–—|·] (?:Villas?|Apartments?|Houses?|Condos?|[A-Za-z ]*for Rent|Airbnb|Booking\.com|Updated \d{4}).*$/i)[0]
+    .replace(/\s*[-–—|]\s*(Airbnb|Booking\.com)\s*$/i, '')
+    .trim();
+  if (name) out.name = name.slice(0, 120);
+
+  const ldDescRaw = (ld && typeof ld.description === 'string') ? decodeEntities(ld.description) : '';
+  const searchable = title + ' · ' + (desc || '') + ' · ' + ldDescRaw;
+
+  // Bedrooms / bathrooms — Airbnb's og:description is a summary line like
+  // "Villa in Canggu · ★4.87 · 2 bedrooms · 2 beds · 2.5 baths";
+  // Booking buries counts in the JSON-LD description prose.
+  const br = searchable.match(/(\d+(?:\.\d+)?)\s*bedroom/i) || searchable.match(/(\d+)\s*BR\b/i);
+  if (br) out.bedrooms = Math.round(parseFloat(br[1]));
+  else if (/\bstudio\b/i.test(searchable)) out.bedrooms = 0;
+  const ba = searchable.match(/(\d+(?:\.\d+)?)\s*(?:private\s+|shared\s+)?bath/i);
+  if (ba) out.bathrooms = Math.ceil(parseFloat(ba[1]));
+
+  // Unit type — "Villa in Canggu" prefix of the summary line.
+  const type = searchable.match(/\b(Villa|Apartment|House|Guesthouse|Guest suite|Townhouse|Loft|Bungalow|Condo|Cabin|Studio|Serviced apartment)\b/i);
+  if (type) out.unitType = (out.bedrooms ? out.bedrooms + 'BR ' : '') + type[1];
+
+  // Area — JSON-LD address wins; else the "in Canggu, Bali" fragment.
+  if (ld && ld.address && typeof ld.address === 'object') {
+    const parts = [ld.address.addressLocality, ld.address.addressRegion].filter(v => typeof v === 'string' && v.trim());
+    if (parts.length) out.area = parts.slice(0, 2).join(' · ');
+  }
+  if (!out.area) {
+    const loc = searchable.match(/\bin ([A-Z][A-Za-z' ]{2,30}(?:,\s*[A-Z][A-Za-z' ]{2,30})?)/);
+    if (loc) out.area = loc[1].split(',').map(s => s.trim()).slice(0, 2).join(' · ');
+  }
+
+  // Overview — prefer long JSON-LD prose; skip Airbnb's meta summary line.
+  const isSummaryLine = (s) => /·\s*★|\d\s*bedroom.*·.*bed/i.test(s);
+  const best = [ldDescRaw.trim(), desc].filter(s => s && !isSummaryLine(s)).sort((a, b) => b.length - a.length)[0];
+  if (best) out.overview = best.slice(0, 1200);
+
+  out.source = /airbnb/i.test(host) ? 'airbnb' : 'booking';
+  return out;
 }

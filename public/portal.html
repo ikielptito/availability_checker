@@ -206,6 +206,14 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
     </div>
     <div class="modal-body">
       <input type="hidden" id="f-slug">
+      <div class="fg" id="import-block" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px">
+        <label>Have an Airbnb or Booking.com listing?</label>
+        <div style="display:flex;gap:8px">
+          <input id="f-importUrl" placeholder="Paste your listing link" style="flex:1;min-width:0">
+          <button class="btn-sm primary" id="import-btn" onclick="importFromUrl()" style="flex-shrink:0">Import</button>
+        </div>
+        <div class="hint" id="import-hint">We'll pre-fill the form from your public listing — review everything before submitting.</div>
+      </div>
       <div class="fg"><label>Property name *</label><input id="f-name" placeholder="e.g. Villa Sunrise"></div>
       <div class="frow">
         <div class="fg"><label>Area</label><input id="f-area" placeholder="e.g. Umalas · Canggu"></div>
@@ -476,9 +484,35 @@ function openPropModal(slug, rec){
   document.getElementById('f-waContactName').value=rec.waContactName||'';
   document.getElementById('f-waNumber').value=rec.waNumber||'';
   document.getElementById('prop-err').textContent='';
+  // Import block only makes sense for a brand-new listing.
+  document.getElementById('import-block').style.display=slug?'none':'';
+  document.getElementById('f-importUrl').value='';
+  document.getElementById('import-hint').textContent='We\'ll pre-fill the form from your public listing — review everything before submitting.';
   document.getElementById('prop-modal').classList.add('open');
 }
 function closePropModal(){ document.getElementById('prop-modal').classList.remove('open'); }
+
+// ── Import from Airbnb / Booking.com ──
+// Fills only fields the owner hasn't typed in yet, so a re-import or a
+// late paste never clobbers manual edits.
+async function importFromUrl(){
+  const url=document.getElementById('f-importUrl').value.trim();
+  const hint=document.getElementById('import-hint');
+  const btn=document.getElementById('import-btn');
+  if(!url){ hint.textContent='Paste your listing link first.'; return; }
+  btn.disabled=true; btn.textContent='Importing…'; hint.textContent='Reading your listing…';
+  try{
+    const r=await api('?action=import-listing',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    if(!r.ok) throw new Error(r.body?.error||'Import failed');
+    const f=r.body?.fields||{};
+    const set=(id,v)=>{const el=document.getElementById('f-'+id); if(el&&v!=null&&v!==''&&!el.value){el.value=v;return true;} return false;};
+    const got=['name','area','unitType','bedrooms','bathrooms','overview'].filter(k=>set(k,f[k]));
+    hint.textContent=got.length
+      ?'Imported: '+got.join(', ')+'. Please review, then add your prices and a photos folder.'
+      :'Nothing new to fill in — the remaining fields need to be entered manually.';
+  }catch(e){ hint.textContent=e.message; }
+  btn.disabled=false; btn.textContent='Import';
+}
 
 async function submitProperty(){
   const g=id=>document.getElementById('f-'+id).value;
