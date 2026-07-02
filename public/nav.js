@@ -28,24 +28,24 @@
   /* Tier 2 — sub-tab strip (below the page topbar), quiet pills on the page bg */
   #snav-sub{display:flex;align-items:center;gap:12px;padding:10px 20px 0;background:transparent;border:none;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:960px;margin:0 auto;box-sizing:border-box}
   #snav-sub::-webkit-scrollbar{display:none}
-  .snav-seg{display:inline-flex;background:#fff;border:none;border-radius:999px;padding:4px;gap:2px;flex-shrink:0;box-shadow:0 4px 12px rgba(0,0,0,.08)}
-  .snav-seg-btn{display:inline-flex;align-items:center;gap:6px;border:none;background:none;font-family:'Geist',-apple-system,sans-serif;font-size:.8rem;font-weight:600;color:#8a8478;padding:8px 16px;border-radius:999px;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
+  .snav-seg{display:inline-flex;background:#fff;border:1px solid rgba(28,25,23,.055);border-radius:999px;padding:3px;gap:2px;flex-shrink:0;box-shadow:0 1px 2px rgba(28,25,23,.06),0 3px 8px rgba(28,25,23,.05)}
+  .snav-seg-btn{display:inline-flex;align-items:center;gap:6px;border:none;background:none;font-family:'Geist',-apple-system,sans-serif;font-size:.76rem;font-weight:600;letter-spacing:.01em;color:#8a8478;padding:7px 14px;border-radius:999px;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
   .snav-seg-btn.on{background:#F6E7DE;color:#C46E4B}
-  .snav-subtabs{display:inline-flex;align-items:center;gap:4px;flex-shrink:0}
-  .snav-stab{display:inline-flex;align-items:center;gap:7px;border:none;background:none;font-family:'Geist',-apple-system,sans-serif;font-size:.82rem;font-weight:500;color:#6b6557;padding:9px 14px;border-radius:999px;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
+  .snav-subtabs{display:inline-flex;align-items:center;gap:2px;flex-shrink:0}
+  .snav-stab{display:inline-flex;align-items:center;gap:6px;border:none;background:none;font-family:'Geist',-apple-system,sans-serif;font-size:.78rem;font-weight:500;letter-spacing:.01em;color:#6b6557;padding:8px 12px;border-radius:999px;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
   .snav-stab:hover{background:#F5F1EB;color:#1C1917}
   .snav-stab.on{color:#C46E4B;background:#F6E7DE}
-  .snav-stab svg{width:17px;height:17px;flex-shrink:0}
+  .snav-stab svg{width:16px;height:16px;flex-shrink:0}
   .snav-stab .snav-av{width:22px;height:22px}
   /* Tier 1 — floating glass portal bar (mobile) */
-  #snav-tabs{position:fixed;left:16px;right:16px;bottom:16px;z-index:900;display:none;background:rgba(255,255,255,.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:none;border-radius:26px;padding:8px;gap:10px;height:76px;box-sizing:border-box;box-shadow:0 8px 30px rgba(0,0,0,.08)}
-  #snav-tabs .snav-ptab{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:'Geist',-apple-system,sans-serif;font-size:.72rem;font-weight:600;color:#8a8478;text-decoration:none;padding:5px 4px;border-radius:19px;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
-  #snav-tabs .snav-ptab+.snav-ptab::before{content:'';position:absolute;left:-5.5px;top:22%;height:56%;width:1px;background:#F1ECE7}
+  #snav-tabs{position:fixed;left:16px;right:16px;bottom:16px;z-index:900;display:none;background:rgba(255,255,255,.9);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(28,25,23,.05);border-radius:24px;padding:6px;gap:8px;height:68px;box-sizing:border-box;box-shadow:0 1px 2px rgba(28,25,23,.05),0 12px 32px rgba(28,25,23,.1)}
+  #snav-tabs .snav-ptab{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-family:'Geist',-apple-system,sans-serif;font-size:.7rem;font-weight:600;letter-spacing:.01em;color:#8a8478;text-decoration:none;padding:4px;border-radius:18px;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
+  #snav-tabs .snav-ptab+.snav-ptab::before{content:'';position:absolute;left:-4.5px;top:24%;height:52%;width:1px;background:#F1ECE7}
   #snav-tabs .snav-ptab.on{color:#C46E4B;background:#F6E7DE}
-  #snav-tabs .snav-ptab svg{width:21px;height:21px}
+  #snav-tabs .snav-ptab svg{width:20px;height:20px}
   @media(max-width:760px){
     #snav-tabs{display:flex}
-    body{padding-bottom:112px}
+    body{padding-bottom:104px}
     #snav-sub{padding:8px 16px 0;gap:8px}
     #snav-sub .snav-seg{display:none}
   }
