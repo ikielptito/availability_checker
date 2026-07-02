@@ -307,8 +307,19 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 @keyframes shimmer{to{background-position:-200% 0}}
 @keyframes shimmer-soft{0%,100%{opacity:.6}50%{opacity:1}}
 .empty-state{grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--text-2);font-size:.95rem;font-weight:500}
-.complex-header{position:sticky;top:0;z-index:5;grid-column:1/-1;font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:14px 4px 10px;background:linear-gradient(to bottom,var(--bg) 78%,rgba(250,248,245,0))}
+.complex-header{grid-column:1/-1;font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:14px 4px 0;scroll-margin-top:56px}
 .complex-header:first-child{padding-top:0}
+/* Section jump rail — sticky index of complexes; active chip follows scroll */
+.cx-rail{position:sticky;top:0;z-index:50;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:10px 20px;max-width:960px;margin:0 auto;width:100%;background:linear-gradient(to bottom,var(--bg) 80%,rgba(250,248,245,0))}
+.cx-rail::-webkit-scrollbar{display:none}
+.cx-rail:empty{display:none}
+.cx-chip{flex:0 0 auto;border:var(--hairline);background:var(--surface);color:var(--text-2);font-family:inherit;font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:7px 13px;border-radius:999px;cursor:pointer;box-shadow:var(--shadow-btn);white-space:nowrap;transition:background .18s var(--ease),color .18s var(--ease),border-color .18s var(--ease);-webkit-tap-highlight-color:transparent}
+.cx-chip.on{background:var(--primary-soft);color:var(--primary);border-color:rgba(196,110,75,.22)}
+/* Back-to-top — appears after scrolling; sits above the floating bottom nav */
+.to-top{position:fixed;right:16px;bottom:92px;z-index:880;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:var(--hairline);box-shadow:var(--shadow-float);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .2s var(--ease),transform .2s var(--ease)}
+.to-top.on{opacity:1;pointer-events:auto;transform:none}
+.to-top svg{width:16px;height:16px}
+@media(min-width:761px){.to-top{bottom:24px}}
 .complex-tag{font-weight:500;letter-spacing:.08em;margin-left:6px;color:var(--subtle)}
 .complex-tag::before{content:'•  ';color:var(--subtle)}
 /* MODAL */
@@ -421,7 +432,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     </div>
   </div>
   <div class="pop" id="pop"></div>
+  <div class="cx-rail" id="cx-rail"></div>
   <div class="prop-grid" id="grid"></div>
+  <button class="to-top" id="to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
   <div class="shortlists-wrap" id="shortlists" style="display:none"></div>
 
   <!-- Install-to-home-screen prompt — iOS shows manual instructions, Android/Chrome shows native install button -->
@@ -789,6 +802,44 @@ function toggleBento(ev,id){
   const card=ev.currentTarget.closest('.prop-card');
   setExpanded(card&&card.classList.contains('expanded')?null:id);
 }
+// Section jump rail: chips mirror the complex headers; the active chip
+// follows scroll position and tapping one jumps to that section.
+function buildCxRail(){
+  const rail=document.getElementById('cx-rail');if(!rail)return;
+  const heads=[...document.querySelectorAll('.complex-header')];
+  if(heads.length<2){rail.innerHTML='';return;}
+  rail.innerHTML=heads.map((h,i)=>'<button class="cx-chip'+(i===0?' on':'')+'" data-cx="'+h.dataset.cx+'" onclick="jumpCx(this.dataset.cx)">'+esc(h.dataset.cx)+'</button>').join('');
+  updateCxActive();
+}
+function jumpCx(cx){
+  const h=[...document.querySelectorAll('.complex-header')].find(x=>x.dataset.cx===cx);
+  if(!h)return;
+  h.scrollIntoView({behavior:'smooth',block:'start'});
+  setActiveCx(cx);
+}
+function setActiveCx(cx){
+  document.querySelectorAll('.cx-chip').forEach(c=>{
+    const on=c.dataset.cx===cx;
+    c.classList.toggle('on',on);
+    if(on)c.scrollIntoView({behavior:'smooth',inline:'nearest',block:'nearest'});
+  });
+}
+function updateCxActive(){
+  const heads=[...document.querySelectorAll('.complex-header')];
+  if(!heads.length||!document.querySelector('.cx-chip'))return;
+  let cur=heads[0];
+  heads.forEach(h=>{if(h.getBoundingClientRect().top<=72)cur=h;});
+  // At the bottom of the page the last section is what's on screen even if
+  // its header never reaches the top.
+  if(window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-4)cur=heads[heads.length-1];
+  setActiveCx(cur.dataset.cx);
+}
+let _cxRaf=false;
+window.addEventListener('scroll',()=>{
+  const tt=document.getElementById('to-top');
+  if(tt)tt.classList.toggle('on',window.scrollY>600);
+  if(!_cxRaf){_cxRaf=true;requestAnimationFrame(()=>{_cxRaf=false;updateCxActive();});}
+},{passive:true});
 function updateTopbarAvatar(acc){
   const el=document.getElementById('tb-av');if(!el)return;
   if(acc){
@@ -1418,9 +1469,11 @@ function render() {
   const grid=document.getElementById('grid');
   const slEl=document.getElementById('shortlists');
   const chrome=document.getElementById('browse-chrome');
+  const railEl=document.getElementById('cx-rail');
   if(shortlistsView){
     grid.style.display='none';
     if(chrome) chrome.style.display='none';
+    if(railEl) railEl.innerHTML='';
     if(slEl) slEl.style.display='';
     renderShortlists();
     return;
@@ -1457,7 +1510,20 @@ function render() {
     return true;
   });
   const sorted=sortedFiltered(filtered);
-  const filtered2=sorted;
+  let filtered2=sorted;
+  // Default sort: pack single-villa complexes together at the end under one
+  // "More villas" section so they share bento rows instead of each breaking
+  // the grid with a one-tile row.
+  let cxCount=null,groupSingles=false;
+  if(sortMode==='default'){
+    cxCount={};
+    filtered2.forEach(p=>{const c=complexOf(p.name);cxCount[c]=(cxCount[c]||0)+1;});
+    const ns=Object.values(cxCount);
+    groupSingles=ns.some(n=>n>1)&&ns.some(n=>n===1);
+    if(groupSingles)
+      filtered2=filtered2.filter(p=>cxCount[complexOf(p.name)]>1)
+        .concat(filtered2.filter(p=>cxCount[complexOf(p.name)]===1));
+  }
   // Bento: default one expanded card (top pick, else first). 'none' means the
   // user minimized everything — respect that across re-renders.
   if(expandedId!=='none'&&(expandedId===null||!filtered2.some(p=>String(p.id)===String(expandedId))))
@@ -1478,8 +1544,10 @@ function render() {
   }
   let _cxPrev='';
   grid.innerHTML=savedBanner+filtered2.map((p,i)=>{
-    const _cxCur=complexOf(p.name);
-    const _cxHdr=(sortMode==='default'&&_cxCur!==_cxPrev)?(_cxPrev=_cxCur,'<div class="complex-header">'+esc(_cxCur)+(PROPS[p.id]&&PROPS[p.id].tag?' <span class="complex-tag">'+esc(PROPS[p.id].tag)+'</span>':'')+' </div>'):'';
+    let _cxCur=complexOf(p.name);
+    const _single=groupSingles&&cxCount[_cxCur]===1;
+    if(_single)_cxCur='More villas';
+    const _cxHdr=(sortMode==='default'&&_cxCur!==_cxPrev)?(_cxPrev=_cxCur,'<div class="complex-header" data-cx="'+esc(_cxCur)+'">'+esc(_cxCur)+((!_single&&PROPS[p.id]&&PROPS[p.id].tag)?' <span class="complex-tag">'+esc(PROPS[p.id].tag)+'</span>':'')+' </div>'):'';
     const booked=avail[p.id]||new Set();
     const info=PROPS[p.id]||{};
     const slug=SLUGS[p.id]||'';
@@ -1548,6 +1616,7 @@ function render() {
   }).join('');
   revealCards();
   if(expandedId!=null&&expandedId!=='none')loadStrip(expandedId);
+  buildCxRail();
 }
 
 function buildSix(booked) {
