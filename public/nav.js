@@ -28,7 +28,7 @@
   /* Tier 2 — sub-tab strip (below the page topbar), quiet pills on the page bg */
   #snav-sub{display:flex;align-items:center;gap:12px;padding:10px 20px 0;background:transparent;border:none;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:960px;margin:0 auto;box-sizing:border-box}
   #snav-sub::-webkit-scrollbar{display:none}
-  .snav-seg{display:inline-flex;background:#fff;border:1px solid rgba(28,25,23,.055);border-radius:999px;padding:3px;gap:2px;flex-shrink:0;box-shadow:0 1px 2px rgba(28,25,23,.06),0 3px 8px rgba(28,25,23,.05)}
+  .snav-seg{display:inline-flex;background:#fff;border:1px solid rgba(28,25,23,.09);border-radius:999px;padding:3px;gap:2px;flex-shrink:0;box-shadow:0 1px 2px rgba(28,25,23,.07),0 2px 5px rgba(28,25,23,.05)}
   .snav-seg-btn{display:inline-flex;align-items:center;gap:6px;border:none;background:none;font-family:'Geist',-apple-system,sans-serif;font-size:.76rem;font-weight:600;letter-spacing:.01em;color:#8a8478;padding:7px 14px;border-radius:999px;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
   .snav-seg-btn.on{background:#F6E7DE;color:#C46E4B}
   .snav-subtabs{display:inline-flex;align-items:center;gap:2px;flex-shrink:0}
@@ -38,14 +38,14 @@
   .snav-stab svg{width:16px;height:16px;flex-shrink:0}
   .snav-stab .snav-av{width:22px;height:22px}
   /* Tier 1 — floating glass portal bar (mobile) */
-  #snav-tabs{position:fixed;left:16px;right:16px;bottom:16px;z-index:900;display:none;background:rgba(255,255,255,.9);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(28,25,23,.05);border-radius:24px;padding:6px;gap:8px;height:68px;box-sizing:border-box;box-shadow:0 1px 2px rgba(28,25,23,.05),0 12px 32px rgba(28,25,23,.1)}
+  #snav-tabs{position:fixed;left:16px;right:16px;bottom:14px;z-index:900;display:none;background:rgba(255,255,255,.92);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(28,25,23,.09);border-radius:22px;padding:5px;gap:8px;height:62px;box-sizing:border-box;box-shadow:0 1px 2px rgba(28,25,23,.06),0 8px 22px rgba(28,25,23,.1)}
   #snav-tabs .snav-ptab{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-family:'Geist',-apple-system,sans-serif;font-size:.7rem;font-weight:600;letter-spacing:.01em;color:#8a8478;text-decoration:none;padding:4px;border-radius:18px;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
   #snav-tabs .snav-ptab+.snav-ptab::before{content:'';position:absolute;left:-4.5px;top:24%;height:52%;width:1px;background:#F1ECE7}
   #snav-tabs .snav-ptab.on{color:#C46E4B;background:#F6E7DE}
-  #snav-tabs .snav-ptab svg{width:20px;height:20px}
+  #snav-tabs .snav-ptab svg{width:18px;height:18px}
   @media(max-width:760px){
     #snav-tabs{display:flex}
-    body{padding-bottom:104px}
+    body{padding-bottom:96px}
     #snav-sub{padding:8px 16px 0;gap:8px}
     #snav-sub .snav-seg{display:none}
   }
