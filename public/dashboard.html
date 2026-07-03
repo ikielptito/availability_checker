@@ -382,6 +382,43 @@ function render(data) {
       </div>
     </div>
 
+    <!-- AGENT ATTRIBUTION — which agents' shared links produce views/enquiries -->
+    ${(() => {
+      const attr = data.attribution || {};
+      const handles = [...new Set([...Object.keys(attr.views_all||{}), ...Object.keys(attr.wa_all||{})])];
+      if (!handles.length) return `
+        <div class="chart-card">
+          <div class="card-title">Agent Attribution</div>
+          <div class="loading-state" style="padding:12px 0 4px">No attributed activity yet. When an agent shares a listing, their personalised link (?a=handle) credits them with the views and WhatsApp enquiries it produces. Tracking began 2 Jul 2026.</div>
+        </div>`;
+      const rows = handles.map(h => ({
+        h,
+        vAll: (attr.views_all||{})[h]||0, wAll: (attr.wa_all||{})[h]||0,
+        vMo: (attr.views_month||{})[h]||0, wMo: (attr.wa_month||{})[h]||0,
+      })).sort((a,b)=>(b.wAll-a.wAll)||(b.vAll-a.vAll));
+      return `
+      <div class="table-card">
+        <div class="table-header">Agent Attribution · shared-link performance</div>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>#</th><th>Agent</th><th>Views (month)</th><th>Enquiries (month)</th><th>Views (all)</th><th>Enquiries (all)</th><th>Conversion</th></tr></thead>
+          <tbody>
+            ${rows.map((r,i)=>`
+              <tr>
+                <td class="prop-rank">${i+1}</td>
+                <td style="font-weight:500">@${esc(r.h)}</td>
+                <td>${fmt(r.vMo)}</td>
+                <td><span style="color:var(--orange)">${fmt(r.wMo)}</span></td>
+                <td>${fmt(r.vAll)}</td>
+                <td><span style="color:var(--orange)">${fmt(r.wAll)}</span></td>
+                <td>${r.vAll>0?Math.round((r.wAll/r.vAll)*100)+'%':'—'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+        </div>
+      </div>`;
+    })()}
+
     <!-- RECENT EVENTS -->
     <div class="events-card">
       <div class="table-header">Recent Activity (last 50 events)</div>

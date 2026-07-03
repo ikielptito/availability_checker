@@ -306,6 +306,14 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .lrow-price{font-size:13.5px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
 .lrow-br{font-size:11.5px;font-weight:500;color:var(--muted)}
 .lrow>.chev{width:14px;height:14px;color:var(--subtle);flex-shrink:0}
+/* Timeline view — one availability band per villa across the next 12 weeks */
+.tl-head{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:2px 2px 0}
+.tl-scale{flex:1;display:flex}
+.tl-scale span{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-left:1px solid var(--border);padding-left:5px;white-space:nowrap;overflow:hidden}
+.tl-row{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:4px 2px;cursor:pointer;border-radius:10px;transition:background .18s var(--ease)}
+.tl-row:hover{background:var(--surface)}
+.tl-label{width:104px;flex-shrink:0;font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-band{flex:1;height:26px;border-radius:8px;border:var(--hairline)}
 /* Back-to-top — appears after scrolling; sits above the floating bottom nav */
 .to-top{position:fixed;right:16px;bottom:92px;z-index:880;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:var(--hairline);box-shadow:var(--shadow-float);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .2s var(--ease),transform .2s var(--ease)}
 .to-top.on{opacity:1;pointer-events:auto;transform:none}
@@ -500,6 +508,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <button class="modal-action-btn modal-action-primary" id="modal-share-btn" onclick="shareModal()"></button>
 <a class="modal-action-btn" id="modal-drive-btn" href="#" target="_blank"></a>
 <a class="modal-action-btn modal-wa-btn" id="modal-wa-btn" href="#" target="_blank"></a>
+      <button class="modal-action-btn" id="modal-story-btn" onclick="shareStory()">Story image</button>
+      <button class="modal-action-btn" id="modal-caption-btn" onclick="copyCaption()">Copy caption</button>
     </div>
   </div>
 </div>
@@ -541,7 +551,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 <script>
 let properties=[], avail={}, failedAvail=new Set(), query='', bedroomFilter='all', sortMode='default';
 let availFilter='all', budgetFilter='all', durationFilter='all', pillWs=false, topPickId=null;
-let viewMode=localStorage.getItem('samba_view')||'bento'; // 'bento' | 'list'
+let viewMode=localStorage.getItem('samba_view')||'bento'; // 'bento' | 'list' | 'timeline'
 let myFavorites=new Set(), myNotes={}, savedView=false;
 let myLists=[], shortlistsView=false, pickerListId=null, pickerQuery='';
 function getBedrooms(propId){
@@ -620,18 +630,52 @@ function renderChrome(){
     sb.classList.toggle('set',sortMode!=='default');
     sb.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg>';
   }
+  // Icon shows the NEXT view in the cycle: bento → list → timeline → bento
   const vb=document.getElementById('view-btn');
   if(vb){
-    vb.title=viewMode==='list'?'Card view':'List view';
-    vb.innerHTML=viewMode==='list'
-      ?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>'
-      :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>';
+    const icons={
+      list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/></svg>',
+      timeline:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="13" y2="6"/><line x1="7" y1="12" x2="19" y2="12"/><line x1="5" y1="18" x2="15" y2="18"/></svg>',
+      bento:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>'
+    };
+    const next=viewMode==='bento'?'list':(viewMode==='list'?'timeline':'bento');
+    vb.title={list:'List view',timeline:'Timeline view',bento:'Card view'}[next];
+    vb.innerHTML=icons[next];
   }
 }
 function toggleView(){
-  viewMode=viewMode==='list'?'bento':'list';
+  viewMode=viewMode==='bento'?'list':(viewMode==='list'?'timeline':'bento');
   try{localStorage.setItem('samba_view',viewMode);}catch(e){}
   renderChrome();render();
+}
+// Timeline view: 12 weeks of availability as one gradient band per villa.
+const TL_DAYS=84;
+function tlGradient(booked){
+  const stops=[];let runStart=0,cur=null;
+  for(let i=0;i<=TL_DAYS;i++){
+    let st=null;
+    if(i<TL_DAYS){const d=new Date(TODAY);d.setDate(d.getDate()+i);st=booked.has(ds(d))?1:0;}
+    if(cur===null){cur=st;continue;}
+    if(st!==cur||i===TL_DAYS){
+      stops.push((cur?'#EBB09C':'#9ED3A0')+' '+(runStart/TL_DAYS*100).toFixed(2)+'% '+(i/TL_DAYS*100).toFixed(2)+'%');
+      runStart=i;cur=st;
+    }
+  }
+  return 'linear-gradient(to right,'+stops.join(',')+')';
+}
+function tlScale(){
+  const spans=[];let start=0;
+  for(let i=1;i<=TL_DAYS;i++){
+    const d=new Date(TODAY);d.setDate(d.getDate()+i);
+    const prev=new Date(TODAY);prev.setDate(prev.getDate()+i-1);
+    if(i===TL_DAYS||d.getMonth()!==prev.getMonth()){
+      spans.push({label:MONTHS[prev.getMonth()].slice(0,3),w:(i-start)/TL_DAYS*100});
+      start=i;
+    }
+  }
+  return '<div class="tl-head"><div class="tl-label"></div><div class="tl-scale">'
+    +spans.map(s=>'<span style="width:'+s.w.toFixed(2)+'%">'+(s.w>8?s.label:'')+'</span>').join('')
+    +'</div></div>';
 }
 function setBedrooms(v){bedroomFilter=v;history.replaceState(null,'',v==='all'?location.pathname:'?bedrooms='+v);renderChrome();render();}
 // Popover menus (shared element, fixed-positioned under the anchor)
@@ -1152,6 +1196,116 @@ function doShare(propId, btn){
 }
 function shareModal(){ doShare(modalPropId, document.getElementById('modal-share-btn')); }
 
+// ── SOCIAL SHARING (Instagram story image + caption) ──
+// Facts shared by the caption and the story card.
+function shareFacts(propId){
+  const info=PROPS[propId]||{};
+  const p=properties.find(x=>String(x.id)===String(propId));
+  const br=getBedrooms(propId);
+  const mn=monthlyNum(info);
+  const av=availLabel(avail[propId]||new Set());
+  const availTxt=failedAvail.has(propId)?null:(!av?'Fully booked':(av.cls==='avail-now'?'Available now':'Available from '+av.from));
+  const slug=SLUGS[propId];
+  const handle=window.SambaNav&&SambaNav.account&&SambaNav.account.profile&&SambaNav.account.profile.handle;
+  let url=slug?location.origin+'/l/'+slug:location.origin;
+  if(slug&&handle)url+='?a='+encodeURIComponent(handle);
+  return {info,p,br,mn,availTxt,url,handle,name:(info.name||(p&&p.name)||''),tag:info.tag||''};
+}
+function copyCaption(){
+  const f=shareFacts(modalPropId);
+  const lines=[
+    '🏡 '+f.name+(f.tag?' — '+f.tag:''),
+    [f.br?f.br+' bedroom'+(f.br>1?'s':''):null,f.mn?'IDR '+f.mn+'M / month':null].filter(Boolean).join(' · '),
+    f.availTxt?'📅 '+f.availTxt:null,
+    '',
+    '🔗 '+f.url,
+    '',
+    '#BaliRentals #CangguVilla #LongTermBali #SambaRentals'
+  ].filter(l=>l!==null);
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>{
+    const b=document.getElementById('modal-caption-btn');
+    if(b){const o=b.textContent;b.textContent='Copied ✓';setTimeout(()=>{b.textContent=o;},1800);}
+  });
+  track('share',modalPropId,f.name);
+}
+function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>res(i);i.onerror=rej;i.src=src;});}
+// 1080×1920 branded story card. Photo is drawn cover-fit when the Drive CDN
+// allows CORS; otherwise falls back to a brand gradient so the export never
+// fails outright.
+async function makeStoryImage(propId){
+  const f=shareFacts(propId);
+  const W=1080,H=1920;
+  const c=document.createElement('canvas');c.width=W;c.height=H;
+  const ctx=c.getContext('2d');
+  let photo=false;
+  if(f.p&&f.p.photo){
+    try{
+      const img=await loadImg(f.p.photo.replace('=w1200','=w1600'));
+      const s=Math.max(W/img.width,H/img.height);
+      ctx.drawImage(img,(W-img.width*s)/2,(H-img.height*s)/2,img.width*s,img.height*s);
+      photo=true;
+    }catch(e){}
+  }
+  if(!photo){
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#2a2622');g.addColorStop(1,'#1C1917');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  }
+  const g2=ctx.createLinearGradient(0,H*0.4,0,H);
+  g2.addColorStop(0,'rgba(0,0,0,0)');g2.addColorStop(.5,'rgba(0,0,0,.5)');g2.addColorStop(1,'rgba(0,0,0,.9)');
+  ctx.fillStyle=g2;ctx.fillRect(0,0,W,H);
+  const FF='Geist,-apple-system,Helvetica,sans-serif';
+  let y=H-460;
+  ctx.fillStyle='#fff';
+  ctx.font='700 82px '+FF;
+  ctx.fillText(f.name,72,y);
+  if(f.tag){
+    y+=74;
+    ctx.font='500 44px '+FF;
+    ctx.fillStyle='rgba(255,255,255,.78)';
+    ctx.fillText(f.tag,72,y);
+  }
+  y+=96;
+  if(f.availTxt){
+    ctx.beginPath();ctx.arc(88,y-16,13,0,Math.PI*2);
+    ctx.fillStyle=f.availTxt==='Fully booked'?'#F2A28E':'#8FE39A';ctx.fill();
+    ctx.font='600 46px '+FF;ctx.fillStyle='#fff';
+    ctx.fillText(f.availTxt,124,y);
+    y+=92;
+  }
+  const factBits=[f.br?f.br+' BR':null,f.mn?'IDR '+f.mn+'M / month':null].filter(Boolean).join('  ·  ');
+  if(factBits){
+    ctx.font='700 56px '+FF;ctx.fillStyle='#fff';
+    ctx.fillText(factBits,72,y);
+    y+=100;
+  }
+  ctx.font='500 38px '+FF;ctx.fillStyle='rgba(255,255,255,.65)';
+  ctx.fillText('sambarentals.com'+(SLUGS[propId]?'/l/'+SLUGS[propId]:''),72,H-88);
+  if(f.handle){ctx.textAlign='right';ctx.fillText('@'+f.handle,W-72,H-88);ctx.textAlign='left';}
+  return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('export failed')),'image/png'));
+}
+async function shareStory(){
+  const btn=document.getElementById('modal-story-btn');
+  const orig=btn?btn.textContent:'';
+  if(btn)btn.textContent='Generating…';
+  try{
+    const blob=await makeStoryImage(modalPropId);
+    const file=new File([blob],'samba-'+(SLUGS[modalPropId]||modalPropId)+'-story.png',{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file]}).catch(()=>{});
+    }else{
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);a.download=file.name;a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+    }
+    track('share',modalPropId,(PROPS[modalPropId]||{}).name);
+    if(btn)btn.textContent='Done ✓';
+  }catch(e){
+    if(btn)btn.textContent='Failed — try again';
+  }
+  setTimeout(()=>{if(btn)btn.textContent=orig;},2000);
+}
+
 // ── CARD SHARE ──
 const SLUGS={
   11621510:'haus-1', 11621511:'haus-2', 11621512:'haus-4', 11621513:'haus-5',
@@ -1511,7 +1665,7 @@ function render() {
     return;
   }
   let _cxPrev='';
-  grid.innerHTML=savedBanner+filtered2.map((p,i)=>{
+  grid.innerHTML=savedBanner+(viewMode==='timeline'?tlScale():'')+filtered2.map((p,i)=>{
     let _cxCur=complexOf(p.name);
     const _single=groupSingles&&cxCount[_cxCur]===1;
     if(_single)_cxCur='More villas';
@@ -1556,6 +1710,14 @@ function render() {
       +(br?' · '+br+' BR':'')
       +(mn?' · <b>'+mn+'M/mo</b>':'')
       +'</span></div>';
+    if(viewMode==='timeline'){
+      return _cxHdr+'<div class="tl-row" onclick="openModal(\''+p.id+'\')" title="'+esc(shortName(p.name))+'">'
+        +'<div class="tl-label">'+esc(shortName(p.name))+'</div>'
+        +(failedAvail.has(p.id)
+          ?'<div class="tl-band" style="background:var(--surface2)"></div>'
+          :'<div class="tl-band" style="background:'+tlGradient(booked)+'"></div>')
+        +'</div>';
+    }
     if(viewMode==='list'){
       const thumb=p.photo
         ?'<img class="lrow-thumb" src="'+p.photo.replace('=w1200','=w400')+'" loading="lazy" alt="">'

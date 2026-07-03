@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const token = process.env.KV_REST_API_TOKEN;
   if (!url || !token) return res.status(500).json({ error: 'Redis not configured' });
 
-  const { event, propId, propName, agentId, newSession, src, stage } = req.body || {};
+  const { event, propId, propName, agentId, newSession, src, stage, sharedBy } = req.body || {};
   if (!event || !/^[a-z_]{1,32}$/.test(event)) return res.status(400).json({ error: 'Missing or invalid event' });
 
   // Rate limit: this endpoint is public and writes analytics counters, so cap
@@ -71,6 +71,19 @@ export default async function handler(req, res) {
   if (agentId) {
     cmds.push(['SADD', `unique:agents:${day}`, String(agentId)]);
     cmds.push(['SADD', 'unique:agents:all', String(agentId)]);
+  }
+
+  // Share attribution: listing pages opened from an agent's personalised
+  // link (?a=handle) credit that agent's handle with the resulting views and
+  // WhatsApp enquiries — this is what proves which agents produce leads.
+  if (sharedBy && /^[a-z0-9_.-]{1,40}$/i.test(String(sharedBy))) {
+    const sb = String(sharedBy).toLowerCase();
+    if (event === 'listing_view') {
+      cmds.push(['HINCRBY', 'attr:views', sb, '1'], ['HINCRBY', `attr:views:${month}`, sb, '1']);
+    } else if (event === 'whatsapp_click') {
+      cmds.push(['HINCRBY', 'attr:wa', sb, '1'], ['HINCRBY', `attr:wa:${month}`, sb, '1']);
+      if (propId) cmds.push(['HINCRBY', 'attr:wa:prop', `${propId}:${sb}`, '1']);
+    }
   }
 
   cmds.push(['LPUSH', 'events:recent', JSON.stringify({ event, propId, propName, agentId, src, ts: now, day })]);

@@ -89,6 +89,9 @@ export default async function handler(req, res) {
   cmds.push(['SCARD', 'unique:agents:all']);
   listingProps.forEach(p => PEVENTS.forEach(e => cmds.push(['GET', `prop:${p.id}:${e}`])));
   days.forEach(d => cmds.push(['HGETALL', `pstats:${d}`]));
+  const curMonth = new Date().toISOString().slice(0, 7);
+  cmds.push(['HGETALL', 'attr:views'], ['HGETALL', 'attr:wa'],
+            ['HGETALL', `attr:views:${curMonth}`], ['HGETALL', `attr:wa:${curMonth}`]);
   cmds.push(['LRANGE', 'events:recent', '0', '49']);
 
   const out = await pipeline(cmds);
@@ -112,6 +115,15 @@ export default async function handler(req, res) {
     return o;
   });
   const pstatsDays = days.map(() => out[ptr++]);
+  const hashToObj = h => {
+    const o = {};
+    if (Array.isArray(h)) for (let i = 0; i < h.length; i += 2) o[h[i]] = num(h[i + 1]);
+    return o;
+  };
+  const attribution = {
+    views_all: hashToObj(out[ptr++]), wa_all: hashToObj(out[ptr++]),
+    views_month: hashToObj(out[ptr++]), wa_month: hashToObj(out[ptr++]),
+  };
   const recentRaw = out[ptr++] || [];
 
   // Totals for the selected period (all-time uses lifetime counters)
@@ -162,7 +174,7 @@ export default async function handler(req, res) {
 
   const recent = recentRaw.map(v => { try { return JSON.parse(v); } catch { return null; } }).filter(Boolean);
 
-  return res.status(200).json({ period, days, totals, allTotals, series, properties, recent });
+  return res.status(200).json({ period, days, totals, allTotals, series, properties, recent, attribution });
 }
 
 // ── Manual broadcast: preview or fire ───────────────────────────────

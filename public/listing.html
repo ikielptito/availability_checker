@@ -600,7 +600,7 @@ function track(event, propId, propName) {
   fetch('/api/track', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ event, propId, propName, agentId: getAgentId(), newSession, stage, src: SESSION_SRC })
+    body: JSON.stringify({ event, propId, propName, agentId: getAgentId(), newSession, stage, src: SESSION_SRC, sharedBy: URL_AGENT })
   }).catch(() => {});
 }
 
