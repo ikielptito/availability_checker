@@ -109,9 +109,13 @@
   .hero-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 50%);
+    background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.35) 28%, transparent 58%);
     pointer-events: none;
   }
+
+  /* Title block overlaid on the hero — same language as the portal cards */
+  .hero-head { position: absolute; left: 28px; right: 150px; bottom: 26px; z-index: 2; text-shadow: 0 1px 12px rgba(0,0,0,.4); }
+  @media(max-width: 600px) { .hero-head { left: 18px; right: 18px; bottom: 64px; } }
 
   .hero-label {
     position: absolute;
@@ -153,32 +157,34 @@
     font-size: 0.68rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--accent);
-    font-weight: 500;
-    margin-bottom: 10px;
+    color: rgba(255,255,255,.75);
+    font-weight: 600;
+    margin-bottom: 8px;
   }
 
   .property-title {
     font-family: 'Geist',-apple-system,sans-serif;
     font-size: 2.4rem;
+    font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1.15;
     margin-bottom: 8px;
+    color: #fff;
   }
 
   .property-location {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.8rem;
-    color: var(--muted);
-    margin-bottom: 28px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: rgba(255,255,255,.78);
     text-decoration: none;
     width: fit-content;
     transition: color 0.2s;
   }
 
-  .property-location:hover { color: var(--accent); }
+  .property-location:hover { color: #fff; }
 
   .overview {
     font-size: 0.95rem;
@@ -463,16 +469,23 @@
     <div class="hero-placeholder" id="hero-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px;opacity:.3"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
     <img class="hero-img" id="hero-img" src="" alt="" style="display:none" onclick="openLb(0)" />
     <div class="hero-overlay"></div>
+    <div class="hero-head">
+      <div class="property-tag" id="prop-tag"></div>
+      <h1 class="property-title" id="prop-title"></h1>
+      <a class="property-location" id="prop-location" target="_blank">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span id="prop-location-text"></span>
+      </a>
+    </div>
     <div class="hero-label" id="photo-count" onclick="openLb(0)" style="display:none"></div>
   </div>
 
   <div class="content">
-    <div class="property-tag" id="prop-tag"></div>
-    <h1 class="property-title" id="prop-title"></h1>
-    <a class="property-location" id="prop-location" target="_blank">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      <span id="prop-location-text"></span>
-    </a>
+    <div class="listing-avail" id="listing-avail" style="display:none">
+      <span class="listing-avail-dot"></span>
+      <span id="listing-avail-text"></span>
+      <span class="listing-avail-window" id="listing-avail-window"></span>
+    </div>
     <p class="overview" id="prop-overview"></p>
 
     <div class="pricing-block">
@@ -488,12 +501,6 @@
           <div id="yearly-inclusions-list"></div>
         </div>
       </div>
-    </div>
-
-    <div class="listing-avail" id="listing-avail" style="display:none">
-      <span class="listing-avail-dot"></span>
-      <span id="listing-avail-text"></span>
-      <span class="listing-avail-window" id="listing-avail-window"></span>
     </div>
 
     <div class="details-grid" id="details-grid"></div>

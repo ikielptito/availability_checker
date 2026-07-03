@@ -510,9 +510,34 @@ async function ownerAnalytics(req, res, owner, { kvGet, kvPipeline }) {
     });
   }
 
+  // Fixed 14-day window for the per-villa sparkline + "this week" counts,
+  // independent of the selected period.
+  const sdays = [];
+  for (let i = 13; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); sdays.push(d.toISOString().split('T')[0]); }
+  const sout = await kvPipeline(sdays.map(d => ['HGETALL', `pstats:${d}`]));
+  const spark = Object.fromEntries(propIds.map(id => [id, Array(14).fill(0)]));
+  const shares7 = Object.fromEntries(propIds.map(id => [id, 0]));
+  const wa7 = Object.fromEntries(propIds.map(id => [id, 0]));
+  sout.forEach((h, di) => {
+    if (!Array.isArray(h)) return;
+    for (let i = 0; i < h.length; i += 2) {
+      const f = h[i]; const idx = f.lastIndexOf(':');
+      if (idx < 0) continue;
+      const pid = f.slice(0, idx), ev = f.slice(idx + 1), n = num(h[i + 1]);
+      if (!spark[pid]) continue;
+      if (ev === 'listing_view' || ev === 'details_open') spark[pid][di] += n;
+      if (di >= 7) {
+        if (ev === 'share') shares7[pid] += n;
+        if (ev === 'whatsapp_click') wa7[pid] += n;
+      }
+    }
+  });
+
   const properties = mine.map(slug => {
     const s = stats['c_' + slug];
-    return { slug, name: customMap[slug].name, ...s, engagement: s.listing_view + s.details_open };
+    const id = 'c_' + slug;
+    return { slug, name: customMap[slug].name, ...s, engagement: s.listing_view + s.details_open,
+             spark: spark[id], shares7: shares7[id], wa7: wa7[id] };
   });
   const totals = zeroEvents();
   properties.forEach(p => PEVENTS.forEach(e => { totals[e] += p[e]; }));

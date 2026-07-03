@@ -319,6 +319,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .to-top.on{opacity:1;pointer-events:auto;transform:none}
 .to-top svg{width:16px;height:16px}
 @media(min-width:761px){.to-top{bottom:24px}}
+#net-banner{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2000;background:#1C1917;color:#fff;font-size:12px;font-weight:600;letter-spacing:.01em;padding:8px 15px;border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,.25);white-space:nowrap}
 .complex-tag{font-weight:500;letter-spacing:.08em;margin-left:6px;color:var(--subtle)}
 .complex-tag::before{content:'•  ';color:var(--subtle)}
 /* MODAL */
@@ -838,6 +839,23 @@ window.addEventListener('scroll',()=>{
   const tt=document.getElementById('to-top');
   if(tt)tt.classList.toggle('on',window.scrollY>600);
 },{passive:true});
+// Offline support: service worker keeps the last good pages/data; the banner
+// makes clear when availability is last-known rather than live.
+if('serviceWorker' in navigator&&!['localhost','127.0.0.1'].includes(location.hostname)){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+function updateNetBanner(){
+  let b=document.getElementById('net-banner');
+  if(navigator.onLine){if(b)b.remove();return;}
+  if(!b){
+    b=document.createElement('div');b.id='net-banner';
+    b.textContent='Offline — showing last known availability';
+    document.body.appendChild(b);
+  }
+}
+window.addEventListener('online',updateNetBanner);
+window.addEventListener('offline',updateNetBanner);
+updateNetBanner();
 const TODAY=new Date(); TODAY.setHours(0,0,0,0);
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DOWS=['Su','Mo','Tu','We','Th','Fr','Sa'];

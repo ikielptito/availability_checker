@@ -93,6 +93,12 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
 .btn-sm.danger:hover{border-color:var(--red);color:var(--red);}
 .prop-status-note{font-size:0.72rem;color:var(--muted);line-height:1.5;}
 .prop-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;border-top:1px solid var(--border);padding-top:12px;}
+.skel-prop{height:150px;border-radius:14px;background:linear-gradient(100deg,var(--surface2) 40%,#fdfcfa 50%,var(--surface2) 60%);background-size:200% 100%;animation:skel-shimmer 1.4s linear infinite;margin-bottom:14px}
+@keyframes skel-shimmer{to{background-position:-200% 0}}
+.prop-pulse{display:flex;align-items:center;gap:10px;padding-top:10px}
+.pstat-spark{width:120px;height:28px;flex-shrink:0}
+.prop-pulse-txt{font-size:.74rem;color:var(--muted);line-height:1.5}
+.prop-pulse-txt b{color:var(--text);font-weight:650}
 .pstat{text-align:center;}
 .pstat-val{font-family:'Geist',-apple-system,sans-serif;font-size:1.25rem;line-height:1;}
 .pstat-lbl{font-size:0.58rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin-top:5px;}
@@ -378,7 +384,7 @@ let statsBySlug={};
 
 async function loadProperties(){
   const el=document.getElementById('properties');
-  el.innerHTML='<div class="empty-card"><p>Loading…</p></div>';
+  el.innerHTML='<div class="skel-prop"></div><div class="skel-prop"></div>';
   const r=await api('?action=properties');
   myProps=r.body?.properties||[];
   if(!myProps.length){
@@ -437,16 +443,30 @@ function propCard(p){
   </div>`;
 }
 
+function sparkSvg(arr){
+  if(!arr||!arr.length||!arr.some(v=>v>0)) return '';
+  const max=Math.max(...arr,1),W=120,H=28;
+  const pts=arr.map((v,i)=>(i/(arr.length-1)*W).toFixed(1)+','+(H-3-(v/max)*(H-6)).toFixed(1)).join(' ');
+  return `<svg class="pstat-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
 function statsStrip(slug){
   const s=statsBySlug[slug];
   if(!s) return '';
   const cell=(v,l,t)=>`<div class="pstat" title="${t}"><div class="pstat-val">${v||0}</div><div class="pstat-lbl">${l}</div></div>`;
+  const spark=sparkSvg(s.spark);
+  const views14=(s.spark||[]).reduce((a,b)=>a+b,0);
+  const weekBits=[
+    views14?`<b>${views14}</b> view${views14===1?'':'s'} · 14 days`:'No views in the last 14 days',
+    s.shares7?`shared <b>${s.shares7}×</b> this week`:null,
+    s.wa7?`<b>${s.wa7}</b> enquir${s.wa7===1?'y':'ies'} this week`:null,
+  ].filter(Boolean).join(' · ');
   return `<div class="prop-stats">
     ${cell(s.details_open,'Agent views','Times an agent opened this villa in the portal')}
     ${cell(s.share,'Shares','Times an agent shared this villa')}
     ${cell(s.listing_view,'Link opens','Times the shared listing link was opened (e.g. by a guest)')}
     ${cell(s.whatsapp_click,'WhatsApp','Times someone clicked the WhatsApp contact button')}
-  </div>`;
+  </div>
+  <div class="prop-pulse">${spark}<div class="prop-pulse-txt">${weekBits}</div></div>`;
 }
 
 // ── Add / edit modal ──
