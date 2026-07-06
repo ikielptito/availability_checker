@@ -320,6 +320,22 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .to-top svg{width:16px;height:16px}
 @media(min-width:761px){.to-top{bottom:24px}}
 #net-banner{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2000;background:#1C1917;color:#fff;font-size:12px;font-weight:600;letter-spacing:.01em;padding:8px 15px;border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,.25);white-space:nowrap}
+/* Map view — Leaflet sheet with price/complex pins */
+#map-ov .pk-box{height:82vh;max-height:82vh}
+#map-body{flex:1;min-height:0;padding:10px 12px 12px;display:flex}
+#map-canvas{flex:1;border-radius:16px;overflow:hidden;min-height:0}
+.map-pin-chip{display:inline-block;transform:translate(-50%,-50%);background:#1C1917;color:#fff;font-family:'Geist',-apple-system,sans-serif;font-size:11.5px;font-weight:700;letter-spacing:.01em;padding:6px 11px;border-radius:999px;white-space:nowrap;border:2px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+.map-pin-chip.approx{background:#8a8478}
+.map-pop{font-family:'Geist',-apple-system,sans-serif;min-width:190px}
+.map-pop-approx{font-size:10.5px;color:#8a8478;padding:2px 4px 6px}
+.map-pop-row{display:flex;align-items:center;gap:8px;padding:7px 6px;cursor:pointer;border-radius:8px;font-size:13px;color:#1C1917}
+.map-pop-row:hover{background:#F5F1EB}
+.map-pop-nm{flex:1;font-weight:500}
+.map-pop-row b{font-variant-numeric:tabular-nums}
+.map-pop .avail-dot{width:7px;height:7px;border-radius:50%;background:#4CAF6D;flex-shrink:0}
+.map-pop .avail-dot.full{background:#D96C4F}
+.map-pop .avail-dot.warn{background:#C9A227}
+.map-pop-gm{display:block;padding:8px 6px 2px;font-size:12px;font-weight:600;color:#C46E4B;text-decoration:none;border-top:1px solid #F1ECE7;margin-top:5px}
 .complex-tag{font-weight:500;letter-spacing:.08em;margin-left:6px;color:var(--subtle)}
 .complex-tag::before{content:'•  ';color:var(--subtle)}
 /* MODAL */
@@ -544,7 +560,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 <div class="pk-ov" id="map-ov" onclick="if(event.target===this)closeMapSheet()">
   <div class="pk-box">
     <div class="pk-head"><div class="modal-title">Locations</div><div class="spacer"></div><button class="modal-close" onclick="closeMapSheet()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
-    <div style="padding:8px 12px 16px;overflow-y:auto" id="map-body"></div>
+    <div id="map-body"></div>
   </div>
 </div>
 
@@ -731,15 +747,90 @@ function afPick(kind,val){popPick(kind,val);renderAF();}
 function afReset(){availFilter='all';budgetFilter='all';durationFilter='all';bedroomFilter='all';pillWs=false;history.replaceState(null,'',location.pathname);renderChrome();render();renderAF();}
 function openAllFilters(){renderAF();document.getElementById('af-ov').classList.add('open');}
 function closeAllFilters(){document.getElementById('af-ov').classList.remove('open');}
-// Map sheet — one row per complex, opens the exact pin in Google Maps
-function openMapSheet(){
+// Map sheet — real map (Leaflet + OpenStreetMap, no API key) with one pin per
+// location. Complex pins list their units; tapping a unit opens its details.
+// Coordinates come from the listing's mapEmbed URL; listings without one fall
+// back to an area-level pin (marked approximate).
+const AREA_COORDS=[
+  ['tumbak bayuh',[-8.6262,115.1447]],
+  ['padang linjong',[-8.6469,115.1353]],
+  ['batu bolong',[-8.6419,115.1429]],
+  ['pererenan',[-8.6283,115.1348]],
+  ['buduk',[-8.6153,115.1549]],
+  ['babakan',[-8.6330,115.1652]],
+  ['seseh',[-8.6098,115.1207]],
+  ['umalas',[-8.6640,115.1550]],
+  ['canggu',[-8.6440,115.1380]],
+];
+function coordsOf(info){
+  const m=String(info.mapEmbed||'').match(/!2d([\d.-]+)!3d([\d.-]+)/);
+  if(m)return{ll:[+m[2],+m[1]],approx:false};
+  const tag=String(info.tag||'').toLowerCase();
+  for(const [k,ll] of AREA_COORDS)if(tag.includes(k))return{ll,approx:true};
+  return null;
+}
+let _leafletP=null,_map=null;
+function loadLeaflet(){
+  if(_leafletP)return _leafletP;
+  _leafletP=new Promise((res,rej)=>{
+    const l=document.createElement('link');l.rel='stylesheet';
+    l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(l);
+    const s=document.createElement('script');
+    s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.onload=res;s.onerror=()=>{_leafletP=null;rej(new Error('leaflet load failed'));};
+    document.body.appendChild(s);
+  });
+  return _leafletP;
+}
+async function openMapSheet(){
   track('map_open');
-  const seen=new Map();
-  properties.forEach(p=>{const c=complexOf(p.name);if(!seen.has(c)){const info=PROPS[p.id]||{};seen.set(c,{name:c,tag:info.tag||'',loc:info.location||''});}});
-  document.getElementById('map-body').innerHTML=[...seen.values()].map(v=>
-    '<a class="map-row" href="'+esc(v.loc||'#')+'" target="_blank" rel="noopener"><span class="map-pin">'+icon('mapPin')+'</span><span style="min-width:0"><span class="map-row-name">'+esc(v.name)+'</span>'+(v.tag?'<div class="map-row-tag">'+esc(v.tag)+'</div>':'')+'</span><svg class="map-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>'
-  ).join('');
   document.getElementById('map-ov').classList.add('open');
+  const body=document.getElementById('map-body');
+  if(_map){_map.remove();_map=null;}
+  body.innerHTML='<div id="map-canvas"></div>';
+  try{await loadLeaflet();}catch(e){
+    body.innerHTML='<div style="padding:36px 20px;text-align:center;color:var(--muted);font-size:.85rem">Map could not load — check your connection and try again.</div>';
+    return;
+  }
+  const groups=new Map();
+  properties.forEach(p=>{
+    const info=PROPS[p.id]||{};
+    const c=coordsOf(info);if(!c)return;
+    const key=c.ll[0].toFixed(4)+','+c.ll[1].toFixed(4);
+    if(!groups.has(key))groups.set(key,{ll:c.ll,approx:c.approx,items:[]});
+    groups.get(key).items.push(p);
+  });
+  const map=L.map('map-canvas',{zoomControl:true});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
+  const bounds=[];
+  groups.forEach(g=>{
+    bounds.push(g.ll);
+    const label=g.items.length>1
+      ?esc(complexOf(g.items[0].name))+' · '+g.items.length
+      :esc(shortName(g.items[0].name));
+    const ic=L.divIcon({className:'',html:'<div class="map-pin-chip'+(g.approx?' approx':'')+'">'+label+'</div>',iconSize:null,iconAnchor:[0,0]});
+    const mk=L.marker(g.ll,{icon:ic}).addTo(map);
+    const rows=g.items.map(p=>{
+      const info=PROPS[p.id]||{};
+      const mn=monthlyNum(info);
+      const av=availLabel(avail[p.id]||new Set());
+      const dot=failedAvail.has(p.id)?' warn':(!av?' full':'');
+      return '<div class="map-pop-row" onclick="closeMapSheet();openModal(\''+p.id+'\')">'
+        +'<span class="avail-dot'+dot+'"></span>'
+        +'<span class="map-pop-nm">'+esc(shortName(p.name))+'</span>'
+        +(mn?'<b>'+mn+'M</b>':'')+'</div>';
+    }).join('');
+    const gmap=(PROPS[g.items[0].id]||{}).location;
+    mk.bindPopup('<div class="map-pop">'
+      +(g.approx?'<div class="map-pop-approx">Approximate area location</div>':'')
+      +rows
+      +(gmap?'<a class="map-pop-gm" href="'+esc(gmap)+'" target="_blank" rel="noopener">Open in Google Maps</a>':'')
+      +'</div>',{closeButton:false});
+  });
+  if(bounds.length)map.fitBounds(bounds,{padding:[40,40],maxZoom:14});
+  else map.setView([-8.64,115.14],13);
+  _map=map;
+  setTimeout(()=>map.invalidateSize(),150);
 }
 function closeMapSheet(){document.getElementById('map-ov').classList.remove('open');}
 // Cards fade up as they scroll into view
