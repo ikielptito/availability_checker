@@ -139,78 +139,40 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 @keyframes install-slide-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
 @media(min-width:600px){.install-prompt{left:auto;right:24px;bottom:24px;max-width:380px}}
 .spacer{flex:1}
-.prop-grid{padding:14px 20px 150px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:960px;margin:0 auto}
-@media(max-width:800px){.prop-grid{grid-template-columns:repeat(2,1fr);padding:12px 14px 150px;gap:10px}}
-/* Property card — full-bleed image with dark gradient overlay */
-.prop-card{position:relative;width:100%;border-radius:24px;overflow:hidden;background:#1a1816;cursor:pointer;transform:translateZ(0);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
+.prop-grid{padding:14px 20px 150px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;max-width:1120px;margin:0 auto}
+@media(max-width:640px){.prop-grid{grid-template-columns:repeat(2,1fr);padding:12px 14px 150px;gap:11px}}
+/* Property card — one uniform tile: full-bleed photo, gradient, overlaid info.
+   Tap anywhere opens details. No expand/collapse. */
+.prop-card{position:relative;width:100%;border-radius:20px;overflow:hidden;background:#1a1816;cursor:pointer;transform:translateZ(0);box-shadow:0 1px 2px rgba(0,0,0,.05),0 6px 18px rgba(0,0,0,.08);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
 .prop-card.pre{opacity:0}
-.prop-card.in{opacity:1;animation:card-in .5s var(--ease)}
-@keyframes card-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
-.prop-card:hover{transform:translateY(-3px);box-shadow:0 2px 4px rgba(0,0,0,.08),0 16px 40px rgba(0,0,0,.18)}
-.prop-media{position:relative;aspect-ratio:3/4;background:#2a2622;overflow:hidden}
-/* Bento: one card expanded at a time; the rest collapse to square tiles */
-.prop-card.expanded{grid-column:1/-1}
-@media(min-width:800px){.prop-card.expanded .prop-media{aspect-ratio:16/10}}
-.prop-card.collapsed .prop-media{aspect-ratio:1/1}
-.prop-card.collapsed .prop-loc,.prop-card.collapsed .card-actions,.prop-card.collapsed .fav-heart,.prop-card.collapsed .top-pick,.prop-card.collapsed .prop-pills{display:none}
-.prop-card.collapsed .prop-name{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prop-card.collapsed .prop-body{padding:0 12px 12px;gap:4px}
-.prop-card.collapsed .prop-gradient{background:linear-gradient(to bottom,transparent 30%,rgba(0,0,0,.5) 62%,rgba(0,0,0,.85) 100%)}
-/* Expand/minimize affordance — same spot on every card so the mechanic is discoverable */
-.bento-toggle{position:absolute;top:10px;left:10px;z-index:3;width:30px;height:30px;border-radius:50%;background:rgba(17,15,13,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .18s var(--ease),background .18s var(--ease);-webkit-tap-highlight-color:transparent;padding:0}
-.bento-toggle:hover{transform:scale(1.08);background:rgba(17,15,13,.55)}
-.bento-toggle:active{transform:scale(.92)}
-.bento-toggle svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.bento-toggle .ic-min{display:none}
-.prop-card.expanded .bento-toggle .ic-min{display:block}
-.prop-card.expanded .bento-toggle .ic-max{display:none}
-.prop-card.expanded .top-pick{left:50px}
-/* Bento morph — per-card view-transition-names are set inline at render */
-::view-transition-group(*){animation-duration:.45s;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+.prop-card.in{opacity:1;animation:card-in .45s var(--ease)}
+@keyframes card-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.prop-card:hover{transform:translateY(-3px);box-shadow:0 2px 4px rgba(0,0,0,.08),0 16px 38px rgba(0,0,0,.16)}
+.prop-media{position:relative;aspect-ratio:4/5;background:#2a2622;overflow:hidden}
 .prop-hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease)}
-.prop-card:hover .prop-hero-img{transform:scale(1.03)}
-.prop-card:active .prop-hero-img{transform:scale(1.05)}
+.prop-card:hover .prop-hero-img{transform:scale(1.04)}
 .prop-hero-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.25);background:#2a2622}
-/* Swipeable photo strip (expanded card): scroll-snap slides + counter + hover arrows */
-.prop-strip{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.prop-strip::-webkit-scrollbar{display:none}
-.prop-slide{flex:0 0 100%;width:100%;height:100%;object-fit:cover;scroll-snap-align:start;scroll-snap-stop:always}
-.prop-card.collapsed .prop-strip{overflow:hidden}
-.photo-count{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:3;background:rgba(17,15,13,.44);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.16);color:#fff;font-size:11px;font-weight:600;letter-spacing:.02em;padding:4px 10px;border-radius:999px;display:none;font-variant-numeric:tabular-nums}
-.prop-card.expanded .photo-count.on{display:block}
-.strip-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.9);border:none;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);transition:background .18s var(--ease)}
-.strip-nav:hover{background:#fff}
-.strip-nav svg{width:15px;height:15px;stroke:#1C1917;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.strip-nav.prev{left:12px}.strip-nav.next{right:12px}
-@media(hover:hover){.prop-card.expanded .prop-media:hover .strip-nav{display:flex}}
-.prop-gradient{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,rgba(0,0,0,.55) 65%,rgba(0,0,0,.82) 100%);pointer-events:none;z-index:1}
-.top-pick{position:absolute;top:14px;left:14px;z-index:2;background:rgba(88,96,66,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.16);color:#fff;font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;padding:7px 12px;border-radius:9px}
-.fav-heart{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.14);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;transition:transform .18s var(--ease),background .18s var(--ease);-webkit-tap-highlight-color:transparent}
-.fav-heart:hover{transform:scale(1.08);background:rgba(255,255,255,.28)}
-.fav-heart:active{transform:scale(.92)}
-.fav-heart svg{width:17px;height:17px;fill:none;stroke:#fff;stroke-width:1.8}
-.fav-heart.on svg{fill:#fff;stroke:#fff;animation:heart-pop .45s var(--ease)}
+.prop-gradient{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 34%,rgba(0,0,0,.5) 66%,rgba(0,0,0,.85) 100%);pointer-events:none;z-index:1}
+.top-pick{position:absolute;top:12px;left:12px;z-index:2;background:rgba(88,96,66,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.16);color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:6px 10px;border-radius:8px}
+/* Top-right action cluster — share + heart, glass circles */
+.card-tools{position:absolute;top:10px;right:10px;z-index:3;display:flex;gap:7px}
+.card-tool{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.16);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .18s var(--ease),background .18s var(--ease);-webkit-tap-highlight-color:transparent;padding:0}
+.card-tool:hover{transform:scale(1.08);background:rgba(255,255,255,.28)}
+.card-tool:active{transform:scale(.92)}
+.card-tool svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.card-tool.fav.on svg{fill:#fff;stroke:#fff;animation:heart-pop .45s var(--ease)}
+.card-tool.shared-ok svg{stroke:#8FE39A}
 @keyframes heart-pop{0%{transform:scale(1)}30%{transform:scale(1.35)}55%{transform:scale(.88)}75%{transform:scale(1.1)}100%{transform:scale(1)}}
-/* Info block — overlaid on the gradient */
-.prop-body{position:absolute;bottom:0;left:0;right:0;z-index:2;padding:0 16px 16px;display:flex;flex-direction:column;gap:5px;text-shadow:0 1px 10px rgba(0,0,0,.4)}
-.prop-body .card-actions,.prop-body .prop-pill{text-shadow:none}
-.prop-name{font-size:17.5px;font-weight:700;letter-spacing:-.015em;line-height:1.2;color:#fff}
-.prop-desc{font-size:12.5px;font-weight:400;line-height:1.5;color:rgba(255,255,255,.72);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.prop-loc{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:400;color:rgba(255,255,255,.72);cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:0}
-.prop-loc>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prop-loc .icon{width:12.5px;height:12.5px;opacity:.8}
-.prop-loc .copy-ic{width:11px;height:11px;opacity:.5}
-.prop-loc:hover .copy-ic{opacity:1}
-.prop-pills{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
-.prop-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.14);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.88);font-size:11px;font-weight:500;padding:4px 10px;border-radius:999px;white-space:nowrap}
-.prop-pill .avail-dot,.prop-mini .avail-dot{width:6px;height:6px;border-radius:50%;background:#8FE39A;box-shadow:0 0 8px rgba(143,227,154,.7);flex-shrink:0}
-.prop-pill.full .avail-dot,.prop-mini.full .avail-dot{background:#F2A28E;box-shadow:0 0 8px rgba(242,162,142,.7)}
-.prop-pill.warn .avail-dot,.prop-mini.warn .avail-dot{background:#EBCE8C;box-shadow:0 0 8px rgba(235,206,140,.7)}
-/* Collapsed-tile meta line — fixed single-line layout so tiles align */
-.prop-mini{display:none;align-items:center;gap:6px;font-size:11.5px;font-weight:500;letter-spacing:.01em;color:rgba(255,255,255,.88);white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums}
-.prop-mini>span{overflow:hidden;text-overflow:ellipsis}
-.prop-mini b{font-weight:700;color:#fff}
-.prop-card.collapsed .prop-mini{display:flex}
+/* Info block — overlaid on the gradient, fixed 3-line rhythm so every card aligns */
+.prop-body{position:absolute;bottom:0;left:0;right:0;z-index:2;padding:0 14px 14px;display:flex;flex-direction:column;gap:3px;text-shadow:0 1px 10px rgba(0,0,0,.45)}
+.prop-name{font-size:16px;font-weight:700;letter-spacing:-.015em;line-height:1.2;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prop-meta{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:rgba(255,255,255,.85);white-space:nowrap;overflow:hidden}
+.prop-meta .avail-dot{width:6px;height:6px;border-radius:50%;background:#8FE39A;box-shadow:0 0 8px rgba(143,227,154,.7);flex-shrink:0}
+.prop-meta.full .avail-dot{background:#F2A28E;box-shadow:0 0 8px rgba(242,162,142,.7)}
+.prop-meta.warn .avail-dot{background:#EBCE8C;box-shadow:0 0 8px rgba(235,206,140,.7)}
+.prop-meta>span{overflow:hidden;text-overflow:ellipsis}
+.prop-price{font-size:14px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;margin-top:1px}
+.prop-price span{font-size:11.5px;font-weight:500;color:rgba(255,255,255,.7)}
 .saved-banner{grid-column:1/-1;display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:20px;padding:16px 20px;box-shadow:var(--shadow)}
 .saved-banner b{font-size:1.05rem;font-weight:650;color:var(--text)}
 .saved-banner button{margin-left:auto;background:var(--surface2);border:none;border-radius:999px;color:var(--text-2);padding:10px 16px;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer}
@@ -269,23 +231,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .prop-card.kb-focused{outline:2px solid var(--primary);outline-offset:3px}
 .avail-prose{font-size:.9rem;color:var(--text-2);line-height:1.7;padding:0 0 10px}
 /* Card CTAs — white pill buttons */
-.card-actions{display:flex;gap:8px;margin-top:8px}
-.btn-share{flex:1;min-width:0;height:38px;background:#fff;border:none;border-radius:999px;color:#1a1816;font-family:inherit;font-size:13px;font-weight:600;letter-spacing:-.005em;cursor:pointer;transition:background .18s var(--ease),transform .18s var(--ease);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,.15);-webkit-tap-highlight-color:transparent}
-.btn-share:hover{background:#f5f5f5}
-.btn-share:active{background:#ebebeb;transform:scale(.97)}
-.btn-share .icon,.btn-share .icon-sm{display:none}
-.btn-ghost{flex:1;min-width:0;height:38px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;color:rgba(255,255,255,.9);font-family:inherit;font-size:13px;font-weight:600;letter-spacing:-.005em;cursor:pointer;transition:background .18s var(--ease),border-color .18s var(--ease),transform .18s var(--ease);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent}
-.btn-ghost:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.3)}
-.btn-ghost:active{transform:scale(.97)}
-.btn-ghost .arr{width:14px;height:14px}
-.btn-share .btn-label,.btn-ghost .btn-label{overflow:hidden;text-overflow:ellipsis}
-.btn-share.shared-ok,.modal-action-primary.shared-ok{background:var(--avail-text);border-color:var(--avail-text)}
+.modal-action-primary.shared-ok{background:var(--avail-text);border-color:var(--avail-text)}
 /* Quiet pill button for light backgrounds (empty state, banners) */
 .btn-quiet{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:var(--hairline);border-radius:999px;box-shadow:var(--shadow-btn);color:var(--text-2);font-family:inherit;font-size:12.5px;font-weight:600;letter-spacing:.01em;padding:10px 18px;cursor:pointer;transition:transform .18s var(--ease),color .18s var(--ease)}
 .btn-quiet:hover{color:var(--text)}
 .btn-quiet:active{transform:scale(.96)}
-.skel-card{width:100%;border-radius:24px;overflow:hidden;background:var(--surface);border:var(--hairline);box-shadow:var(--shadow)}
-.skel-media{aspect-ratio:3/4;background:linear-gradient(100deg,var(--surface2) 40%,#fdfcfa 50%,var(--surface2) 60%);background-size:200% 100%;animation:shimmer 1.4s linear infinite}
+.skel-card{width:100%;border-radius:20px;overflow:hidden;background:var(--surface);border:var(--hairline);box-shadow:var(--shadow)}
+.skel-media{aspect-ratio:4/5;background:linear-gradient(100deg,var(--surface2) 40%,#fdfcfa 50%,var(--surface2) 60%);background-size:200% 100%;animation:shimmer 1.4s linear infinite}
 .skel-bar{border-radius:8px;background:var(--surface2);animation:shimmer-soft 1.4s ease-in-out infinite}
 @keyframes shimmer{to{background-position:-200% 0}}
 @keyframes shimmer-soft{0%,100%{opacity:.6}50%{opacity:1}}
@@ -840,92 +792,6 @@ function revealCards(){
   const io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.remove('pre');e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.05});
   cards.forEach(c=>io.observe(c));
 }
-// Bento expand/collapse: at most one expanded card. Tapping a collapsed tile
-// (or its corner toggle) expands it; tapping the expanded card opens the
-// details modal; its corner toggle minimizes back to the tile grid.
-// expandedId: null = pick a default on render, 'none' = user collapsed all.
-let expandedId=null;
-function setExpanded(id){
-  expandedId=(id==null)?'none':id;
-  const apply=()=>{
-    document.querySelectorAll('.prop-card').forEach(c=>{
-      const on=id!=null&&String(c.dataset.id)===String(id);
-      c.classList.toggle('expanded',on);
-      c.classList.toggle('collapsed',!on);
-      if(!on){const s=c.querySelector('.prop-strip');if(s)s.scrollLeft=0;}
-    });
-  };
-  if(document.startViewTransition)document.startViewTransition(apply);else apply();
-  if(id!=null){
-    loadStrip(id);
-    setTimeout(()=>{
-      const card=document.querySelector('.prop-card[data-id="'+id+'"]');
-      if(card)card.scrollIntoView({behavior:'smooth',block:'center'});
-    },80);
-  }
-}
-// Swipeable photos: fetch the property's Drive photos the first time its card
-// is expanded and append them as scroll-snap slides (capped; the modal still
-// has the full gallery).
-const stripCache={};
-async function loadStrip(id){
-  const card=document.querySelector('.prop-card[data-id="'+id+'"]');
-  if(!card)return;
-  const strip=card.querySelector('.prop-strip');
-  if(!strip||strip.dataset.loaded)return;
-  const p=properties.find(x=>String(x.id)===String(id));
-  const info=PROPS[id]||{};
-  const folder=(p&&p.folder)||info.folder;
-  if(!folder)return;
-  strip.dataset.loaded='1';
-  try{
-    let urls=stripCache[id];
-    if(!urls){
-      const r=await fetch('/api/gdrive?folder='+encodeURIComponent(folder));
-      const d=await r.json();
-      urls=(d.photos||[]).slice(0,12).map(ph=>'https://lh3.googleusercontent.com/d/'+ph.id+'=w1200');
-      stripCache[id]=urls;
-    }
-    const first=p&&p.photo;
-    urls.filter(u=>u!==first).forEach(u=>{
-      const img=document.createElement('img');
-      img.className='prop-slide';img.loading='lazy';img.src=u;img.alt='';
-      strip.appendChild(img);
-    });
-    if(strip.querySelector('.prop-slide')){
-      const ph=card.querySelector('.prop-hero-ph');if(ph)ph.style.display='none';
-    }
-    updateStripUI(card);
-    strip.addEventListener('scroll',()=>updateStripUI(card),{passive:true});
-    strip.addEventListener('scrollend',()=>updateStripUI(card));
-  }catch{}
-}
-function updateStripUI(card){
-  const strip=card.querySelector('.prop-strip');
-  const n=strip.querySelectorAll('.prop-slide').length;
-  const c=card.querySelector('.photo-count');
-  if(!c)return;
-  if(n>1){
-    const i=Math.min(n,Math.round(strip.scrollLeft/strip.clientWidth)+1);
-    c.textContent=i+' / '+n;c.classList.add('on');
-  }else c.classList.remove('on');
-}
-function stripNav(ev,dir){
-  ev.stopPropagation();
-  const card=ev.currentTarget.closest('.prop-card');
-  const strip=card.querySelector('.prop-strip');
-  strip.scrollBy({left:dir*strip.clientWidth,behavior:'smooth'});
-  setTimeout(()=>updateStripUI(card),420);
-}
-function cardClick(ev,id){
-  if(ev.currentTarget.classList.contains('expanded')){openModal(id);return;}
-  setExpanded(id);
-}
-function toggleBento(ev,id){
-  ev.stopPropagation();
-  const card=ev.currentTarget.closest('.prop-card');
-  setExpanded(card&&card.classList.contains('expanded')?null:id);
-}
 window.addEventListener('scroll',()=>{
   const tt=document.getElementById('to-top');
   if(tt)tt.classList.toggle('on',window.scrollY>600);
@@ -1293,7 +1159,11 @@ function doShare(propId, btn){
   const flash=(txt)=>{
     if(!btn) return;
     const orig=btn.innerHTML;
-    btn.innerHTML=icon('check','sm')+'<span>'+txt+'</span>';
+    // Icon-only card tools have no room for a label — just show a check.
+    const iconOnly=btn.classList.contains('card-tool');
+    btn.innerHTML=iconOnly
+      ?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+      :icon('check','sm')+'<span>'+txt+'</span>';
     btn.classList.add('shared-ok');
     setTimeout(()=>{btn.innerHTML=orig;btn.classList.remove('shared-ok');},2000);
   };
@@ -1749,10 +1619,6 @@ function render() {
       filtered2=filtered2.filter(p=>cxCount[complexOf(p.name)]>1)
         .concat(filtered2.filter(p=>cxCount[complexOf(p.name)]===1));
   }
-  // Bento: default one expanded card (top pick, else first). 'none' means the
-  // user minimized everything — respect that across re-renders.
-  if(expandedId!=='none'&&(expandedId===null||!filtered2.some(p=>String(p.id)===String(expandedId))))
-    expandedId=filtered2.some(p=>p.id===topPickId)?topPickId:(filtered2[0]?filtered2[0].id:null);
   const savedBanner=savedView
     ?'<div class="saved-banner"><b>Saved villas</b><span style="color:var(--muted);font-size:.82rem">'+myFavorites.size+' saved</span><button onclick="setSavedView(false)">Show all villas</button></div>'
     :'';
@@ -1786,39 +1652,16 @@ function render() {
     const av=availLabel(booked);
     const heroPos=(info&&info.coverPosition)||'50% 50%';
     const heroInner='<div class="prop-hero-ph"'+(p.photo?' style="display:none"':'')+'>'+icon('home','xl')+'</div>'
-      +'<div class="prop-strip">'
-      +(p.photo?'<img class="prop-slide" src="'+p.photo+'" alt="'+esc(p.name)+'" loading="lazy" style="object-position:'+heroPos+'" onerror="this.style.display=\'none\';this.closest(\'.prop-media\').querySelector(\'.prop-hero-ph\').style.display=\'flex\'">':'')
-      +'</div>'
-      +'<div class="photo-count"></div>'
-      +'<button class="strip-nav prev" onclick="stripNav(event,-1)" aria-label="Previous photo"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>'
-      +'<button class="strip-nav next" onclick="stripNav(event,1)" aria-label="Next photo"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>';
-    let availPill, windowTxt;
-    if(failedAvail.has(p.id)){
-      availPill='<span class="prop-pill warn"><span class="avail-dot"></span>Calendar unavailable</span>'; windowTxt='';
-    } else if(!av){
-      availPill='<span class="prop-pill full"><span class="avail-dot"></span>Fully booked</span>'; windowTxt='';
-    } else if(av.cls==='avail-now'){
-      availPill='<span class="prop-pill"><span class="avail-dot"></span>Available now</span>'; windowTxt=windowLabel(av.window);
-    } else {
-      availPill='<span class="prop-pill"><span class="avail-dot"></span>Available '+esc(av.from)+'</span>'; windowTxt=windowLabel(av.window);
-    }
+      +(p.photo?'<img class="prop-hero-img" src="'+p.photo+'" alt="'+esc(p.name)+'" loading="lazy" style="object-position:'+heroPos+'" onerror="this.style.display=\'none\';this.closest(\'.prop-media\').querySelector(\'.prop-hero-ph\').style.display=\'flex\'">':'');
     const mn=monthlyNum(info);
     const br=getBedrooms(p.id);
-    const pills='<div class="prop-pills">'+availPill
-      +(br?'<span class="prop-pill">'+br+' BR</span>':'')
-      +(mn?'<span class="prop-pill pill-price">IDR '+mn+'M / mo</span>':'')
-      +(windowTxt?'<span class="prop-pill pill-window">'+windowTxt+'</span>':'')
-      +'</div>';
-    // Collapsed-tile meta: one fixed line — availability · bedrooms · price
-    let avShort,dotCls='';
-    if(failedAvail.has(p.id)){avShort='No calendar';dotCls=' warn';}
-    else if(!av){avShort='Booked';dotCls=' full';}
-    else if(av.cls==='avail-now'){avShort='Now';}
-    else avShort=av.from;
-    const mini='<div class="prop-mini'+dotCls+'"><span class="avail-dot"></span><span>'+esc(avShort)
-      +(br?' · '+br+' BR':'')
-      +(mn?' · <b>'+mn+'M/mo</b>':'')
-      +'</span></div>';
+    const windowTxt=(av&&!failedAvail.has(p.id))?windowLabel(av.window):'';
+    // Availability short label + dot state, shared by card + list + long form.
+    let avShort,avLong,dotCls='';
+    if(failedAvail.has(p.id)){avShort='No calendar';avLong='Calendar unavailable';dotCls=' warn';}
+    else if(!av){avShort='Booked';avLong='Fully booked';dotCls=' full';}
+    else if(av.cls==='avail-now'){avShort='Now';avLong='Available now';}
+    else {avShort=av.from;avLong='Available '+av.from;}
     if(viewMode==='timeline'){
       return _cxHdr+'<div class="tl-row" onclick="openModal(\''+p.id+'\')" title="'+esc(shortName(p.name))+'">'
         +'<div class="tl-label">'+esc(shortName(p.name))+'</div>'
@@ -1839,34 +1682,23 @@ function render() {
         +'<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
         +'</div>';
     }
-    const locHtml=info.tag
-      ?'<div class="prop-loc" onclick="copyMapsLink(event,\''+p.id+'\')" title="Copy Google Maps link">'+icon('mapPin')+'<span>'+esc(info.tag)+'</span>'+(info.location?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="copy-ic"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>':'')+'</div>'
-      :(p.type?'<div class="prop-loc"><span>'+esc(p.type)+'</span></div>':'');
-    const isExp=String(p.id)===String(expandedId);
-    return _cxHdr+'<div class="prop-card pre '+(isExp?'expanded':'collapsed')+'" data-id="'+p.id+'" style="view-transition-name:pc'+i+'" onclick="cardClick(event,\''+p.id+'\')" title="'+(isExp?'View photos &amp; details':'Expand')+'">'
+    return _cxHdr+'<div class="prop-card pre" data-id="'+p.id+'" onclick="openModal(\''+p.id+'\')" title="View photos &amp; details">'
       +'<div class="prop-media">'+heroInner
       +'<div class="prop-gradient"></div>'
-      +'<button class="bento-toggle" onclick="toggleBento(event,\''+p.id+'\')" aria-label="Expand or minimize" title="Expand / minimize">'
-      +'<svg class="ic-max" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
-      +'<svg class="ic-min" viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
-      +'</button>'
       +(p.id===topPickId?'<div class="top-pick">Top pick</div>':'')
-      +'<button class="fav-heart'+(isFav?' on':'')+'" onclick="event.stopPropagation();toggleFav(\''+slug+'\')" aria-label="'+(isFav?'Remove from saved':'Save villa')+'" title="'+(isFav?'Saved':'Save')+'"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>'
+      +'<div class="card-tools">'
+      +'<button class="card-tool" onclick="event.stopPropagation();shareCard(\''+p.id+'\',\''+esc(p.name)+'\')" aria-label="Share villa" title="Share"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg></button>'
+      +'<button class="card-tool fav'+(isFav?' on':'')+'" onclick="event.stopPropagation();toggleFav(\''+slug+'\')" aria-label="'+(isFav?'Remove from saved':'Save villa')+'" title="'+(isFav?'Saved':'Save')+'"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>'
+      +'</div>'
       +'</div>'
       +'<div class="prop-body">'
       +'<div class="prop-name">'+esc(shortName(p.name))+'</div>'
-      +mini
-      +locHtml
-      +pills
-      +'<div class="card-actions">'
-      +'<button class="btn-share" onclick="event.stopPropagation();shareCard(\''+p.id+'\',\''+esc(p.name)+'\')"><span class="btn-label">Share</span></button>'
-      +'<button class="btn-ghost" onclick="event.stopPropagation();openModal(\''+p.id+'\')"><span class="btn-label">Details</span></button>'
-      +'</div>'
+      +'<div class="prop-meta'+dotCls+'"><span class="avail-dot"></span><span>'+esc(avLong)+(br?' · '+br+' BR':'')+'</span></div>'
+      +(mn?'<div class="prop-price">IDR '+mn+'M <span>/ mo</span></div>':'')
       +'</div>'
       +'</div>';
   }).join('');
   revealCards();
-  if(expandedId!=null&&expandedId!=='none')loadStrip(expandedId);
 }
 
 function buildSix(booked) {
