@@ -1192,14 +1192,16 @@ function shareFacts(propId){
 }
 function copyCaption(){
   const f=shareFacts(modalPropId);
+  // Anonymous, agent-postable — no link, no Samba branding, no contact. The
+  // agent's own followers reply to the "DM me" line.
   const lines=[
     '🏡 '+f.name+(f.tag?' — '+f.tag:''),
     [f.br?f.br+' bedroom'+(f.br>1?'s':''):null,f.mn?'IDR '+f.mn+'M / month':null].filter(Boolean).join(' · '),
     f.availTxt?'📅 '+f.availTxt:null,
     '',
-    '🔗 '+f.url,
+    '📩 DM me for more details',
     '',
-    '#BaliRentals #CangguVilla #LongTermBali #SambaRentals'
+    '#BaliRentals #CangguVilla #LongTermBali #MonthlyRentalBali'
   ].filter(l=>l!==null);
   navigator.clipboard.writeText(lines.join('\n')).then(()=>{
     const b=document.getElementById('modal-caption-btn');
@@ -1208,59 +1210,97 @@ function copyCaption(){
   track('share',modalPropId,f.name);
 }
 function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>res(i);i.onerror=rej;i.src=src;});}
-// 1080×1920 branded story card. Photo is drawn cover-fit when the Drive CDN
-// allows CORS; otherwise falls back to a brand gradient so the export never
-// fails outright.
+// A listing's photos (cover + Drive folder), deduped, for the story collage.
+const _storyPhotoCache={};
+async function listingPhotos(propId,max){
+  const p=properties.find(x=>String(x.id)===String(propId));
+  const info=PROPS[propId]||{};
+  let urls=_storyPhotoCache[propId];
+  if(!urls){
+    urls=[];
+    const folder=(p&&p.folder)||info.folder;
+    if(folder){
+      try{
+        const r=await fetch('/api/gdrive?folder='+encodeURIComponent(folder));
+        const d=await r.json();
+        urls=(d.photos||[]).map(ph=>'https://lh3.googleusercontent.com/d/'+ph.id+'=w1200');
+      }catch(e){}
+    }
+    _storyPhotoCache[propId]=urls;
+  }
+  const bare=u=>u.replace(/=w\d+.*$/,''),seen=new Set(),out=[];
+  const add=u=>{if(u){const k=bare(u);if(!seen.has(k)){seen.add(k);out.push(u);}}};
+  add(p&&p.photo);urls.forEach(add);
+  return out.slice(0,max||4);
+}
+function drawCover(ctx,img,x,y,w,h){
+  const s=Math.max(w/img.width,h/img.height),dw=img.width*s,dh=img.height*s;
+  ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+  ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);ctx.restore();
+}
+// Grid rects for a 1–4 photo collage within the given area.
+function collageRects(n,W,H,g){
+  if(n<=1)return[[0,0,W,H]];
+  if(n===2)return[[0,0,W,(H-g)/2],[0,(H+g)/2,W,(H-g)/2]];
+  if(n===3){const h1=Math.round(H*0.58);return[[0,0,W,h1],[0,h1+g,(W-g)/2,H-h1-g],[(W+g)/2,h1+g,(W-g)/2,H-h1-g]];}
+  const cw=(W-g)/2,ch=(H-g)/2;return[[0,0,cw,ch],[cw+g,0,cw,ch],[0,ch+g,cw,ch],[cw+g,ch+g,cw,ch]];
+}
+function fitText(ctx,text,maxW,base,weight,FF){
+  let sz=base;ctx.font=weight+' '+sz+'px '+FF;
+  while(ctx.measureText(text).width>maxW&&sz>34){sz-=2;ctx.font=weight+' '+sz+'px '+FF;}
+  return sz;
+}
+function roundRectPath(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  if(ctx.roundRect){ctx.roundRect(x,y,w,h,r);return;}
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+// 1080×1920 Instagram story: a photo collage of the listing + a dark info
+// panel. Anonymous by design — no URL, no Samba branding, no contact — with a
+// "DM me for more details" CTA the agent's own followers respond to.
 async function makeStoryImage(propId){
   const f=shareFacts(propId);
-  const W=1080,H=1920;
+  const W=1080,H=1920,CH=1180,G=8,FF='Geist,-apple-system,Helvetica,sans-serif';
   const c=document.createElement('canvas');c.width=W;c.height=H;
   const ctx=c.getContext('2d');
-  let photo=false;
-  if(f.p&&f.p.photo){
-    try{
-      const img=await loadImg(f.p.photo.replace('=w1200','=w1600'));
-      const s=Math.max(W/img.width,H/img.height);
-      ctx.drawImage(img,(W-img.width*s)/2,(H-img.height*s)/2,img.width*s,img.height*s);
-      photo=true;
-    }catch(e){}
-  }
-  if(!photo){
-    const g=ctx.createLinearGradient(0,0,0,H);
+  ctx.fillStyle='#1C1917';ctx.fillRect(0,0,W,H);
+  // ── Collage ──
+  const urls=await listingPhotos(propId,4);
+  const imgs=[];
+  for(const u of urls){try{imgs.push(await loadImg(u.replace('=w1200','=w1400')));}catch(e){}}
+  if(imgs.length){
+    collageRects(imgs.length,W,CH,G).forEach((r,i)=>drawCover(ctx,imgs[i],r[0],r[1],r[2],r[3]));
+  }else{
+    const g=ctx.createLinearGradient(0,0,0,CH);
     g.addColorStop(0,'#2a2622');g.addColorStop(1,'#1C1917');
-    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,CH);
   }
-  const g2=ctx.createLinearGradient(0,H*0.4,0,H);
-  g2.addColorStop(0,'rgba(0,0,0,0)');g2.addColorStop(.5,'rgba(0,0,0,.5)');g2.addColorStop(1,'rgba(0,0,0,.9)');
-  ctx.fillStyle=g2;ctx.fillRect(0,0,W,H);
-  const FF='Geist,-apple-system,Helvetica,sans-serif';
-  let y=H-460;
-  ctx.fillStyle='#fff';
-  ctx.font='700 82px '+FF;
-  ctx.fillText(f.name,72,y);
-  if(f.tag){
-    y+=74;
-    ctx.font='500 44px '+FF;
-    ctx.fillStyle='rgba(255,255,255,.78)';
-    ctx.fillText(f.tag,72,y);
-  }
-  y+=96;
+  const fade=ctx.createLinearGradient(0,CH-130,0,CH);
+  fade.addColorStop(0,'rgba(28,25,23,0)');fade.addColorStop(1,'#1C1917');
+  ctx.fillStyle=fade;ctx.fillRect(0,CH-130,W,130);
+  // ── Info panel ──
+  const PX=76;let y=CH+128;
+  ctx.textAlign='left';ctx.fillStyle='#fff';
+  const nsz=fitText(ctx,f.name,W-PX*2,80,'700',FF);
+  ctx.fillText(f.name,PX,y);y+=Math.round(nsz*0.55)+38;
+  if(f.tag){ctx.font='500 44px '+FF;ctx.fillStyle='rgba(255,255,255,.7)';ctx.fillText(f.tag,PX,y);y+=92;}
+  else y+=48;
   if(f.availTxt){
-    ctx.beginPath();ctx.arc(88,y-16,13,0,Math.PI*2);
+    ctx.beginPath();ctx.arc(PX+13,y-15,13,0,Math.PI*2);
     ctx.fillStyle=f.availTxt==='Fully booked'?'#F2A28E':'#8FE39A';ctx.fill();
-    ctx.font='600 46px '+FF;ctx.fillStyle='#fff';
-    ctx.fillText(f.availTxt,124,y);
-    y+=92;
+    ctx.font='600 46px '+FF;ctx.fillStyle='#fff';ctx.fillText(f.availTxt,PX+44,y);y+=86;
   }
-  const factBits=[f.br?f.br+' BR':null,f.mn?'IDR '+f.mn+'M / month':null].filter(Boolean).join('  ·  ');
-  if(factBits){
-    ctx.font='700 56px '+FF;ctx.fillStyle='#fff';
-    ctx.fillText(factBits,72,y);
-    y+=100;
-  }
-  ctx.font='500 38px '+FF;ctx.fillStyle='rgba(255,255,255,.65)';
-  ctx.fillText('sambarentals.com'+(SLUGS[propId]?'/l/'+SLUGS[propId]:''),72,H-88);
-  if(f.handle){ctx.textAlign='right';ctx.fillText('@'+f.handle,W-72,H-88);ctx.textAlign='left';}
+  const factBits=[f.br?f.br+' BR':null,f.mn?'IDR '+f.mn+'M / month':null].filter(Boolean).join('   ·   ');
+  if(factBits){ctx.font='700 56px '+FF;ctx.fillStyle='#fff';ctx.fillText(factBits,PX,y);}
+  // CTA pill — anonymous, points at the poster's own DMs
+  const cta='DM me for more details';
+  ctx.font='600 46px '+FF;
+  const pillW=Math.ceil(ctx.measureText(cta).width)+80,pillH=98,pillY=H-pillH-66;
+  ctx.fillStyle='#C46E4B';roundRectPath(ctx,PX,pillY,pillW,pillH,pillH/2);ctx.fill();
+  ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(cta,PX+pillW/2,pillY+pillH/2+2);
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
   return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('export failed')),'image/png'));
 }
 async function shareStory(){
