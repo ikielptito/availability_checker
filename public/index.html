@@ -477,8 +477,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <button class="modal-action-btn modal-action-primary" id="modal-share-btn" onclick="shareModal()"></button>
 <a class="modal-action-btn" id="modal-drive-btn" href="#" target="_blank"></a>
 <a class="modal-action-btn modal-wa-btn" id="modal-wa-btn" href="#" target="_blank"></a>
-      <button class="modal-action-btn" id="modal-story-btn" onclick="shareStory()">Story image</button>
-      <button class="modal-action-btn" id="modal-caption-btn" onclick="copyCaption()">Copy caption</button>
+      <button class="modal-action-btn" id="modal-story-btn" onclick="shareStory()"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg><span>Share to Instagram</span></button>
     </div>
   </div>
 </div>
@@ -1175,8 +1174,8 @@ function doShare(propId, btn){
 }
 function shareModal(){ doShare(modalPropId, document.getElementById('modal-share-btn')); }
 
-// ── SOCIAL SHARING (Instagram story image + caption) ──
-// Facts shared by the caption and the story card.
+// ── SOCIAL SHARING (Instagram story image) ──
+// Facts drawn onto the story card.
 function shareFacts(propId){
   const info=PROPS[propId]||{};
   const p=properties.find(x=>String(x.id)===String(propId));
@@ -1189,25 +1188,6 @@ function shareFacts(propId){
   let url=slug?location.origin+'/l/'+slug:location.origin;
   if(slug&&handle)url+='?a='+encodeURIComponent(handle);
   return {info,p,br,mn,availTxt,url,handle,name:(info.name||(p&&p.name)||''),tag:info.tag||''};
-}
-function copyCaption(){
-  const f=shareFacts(modalPropId);
-  // Anonymous, agent-postable — no link, no Samba branding, no contact. The
-  // agent's own followers reply to the "DM me" line.
-  const lines=[
-    '🏡 '+f.name+(f.tag?' — '+f.tag:''),
-    [f.br?f.br+' bedroom'+(f.br>1?'s':''):null,f.mn?'IDR '+f.mn+'M / month':null].filter(Boolean).join(' · '),
-    f.availTxt?'📅 '+f.availTxt:null,
-    '',
-    '📩 DM me for more details',
-    '',
-    '#BaliRentals #CangguVilla #LongTermBali #MonthlyRentalBali'
-  ].filter(l=>l!==null);
-  navigator.clipboard.writeText(lines.join('\n')).then(()=>{
-    const b=document.getElementById('modal-caption-btn');
-    if(b){const o=b.textContent;b.textContent='Copied ✓';setTimeout(()=>{b.textContent=o;},1800);}
-  });
-  track('share',modalPropId,f.name);
 }
 function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>res(i);i.onerror=rej;i.src=src;});}
 // A listing's photos (cover + Drive folder), deduped, for the story collage.
@@ -1305,7 +1285,7 @@ async function makeStoryImage(propId){
 }
 async function shareStory(){
   const btn=document.getElementById('modal-story-btn');
-  const orig=btn?btn.textContent:'';
+  const orig=btn?btn.innerHTML:'';  // preserve the Instagram icon
   if(btn)btn.textContent='Generating…';
   try{
     const blob=await makeStoryImage(modalPropId);
@@ -1322,7 +1302,7 @@ async function shareStory(){
   }catch(e){
     if(btn)btn.textContent='Failed — try again';
   }
-  setTimeout(()=>{if(btn)btn.textContent=orig;},2000);
+  setTimeout(()=>{if(btn)btn.innerHTML=orig;},2000);
 }
 
 // ── CARD SHARE ──
