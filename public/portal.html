@@ -118,6 +118,11 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
 .fg input,.fg textarea,.fg select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 13px;font-family:'Geist',-apple-system,sans-serif;font-size:0.85rem;color:var(--text);outline:none;}
 .fg input:focus,.fg textarea:focus{border-color:var(--accent);}
 .fg textarea{resize:vertical;min-height:64px;}
+.ical-help{margin-top:6px;font-size:.78rem;color:var(--text-2);}
+.ical-help summary{cursor:pointer;color:var(--accent);font-weight:600;list-style:none;}
+.ical-help summary::before{content:'? ';font-weight:700;}
+.ical-help[open] summary{margin-bottom:6px;}
+.ical-help div{background:var(--surface2);border-radius:8px;padding:10px 12px;line-height:1.7;}
 .fg .hint{font-size:0.66rem;color:var(--muted);text-transform:none;letter-spacing:0;margin-top:5px;}
 .modal-actions{padding:14px 24px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border);}
 .modal-err{color:var(--red);font-size:0.78rem;padding:0 24px;}
@@ -243,7 +248,16 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
         <div class="hint">Share a Drive folder of photos (link sharing on). We pull images automatically.</div></div>
       <div class="fg"><label>Google Maps link</label><input id="f-mapLink" placeholder="https://maps.app.goo.gl/…"></div>
       <div class="fg"><label>Availability calendar (iCal link)</label><input id="f-icalUrl" placeholder="https://…/calendar.ics">
-        <div class="hint">Optional — an Airbnb/Hostex calendar export link. Booked dates sync automatically.</div></div>
+        <div class="hint">Optional — an Airbnb/Hostex calendar export link. Booked dates sync automatically.</div>
+        <details class="ical-help">
+          <summary>Where do I find this?</summary>
+          <div>
+            <b>Airbnb:</b> Calendar → Availability settings → Connect calendars → "Export calendar" → copy the link.<br>
+            <b>Booking.com:</b> Rates &amp; Availability → Sync calendars → "Export calendar" → copy the .ics link.<br>
+            <b>Hostex:</b> Listings → your property → Calendar → iCal export.<br>
+            No channel calendar? Leave this blank — you can mark booked dates manually and we'll follow up.
+          </div>
+        </details></div>
       <div class="frow">
         <div class="fg"><label>WhatsApp contact name</label><input id="f-waContactName" placeholder="e.g. Ketut"></div>
         <div class="fg"><label>WhatsApp number</label><input id="f-waNumber" placeholder="62812…"></div>

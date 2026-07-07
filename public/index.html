@@ -61,16 +61,19 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 @media(max-width:600px){.brand-mark img{height:38px}}
 /* Search */
 .search-section{padding:6px 20px 2px;max-width:960px;margin:0 auto;width:100%}
-.search-pill{position:relative;height:49px;background:var(--surface);border:var(--hairline);border-radius:999px;box-shadow:var(--shadow-float);display:flex;align-items:center;padding:0 56px 0 20px;transition:box-shadow .18s var(--ease),border-color .18s var(--ease)}
+.search-pill{position:relative;height:52px;background:var(--surface);border:var(--hairline);border-radius:999px;box-shadow:var(--shadow-float);display:flex;align-items:center;padding:0 60px 0 20px;transition:box-shadow .18s var(--ease),border-color .18s var(--ease)}
 .search-pill:focus-within{box-shadow:0 1px 2px rgba(28,25,23,.05),0 12px 32px rgba(28,25,23,.1);border-color:rgba(28,25,23,.1)}
 .search-ic{width:19px;height:19px;color:var(--subtle);margin-right:11px;flex-shrink:0}
 .search-input{flex:1;min-width:0;border:none;background:none;outline:none;font-family:inherit;font-size:14px;font-weight:500;color:var(--text)}
 .search-input::placeholder{color:var(--subtle)}
-.filter-fab{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:37px;height:37px;border-radius:50%;background:var(--primary);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(168,87,55,.28);transition:background .18s var(--ease),transform .18s var(--ease)}
+.filter-fab{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:var(--primary);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(168,87,55,.28);transition:background .18s var(--ease),transform .18s var(--ease)}
 .filter-fab:hover{background:var(--primary-2)}
 .filter-fab:active{background:var(--primary-3);transform:translateY(-50%) scale(.93)}
 .filter-fab.set::after{content:'';position:absolute;top:5px;right:5px;width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid var(--primary)}
 .filter-fab svg{width:17px;height:17px}
+/* A11y: visible focus for keyboard users only (:focus-visible skips taps/clicks) */
+button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.search-input:focus-visible{outline:none}
 /* Category icon cards */
 /* Search row companions — icon-only sort + view toggle */
 .search-row{display:flex;align-items:center;gap:8px}
@@ -80,6 +83,15 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .tool-btn:active{transform:scale(.92)}
 .tool-btn svg{width:17px;height:17px}
 .tool-btn.set{background:var(--primary-soft);color:var(--primary);border-color:rgba(196,110,75,.22)}
+/* Value prop — one dismissible line for first-time agents, above the grid */
+.value-prop{display:flex;align-items:center;gap:10px;max-width:960px;margin:0 auto;padding:12px 20px 0;width:100%;box-sizing:border-box}
+.value-prop p{flex:1;margin:0;font-size:12.5px;font-weight:500;color:var(--text-2);line-height:1.5}
+.value-prop p b{color:var(--text);font-weight:650}
+.value-prop button{background:none;border:none;color:var(--subtle);cursor:pointer;font-size:15px;line-height:1;padding:4px;flex-shrink:0}
+.value-prop button:hover{color:var(--text-2)}
+/* One-time coachmark — anchored under the view toggle */
+.coachmark{position:fixed;z-index:450;background:var(--text);color:#fff;font-size:12px;font-weight:550;line-height:1.5;padding:10px 14px;border-radius:12px;max-width:230px;box-shadow:0 6px 20px rgba(28,25,23,.3);animation:pop-in .25s var(--ease)}
+.coachmark::before{content:'';position:absolute;top:-5px;right:18px;width:10px;height:10px;background:var(--text);transform:rotate(45deg)}
 /* Contextual results line — only shows while a search/filter narrows the list */
 .results-line{display:flex;align-items:center;gap:10px;padding:10px 20px 0;max-width:960px;margin:0 auto;width:100%;font-size:12.5px;font-weight:500;color:var(--muted)}
 .results-line button{background:none;border:none;color:var(--primary);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:0}
@@ -172,6 +184,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .prop-meta.warn .avail-dot{background:#EBCE8C;box-shadow:0 0 8px rgba(235,206,140,.7)}
 .prop-meta>span{overflow:hidden;text-overflow:ellipsis}
 .prop-price{font-size:14px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;margin-top:1px}
+/* Card availability strip — the next 12 weeks as a slim band (green =
+   available, terracotta = booked), so multi-villa scanning works right on
+   the home grid without opening the Calendar view. */
+.card-strip{height:6px;border-radius:3px;margin:4px 0 1px;box-shadow:0 0 0 1px rgba(255,255,255,.28)}
 .prop-price span{font-size:11.5px;font-weight:500;color:rgba(255,255,255,.7)}
 .saved-banner{grid-column:1/-1;display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:20px;padding:16px 20px;box-shadow:var(--shadow)}
 .saved-banner b{font-size:1.05rem;font-weight:650;color:var(--text)}
@@ -258,14 +274,36 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .lrow-price{font-size:13.5px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
 .lrow-br{font-size:11.5px;font-weight:500;color:var(--muted)}
 .lrow>.chev{width:14px;height:14px;color:var(--subtle);flex-shrink:0}
-/* Timeline view — one availability band per villa across the next 12 weeks */
-.tl-head{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:2px 2px 0}
+/* Calendar view — multi-property availability scanner: one band per villa
+   across the next 12 weeks, PMS-style (sticky month scale, week ticks,
+   per-day hover tooltip, availability summary column). */
+.tl-legend{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:4px 2px 0}
+.tl-legend span{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--muted)}
+.tl-legend i{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.tl-legend .lg-av{background:#9ED3A0}.tl-legend .lg-bk{background:#EBB09C}.tl-legend .lg-nc{background:var(--surface2);border:var(--hairline)}
+.tl-head{grid-column:1/-1;position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:10px;padding:8px 2px 6px}
 .tl-scale{flex:1;display:flex}
 .tl-scale span{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-left:1px solid var(--border);padding-left:5px;white-space:nowrap;overflow:hidden}
 .tl-row{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:4px 2px;cursor:pointer;border-radius:10px;transition:background .18s var(--ease)}
 .tl-row:hover{background:var(--surface)}
-.tl-label{width:104px;flex-shrink:0;font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tl-band{flex:1;height:26px;border-radius:8px;border:var(--hairline)}
+.tl-label{width:150px;flex-shrink:0;display:flex;align-items:center;gap:8px;min-width:0}
+.tl-thumb{width:30px;height:30px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--surface2)}
+.tl-name{min-width:0}
+.tl-name b{display:block;font-size:12.5px;font-weight:650;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-name small{display:block;font-size:10.5px;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tl-band{flex:1;height:30px;border-radius:8px;border:var(--hairline);position:relative;overflow:hidden}
+/* Week rhythm — a faint tick every 7 days keeps long bands scannable */
+.tl-band::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to right,transparent 0,transparent calc(100%/12 - 1px),rgba(28,25,23,.08) calc(100%/12 - 1px),rgba(28,25,23,.08) calc(100%/12))}
+.tl-avail{width:76px;flex-shrink:0;text-align:right;font-size:11px;font-weight:600;color:var(--text-2);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+.tl-avail.full{color:#a8331f}.tl-avail.warn{color:#8a6d1f}
+.tl-tip{position:fixed;z-index:500;background:var(--text);color:#fff;font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:8px;pointer-events:none;display:none;white-space:nowrap;box-shadow:0 4px 14px rgba(28,25,23,.25)}
+@media(max-width:640px){
+  .tl-label{width:96px}
+  .tl-thumb{display:none}
+  .tl-avail{width:54px;font-size:10px}
+  .tl-head{top:-12px}
+  .tl-legend .tl-hint{display:none}
+}
 /* Back-to-top — appears after scrolling; sits above the floating bottom nav */
 .to-top{position:fixed;right:16px;bottom:92px;z-index:880;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:var(--hairline);box-shadow:var(--shadow-float);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .2s var(--ease),transform .2s var(--ease)}
 .to-top.on{opacity:1;pointer-events:auto;transform:none}
@@ -380,6 +418,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     <div id="samba-nav"></div>
   </div>
   <div id="browse-chrome">
+    <div class="value-prop" id="value-prop" style="display:none">
+      <p><b>Every long-stay villa in Canggu &amp; Pererenan, live.</b> Calendars sync daily — share any villa with your client and earn 10% commission, already included in the price.</p>
+      <button onclick="dismissValueProp()" aria-label="Dismiss">&#10005;</button>
+    </div>
     <div class="search-section">
       <div class="search-row">
       <div class="search-pill">
@@ -388,12 +430,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         <button class="filter-fab" onclick="openAllFilters()" aria-label="All filters"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></button>
       </div>
       <button class="tool-btn" id="sort-btn" onclick="openSortPop(event)" aria-label="Sort"></button>
-      <button class="tool-btn" id="view-btn" onclick="toggleView()" aria-label="Toggle view"></button>
+      <button class="tool-btn" id="view-btn" onclick="openViewPop(event)" aria-label="Change view"></button>
       </div>
     </div>
     <div class="results-line" id="results-line" style="display:none"></div>
   </div>
   <div class="pop" id="pop"></div>
+  <div class="tl-tip" id="tl-tip"></div>
   <div class="prop-grid" id="grid"></div>
   <button class="to-top" id="to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
   <div class="shortlists-wrap" id="shortlists" style="display:none"></div>
@@ -519,7 +562,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 <script>
 let properties=[], avail={}, failedAvail=new Set(), query='', bedroomFilter='all', sortMode='default';
 let availFilter='all', budgetFilter='all', durationFilter='all', pillWs=false, topPickId=null;
-let viewMode=localStorage.getItem('samba_view')||'bento'; // 'bento' | 'list' | 'timeline'
+let viewMode=localStorage.getItem('samba_view')||'bento'; // 'bento' | 'list' | 'timeline' (shown as "Calendar")
 let myFavorites=new Set(), myNotes={}, savedView=false;
 let myLists=[], shortlistsView=false, pickerListId=null, pickerQuery='';
 function getBedrooms(propId){
@@ -598,22 +641,27 @@ function renderChrome(){
     sb.classList.toggle('set',sortMode!=='default');
     sb.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg>';
   }
-  // Icon shows the NEXT view in the cycle: bento → list → timeline → bento
+  // View button shows the CURRENT view; tapping opens a popover naming all
+  // three, so the Calendar view is discoverable instead of hidden in a cycle.
   const vb=document.getElementById('view-btn');
   if(vb){
-    const icons={
-      list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/></svg>',
-      timeline:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="13" y2="6"/><line x1="7" y1="12" x2="19" y2="12"/><line x1="5" y1="18" x2="15" y2="18"/></svg>',
-      bento:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>'
-    };
-    const next=viewMode==='bento'?'list':(viewMode==='list'?'timeline':'bento');
-    vb.title={list:'List view',timeline:'Timeline view',bento:'Card view'}[next];
-    vb.innerHTML=icons[next];
+    vb.title='View: '+VIEW_LABELS[viewMode];
+    vb.innerHTML=VIEW_ICONS[viewMode];
+    vb.classList.toggle('set',viewMode!=='bento');
   }
 }
-function toggleView(){
-  viewMode=viewMode==='bento'?'list':(viewMode==='list'?'timeline':'bento');
+const VIEW_LABELS={bento:'Cards',list:'List',timeline:'Calendar'};
+const VIEW_ICONS={
+  list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/></svg>',
+  timeline:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  bento:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>'
+};
+function setView(v){
+  if(v===viewMode) return;
+  viewMode=v;
   try{localStorage.setItem('samba_view',viewMode);}catch(e){}
+  track('view_mode_'+(v==='timeline'?'calendar':v));
+  if(v==='timeline')track('calendar_scan_open');
   renderChrome();render();
 }
 // Timeline view: 12 weeks of availability as one gradient band per villa.
@@ -641,10 +689,30 @@ function tlScale(){
       start=i;
     }
   }
-  return '<div class="tl-head"><div class="tl-label"></div><div class="tl-scale">'
+  return '<div class="tl-legend"><span><i class="lg-av"></i>Available</span><span><i class="lg-bk"></i>Booked</span><span><i class="lg-nc"></i>No calendar</span><span class="tl-hint" style="margin-left:auto;font-weight:500">Next 12 weeks · tap a villa for details</span></div>'
+    +'<div class="tl-head"><div class="tl-label"></div><div class="tl-scale">'
     +spans.map(s=>'<span style="width:'+s.w.toFixed(2)+'%">'+(s.w>8?s.label:'')+'</span>').join('')
-    +'</div></div>';
+    +'</div><div class="tl-avail"></div></div>';
 }
+// Day-level hover tooltip on calendar bands — the band is a gradient, so the
+// date under the cursor is derived from the pointer's x-fraction of the band.
+function tlTip(ev,propId){
+  const tip=document.getElementById('tl-tip'); if(!tip) return;
+  const band=ev.currentTarget, r=band.getBoundingClientRect();
+  const idx=Math.min(TL_DAYS-1,Math.max(0,Math.floor((ev.clientX-r.left)/r.width*TL_DAYS)));
+  const d=new Date(TODAY);d.setDate(d.getDate()+idx);
+  const key=ds(d);
+  const booked=avail[propId];
+  const st=failedAvail.has(propId)?'No calendar data':(booked&&booked.has(key)?'Booked':'Available');
+  tip.textContent=MONTHS[d.getMonth()].slice(0,3)+' '+d.getDate()+' · '+st;
+  tip.style.display='block';
+  const tw=tip.offsetWidth;
+  let left=ev.clientX-tw/2;
+  if(left<8)left=8; if(left+tw>window.innerWidth-8)left=window.innerWidth-8-tw;
+  tip.style.left=left+'px';
+  tip.style.top=(r.top-34)+'px';
+}
+function tlTipHide(){const tip=document.getElementById('tl-tip');if(tip)tip.style.display='none';}
 function setBedrooms(v){bedroomFilter=v;history.replaceState(null,'',v==='all'?location.pathname:'?bedrooms='+v);renderChrome();render();}
 // Popover menus (shared element, fixed-positioned under the anchor)
 let popKind=null;
@@ -657,8 +725,9 @@ function openPop(kind,ev){
     :kind==='bed'?[{k:'all',l:'Any bedrooms'}].concat(bedroomCounts().map(n=>({k:String(n),l:n+' bedroom'+(n>1?'s':'')})))
     :kind==='budget'?BUDGET_OPTS
     :kind==='dur'?DUR_OPTS
+    :kind==='view'?[{k:'bento',l:'Cards'},{k:'list',l:'List'},{k:'timeline',l:'Calendar — scan all villas'}]
     :SORT_OPTIONS.map(o=>({k:o.key,l:o.label}));
-  const cur=kind==='avail'?availFilter:kind==='bed'?bedroomFilter:kind==='budget'?budgetFilter:kind==='dur'?durationFilter:sortMode;
+  const cur=kind==='avail'?availFilter:kind==='bed'?bedroomFilter:kind==='budget'?budgetFilter:kind==='dur'?durationFilter:kind==='view'?viewMode:sortMode;
   pop.innerHTML=opts.map(o=>'<button class="pop-item'+(o.k===cur?' on':'')+'" onclick="popPick(\''+kind+'\',\''+o.k+'\')">'+esc(o.l)+'<svg class="pop-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>').join('');
   pop.classList.add('open');
   const r=ev.currentTarget.getBoundingClientRect();
@@ -670,17 +739,52 @@ function openPop(kind,ev){
 }
 function closePop(){const pop=document.getElementById('pop');if(pop)pop.classList.remove('open');popKind=null;}
 function popPick(kind,val){
+  if(kind==='view'){closePop();setView(val);return;}
   if(kind==='avail')availFilter=val;
   else if(kind==='bed'){bedroomFilter=val;history.replaceState(null,'',val==='all'?location.pathname:'?bedrooms='+val);}
   else if(kind==='budget')budgetFilter=val;
   else if(kind==='dur')durationFilter=val;
   else if(kind==='ws')pillWs=(val==='yes');
-  else if(kind==='sort')sortMode=val;
+  else if(kind==='sort'){sortMode=val;if(val!=='default')track('sort_changed');}
+  if(kind!=='sort'&&val!=='all')track('filter_applied');
   closePop();renderChrome();render();
 }
 document.addEventListener('click',function(e){const pop=document.getElementById('pop');if(pop&&pop.classList.contains('open')&&!pop.contains(e.target))closePop();});
 window.addEventListener('scroll',function(){closePop();},{passive:true});
 function openSortPop(ev){openPop('sort',ev);}
+function openViewPop(ev){openPop('view',ev);}
+// One-tap WhatsApp enquiry straight from the card — same contact routing as
+// the modal CTA, without the card → modal → scroll detour.
+function cardEnquire(propId){
+  const info=PROPS[propId]||{};
+  const name=info.name||(properties.find(p=>p.id===propId)||{}).name||'this villa';
+  const waNum=info.waNumber||'6281246357778';
+  const waName=info.waContactName||'Era';
+  track('enquiry_from_card',propId,name);
+  track('whatsapp_click',propId,name);
+  window.open('https://wa.me/'+waNum+'?text='+encodeURIComponent('Hi '+waName+', I\'m interested in '+name+'. Could you tell me more?'),'_blank');
+}
+function dismissValueProp(){
+  try{localStorage.setItem('samba_vp_dismissed','1');}catch(e){}
+  const el=document.getElementById('value-prop');if(el)el.style.display='none';
+}
+// One-time coachmark pointing at the view toggle — the Calendar view is the
+// headline feature and a single icon button doesn't sell it by itself.
+function maybeCoach(){
+  let seen=null;try{seen=localStorage.getItem('samba_cm_cal');}catch(e){}
+  if(seen)return;
+  const vb=document.getElementById('view-btn');if(!vb)return;
+  const r=vb.getBoundingClientRect();if(!r.width)return;
+  const cm=document.createElement('div');
+  cm.className='coachmark';
+  cm.innerHTML='<b>New: Calendar view.</b> Scan availability across every villa at once.';
+  document.body.appendChild(cm);
+  cm.style.top=(r.bottom+10)+'px';
+  cm.style.right=Math.max(8,window.innerWidth-r.right-8)+'px';
+  const done=()=>{cm.remove();try{localStorage.setItem('samba_cm_cal','1');}catch(e){}};
+  setTimeout(()=>document.addEventListener('click',done,{once:true}),400);
+  setTimeout(done,9000);
+}
 // All-filters sheet (selections apply live)
 function renderAF(){
   const grp=(label,opts,cur,kind)=>'<div class="af-section"><div class="af-label">'+label+'</div><div class="af-opts">'+opts.map(o=>'<button class="af-opt'+(o.k===cur?' on':'')+'" onclick="afPick(\''+kind+'\',\''+o.k+'\')">'+esc(o.l)+'</button>').join('')+'</div></div>';
@@ -929,12 +1033,19 @@ function openModal(propId) {
       info.locationHighlights.map(f=>'<div class="detail-row">'+esc(f)+'</div>').join('')+'</div>';
   document.getElementById('modal-details').innerHTML=detailsHtml;
   // Full 6-month availability calendar (relocated here from the card).
+  // If the calendar sync failed, an empty booked-set would render as fully
+  // available — say what's actually going on instead of showing wrong data.
   const _bookedSet=avail[propId]||new Set();
-  document.getElementById('modal-calendar').innerHTML=buildSix(_bookedSet);
-  const _avL=availLabel(_bookedSet);
-  document.getElementById('modal-avail-prose').textContent=!_avL?'Fully booked for the next 6 months':
-    _avL.cls==='avail-now'?'Available now · '+_avL.window+' days open':
-    'Available from '+_avL.from+' · '+_avL.window+' days open';
+  if(failedAvail.has(propId)){
+    document.getElementById('modal-calendar').innerHTML='';
+    document.getElementById('modal-avail-prose').textContent='Calendar sync is unavailable for this villa right now, so live availability can\'t be shown. Enquire below to confirm dates.';
+  } else {
+    document.getElementById('modal-calendar').innerHTML=buildSix(_bookedSet);
+    const _avL=availLabel(_bookedSet);
+    document.getElementById('modal-avail-prose').textContent=!_avL?'Fully booked for the next 6 months':
+      _avL.cls==='avail-now'?'Available now · '+_avL.window+' days open':
+      'Available from '+_avL.from+' · '+_avL.window+' days open';
+  }
   let ph='';
   if(info.monthly) ph+='<div class="price-row"><span class="price-amount">'+fmtPrice(info.monthly)+'</span><span class="price-period">/ month</span></div>';
   if(info.yearly) ph+='<div class="price-row"><span class="price-amount">'+fmtPrice(info.yearly)+'</span><span class="price-period">/ year</span></div>';
@@ -1447,7 +1558,9 @@ async function boot() {
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('app').classList.add('on');
   document.getElementById('search').placeholder='Search '+properties.length+' properties';
-  track('page_view'); renderChrome(); showSkeletons(); await loadAll(); computeTopPick(); render(); setLastUpdated();
+  let _vpOff=null;try{_vpOff=localStorage.getItem('samba_vp_dismissed');}catch(e){}
+  if(!_vpOff)document.getElementById('value-prop').style.display='';
+  track('page_view'); renderChrome(); showSkeletons(); await loadAll(); computeTopPick(); render(); setLastUpdated(); maybeCoach();
 
   // Deep-link to a specific property — broadcasts use this so an agent
   // tapping a per-property link in WhatsApp lands directly on its modal
@@ -1683,11 +1796,20 @@ function render() {
     else if(av.cls==='avail-now'){avShort='Now';avLong='Available now';}
     else {avShort=av.from;avLong='Available '+av.from;}
     if(viewMode==='timeline'){
-      return _cxHdr+'<div class="tl-row" onclick="openModal(\''+p.id+'\')" title="'+esc(shortName(p.name))+'">'
-        +'<div class="tl-label">'+esc(shortName(p.name))+'</div>'
+      const _thumb=p.photo
+        ?'<img class="tl-thumb" src="'+p.photo.replace('=w1200','=w200')+'" loading="lazy" alt="">'
+        :'<div class="tl-thumb"></div>';
+      const _sub=(mn?mn+'M/mo':'')+(br?(mn?' · ':'')+br+' BR':'');
+      // Compact window label ("87d open" / "3mo open") — the full windowLabel
+      // text overflows this column on mobile widths.
+      let _tlWin='';
+      if(av&&!failedAvail.has(p.id)){const _w=parseInt(av.window)||0;_tlWin=(_w>=30?Math.round(_w/30)+'mo':_w+'d')+' open';}
+      return _cxHdr+'<div class="tl-row" onclick="track(\'calendar_row_click\',\''+p.id+'\');openModal(\''+p.id+'\')" title="'+esc(shortName(p.name))+'">'
+        +'<div class="tl-label">'+_thumb+'<div class="tl-name"><b>'+esc(shortName(p.name))+'</b>'+(_sub?'<small>'+_sub+'</small>':'')+'</div></div>'
         +(failedAvail.has(p.id)
           ?'<div class="tl-band" style="background:var(--surface2)"></div>'
-          :'<div class="tl-band" style="background:'+tlGradient(booked)+'"></div>')
+          :'<div class="tl-band" style="background:'+tlGradient(booked)+'" onmousemove="tlTip(event,\''+p.id+'\')" onmouseleave="tlTipHide()"></div>')
+        +'<div class="tl-avail'+dotCls+'">'+esc(avShort)+(_tlWin?'<br>'+_tlWin:'')+'</div>'
         +'</div>';
     }
     if(viewMode==='list'){
@@ -1707,6 +1829,7 @@ function render() {
       +'<div class="prop-gradient"></div>'
       +(p.id===topPickId?'<div class="top-pick">Top pick</div>':'')
       +'<div class="card-tools">'
+      +'<button class="card-tool" onclick="event.stopPropagation();cardEnquire(\''+p.id+'\')" aria-label="Enquire on WhatsApp" title="Enquire"><svg viewBox="0 0 24 24"><path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.73 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.89-7.01z"/></svg></button>'
       +'<button class="card-tool" onclick="event.stopPropagation();shareCard(\''+p.id+'\',\''+esc(p.name)+'\')" aria-label="Share villa" title="Share"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg></button>'
       +'<button class="card-tool fav'+(isFav?' on':'')+'" onclick="event.stopPropagation();toggleFav(\''+slug+'\')" aria-label="'+(isFav?'Remove from saved':'Save villa')+'" title="'+(isFav?'Saved':'Save')+'"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>'
       +'</div>'
@@ -1714,6 +1837,7 @@ function render() {
       +'<div class="prop-body">'
       +'<div class="prop-name">'+esc(shortName(p.name))+'</div>'
       +'<div class="prop-meta'+dotCls+'"><span class="avail-dot"></span><span>'+esc(avLong)+(br?' · '+br+' BR':'')+'</span></div>'
+      +(failedAvail.has(p.id)?'':'<div class="card-strip" title="Next 12 weeks · green = available" style="background:'+tlGradient(booked)+'"></div>')
       +(mn?'<div class="prop-price">IDR '+mn+'M <span>/ mo</span></div>':'')
       +'</div>'
       +'</div>';
@@ -1938,7 +2062,12 @@ function pickToggle(slug){
   const has=(list.slugs||[]).includes(slug);
   listApi({op:has?'remove':'add',id:pickerListId,slug:slug}).then(function(){ renderPicker(); });
 }
-function doFilter(){query=document.getElementById('search').value;render();}
+function doFilter(){
+  query=document.getElementById('search').value;
+  // Discovery metric: flag search usage once per session, not per keystroke.
+  if(query&&!sessionStorage.getItem('samba_srch')){sessionStorage.setItem('samba_srch','1');track('search_used');}
+  render();
+}
 function clearSearch(){const s=document.getElementById('search');s.value='';query='';bedroomFilter='all';sortMode='default';availFilter='all';budgetFilter='all';durationFilter='all';pillWs=false;history.replaceState(null,'',location.pathname);renderChrome();render();}
 async function doRefresh(){
   track('refresh');
