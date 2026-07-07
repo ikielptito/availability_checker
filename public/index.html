@@ -184,6 +184,10 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .prop-meta.warn .avail-dot{background:#EBCE8C;box-shadow:0 0 8px rgba(235,206,140,.7)}
 .prop-meta>span{overflow:hidden;text-overflow:ellipsis}
 .prop-price{font-size:14px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;margin-top:1px}
+/* Card availability strip — the next 12 weeks as a slim band (green =
+   available, terracotta = booked), so multi-villa scanning works right on
+   the home grid without opening the Calendar view. */
+.card-strip{height:6px;border-radius:3px;margin:4px 0 1px;box-shadow:0 0 0 1px rgba(255,255,255,.28)}
 .prop-price span{font-size:11.5px;font-weight:500;color:rgba(255,255,255,.7)}
 .saved-banner{grid-column:1/-1;display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:20px;padding:16px 20px;box-shadow:var(--shadow)}
 .saved-banner b{font-size:1.05rem;font-weight:650;color:var(--text)}
@@ -1833,6 +1837,7 @@ function render() {
       +'<div class="prop-body">'
       +'<div class="prop-name">'+esc(shortName(p.name))+'</div>'
       +'<div class="prop-meta'+dotCls+'"><span class="avail-dot"></span><span>'+esc(avLong)+(br?' · '+br+' BR':'')+'</span></div>'
+      +(failedAvail.has(p.id)?'':'<div class="card-strip" title="Next 12 weeks · green = available" style="background:'+tlGradient(booked)+'"></div>')
       +(mn?'<div class="prop-price">IDR '+mn+'M <span>/ mo</span></div>':'')
       +'</div>'
       +'</div>';
