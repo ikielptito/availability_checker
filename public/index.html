@@ -304,6 +304,13 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
   .tl-head{top:-12px}
   .tl-legend .tl-hint{display:none}
 }
+/* Very small phones — keep the modal and calendar grids readable */
+@media(max-width:360px){
+  .cal-month{width:150px}
+  .modal-box{border-radius:14px}
+  .avail-prose{font-size:.84rem}
+  .prop-grid{gap:9px;padding:10px 10px 150px}
+}
 /* Back-to-top — appears after scrolling; sits above the floating bottom nav */
 .to-top{position:fixed;right:16px;bottom:92px;z-index:880;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:var(--hairline);box-shadow:var(--shadow-float);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .2s var(--ease),transform .2s var(--ease)}
 .to-top.on{opacity:1;pointer-events:auto;transform:none}
@@ -419,7 +426,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
   </div>
   <div id="browse-chrome">
     <div class="value-prop" id="value-prop" style="display:none">
-      <p><b>Every long-stay villa in Canggu &amp; Pererenan, live.</b> Calendars sync daily — share any villa with your client and earn 10% commission, already included in the price.</p>
+      <p><b>Long-term villa rentals in Canggu &amp; Pererenan, with live calendars.</b> Share any villa with your client and earn 10% commission — already included in the price.</p>
       <button onclick="dismissValueProp()" aria-label="Dismiss">&#10005;</button>
     </div>
     <div class="search-section">
@@ -1134,6 +1141,17 @@ function closeModal(e) {
   // A11y: return focus to whatever opened the modal.
   if(_modalLastFocus&&_modalLastFocus.focus){try{_modalLastFocus.focus();}catch(e){}}
   _modalLastFocus=null;
+  maybeSignupPrompt();
+}
+
+// One-time sign-up pitch, shown at a value moment (the agent just looked at
+// a villa) rather than ambushing them on page load.
+function maybeSignupPrompt(){
+  let seen=null;try{seen=localStorage.getItem('samba_signup_prompted');}catch(e){}
+  if(seen)return;
+  if(window.SambaNav&&SambaNav.isSignedIn())return;
+  try{localStorage.setItem('samba_signup_prompted','1');}catch(e){}
+  setTimeout(()=>{if(window.SambaNav&&!SambaNav.isSignedIn())SambaNav.openSignIn();},600);
 }
 
 async function loadCarousel(propId,folderId) {
@@ -1348,8 +1366,8 @@ function roundRectPath(ctx,x,y,w,h,r){
   ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
 }
 // 1080×1920 Instagram story: a photo collage of the listing + a dark info
-// panel. Anonymous by design — no URL, no Samba branding, no contact — with a
-// "DM me for more details" CTA the agent's own followers respond to.
+// panel. Signed-in agents get their own identity block (photo, name, WhatsApp
+// number) + a Samba brand mark; guests get the anonymous "DM me" variant.
 async function makeStoryImage(propId){
   const f=shareFacts(propId);
   const W=1080,H=1920,CH=1180,G=8,FF='Geist,-apple-system,Helvetica,sans-serif';
@@ -1384,14 +1402,49 @@ async function makeStoryImage(propId){
   }
   const factBits=[f.br?f.br+' BR':null,f.mn?'IDR '+f.mn+'M / month':null].filter(Boolean).join('   ·   ');
   if(factBits){ctx.font='700 56px '+FF;ctx.fillStyle='#fff';ctx.fillText(factBits,PX,y);}
-  // CTA pill — anonymous, points at the poster's own DMs
-  const cta='DM me for more details';
+  // Agent identity block — the story carries the agent's own branding so
+  // their followers know exactly who to contact.
+  const _acct=window.SambaNav&&SambaNav.account;
+  const _prof=(_acct&&_acct.profile)||null;
+  let cta='DM me for more details';
+  if(_prof&&_prof.displayName&&_prof.waNumber){
+    const ad=110,ayTop=1580,ax=PX+ad/2,acy=ayTop+ad/2;
+    let drew=false;
+    const aphoto=_prof.photo||_acct.picture;
+    if(aphoto){
+      try{
+        const ai=await loadImg(aphoto);
+        ctx.save();ctx.beginPath();ctx.arc(ax,acy,ad/2,0,Math.PI*2);ctx.clip();
+        drawCover(ctx,ai,PX,ayTop,ad,ad);ctx.restore();drew=true;
+      }catch(e){}
+    }
+    if(!drew){
+      ctx.beginPath();ctx.arc(ax,acy,ad/2,0,Math.PI*2);ctx.fillStyle='#C46E4B';ctx.fill();
+      ctx.font='700 48px '+FF;ctx.fillStyle='#fff';ctx.textAlign='center';
+      ctx.fillText(_prof.displayName.trim().slice(0,1).toUpperCase(),ax,acy+17);
+      ctx.textAlign='left';
+    }
+    ctx.font='700 46px '+FF;ctx.fillStyle='#fff';
+    ctx.fillText(_prof.displayName,PX+ad+34,ayTop+46);
+    ctx.font='500 36px '+FF;ctx.fillStyle='rgba(255,255,255,.65)';
+    ctx.fillText((_prof.agency?_prof.agency+' · ':'')+'Samba agent',PX+ad+34,ayTop+96);
+    cta='WhatsApp me · +'+String(_prof.waNumber).replace(/[^0-9]/g,'');
+  }
   ctx.font='600 46px '+FF;
   const pillW=Math.ceil(ctx.measureText(cta).width)+80,pillH=98,pillY=H-pillH-66;
   ctx.fillStyle='#C46E4B';roundRectPath(ctx,PX,pillY,pillW,pillH,pillH/2);ctx.fill();
   ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText(cta,PX+pillW/2,pillY+pillH/2+2);
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  // Samba brand mark, bottom-right (logo when it loads, wordmark fallback)
+  try{
+    const lg=await loadImg('/logo-samba.png');
+    const lh=54,lw=lg.width/lg.height*lh;
+    ctx.globalAlpha=.92;ctx.drawImage(lg,W-PX-lw,pillY+(pillH-lh)/2,lw,lh);ctx.globalAlpha=1;
+  }catch(e){
+    ctx.font='600 34px '+FF;ctx.fillStyle='rgba(255,255,255,.5)';ctx.textAlign='right';
+    ctx.fillText('samba',W-PX,pillY+pillH/2+12);ctx.textAlign='left';
+  }
   return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('export failed')),'image/png'));
 }
 async function shareStory(){

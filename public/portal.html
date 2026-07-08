@@ -123,6 +123,9 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
 .ical-help summary::before{content:'? ';font-weight:700;}
 .ical-help[open] summary{margin-bottom:6px;}
 .ical-help div{background:var(--surface2);border-radius:8px;padding:10px 12px;line-height:1.7;}
+.lp-demo{display:block;margin:14px auto 0;background:none;border:none;color:var(--accent);font-family:inherit;font-size:.86rem;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
+.demo-banner{display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:.86rem;color:var(--text-2);}
+.demo-banner button{margin-left:auto;flex-shrink:0;background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:.8rem;font-weight:600;padding:8px 14px;cursor:pointer;}
 .fg .hint{font-size:0.66rem;color:var(--muted);text-transform:none;letter-spacing:0;margin-top:5px;}
 .modal-actions{padding:14px 24px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border);}
 .modal-err{color:var(--red);font-size:0.78rem;padding:0 24px;}
@@ -156,6 +159,7 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
     <div id="gbtn"></div>
     <div class="login-err" id="login-err"></div>
     <div class="lp-hero-note">New here? Signing in with Google creates your owner account automatically.</div>
+    <button class="lp-demo" onclick="enterDemo()">Just looking? Explore the dashboard with demo data →</button>
   </header>
 
   <div class="lp-trust">
@@ -326,9 +330,47 @@ function scrollToSignIn(){const g=document.getElementById('gbtn');if(g)g.scrollI
 function loginErr(msg){document.getElementById('login-err').textContent=msg||'';}
 
 async function api(path, opts={}){
+  if(DEMO){const d=demoApi(path);if(d)return d;}
   const r = await fetch(API+path, {credentials:'include', ...opts});
   let body=null; try{body=await r.json();}catch{}
   return {ok:r.ok, status:r.status, body};
+}
+
+// ── Demo mode: browse the dashboard with sample data, no account needed ──
+let DEMO=false;
+const DEMO_PROPS=[
+  {slug:'demo-frangipani',name:'Villa Frangipani',unitType:'3BR Villa',tag:'Pererenan',status:'approved',subscription:{status:'active'},monthly:'35jt'},
+  {slug:'demo-kelapa',name:'Villa Kelapa',unitType:'2BR Villa',tag:'Canggu',status:'pending_review',subscription:null,monthly:'28jt'},
+];
+function demoStats(mult){
+  return {properties:[
+    {slug:'demo-frangipani',details_open:Math.round(34*mult),share:Math.round(8*mult),listing_view:Math.round(19*mult),whatsapp_click:Math.round(5*mult),shares7:8,wa7:5,spark:[1,3,2,4,6,3,5,2,4,7,5,8,6,9]},
+    {slug:'demo-kelapa',details_open:0,share:0,listing_view:0,whatsapp_click:0,spark:[]},
+  ]};
+}
+function demoApi(path){
+  if(path.startsWith('?action=properties')) return {ok:true,status:200,body:{properties:DEMO_PROPS}};
+  if(path.startsWith('?action=analytics')){
+    const period=(path.match(/period=(\w+)/)||[])[1]||'30d';
+    return {ok:true,status:200,body:demoStats(period==='7d'?0.3:period==='all'?2.4:1)};
+  }
+  return {ok:true,status:200,body:{}};
+}
+function enterDemo(){
+  DEMO=true;
+  enterApp({name:'Demo Owner',email:'demo@sambarentals.com',picture:''});
+  const content=document.querySelector('#app .content');
+  if(content&&!document.getElementById('demo-banner')){
+    const b=document.createElement('div');
+    b.className='demo-banner';b.id='demo-banner';
+    b.innerHTML='<span>You’re browsing <b>demo data</b> — this is what your dashboard looks like once your villa is live.</span><button onclick="exitDemo()">Sign in to add your villa</button>';
+    content.prepend(b);
+  }
+}
+function exitDemo(){location.reload();}
+function demoBlock(){
+  if(confirm('This is the demo. Sign in with Google to manage a real villa — go to sign-in now?')) exitDemo();
+  return true;
 }
 
 // ── Boot: check for an existing session, else render sign-in ──
@@ -385,6 +427,7 @@ function enterApp(owner){
 }
 
 async function logout(){
+  if(DEMO)return exitDemo();
   await api('?action=auth/logout', {method:'POST'});
   location.reload();
 }
@@ -486,9 +529,10 @@ function statsStrip(slug){
 // ── Add / edit modal ──
 let editingSlug=null;
 
-function addProperty(){ openPropModal(null); }
+function addProperty(){ if(DEMO)return demoBlock(); openPropModal(null); }
 
 function editProperty(slug){
+  if(DEMO)return demoBlock();
   openPropModal(slug, myProps.find(p=>p.slug===slug));
 }
 
@@ -576,6 +620,7 @@ async function submitProperty(){
 }
 
 async function removeProperty(slug){
+  if(DEMO)return demoBlock();
   if(!confirm('Delete this property? This cannot be undone.'))return;
   const r=await api('?action=property&slug='+encodeURIComponent(slug),{method:'DELETE'});
   if(!r.ok){showToast(r.body?.error||'Could not delete.');return;}
@@ -585,6 +630,7 @@ async function removeProperty(slug){
 // ── Checkout: card billing is offline, so a promo code is the activation path ──
 let checkoutSlug=null;
 function openCheckout(slug){
+  if(DEMO)return demoBlock();
   checkoutSlug=slug;
   document.getElementById('f-promo').value='';
   document.getElementById('checkout-err').textContent='';
@@ -639,6 +685,7 @@ function launchPaddle(slug, promo){
 }
 
 async function manageBilling(){
+  if(DEMO)return demoBlock();
   const r=await fetch('/api/billing?action=portal-session',{method:'POST',credentials:'include'});
   let b=null; try{b=await r.json();}catch{}
   if(r.ok&&b?.url){ window.open(b.url,'_blank'); }

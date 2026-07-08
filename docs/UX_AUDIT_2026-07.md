@@ -76,19 +76,17 @@ Goal: Fortune-500-grade polish — reduce friction, increase intuitiveness, make
 5. **Chat PWA** — Samba warm reskin, AI/human badges, mode explanations, reply indicator, welcome flow, transitions.
 6. **Owner portal quick wins** — dark-warm tokens, iCal help, per-villa pricing clarity.
 
-## 5. Roadmap (prioritized, not this cycle)
+## 5. Roadmap — status after the July round 2 sweep
 
-1. **Merge `owner-portal` branch** — accounts/analytics/notifications are built but stranded.
-2. **Server-side PIN / real auth for chat PWA** — PIN currently readable in source.
-3. **Owner demo mode / free tier** — remove pay-before-value wall; biggest owner-funnel lever.
-4. **Maya media understanding** — transcribe voice notes, describe images (agents send both constantly).
-5. **Proactive Maya** — persona currently forbids outreach; allow scoped nudges (e.g. "a villa matching your client's dates just freed up") with frequency caps.
-6. **Escalation SLA** — if Ikiel hasn't replied in N hours, Maya sends a holding update; Telegram reminder escalation.
-7. **PWA app shell + offline** — cache shell & last 100 messages; deferred install prompt after first value moment.
-8. **Booking-conflict tooling** — surface double-booking risk across iCal sources.
-9. **Conversation archiving + CRM dashboard in chat PWA** — triage at scale as agent count grows.
-10. **Webhook rate limiting + template param validation** — hardening.
-11. **Mobile deep-polish** — bottom chrome height, <360px modal layout, swipe gestures.
+Done (round 2, Jul 2026): ~~owner-portal branch merge~~ (was already fully merged — stale item); owner **demo mode** on /portal; **Maya image understanding** (vision on inbound photos; voice notes escalate gracefully — true transcription still open, Anthropic API has no audio); **escalation SLA** (daily Telegram digest of paused chats left unread >3h); **offline app shell** for chat PWA + offline banner; **conversation archiving** (device-local); **webhook hardening** (optional `WEBHOOK_SHARED_SECRET` URL token — set the env var AND update the webhook URL in Meta Business Manager together); **PIN gate removed** per Ikiel (obscure URL only — revisit real auth if the inbox ever gets a second user); <360px modal/calendar polish; **agent share-performance stats** in the profile sheet.
+
+Still open, reprioritized:
+1. **Voice-note transcription** — needs a speech-to-text provider (Anthropic API has none); Whisper-API or Google STT.
+2. **Proactive Maya** — scoped nudges beyond the existing cron sequences/broadcasts (e.g. "a villa matching your client's dates freed up"); needs stored client date-intents first.
+3. **Real auth for chat PWA** — only if the inbox gains users beyond Ikiel.
+4. **Meta signature verification (X-Hub-Signature-256)** — requires raw-body access in the Vercel function (bodyParser off); URL-token hardening shipped as the interim.
+5. **Swipe gestures** (iOS back-swipe in PWA), bottom-chrome height tuning on the agent portal.
+6. ~~Booking-conflict tooling~~ — reconsidered and dropped: Samba takes no bookings itself; iCal + manual ranges are both "booked" sources and are already unioned, so there is no conflict surface to police.
 
 ## 6. Design system reference (evolved warm brand)
 

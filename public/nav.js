@@ -65,6 +65,10 @@
   .snav-x{background:none;border:none;font-size:1.5rem;line-height:1;color:#8a8478;cursor:pointer;padding:0 4px}
   .snav-box-body{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
   .snav-lede{color:#8a8478;font-size:.88rem;line-height:1.6;text-align:center}
+  .snav-benefits{list-style:none;margin:2px 0 6px;padding:0;display:flex;flex-direction:column;gap:9px}
+  .snav-benefits li{display:flex;gap:10px;align-items:flex-start;font-size:.84rem;line-height:1.5;color:#514C45}
+  .snav-benefits li b{color:#1C1917}
+  .snav-benefits .snav-bicon{flex-shrink:0;width:26px;height:26px;border-radius:8px;background:#F6E7DE;color:#B8613F;display:flex;align-items:center;justify-content:center;font-size:13px}
   .snav-gbtn{display:flex;justify-content:center;min-height:44px}
   .snav-guest{display:block;width:100%;text-align:center;background:none;border:none;color:#8a8478;font-family:inherit;font-size:.82rem;cursor:pointer;padding:4px;text-decoration:underline}
   .snav-acct-top{display:flex;align-items:center;gap:13px}
@@ -219,7 +223,16 @@
   function ensureSignIn() {
     var ov = document.getElementById('snav-signin'); if (ov) return ov;
     ov = document.createElement('div'); ov.className = 'snav-ov'; ov.id = 'snav-signin';
-    ov.innerHTML = '<div class="snav-box"><div class="snav-box-head"><div class="snav-box-title">Welcome to Samba</div><button class="snav-x" data-close>&times;</button></div><div class="snav-box-body"><p class="snav-lede">Sign in to save villas, build client shortlists, and share them.</p><div class="snav-gbtn" id="snav-gbtn"></div><div class="snav-err" id="snav-signin-err"></div><button class="snav-guest" data-close>Continue as guest</button></div></div>';
+    ov.innerHTML = '<div class="snav-box"><div class="snav-box-head"><div class="snav-box-title">Welcome to Samba</div><button class="snav-x" data-close>&times;</button></div><div class="snav-box-body">' +
+      '<p class="snav-lede">Free for agents — sign in with Google to unlock:</p>' +
+      '<ul class="snav-benefits">' +
+      '<li><span class="snav-bicon">♥</span><span><b>Save favourites</b> — synced on every device you use</span></li>' +
+      '<li><span class="snav-bicon">☰</span><span><b>Client shortlists</b> — pick villas, send one link</span></li>' +
+      '<li><span class="snav-bicon">👤</span><span><b>Personalised share pages</b> — every villa you share carries your name, photo and WhatsApp, so clients enquire with <b>you</b> directly</span></li>' +
+      '<li><span class="snav-bicon">✎</span><span><b>Private notes</b> on any villa</span></li>' +
+      '<li><span class="snav-bicon">🔗</span><span><b>Your public agent page</b> — one link with all your picks</span></li>' +
+      '</ul>' +
+      '<div class="snav-gbtn" id="snav-gbtn"></div><div class="snav-err" id="snav-signin-err"></div><button class="snav-guest" data-close>Continue as guest</button></div></div>';
     document.body.appendChild(ov);
     ov.addEventListener('click', function (e) { if (e.target === ov || e.target.hasAttribute('data-close')) ov.classList.remove('open'); });
     return ov;
@@ -273,6 +286,7 @@
       '<div class="snav-fg"><label>WhatsApp number <span class="snav-req">*required</span></label><input id="snav-pf-wa" value="' + esc(p.waNumber || '') + '" placeholder="62812…"></div>' +
       '<label class="snav-row"><input type="checkbox" id="snav-pf-public"' + (p.public ? ' checked' : '') + '> Make my agent profile public &amp; shareable</label>' +
       (pubLink ? '<div class="snav-fg"><label>Your shareable profile</label><div class="snav-link-box">' + esc(pubLink) + '</div></div>' : '') +
+      '<div class="snav-fg" id="snav-mystats" style="display:none"></div>' +
       '<div class="snav-err" id="snav-pf-err"></div>' +
       '<button class="snav-btn block" id="snav-pf-save">Save profile</button>' +
       '<div class="snav-div"></div>' +
@@ -281,6 +295,14 @@
     document.getElementById('snav-photo-input').onchange = onPhotoPick;
     document.getElementById('snav-pf-save').onclick = function () { saveAccount(onboarding); };
     document.getElementById('snav-logout').onclick = logout;
+    // Share performance — the agent's own attribution numbers, when any exist.
+    api('?action=my-stats').then(function (r) {
+      var s = r.ok && r.body && r.body.stats;
+      if (!s || (!s.views && !s.enquiries)) return;
+      var el = document.getElementById('snav-mystats'); if (!el) return;
+      el.style.display = '';
+      el.innerHTML = '<label>Your share performance</label><div class="snav-link-box"><b>' + s.views + '</b> link open' + (s.views === 1 ? '' : 's') + ' · <b>' + s.enquiries + '</b> WhatsApp enquir' + (s.enquiries === 1 ? 'y' : 'ies') + ' from your shares' + ((s.viewsThisMonth || s.enquiriesThisMonth) ? ' <span style="color:#8a8478">(' + s.viewsThisMonth + ' · ' + s.enquiriesThisMonth + ' this month)</span>' : '') + '</div>';
+    });
     ov.classList.add('open');
   }
   function onPhotoPick(e) {

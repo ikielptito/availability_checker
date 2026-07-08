@@ -145,6 +145,24 @@ export default async function handler(req, res) {
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
       return saveProfile(req, res, owner, { kvGet, kvSet });
     }
+    // Share attribution readback: how many listing opens + WhatsApp enquiries
+    // this agent's personalised links (?a=handle) have produced. Same hashes
+    // api/track.js writes; this just lets the agent see their own numbers.
+    if (action === 'my-stats' && req.method === 'GET') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      const handle = owner.profile?.handle;
+      if (!handle) return res.status(200).json({ stats: null });
+      const month = new Date().toISOString().slice(0, 7);
+      const rows = await kvPipeline([
+        ['HGET', 'attr:views', handle],
+        ['HGET', 'attr:wa', handle],
+        ['HGET', `attr:views:${month}`, handle],
+        ['HGET', `attr:wa:${month}`, handle],
+      ]);
+      const n = i => parseInt(rows?.[i]) || 0;
+      return res.status(200).json({ stats: { views: n(0), enquiries: n(1), viewsThisMonth: n(2), enquiriesThisMonth: n(3) } });
+    }
     // Public, unauthenticated: an agent's shareable profile or a shared shortlist.
     if (action === 'agent-public' && req.method === 'GET') {
       return agentPublic(req, res, { kvGet });
