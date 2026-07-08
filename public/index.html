@@ -113,6 +113,17 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .af-opt:active{transform:scale(.95)}
 .af-opt.on{background:var(--primary);border-color:var(--primary);color:#fff}
 .af-foot{display:flex;align-items:center;gap:16px;padding-top:8px}
+/* All-filters sheet: the header (with ✕) and footer (Reset/Done) stay put,
+   only the body scrolls — and it must fit the visible viewport, clear of the
+   bottom portal tabs (hidden while open) and the iOS home indicator. */
+#af-ov{overflow-y:hidden;padding:4vh 16px}
+#af-ov .pk-box{max-height:calc(100dvh - 8vh)}
+#af-body{flex:1;min-height:0;overflow-y:auto;padding:20px 20px 8px}
+#af-ov .af-foot{border-top:1px solid var(--border);padding:12px 20px calc(12px + env(safe-area-inset-bottom));margin:0}
+@media(max-width:640px){
+  #af-ov{padding:0;align-items:flex-end}
+  #af-ov .pk-box{max-width:none;border-radius:22px 22px 0 0;max-height:calc(100dvh - 32px)}
+}
 .af-reset{background:none;border:none;font-family:inherit;font-size:13px;font-weight:600;color:var(--text-2);text-decoration:underline;cursor:pointer;padding:8px}
 .af-done{flex:1;height:46px;border-radius:999px;background:var(--primary);color:#fff;border:none;font-family:inherit;font-size:14px;font-weight:600;letter-spacing:.01em;cursor:pointer;box-shadow:0 2px 8px rgba(168,87,55,.28);transition:background .18s var(--ease),transform .18s var(--ease)}
 .af-done:hover{background:var(--primary-2)}
@@ -553,7 +564,8 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 <div class="pk-ov" id="af-ov" onclick="if(event.target===this)closeAllFilters()">
   <div class="pk-box">
     <div class="pk-head"><div class="modal-title">Filters</div><div class="spacer"></div><button class="modal-close" onclick="closeAllFilters()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
-    <div style="padding:24px 20px 20px;overflow-y:auto" id="af-body"></div>
+    <div id="af-body"></div>
+    <div class="af-foot"><button class="af-reset" onclick="afReset()">Reset all</button><button class="af-done" onclick="closeAllFilters()">Done</button></div>
   </div>
 </div>
 
@@ -802,13 +814,23 @@ function renderAF(){
     +grp('Budget',BUDGET_OPTS,budgetFilter,'budget')
     +grp('Duration',DUR_OPTS,durationFilter,'dur')
     +grp('Workspace',[{k:'all',l:'Any'},{k:'yes',l:'With workspace'}],pillWs?'yes':'all','ws')
-    +'<div class="af-section"><div class="af-label">Locations</div><div class="af-opts"><button class="af-opt" onclick="closeAllFilters();openMapSheet()">'+icon('map','sm')+' Open map</button></div></div>'
-    +'<div class="af-foot"><button class="af-reset" onclick="afReset()">Reset all</button><button class="af-done" onclick="closeAllFilters()">Done</button></div>';
+    +'<div class="af-section"><div class="af-label">Locations</div><div class="af-opts"><button class="af-opt" onclick="closeAllFilters();openMapSheet()">'+icon('map','sm')+' Open map</button></div></div>';
 }
 function afPick(kind,val){popPick(kind,val);renderAF();}
 function afReset(){availFilter='all';budgetFilter='all';durationFilter='all';bedroomFilter='all';pillWs=false;history.replaceState(null,'',location.pathname);renderChrome();render();renderAF();}
-function openAllFilters(){renderAF();document.getElementById('af-ov').classList.add('open');}
-function closeAllFilters(){document.getElementById('af-ov').classList.remove('open');}
+function openAllFilters(){
+  renderAF();
+  document.getElementById('af-ov').classList.add('open');
+  document.body.style.overflow='hidden';
+  // Same as the villa modal: the floating portal tabs would sit on top of
+  // the sheet's footer, so they step aside while it's open.
+  const _t=document.getElementById('snav-tabs');if(_t)_t.style.display='none';
+}
+function closeAllFilters(){
+  document.getElementById('af-ov').classList.remove('open');
+  document.body.style.overflow='';
+  const _t=document.getElementById('snav-tabs');if(_t)_t.style.display='';
+}
 // Map sheet — real map (Leaflet + OpenStreetMap, no API key) with one pin per
 // location. Complex pins list their units; tapping a unit opens its details.
 // Coordinates come from the listing's mapEmbed URL; listings without one fall
