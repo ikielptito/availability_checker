@@ -190,9 +190,12 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .prop-body{position:absolute;bottom:0;left:0;right:0;z-index:2;padding:0 14px 14px;display:flex;flex-direction:column;gap:3px;text-shadow:0 1px 10px rgba(0,0,0,.45)}
 .prop-name{font-size:16px;font-weight:700;letter-spacing:-.015em;line-height:1.2;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prop-meta{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:rgba(255,255,255,.85);white-space:nowrap;overflow:hidden}
-.prop-meta .avail-dot{width:6px;height:6px;border-radius:50%;background:#8FE39A;box-shadow:0 0 8px rgba(143,227,154,.7);flex-shrink:0}
+.prop-meta .avail-dot{width:6px;height:6px;border-radius:50%;background:#8FE39A;box-shadow:0 0 8px rgba(143,227,154,.7);flex-shrink:0;box-sizing:border-box}
 .prop-meta.full .avail-dot{background:#F2A28E;box-shadow:0 0 8px rgba(242,162,142,.7)}
 .prop-meta.warn .avail-dot{background:#EBCE8C;box-shadow:0 0 8px rgba(235,206,140,.7)}
+.prop-meta.soon .avail-dot{background:transparent;border:1.5px solid #8FE39A;box-shadow:none}
+/* Open-window line — shown while sorting by stay duration */
+.prop-window{font-size:11.5px;font-weight:650;color:#B7E3BD;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prop-meta>span{overflow:hidden;text-overflow:ellipsis}
 .prop-price{font-size:14px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;margin-top:1px}
 /* Card availability strip — the next 12 weeks as a slim band (green =
@@ -278,9 +281,10 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .lrow-main{flex:1;min-width:0}
 .lrow-name{font-size:14px;font-weight:650;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lrow-meta{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden}
-.lrow-meta .avail-dot{width:6px;height:6px;border-radius:50%;background:#4CAF6D;flex-shrink:0}
+.lrow-meta .avail-dot{width:6px;height:6px;border-radius:50%;background:#4CAF6D;flex-shrink:0;box-sizing:border-box}
 .lrow-meta .avail-dot.full{background:#D96C4F}
 .lrow-meta .avail-dot.warn{background:#C9A227}
+.lrow-meta .avail-dot.soon{background:transparent;border:1.5px solid #4CAF6D}
 .lrow-right{text-align:right;flex-shrink:0}
 .lrow-price{font-size:13.5px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
 .lrow-br{font-size:11.5px;font-weight:500;color:var(--muted)}
@@ -340,9 +344,10 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .map-pop-row:hover{background:#F5F1EB}
 .map-pop-nm{flex:1;font-weight:500}
 .map-pop-row b{font-variant-numeric:tabular-nums}
-.map-pop .avail-dot{width:7px;height:7px;border-radius:50%;background:#4CAF6D;flex-shrink:0}
+.map-pop .avail-dot{width:7px;height:7px;border-radius:50%;background:#4CAF6D;flex-shrink:0;box-sizing:border-box}
 .map-pop .avail-dot.full{background:#D96C4F}
 .map-pop .avail-dot.warn{background:#C9A227}
+.map-pop .avail-dot.soon{background:transparent;border:1.5px solid #4CAF6D}
 .map-pop-gm{display:block;padding:8px 6px 2px;font-size:12px;font-weight:600;color:#C46E4B;text-decoration:none;border-top:1px solid #F1ECE7;margin-top:5px}
 .complex-tag{font-weight:500;letter-spacing:.08em;margin-left:6px;color:var(--subtle)}
 .complex-tag::before{content:'•  ';color:var(--subtle)}
@@ -548,6 +553,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
   <a href="/terms" style="color:var(--muted);text-decoration:none;margin:0 7px">Terms of Service</a>·
   <a href="/privacy" style="color:var(--muted);text-decoration:none;margin:0 7px">Privacy Policy</a>·
   <a href="/refund" style="color:var(--muted);text-decoration:none;margin:0 7px">Refund Policy</a>
+  <div style="margin-top:8px"><a href="mailto:sambarealtygroup@gmail.com" style="color:var(--muted);text-decoration:none">sambarealtygroup@gmail.com</a></div>
   <div style="margin-top:8px">© 2026 Samba · Bali, Indonesia</div>
 </footer>
 
@@ -697,6 +703,23 @@ function tlGradient(booked){
     }
   }
   return 'linear-gradient(to right,'+stops.join(',')+')';
+}
+// Month-start tick marks overlaid on availability strips, so the bar has a
+// time reference (each tick = the 1st of a month). Computed once per load.
+let _stripTicks=null;
+function stripTicks(){
+  if(_stripTicks)return _stripTicks;
+  const stops=['transparent 0%'];
+  for(let i=1;i<TL_DAYS;i++){
+    const d=new Date(TODAY);d.setDate(d.getDate()+i);
+    if(d.getDate()===1){
+      const a=(i/TL_DAYS*100).toFixed(2),b=(i/TL_DAYS*100+0.8).toFixed(2);
+      stops.push('transparent '+a+'%','rgba(28,25,23,.5) '+a+'%','rgba(28,25,23,.5) '+b+'%','transparent '+b+'%');
+    }
+  }
+  stops.push('transparent 100%');
+  _stripTicks='linear-gradient(to right,'+stops.join(',')+')';
+  return _stripTicks;
 }
 function tlScale(){
   const spans=[];let start=0;
@@ -1869,7 +1892,9 @@ function render() {
     if(failedAvail.has(p.id)){avShort='No calendar';avLong='Calendar unavailable';dotCls=' warn';}
     else if(!av){avShort='Booked';avLong='Fully booked';dotCls=' full';}
     else if(av.cls==='avail-now'){avShort='Now';avLong='Available now';}
-    else {avShort=av.from;avLong='Available '+av.from;}
+    // Frees up later — hollow dot, so solid green stays exclusive to
+    // "available now" instead of every not-fully-booked villa.
+    else {avShort=av.from;avLong='Available '+av.from;dotCls=' soon';}
     if(viewMode==='timeline'){
       const _thumb=p.photo
         ?'<img class="tl-thumb" src="'+p.photo.replace('=w1200','=w200')+'" loading="lazy" alt="">'
@@ -1912,7 +1937,8 @@ function render() {
       +'<div class="prop-body">'
       +'<div class="prop-name">'+esc(shortName(p.name))+'</div>'
       +'<div class="prop-meta'+dotCls+'"><span class="avail-dot"></span><span>'+esc(avLong)+(br?' · '+br+' BR':'')+'</span></div>'
-      +(failedAvail.has(p.id)?'':'<div class="card-strip" title="Next 12 weeks · green = available" style="background:'+tlGradient(booked)+'"></div>')
+      +(sortMode==='duration'&&windowTxt?'<div class="prop-window">'+esc(windowTxt)+'</div>':'')
+      +(failedAvail.has(p.id)?'':'<div class="card-strip" title="Next 12 weeks · ticks mark month starts · green = available" style="background:'+stripTicks()+','+tlGradient(booked)+'"></div>')
       +(mn?'<div class="prop-price">IDR '+mn+'M <span>/ mo</span></div>':'')
       +'</div>'
       +'</div>';
