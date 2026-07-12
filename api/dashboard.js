@@ -4,6 +4,18 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  // ── Per-agent funnel for the CRM (sync-secret auth, not the dashboard pwd) ──
+  // Folded here to stay under Vercel Hobby's 12-function cap. Returns per CRM
+  // agent id: clicks/enquiries/last-seen + channel totals, for the CRM to join
+  // with message read-rates into the sent→read→clicked→enquired funnel.
+  if (req.query.agent_funnel === '1') {
+    const secret = process.env.LISTING_SYNC_SECRET;
+    if (secret && (req.headers.authorization || '') !== `Bearer ${secret}`) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    return handleAgentFunnel(req, res);
+  }
+
   // Password check (shared between analytics GET and notify-agents POST).
   // Accept ADMIN_PASSWORD too so the unified /admin console's single login
   // works for the embedded analytics tab regardless of which env var is set.
@@ -270,4 +282,55 @@ async function handleNotifyAgents(req, res) {
     snapshot_entries_written: Object.keys(flippedSnapshot).length,
     cron_response: cronBody.availability || cronBody,
   });
+}
+
+// Per-agent portal engagement for the CRM funnel join. Reads the durable
+// per-agent counters written by api/track.js (agent:{aid}:events / :last_seen)
+// plus channel totals. Auth is checked by the caller (sync-secret).
+async function handleAgentFunnel(req, res) {
+  const url = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  if (!url || !token) return res.status(500).json({ error: 'Redis not configured' });
+  const kv = async (cmds) => {
+    const r = await fetch(`${url}/pipeline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(cmds),
+    });
+    return r.json();
+  };
+  try {
+    const membersRes = await fetch(`${url}/smembers/unique:agents:all`, { headers: { Authorization: `Bearer ${token}` } });
+    const members = (await membersRes.json())?.result || [];
+    const aids = members.filter(a => /^\d{1,12}$/.test(String(a)));
+    const agents = {};
+    if (aids.length) {
+      const cmds = [];
+      aids.forEach(aid => { cmds.push(['HGETALL', `agent:${aid}:events`], ['GET', `agent:${aid}:last_seen`]); });
+      const results = await kv(cmds);
+      const toObj = (arr) => { const o = {}; if (Array.isArray(arr)) for (let i = 0; i < arr.length; i += 2) o[arr[i]] = Number(arr[i + 1]) || 0; return o; };
+      aids.forEach((aid, i) => {
+        const ev = toObj(results[i * 2]?.result);
+        const lastSeen = results[i * 2 + 1]?.result;
+        const clicks = (ev.listing_view || 0) + (ev.details_open || 0) + (ev.photo_view || 0);
+        const enquiries = ev.whatsapp_click || 0;
+        if (clicks || enquiries || lastSeen) agents[aid] = { clicks, enquiries, page_views: ev.page_view || 0, last_seen: lastSeen ? Number(lastSeen) : null };
+      });
+    }
+    const today = new Date().toISOString().split('T')[0];
+    let channels = {};
+    try {
+      const ch = await kv([
+        ['GET', 'total:src:wa_alert'], ['GET', 'total:src:wa_digest'],
+        ['GET', `day:${today}:src:wa_alert`], ['GET', `day:${today}:src:wa_digest`],
+      ]);
+      channels = {
+        wa_alert_all: Number(ch[0]?.result) || 0, wa_digest_all: Number(ch[1]?.result) || 0,
+        wa_alert_today: Number(ch[2]?.result) || 0, wa_digest_today: Number(ch[3]?.result) || 0,
+      };
+    } catch { /* best-effort */ }
+    return res.status(200).json({ agents, count: Object.keys(agents).length, channels });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
 }
