@@ -298,6 +298,7 @@ export default async function handler(req, res) {
         monthly: cleanStr(data.monthly),
         yearly: cleanStr(data.yearly),
         yearly2: cleanStr(data.yearly2),
+        badge: cleanStr(data.badge).slice(0, 24),
         folder: cleanStr(data.folder),
         waNumber: cleanStr(data.waNumber).replace(/[^0-9]/g, ''),
         waContactName: cleanStr(data.waContactName),
@@ -334,6 +335,9 @@ export default async function handler(req, res) {
       monthly: typeof data.monthly === 'string' ? data.monthly.trim() : existing.monthly || DEFAULTS[slug].monthly,
       yearly: typeof data.yearly === 'string' ? data.yearly.trim() : existing.yearly || DEFAULTS[slug].yearly,
       yearly2: typeof data.yearly2 === 'string' ? data.yearly2.trim() : existing.yearly2 ?? DEFAULTS[slug].yearly2,
+      // Manual marketing badge ("Price drop", "New") — shown on the portal card
+      // and synced to Maya's CRM so her messages can lead with it.
+      badge: typeof data.badge === 'string' ? data.badge.trim().slice(0, 24) : existing.badge || '',
       tag: typeof data.tag === 'string' ? data.tag.trim() : existing.tag || DEFAULTS[slug].tag,
       location: typeof data.location === 'string' ? data.location.trim() : existing.location || DEFAULTS[slug].location,
       mapEmbed: typeof data.mapEmbed === 'string' ? data.mapEmbed.trim() : existing.mapEmbed || DEFAULTS[slug].mapEmbed,

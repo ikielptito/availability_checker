@@ -136,6 +136,15 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
 </head>
 <body>
 
+<!-- Suggested marketing badges for the listing editors (free text allowed) -->
+<datalist id="badge-suggestions">
+  <option value="Price drop"></option>
+  <option value="New"></option>
+  <option value="Just renovated"></option>
+  <option value="Last unit"></option>
+  <option value="Available now"></option>
+</datalist>
+
 <div id="login">
   <div class="login-box">
     <div class="login-brand">Admin</div>
@@ -474,6 +483,10 @@ function defaultCard(l) {
           <label class="field-label">2-Year (optional)</label>
           <input class="field-input" id="${l.slug}-yearly2" value="${esc(l.yearly2 || '')}" placeholder="e.g. 500jt" />
         </div>
+        <div class="field-group">
+          <label class="field-label">Badge (optional)</label>
+          <input class="field-input" id="${l.slug}-badge" value="${esc(l.badge || '')}" placeholder="e.g. Price drop / New" maxlength="24" list="badge-suggestions" />
+        </div>
       </div>
 
       <div class="section-label">Description</div>
@@ -612,6 +625,10 @@ function customCard(l, isNew) {
           <label class="field-label">2-Year (optional)</label>
           <input class="field-input" id="${slug}-yearly2" value="${esc(l.yearly2 || '')}" placeholder="e.g. 500jt" />
         </div>
+        <div class="field-group">
+          <label class="field-label">Badge (optional)</label>
+          <input class="field-input" id="${slug}-badge" value="${esc(l.badge || '')}" placeholder="e.g. Price drop / New" maxlength="24" list="badge-suggestions" />
+        </div>
       </div>
 
       <div class="section-label">Description</div>
@@ -695,6 +712,7 @@ async function saveCustom(cardSlug, isNew) {
     monthly: document.getElementById(cardSlug + '-monthly').value,
     yearly: document.getElementById(cardSlug + '-yearly').value,
     yearly2: document.getElementById(cardSlug + '-yearly2').value,
+    badge: document.getElementById(cardSlug + '-badge').value,
     overview: document.getElementById(cardSlug + '-overview').value,
     features: lines(document.getElementById(cardSlug + '-features').value),
     inclusions: lines(document.getElementById(cardSlug + '-inclusions').value),
@@ -892,6 +910,7 @@ async function saveListing(slug) {
     monthly: document.getElementById(slug + '-monthly').value,
     yearly: document.getElementById(slug + '-yearly').value,
     yearly2: document.getElementById(slug + '-yearly2').value,
+    badge: document.getElementById(slug + '-badge').value,
     overview: document.getElementById(slug + '-overview').value,
     features: lines(document.getElementById(slug + '-features').value),
     inclusions: lines(document.getElementById(slug + '-inclusions').value),
