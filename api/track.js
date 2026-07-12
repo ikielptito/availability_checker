@@ -71,6 +71,23 @@ export default async function handler(req, res) {
   if (agentId) {
     cmds.push(['SADD', `unique:agents:${day}`, String(agentId)]);
     cmds.push(['SADD', 'unique:agents:all', String(agentId)]);
+    // Durable per-agent counters so the CRM can build a real per-agent funnel
+    // (read-rate lives in the CRM; clicks/enquiries live here). Guard the id to
+    // digits so it can't inject odd KV keys.
+    const aid = /^\d{1,12}$/.test(String(agentId)) ? String(agentId) : null;
+    if (aid) {
+      cmds.push(['HINCRBY', `agent:${aid}:events`, event, '1']);
+      cmds.push(['SET', `agent:${aid}:last_seen`, String(now)]);
+      if (propId) cmds.push(['HINCRBY', `agent:${aid}:props`, `${propId}:${event}`, '1']);
+    }
+  }
+
+  // Channel attribution — quantify broadcast-driven vs organic traffic. `src`
+  // comes from the CRM tracked links (?ref=wa_alert / wa_digest); organic
+  // visitors have none. Previously src was only in the transient events buffer.
+  if (src && /^[a-z0-9_]{1,24}$/i.test(String(src))) {
+    const s = String(src).toLowerCase();
+    cmds.push(['INCR', `day:${day}:src:${s}`], ['INCR', `total:src:${s}`], ['INCR', `month:${month}:src:${s}`]);
   }
 
   // Share attribution: listing pages opened from an agent's personalised
