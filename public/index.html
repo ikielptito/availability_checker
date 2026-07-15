@@ -166,12 +166,12 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 @media(max-width:640px){.prop-grid{grid-template-columns:repeat(2,1fr);padding:12px 14px 150px;gap:11px}}
 /* Property card — one uniform tile: full-bleed photo, gradient, overlaid info.
    Tap anywhere opens details. No expand/collapse. */
-.prop-card{position:relative;width:100%;border-radius:20px;overflow:hidden;background:#1a1816;cursor:pointer;transform:translateZ(0);box-shadow:0 1px 2px rgba(0,0,0,.05),0 6px 18px rgba(0,0,0,.08);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
+.prop-card{position:relative;width:100%;border-radius:20px;overflow:hidden;background:var(--surface);border:var(--hairline);cursor:pointer;transform:translateZ(0);box-shadow:0 1px 2px rgba(0,0,0,.05),0 6px 18px rgba(0,0,0,.08);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
 .prop-card.pre{opacity:0}
 .prop-card.in{opacity:1;animation:card-in .45s var(--ease)}
 @keyframes card-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .prop-card:hover{transform:translateY(-3px);box-shadow:0 2px 4px rgba(0,0,0,.08),0 16px 38px rgba(0,0,0,.16)}
-.prop-media{position:relative;aspect-ratio:4/5;background:#2a2622;overflow:hidden}
+.prop-media{position:relative;aspect-ratio:4/3;background:#2a2622;overflow:hidden}
 .prop-hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease)}
 .prop-card:hover .prop-hero-img{transform:scale(1.04)}
 .prop-hero-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.25);background:#2a2622}
@@ -202,6 +202,17 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .prop-meta>span{overflow:hidden;text-overflow:ellipsis}
 .prop-price{font-size:14px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;margin-top:1px}
 .prop-price span{font-size:11.5px;font-weight:500;color:rgba(255,255,255,.7)}
+/* Card calendar footer — a real mini month grid under the photo (reuses the
+   modal's buildMonth cell classes, sized down). Month is set globally by the
+   chip bar above the grid so every card shows the same month. */
+.prop-cal{padding:8px 10px 11px}
+.prop-cal-lbl{font-size:10.5px;font-weight:650;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.prop-cal .dow{font-size:8.5px}
+.prop-cal .day{font-size:10.5px;border-radius:4px}
+.prop-cal-nc{font-size:11px;font-weight:500;color:var(--subtle);padding:8px 0 4px}
+.calbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:2px 2px 0}
+.calbar>span{font-size:11px;font-weight:600;color:var(--muted)}
+.mc-jump button.on{background:var(--text);border-color:var(--text);color:#fff}
 .saved-banner{grid-column:1/-1;display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:20px;padding:16px 20px;box-shadow:var(--shadow)}
 .saved-banner b{font-size:1.05rem;font-weight:650;color:var(--text)}
 .saved-banner button{margin-left:auto;background:var(--surface2);border:none;border-radius:999px;color:var(--text-2);padding:10px 16px;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer}
@@ -266,7 +277,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .btn-quiet:hover{color:var(--text)}
 .btn-quiet:active{transform:scale(.96)}
 .skel-card{width:100%;border-radius:20px;overflow:hidden;background:var(--surface);border:var(--hairline);box-shadow:var(--shadow)}
-.skel-media{aspect-ratio:4/5;background:linear-gradient(100deg,var(--surface2) 40%,#fdfcfa 50%,var(--surface2) 60%);background-size:200% 100%;animation:shimmer 1.4s linear infinite}
+.skel-media{aspect-ratio:4/3;background:linear-gradient(100deg,var(--surface2) 40%,#fdfcfa 50%,var(--surface2) 60%);background-size:200% 100%;animation:shimmer 1.4s linear infinite}
 .skel-bar{border-radius:8px;background:var(--surface2);animation:shimmer-soft 1.4s ease-in-out infinite}
 @keyframes shimmer{to{background-position:-200% 0}}
 @keyframes shimmer-soft{0%,100%{opacity:.6}50%{opacity:1}}
@@ -778,6 +789,22 @@ function buildMultiCal(list,cxCount,groupSingles){
     rows+=mcRow(p,colCls,days);
   });
   return bar+'<div class="mc-wrap"><div class="mc">'+head+rows+'</div></div>';
+}
+// Card calendars: every card shows the same month, chosen by one global chip
+// bar (current month + next 3, matching the multi-calendar horizon).
+// Lazy init — TODAY is declared further down the script.
+let cardMonth=null;
+function getCardMonth(){if(!cardMonth)cardMonth={y:TODAY.getFullYear(),m:TODAY.getMonth()};return cardMonth;}
+function setCardMonth(y,m){cardMonth={y:y,m:m};track('card_month_chip');render();}
+function cardMonthChips(){
+  const cur=getCardMonth();
+  let h='';
+  for(let i=0;i<4;i++){
+    const d=new Date(TODAY.getFullYear(),TODAY.getMonth()+i,1);
+    const on=d.getFullYear()===cur.y&&d.getMonth()===cur.m;
+    h+='<button class="'+(on?'on':'')+'" onclick="setCardMonth('+d.getFullYear()+','+d.getMonth()+')">'+MONTHS[d.getMonth()].slice(0,3)+'</button>';
+  }
+  return '<div class="calbar"><span>Calendar month</span><div class="mc-jump">'+h+'</div></div>';
 }
 // Jump chips: scroll the frame so the 1st of the month lands just right of
 // the sticky villa column. -1 = back to today (leftmost).
@@ -1842,7 +1869,7 @@ async function loadAll() {
 
 function showSkeletons() {
   document.getElementById('grid').innerHTML=properties.map(()=>(
-    '<div class="skel-card"><div class="skel-media"></div></div>'
+    '<div class="skel-card"><div class="skel-media"></div><div class="skel-bar" style="height:132px;margin:10px;border-radius:10px"></div></div>'
   )).join('');
 }
 
@@ -1928,7 +1955,7 @@ function render() {
     return;
   }
   let _cxPrev='';
-  grid.innerHTML=savedBanner+filtered2.map((p,i)=>{
+  grid.innerHTML=savedBanner+(viewMode==='bento'?cardMonthChips():'')+filtered2.map((p,i)=>{
     let _cxCur=complexOf(p.name);
     const _single=groupSingles&&cxCount[_cxCur]===1;
     if(_single)_cxCur='More villas';
@@ -1973,12 +2000,15 @@ function render() {
       +'<button class="card-tool" onclick="event.stopPropagation();shareCard(\''+p.id+'\',\''+esc(p.name)+'\')" aria-label="Share villa" title="Share"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg></button>'
       +'<button class="card-tool fav'+(isFav?' on':'')+'" onclick="event.stopPropagation();toggleFav(\''+slug+'\')" aria-label="'+(isFav?'Remove from saved':'Save villa')+'" title="'+(isFav?'Saved':'Save')+'"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>'
       +'</div>'
-      +'</div>'
       +'<div class="prop-body">'
       +'<div class="prop-name">'+esc(shortName(p.name))+'</div>'
       +'<div class="prop-meta'+dotCls+'"><span class="avail-dot"></span><span>'+esc(avLong)+(br?' · '+br+' BR':'')+'</span></div>'
       +(sortMode==='duration'&&windowTxt?'<div class="prop-window">'+esc(windowTxt)+'</div>':'')
       +(mn?'<div class="prop-price">IDR '+mn+'M <span>/ mo</span></div>':'')
+      +'</div>'
+      +'</div>'
+      +'<div class="prop-cal"><div class="prop-cal-lbl">'+MONTHS[getCardMonth().m]+' '+getCardMonth().y+'</div>'
+      +(failedAvail.has(p.id)?'<div class="prop-cal-nc">No calendar data</div>':buildMonth(getCardMonth().y,getCardMonth().m,booked))
       +'</div>'
       +'</div>';
   }).join('');
