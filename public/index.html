@@ -201,10 +201,6 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .prop-window{font-size:11.5px;font-weight:650;color:#B7E3BD;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prop-meta>span{overflow:hidden;text-overflow:ellipsis}
 .prop-price{font-size:14px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;margin-top:1px}
-/* Card availability strip — the next 12 weeks as a slim band (green =
-   available, terracotta = booked), so multi-villa scanning works right on
-   the home grid without opening the Calendar view. */
-.card-strip{height:6px;border-radius:3px;margin:4px 0 1px;box-shadow:0 0 0 1px rgba(255,255,255,.28)}
 .prop-price span{font-size:11.5px;font-weight:500;color:rgba(255,255,255,.7)}
 .saved-banner{grid-column:1/-1;display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:20px;padding:16px 20px;box-shadow:var(--shadow)}
 .saved-banner b{font-size:1.05rem;font-weight:650;color:var(--text)}
@@ -258,7 +254,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .dow{font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center;padding-bottom:4px;font-weight:600}
 .day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:.68rem;border-radius:3px;font-weight:500;color:var(--text-2)}
 .day.avail{background:var(--avail);color:var(--avail-text);font-weight:600}
-.day.booked{background:var(--booked);color:var(--booked-text);font-weight:600}
+.day.booked{background:var(--surface2);color:var(--subtle);font-weight:500;text-decoration:line-through;text-decoration-color:rgba(28,25,23,.3)}
 .day.past{opacity:.3}.day.empty{background:transparent}
 .day.today{outline:2px solid var(--today-ring);outline-offset:-1px;font-weight:700;color:var(--today-ring);background:var(--today-bg)}
 .prop-card.kb-focused{outline:2px solid var(--primary);outline-offset:3px}
@@ -292,35 +288,58 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .lrow-price{font-size:13.5px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
 .lrow-br{font-size:11.5px;font-weight:500;color:var(--muted)}
 .lrow>.chev{width:14px;height:14px;color:var(--subtle);flex-shrink:0}
-/* Calendar view — multi-property availability scanner: one band per villa
-   across the next 12 weeks, PMS-style (sticky month scale, week ticks,
-   per-day hover tooltip, availability summary column). */
-.tl-legend{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:4px 2px 0}
-.tl-legend span{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--muted)}
-.tl-legend i{width:12px;height:12px;border-radius:3px;flex-shrink:0}
-.tl-legend .lg-av{background:#9ED3A0}.tl-legend .lg-bk{background:#EBB09C}.tl-legend .lg-nc{background:var(--surface2);border:var(--hairline)}
-.tl-head{grid-column:1/-1;position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:10px;padding:8px 2px 6px}
-.tl-scale{flex:1;display:flex}
-.tl-scale span{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-left:1px solid var(--border);padding-left:5px;white-space:nowrap;overflow:hidden}
-.tl-row{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:4px 2px;cursor:pointer;border-radius:10px;transition:background .18s var(--ease)}
-.tl-row:hover{background:var(--surface)}
-.tl-label{width:150px;flex-shrink:0;display:flex;align-items:center;gap:8px;min-width:0}
-.tl-thumb{width:30px;height:30px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--surface2)}
-.tl-name{min-width:0}
-.tl-name b{display:block;font-size:12.5px;font-weight:650;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tl-name small{display:block;font-size:10.5px;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
-.tl-band{flex:1;height:30px;border-radius:8px;border:var(--hairline);position:relative;overflow:hidden}
-/* Week rhythm — a faint tick every 7 days keeps long bands scannable */
-.tl-band::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to right,transparent 0,transparent calc(100%/12 - 1px),rgba(28,25,23,.08) calc(100%/12 - 1px),rgba(28,25,23,.08) calc(100%/12))}
-.tl-avail{width:76px;flex-shrink:0;text-align:right;font-size:11px;font-weight:600;color:var(--text-2);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
-.tl-avail.full{color:#a8331f}.tl-avail.warn{color:#8a6d1f}
+/* Calendar view — traditional multi-calendar (PMS-style, as in Guesty /
+   Hostaway / Airbnb pro tools): one row per villa, real day columns grouped
+   by month, booked spans drawn as solid rounded bars over a thin green
+   "available" track (thickness + color = redundant encoding). Sticky villa
+   column + sticky month/date header inside one scrollable frame. */
+.mc-bar{grid-column:1/-1;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:4px 2px 2px}
+.mc-lg{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--muted)}
+.mc-lg i{border-radius:99px;flex-shrink:0}
+.mc-lg i.lg-av{width:14px;height:5px;background:var(--avail-border)}
+.mc-lg i.lg-bk{width:14px;height:10px;background:#57534E}
+.mc-lg i.lg-nc{width:14px;height:5px;background:var(--border)}
+.mc-jump{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+.mc-jump button{border:var(--hairline);background:var(--surface);border-radius:999px;font-family:inherit;font-size:11px;font-weight:600;color:var(--text-2);padding:5px 11px;cursor:pointer;box-shadow:var(--shadow-btn);transition:color .18s var(--ease),transform .18s var(--ease)}
+.mc-jump button:hover{color:var(--text)}
+.mc-jump button:active{transform:scale(.95)}
+.mc-wrap{grid-column:1/-1;background:var(--surface);border:var(--hairline);border-radius:18px;box-shadow:var(--shadow);overflow:auto;max-height:calc(100dvh - 240px);min-height:280px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--subtle) transparent}
+.mc{position:relative;min-width:max-content;--mcw:36px;--mclbl:176px}
+.mc-hd{position:sticky;top:0;z-index:6;background:var(--surface);border-bottom:var(--hairline)}
+.mc-hrow{display:flex}
+.mc-corner{position:sticky;left:0;z-index:7;width:var(--mclbl);flex-shrink:0;background:var(--surface);display:flex;align-items:flex-end;padding:0 10px 6px;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--subtle)}
+.mc-mon{flex-shrink:0;overflow:hidden;padding-top:10px}
+.mc-mon span{position:sticky;left:calc(var(--mclbl) + 10px);display:inline-block;padding-left:10px;font-size:10.5px;font-weight:650;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.mc-dh{width:var(--mcw);flex-shrink:0;text-align:center;padding:4px 0 6px}
+.mc-dh span{display:block;font-size:8.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--subtle);margin-bottom:1px}
+.mc-dh b{font-size:11px;font-weight:650;color:var(--text-2);font-variant-numeric:tabular-nums;display:inline-block;width:20px;height:20px;line-height:20px;border-radius:50%}
+.mc-dh.td b{background:var(--primary);color:#fff}
+.mc-row{display:flex;cursor:pointer}
+.mc-row:hover .mc-label{background:var(--surface2)}
+.mc-label{position:sticky;left:0;z-index:5;width:var(--mclbl);flex-shrink:0;background:var(--surface);display:flex;align-items:center;gap:9px;padding:7px 10px;border-right:var(--hairline);border-bottom:1px solid var(--border);min-width:0;transition:background .18s var(--ease)}
+.mc-thumb{width:32px;height:32px;border-radius:9px;object-fit:cover;flex-shrink:0;background:var(--surface2)}
+.mc-name{min-width:0}
+.mc-name b{display:block;font-size:12.5px;font-weight:650;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc-name small{display:block;font-size:10.5px;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mc-day{width:var(--mcw);height:46px;flex-shrink:0;position:relative;border-bottom:1px solid var(--border)}
+.mc-day.we,.mc-dh.we{background:rgba(28,25,23,.022)}
+.mc-day.td{background:rgba(196,110,75,.055)}
+.mc-day.ms,.mc-dh.ms{border-left:1px solid var(--border)}
+.mc-day::before{content:'';position:absolute;left:0;right:0;top:50%;height:5px;margin-top:-2.5px;background:var(--avail-border);opacity:.55}
+.mc-day.bk::before{height:20px;margin-top:-10px;background:#57534E;opacity:1}
+.mc-day.bs::before{left:3px;border-radius:99px 0 0 99px}
+.mc-day.be::before{right:3px;border-radius:0 99px 99px 0}
+.mc-day.bs.be::before{border-radius:99px}
+.mc-day.nc::before{background:var(--border);opacity:1}
+.mc-sec{display:flex}
+.mc-sec .mc-seclbl{position:sticky;left:0;z-index:5;background:var(--surface);padding:14px 10px 5px;font-size:10.5px;font-weight:650;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .tl-tip{position:fixed;z-index:500;background:var(--text);color:#fff;font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:8px;pointer-events:none;display:none;white-space:nowrap;box-shadow:0 4px 14px rgba(28,25,23,.25)}
 @media(max-width:640px){
-  .tl-label{width:96px}
-  .tl-thumb{display:none}
-  .tl-avail{width:54px;font-size:10px}
-  .tl-head{top:-12px}
-  .tl-legend .tl-hint{display:none}
+  .mc{--mcw:31px;--mclbl:112px}
+  .mc-thumb{display:none}
+  .mc-name b{font-size:11.5px}
+  .mc-wrap{max-height:calc(100dvh - 210px)}
+  .mc-lg.ncw{display:none}
 }
 /* Very small phones — keep the modal and calendar grids readable */
 @media(max-width:360px){
@@ -692,72 +711,103 @@ function setView(v){
   if(v==='timeline')track('calendar_scan_open');
   renderChrome();render();
 }
-// Timeline view: 12 weeks of availability as one gradient band per villa.
-const TL_DAYS=84;
-function tlGradient(booked){
-  const stops=[];let runStart=0,cur=null;
-  for(let i=0;i<=TL_DAYS;i++){
-    let st=null;
-    if(i<TL_DAYS){const d=new Date(TODAY);d.setDate(d.getDate()+i);st=booked.has(ds(d))?1:0;}
-    if(cur===null){cur=st;continue;}
-    if(st!==cur||i===TL_DAYS){
-      stops.push((cur?'#EBB09C':'#9ED3A0')+' '+(runStart/TL_DAYS*100).toFixed(2)+'% '+(i/TL_DAYS*100).toFixed(2)+'%');
-      runStart=i;cur=st;
-    }
-  }
-  return 'linear-gradient(to right,'+stops.join(',')+')';
+// Calendar view — traditional multi-calendar: one row per villa, one column
+// per real day (today through the end of month+3), so the grid reads like a
+// calendar instead of an abstract band. Day list is computed once per load.
+let _mcDays=null;
+function mcDayList(){
+  if(_mcDays)return _mcDays;
+  const end=new Date(TODAY.getFullYear(),TODAY.getMonth()+4,0);
+  const out=[];const d=new Date(TODAY);
+  while(d<=end){out.push({key:ds(d),date:d.getDate(),mon:d.getMonth(),year:d.getFullYear(),dow:d.getDay()});d.setDate(d.getDate()+1);}
+  _mcDays=out;return out;
 }
-// Month-start tick marks overlaid on availability strips, so the bar has a
-// time reference (each tick = the 1st of a month). Computed once per load.
-let _stripTicks=null;
-function stripTicks(){
-  if(_stripTicks)return _stripTicks;
-  const stops=['transparent 0%'];
-  for(let i=1;i<TL_DAYS;i++){
-    const d=new Date(TODAY);d.setDate(d.getDate()+i);
-    if(d.getDate()===1){
-      const a=(i/TL_DAYS*100).toFixed(2),b=(i/TL_DAYS*100+0.8).toFixed(2);
-      stops.push('transparent '+a+'%','rgba(28,25,23,.5) '+a+'%','rgba(28,25,23,.5) '+b+'%','transparent '+b+'%');
+function mcRow(p,colCls,days){
+  const booked=avail[p.id]||new Set();
+  const failed=failedAvail.has(p.id);
+  const info=PROPS[p.id]||{};
+  const mn=monthlyNum(info),br=getBedrooms(p.id);
+  const thumb=p.photo?'<img class="mc-thumb" src="'+p.photo.replace('=w1200','=w200')+'" loading="lazy" alt="">':'<div class="mc-thumb"></div>';
+  const sub=failed?'No calendar data':(mn?mn+'M/mo':'')+(br?(mn?' · ':'')+br+' BR':'');
+  let cells='';
+  for(let i=0;i<days.length;i++){
+    if(failed){cells+='<div class="mc-day nc'+colCls[i]+'" data-i="'+i+'"></div>';continue;}
+    let c='';
+    if(booked.has(days[i].key)){
+      c=' bk'+((i===0||!booked.has(days[i-1].key))?' bs':'')+((i===days.length-1||!booked.has(days[i+1].key))?' be':'');
     }
+    cells+='<div class="mc-day'+c+colCls[i]+'" data-i="'+i+'"></div>';
   }
-  stops.push('transparent 100%');
-  _stripTicks='linear-gradient(to right,'+stops.join(',')+')';
-  return _stripTicks;
+  return '<div class="mc-row" data-n="'+esc(shortName(p.name))+'" onclick="track(\'calendar_row_click\',\''+p.id+'\');openModal(\''+p.id+'\')" title="'+esc(shortName(p.name))+' — tap for details">'
+    +'<div class="mc-label">'+thumb+'<div class="mc-name"><b>'+esc(shortName(p.name))+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</div></div>'
+    +cells+'</div>';
 }
-function tlScale(){
-  const spans=[];let start=0;
-  for(let i=1;i<=TL_DAYS;i++){
-    const d=new Date(TODAY);d.setDate(d.getDate()+i);
-    const prev=new Date(TODAY);prev.setDate(prev.getDate()+i-1);
-    if(i===TL_DAYS||d.getMonth()!==prev.getMonth()){
-      spans.push({label:MONTHS[prev.getMonth()].slice(0,3),w:(i-start)/TL_DAYS*100});
-      start=i;
+// cxCount/groupSingles mirror the card grid's complex-section grouping.
+function buildMultiCal(list,cxCount,groupSingles){
+  const days=mcDayList();
+  // Per-column state shared by every row: weekend, today, month start.
+  const colCls=days.map(x=>(x.dow===0||x.dow===6?' we':'')+(x.key===todayStr?' td':'')+(x.date===1?' ms':''));
+  // Month header: one span per month, label sticks while its span scrolls.
+  let mh='',run=0;
+  days.forEach((x,i)=>{
+    run++;
+    if(i===days.length-1||days[i+1].mon!==x.mon){
+      const lbl=run>=4?MONTHS[x.mon]+' '+x.year:MONTHS[x.mon].slice(0,3);
+      mh+='<div class="mc-mon" style="width:calc(var(--mcw)*'+run+')"><span>'+lbl+'</span></div>';
+      run=0;
     }
-  }
-  return '<div class="tl-legend"><span><i class="lg-av"></i>Available</span><span><i class="lg-bk"></i>Booked</span><span><i class="lg-nc"></i>No calendar</span><span class="tl-hint" style="margin-left:auto;font-weight:500">Next 12 weeks · tap a villa for details</span></div>'
-    +'<div class="tl-head"><div class="tl-label"></div><div class="tl-scale">'
-    +spans.map(s=>'<span style="width:'+s.w.toFixed(2)+'%">'+(s.w>8?s.label:'')+'</span>').join('')
-    +'</div><div class="tl-avail"></div></div>';
+  });
+  const dh=days.map((x,i)=>'<div class="mc-dh'+colCls[i]+'"'+(x.date===1?' id="mc-m'+x.mon+'"':'')+'><span>'+DOWS[x.dow]+'</span><b>'+x.date+'</b></div>').join('');
+  const monthsIn=days.filter(x=>x.date===1).map(x=>x.mon);
+  const bar='<div class="mc-bar">'
+    +'<span class="mc-lg"><i class="lg-av"></i>Available</span>'
+    +'<span class="mc-lg"><i class="lg-bk"></i>Booked</span>'
+    +'<span class="mc-lg ncw"><i class="lg-nc"></i>No calendar</span>'
+    +'<div class="mc-jump"><button onclick="mcJump(-1)">Today</button>'
+    +monthsIn.map(m=>'<button onclick="mcJump('+m+')">'+MONTHS[m].slice(0,3)+'</button>').join('')
+    +'</div></div>';
+  const head='<div class="mc-hd"><div class="mc-hrow"><div class="mc-corner"></div>'+mh+'</div>'
+    +'<div class="mc-hrow"><div class="mc-corner">'+list.length+' villa'+(list.length===1?'':'s')+'</div>'+dh+'</div></div>';
+  let rows='',prev='';
+  list.forEach(p=>{
+    if(cxCount){
+      let cx=complexOf(p.name);
+      if(groupSingles&&cxCount[cx]===1)cx='More villas';
+      if(cx!==prev){prev=cx;rows+='<div class="mc-sec"><div class="mc-seclbl">'+esc(cx)+'</div></div>';}
+    }
+    rows+=mcRow(p,colCls,days);
+  });
+  return bar+'<div class="mc-wrap"><div class="mc">'+head+rows+'</div></div>';
 }
-// Day-level hover tooltip on calendar bands — the band is a gradient, so the
-// date under the cursor is derived from the pointer's x-fraction of the band.
-function tlTip(ev,propId){
-  const tip=document.getElementById('tl-tip'); if(!tip) return;
-  const band=ev.currentTarget, r=band.getBoundingClientRect();
-  const idx=Math.min(TL_DAYS-1,Math.max(0,Math.floor((ev.clientX-r.left)/r.width*TL_DAYS)));
-  const d=new Date(TODAY);d.setDate(d.getDate()+idx);
-  const key=ds(d);
-  const booked=avail[propId];
-  const st=failedAvail.has(propId)?'No calendar data':(booked&&booked.has(key)?'Booked':'Available');
-  tip.textContent=MONTHS[d.getMonth()].slice(0,3)+' '+d.getDate()+' · '+st;
+// Jump chips: scroll the frame so the 1st of the month lands just right of
+// the sticky villa column. -1 = back to today (leftmost).
+function mcJump(mon){
+  const wrap=document.querySelector('.mc-wrap');if(!wrap)return;
+  track('calendar_month_jump');
+  if(mon<0){wrap.scrollTo({left:0,behavior:'smooth'});return;}
+  const el=document.getElementById('mc-m'+mon);
+  const corner=wrap.querySelector('.mc-corner');
+  if(el)wrap.scrollTo({left:el.offsetLeft-(corner?corner.offsetWidth:0),behavior:'smooth'});
+}
+// Day-level hover tooltip on multi-calendar cells (one delegated listener;
+// cell index → date, cell classes → status, row data-n → villa name).
+document.addEventListener('mousemove',function(e){
+  const tip=document.getElementById('tl-tip');if(!tip)return;
+  const cell=e.target&&e.target.classList&&e.target.classList.contains('mc-day')?e.target:null;
+  if(!cell){if(tip.style.display!=='none')tip.style.display='none';return;}
+  const d=mcDayList()[+cell.dataset.i];if(!d)return;
+  const st=cell.classList.contains('nc')?'No calendar data':cell.classList.contains('bk')?'Booked':'Available';
+  const nm=(cell.parentNode&&cell.parentNode.dataset&&cell.parentNode.dataset.n)||'';
+  tip.textContent=(nm?nm+' · ':'')+MONTHS[d.mon].slice(0,3)+' '+d.date+' · '+st;
   tip.style.display='block';
   const tw=tip.offsetWidth;
-  let left=ev.clientX-tw/2;
+  let left=e.clientX-tw/2;
   if(left<8)left=8; if(left+tw>window.innerWidth-8)left=window.innerWidth-8-tw;
   tip.style.left=left+'px';
-  tip.style.top=(r.top-34)+'px';
-}
-function tlTipHide(){const tip=document.getElementById('tl-tip');if(tip)tip.style.display='none';}
+  tip.style.top=(cell.getBoundingClientRect().top-36)+'px';
+});
+// Any scroll (page or the calendar frame) invalidates the tip's position.
+document.addEventListener('scroll',function(){const tip=document.getElementById('tl-tip');if(tip&&tip.style.display!=='none')tip.style.display='none';},true);
 function setBedrooms(v){bedroomFilter=v;history.replaceState(null,'',v==='all'?location.pathname:'?bedrooms='+v);renderChrome();render();}
 // Popover menus (shared element, fixed-positioned under the anchor)
 let popKind=null;
@@ -1873,8 +1923,12 @@ function render() {
     grid.innerHTML=savedBanner+'<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:36px;height:36px;color:var(--subtle);margin-bottom:10px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p style="margin:0 0 16px;font-size:.9rem">'+_msg+'</p>'+_btn+'</div>';
     return;
   }
+  if(viewMode==='timeline'){
+    grid.innerHTML=savedBanner+buildMultiCal(filtered2,sortMode==='default'?cxCount:null,groupSingles);
+    return;
+  }
   let _cxPrev='';
-  grid.innerHTML=savedBanner+(viewMode==='timeline'?tlScale():'')+filtered2.map((p,i)=>{
+  grid.innerHTML=savedBanner+filtered2.map((p,i)=>{
     let _cxCur=complexOf(p.name);
     const _single=groupSingles&&cxCount[_cxCur]===1;
     if(_single)_cxCur='More villas';
@@ -1898,23 +1952,6 @@ function render() {
     // Frees up later — hollow dot, so solid green stays exclusive to
     // "available now" instead of every not-fully-booked villa.
     else {avShort=av.from;avLong='Available '+av.from;dotCls=' soon';}
-    if(viewMode==='timeline'){
-      const _thumb=p.photo
-        ?'<img class="tl-thumb" src="'+p.photo.replace('=w1200','=w200')+'" loading="lazy" alt="">'
-        :'<div class="tl-thumb"></div>';
-      const _sub=(mn?mn+'M/mo':'')+(br?(mn?' · ':'')+br+' BR':'');
-      // Compact window label ("87d open" / "3mo open") — the full windowLabel
-      // text overflows this column on mobile widths.
-      let _tlWin='';
-      if(av&&!failedAvail.has(p.id)){const _w=parseInt(av.window)||0;_tlWin=(_w>=30?Math.round(_w/30)+'mo':_w+'d')+' open';}
-      return _cxHdr+'<div class="tl-row" onclick="track(\'calendar_row_click\',\''+p.id+'\');openModal(\''+p.id+'\')" title="'+esc(shortName(p.name))+'">'
-        +'<div class="tl-label">'+_thumb+'<div class="tl-name"><b>'+esc(shortName(p.name))+'</b>'+(_sub?'<small>'+_sub+'</small>':'')+'</div></div>'
-        +(failedAvail.has(p.id)
-          ?'<div class="tl-band" style="background:var(--surface2)"></div>'
-          :'<div class="tl-band" style="background:'+tlGradient(booked)+'" onmousemove="tlTip(event,\''+p.id+'\')" onmouseleave="tlTipHide()"></div>')
-        +'<div class="tl-avail'+dotCls+'">'+esc(avShort)+(_tlWin?'<br>'+_tlWin:'')+'</div>'
-        +'</div>';
-    }
     if(viewMode==='list'){
       const thumb=p.photo
         ?'<img class="lrow-thumb" src="'+p.photo.replace('=w1200','=w400')+'" loading="lazy" alt="">'
@@ -1941,7 +1978,6 @@ function render() {
       +'<div class="prop-name">'+esc(shortName(p.name))+'</div>'
       +'<div class="prop-meta'+dotCls+'"><span class="avail-dot"></span><span>'+esc(avLong)+(br?' · '+br+' BR':'')+'</span></div>'
       +(sortMode==='duration'&&windowTxt?'<div class="prop-window">'+esc(windowTxt)+'</div>':'')
-      +(failedAvail.has(p.id)?'':'<div class="card-strip" title="Next 12 weeks · ticks mark month starts · green = available" style="background:'+stripTicks()+','+tlGradient(booked)+'"></div>')
       +(mn?'<div class="prop-price">IDR '+mn+'M <span>/ mo</span></div>':'')
       +'</div>'
       +'</div>';
