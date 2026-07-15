@@ -147,10 +147,10 @@ body.embed .content{padding-top:8px;}
   <div class="login-box">
     <div class="login-brand">Analytics</div>
     <img src="/logo-samba.png" alt="Samba" style="height:100px;margin-bottom:8px">
-    <div class="login-sub">Owner Dashboard</div>
+    <div class="login-sub">Owner dashboard</div>
     <label class="login-label">Password</label>
     <input class="login-input" id="pwd" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" />
-    <button class="login-btn" onclick="doLogin()">Access Dashboard</button>
+    <button class="login-btn" onclick="doLogin()">Access dashboard</button>
     <div class="login-err" id="login-err"></div>
   </div>
 </div>
@@ -251,9 +251,9 @@ const EVENT_ICONS = {
   photo_view: '📷', photo_download: '📥', refresh: '↻', sessions: '🔑'
 };
 const EVENT_LABELS = {
-  page_view: 'Portal Opened', listing_view: 'Listing Page Viewed', details_open: 'Details Opened',
-  share: 'Share', whatsapp_click: 'WhatsApp Click', photo_view: 'Photos Viewed',
-  photo_download: 'Photos Downloaded', refresh: 'Refresh', sessions: 'Session'
+  page_view: 'Portal opened', listing_view: 'Listing page viewed', details_open: 'Details opened',
+  share: 'Share', whatsapp_click: 'WhatsApp click', photo_view: 'Photos viewed',
+  photo_download: 'Photos downloaded', refresh: 'Refresh', sessions: 'Session'
 };
 
 function render(data) {
@@ -276,17 +276,17 @@ function render(data) {
         <div class="stat-sub">${periodLabel}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Active Agents</div>
+        <div class="stat-label">Active agents</div>
         <div class="stat-value" style="color:var(--green)">${fmt(totals.unique_agents)}</div>
         <div class="stat-sub">${fmt(totals.unique_agents_today)} today · ${fmt(totals.unique_agents_all)} all-time</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Details Opened</div>
+        <div class="stat-label">Details opened</div>
         <div class="stat-value">${fmt(totals.details_open)}</div>
         <div class="stat-sub">in the agent portal</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Listing Page Views</div>
+        <div class="stat-label">Listing page views</div>
         <div class="stat-value" style="color:var(--purple)">${fmt(totals.listing_view)}</div>
         <div class="stat-sub">from shared links</div>
       </div>
@@ -296,17 +296,17 @@ function render(data) {
         <div class="stat-sub">links sent out</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">WhatsApp Clicks</div>
+        <div class="stat-label">WhatsApp clicks</div>
         <div class="stat-value" style="color:var(--orange)">${fmt(totals.whatsapp_click)}</div>
         <div class="stat-sub">${fmt(totals.wa_sessions || 0)} unique sessions enquired</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Photos Viewed</div>
+        <div class="stat-label">Photos viewed</div>
         <div class="stat-value">${fmt(totals.photo_view)}</div>
         <div class="stat-sub">gallery opens</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Photo Downloads</div>
+        <div class="stat-label">Photo downloads</div>
         <div class="stat-value">${fmt(totals.photo_download)}</div>
         <div class="stat-sub">Drive folder opens</div>
       </div>
@@ -331,10 +331,10 @@ function render(data) {
       </div>
       <div class="chart-legend">
         <div class="legend-item"><div class="legend-dot" style="background:#C46E4B"></div>Sessions</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#2a6a3a"></div>Details Opened</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#8a6cb0"></div>Listing Views</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2a6a3a"></div>Details opened</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#8a6cb0"></div>Listing views</div>
         <div class="legend-item"><div class="legend-dot" style="background:#c9a227"></div>WhatsApp</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#3a6ea5"></div>Active Agents</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3a6ea5"></div>Active agents</div>
       </div>
       <div class="chart-wrap">
         <canvas id="activity-chart" height="180"></canvas>
@@ -351,7 +351,7 @@ function render(data) {
             <th>#</th>
             <th>Property</th>
             <th>Details</th>
-            <th>Listing Views</th>
+            <th>Listing views</th>
             <th>Shares</th>
             <th>WhatsApp</th>
             <th>Photos</th>
@@ -388,7 +388,7 @@ function render(data) {
       const handles = [...new Set([...Object.keys(attr.views_all||{}), ...Object.keys(attr.wa_all||{})])];
       if (!handles.length) return `
         <div class="chart-card">
-          <div class="card-title">Agent Attribution</div>
+          <div class="card-title">Agent attribution</div>
           <div class="loading-state" style="padding:12px 0 4px">No attributed activity yet. When an agent shares a listing, their personalised link (?a=handle) credits them with the views and WhatsApp enquiries it produces. Tracking began 2 Jul 2026.</div>
         </div>`;
       const rows = handles.map(h => ({
@@ -398,7 +398,7 @@ function render(data) {
       })).sort((a,b)=>(b.wAll-a.wAll)||(b.vAll-a.vAll));
       return `
       <div class="table-card">
-        <div class="table-header">Agent Attribution · shared-link performance</div>
+        <div class="table-header">Agent attribution · shared-link performance</div>
         <div class="table-scroll">
         <table>
           <thead><tr><th>#</th><th>Agent</th><th>Views (month)</th><th>Enquiries (month)</th><th>Views (all)</th><th>Enquiries (all)</th><th>Conversion</th></tr></thead>

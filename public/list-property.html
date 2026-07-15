@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>List Your Property — Samba Rentals</title>
+<title>List your property — Samba Rentals</title>
 <meta name="description" content="Submit your villa or apartment for listing on the Samba Rentals agent portal.">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
@@ -93,7 +93,7 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 
 <div class="page">
   <div class="page-header">
-    <h1 class="page-title">List Your Property</h1>
+    <h1 class="page-title">List your property</h1>
     <p class="page-subtitle">Fill out the details below and we'll get your property listed on the Samba Rentals agent portal. All fields marked with <span style="color:var(--primary)">*</span> are required.</p>
   </div>
 
@@ -101,7 +101,7 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 
     <!-- 1. Contact -->
     <div class="section">
-      <div class="section-title"><span class="section-number">1</span> Contact Information</div>
+      <div class="section-title"><span class="section-number">1</span> Contact information</div>
       <div class="row">
         <div class="field">
           <label class="field-label">Your name <span class="req">*</span></label>
@@ -121,7 +121,7 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 
     <!-- 2. Property basics -->
     <div class="section">
-      <div class="section-title"><span class="section-number">2</span> Property Details</div>
+      <div class="section-title"><span class="section-number">2</span> Property details</div>
       <div class="field">
         <label class="field-label">Property name <span class="req">*</span></label>
         <input type="text" name="propertyName" required placeholder="e.g. Villa Serenity">
@@ -179,7 +179,7 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 
     <!-- 3. Description & features -->
     <div class="section">
-      <div class="section-title"><span class="section-number">3</span> Description & Features</div>
+      <div class="section-title"><span class="section-number">3</span> Description & features</div>
       <div class="field">
         <label class="field-label">Property overview <span class="req">*</span></label>
         <textarea name="overview" rows="4" required placeholder="Describe the property — what makes it special, the vibe, the layout, any standout design or lifestyle details..."></textarea>
@@ -262,7 +262,7 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 
     <!-- 6. Inclusions -->
     <div class="section">
-      <div class="section-title"><span class="section-number">6</span> Monthly Inclusions</div>
+      <div class="section-title"><span class="section-number">6</span> Monthly inclusions</div>
       <div class="field-hint" style="margin-bottom:12px">What's included in the monthly rental price?</div>
       <div class="checklist">
         <label><input type="checkbox" name="inclusions" value="Electricity"> Electricity</label>
@@ -321,14 +321,14 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 
     <!-- 9. Anything else -->
     <div class="section">
-      <div class="section-title"><span class="section-number">9</span> Anything Else</div>
+      <div class="section-title"><span class="section-number">9</span> Anything else</div>
       <div class="field">
         <label class="field-label">Additional notes</label>
         <textarea name="notes" rows="4" placeholder="Anything else we should know — rental terms, special conditions, renovation plans, etc."></textarea>
       </div>
     </div>
 
-    <button type="submit" class="submit-btn" id="submit-btn">Submit Property</button>
+    <button type="submit" class="submit-btn" id="submit-btn">Submit property</button>
   </form>
 
   <div class="success-msg" id="success-msg">
@@ -401,7 +401,7 @@ document.getElementById('listing-form').addEventListener('submit', function(e) {
 
   window.open(waUrl, '_blank');
 
-  btn.textContent = 'Submit Property';
+  btn.textContent = 'Submit property';
   btn.disabled = false;
   f.style.display = 'none';
   document.getElementById('success-msg').classList.add('show');
@@ -410,7 +410,7 @@ document.getElementById('listing-form').addEventListener('submit', function(e) {
 
 function formatForWhatsApp(d) {
   let lines = [];
-  lines.push('*New Property Listing Submission*');
+  lines.push('*New property listing submission*');
   lines.push('');
   lines.push('*Contact*');
   lines.push('Name: ' + d.contactName);
@@ -440,7 +440,7 @@ function formatForWhatsApp(d) {
   }
   if (d.locationHighlights.length) {
     lines.push('');
-    lines.push('*Location Highlights*');
+    lines.push('*Location highlights*');
     d.locationHighlights.forEach(h => lines.push('- ' + h));
   }
   lines.push('');
@@ -451,12 +451,12 @@ function formatForWhatsApp(d) {
   if (d.minStay) lines.push('Min stay: ' + d.minStay);
   if (d.inclusions.length) {
     lines.push('');
-    lines.push('*Monthly Inclusions*');
+    lines.push('*Monthly inclusions*');
     d.inclusions.forEach(i => lines.push('- ' + i));
   }
   if (d.yearlyInclusions) {
     lines.push('');
-    lines.push('*Yearly Inclusions*');
+    lines.push('*Yearly inclusions*');
     lines.push(d.yearlyInclusions);
   }
   lines.push('');

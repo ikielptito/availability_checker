@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Samba Rentals — Agent Portal</title>
+<title>Samba Rentals — Agent portal</title>
 <meta name="description" content="Live availability across our Bali long-term rental portfolio. Photos, calendars, and instant share links — 10% commission on every booking.">
 <!-- Open Graph: rich preview when an agent shares the portal link on WhatsApp / iMessage / Slack -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Samba">
-<meta property="og:title" content="Samba — Agent Portal">
+<meta property="og:title" content="Samba — Agent portal">
 <meta property="og:description" content="Bali's rental agent network. List your villa. Reach 250+ agents.">
 <meta property="og:url" content="https://sambarentals.com">
 <meta property="og:image" content="https://sambarentals.com/og-image.png">
@@ -16,7 +16,7 @@
 <meta property="og:image:height" content="909">
 <meta property="og:image:alt" content="Samba — Bali's rental agent network">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Samba — Agent Portal">
+<meta name="twitter:title" content="Samba — Agent portal">
 <meta name="twitter:description" content="Bali's rental agent network. List your villa. Reach 250+ agents.">
 <meta name="twitter:image" content="https://sambarentals.com/og-image.png">
 <!-- Favicon + installable PWA metadata -->
@@ -546,11 +546,11 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
         <div class="modal-section-title">Pricing</div>
         <div id="modal-pricing"></div>
         <div style="margin-top:12px">
-          <div class="modal-section-title" style="margin-bottom:6px">Monthly Inclusions</div>
+          <div class="modal-section-title" style="margin-bottom:6px">Monthly inclusions</div>
           <div id="modal-inclusions"></div>
         </div>
         <div style="margin-top:12px" id="modal-yearly-inclusions-block">
-          <div class="modal-section-title" style="margin-bottom:6px">Yearly Inclusions</div>
+          <div class="modal-section-title" style="margin-bottom:6px">Yearly inclusions</div>
           <div id="modal-yearly-inclusions"></div>
         </div>
       </div>
@@ -583,9 +583,9 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 
 <footer style="border-top:1px solid var(--border);margin-top:32px;padding:24px 16px;text-align:center;font-size:0.8rem;color:var(--muted)">
   <a href="/home" style="color:var(--muted);text-decoration:none;margin:0 7px">How it works</a>·
-  <a href="/terms" style="color:var(--muted);text-decoration:none;margin:0 7px">Terms of Service</a>·
-  <a href="/privacy" style="color:var(--muted);text-decoration:none;margin:0 7px">Privacy Policy</a>·
-  <a href="/refund" style="color:var(--muted);text-decoration:none;margin:0 7px">Refund Policy</a>
+  <a href="/terms" style="color:var(--muted);text-decoration:none;margin:0 7px">Terms of service</a>·
+  <a href="/privacy" style="color:var(--muted);text-decoration:none;margin:0 7px">Privacy policy</a>·
+  <a href="/refund" style="color:var(--muted);text-decoration:none;margin:0 7px">Refund policy</a>
   <div style="margin-top:8px"><a href="mailto:sambarealtygroup@gmail.com" style="color:var(--muted);text-decoration:none">sambarealtygroup@gmail.com</a></div>
   <div style="margin-top:8px">© 2026 Samba · Bali, Indonesia</div>
 </footer>
@@ -1223,7 +1223,7 @@ function openModal(propId) {
   if(info.folder){
     driveBtn.style.display='';
     driveBtn.href='https://drive.google.com/drive/folders/'+info.folder;
-    driveBtn.innerHTML=icon('download','sm')+'<span>Download Photos</span>';
+    driveBtn.innerHTML=icon('download','sm')+'<span>Download photos</span>';
     driveBtn.onclick=()=>track('photo_download',propId,info.name);
   } else {
     driveBtn.style.display='none';
@@ -1234,7 +1234,7 @@ function openModal(propId) {
   const waMsg=encodeURIComponent('Hi '+waName+', I\'m interested in '+info.name+'. Could you tell me more?');
   const waBtn=document.getElementById('modal-wa-btn');
   waBtn.href='https://wa.me/'+waNum+'?text='+waMsg;
-  waBtn.innerHTML=icon('message','sm')+'<span>Enquire with owner</span>';
+  waBtn.innerHTML=icon('message','sm')+'<span>Contact owner</span>';
   waBtn.onclick=()=>track('whatsapp_click',propId,info.name);
   document.getElementById('modal').classList.add('open');
   document.body.style.overflow='hidden';

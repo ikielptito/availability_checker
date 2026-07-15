@@ -1,5 +1,5 @@
 /* Shared Samba account nav — two-tier:
- *   Tier 1: a permanent PORTAL SWITCH (Agent Portal ⟷ Owner Portal). Bottom bar
+ *   Tier 1: a permanent PORTAL SWITCH (Agent portal ⟷ Owner portal). Bottom bar
  *           on mobile (#snav-tabs); segmented control on desktop (in #snav-sub).
  *   Tier 2: contextual SUB-TABS for the active portal (#snav-sub, inserted right
  *           below the page .topbar):
@@ -125,8 +125,8 @@
 
   // ── Portal + sub-tab model ──
   var PORTALS = [
-    { key: 'agent', label: 'Agent Portal', href: '/', icon: I.person },
-    { key: 'owner', label: 'Owner Portal', href: '/portal', icon: I.dashboard },
+    { key: 'agent', label: 'Agent portal', href: '/', icon: I.person },
+    { key: 'owner', label: 'Owner portal', href: '/portal', icon: I.dashboard },
   ];
   function curPortal() { return /^\/portal/.test(location.pathname) ? 'owner' : 'agent'; }
   function curSub() {

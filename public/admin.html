@@ -149,7 +149,7 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
   <div class="login-box">
     <div class="login-brand">Admin</div>
     <img src="/logo-samba.png" alt="Samba" style="height:100px;margin-bottom:8px">
-    <div class="login-sub">Listings Admin</div>
+    <div class="login-sub">Listings admin</div>
     <label class="login-label">Password</label>
     <input class="login-input" id="pwd" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" />
     <button class="login-btn" onclick="doLogin()">Enter</button>
@@ -393,13 +393,13 @@ function renderListingsTab(listings) {
   const defaults = listings.filter(l => !l.custom);
   const html =
     `<div class="section-head">
-      <div><h2>Custom Properties</h2><div class="hint">Properties not in Hostex — fully managed here</div></div>
+      <div><h2>Custom properties</h2><div class="hint">Properties not in Hostex — fully managed here</div></div>
       <button class="add-btn" onclick="addCustom()">+ Add Property</button>
     </div>
     <div id="new-custom-slot"></div>` +
     (customs.length ? customs.map(l => customCard(l, false)).join('') :
       '<div class="empty-hint">No custom properties yet. Click "+ Add Property" to create one.</div>') +
-    `<div class="section-head" style="margin-top:36px"><div><h2>Hostex Listings</h2><div class="hint">Synced from Hostex — details editable here</div></div></div>` +
+    `<div class="section-head" style="margin-top:36px"><div><h2>Hostex listings</h2><div class="hint">Synced from Hostex — details editable here</div></div></div>` +
     defaults.map(l => defaultCard(l)).join('');
   document.getElementById('tab-listings').innerHTML = html;
 
@@ -423,11 +423,11 @@ function defaultCard(l) {
 
       <div class="field-row">
         <div class="field-group">
-          <label class="field-label">Unit Type</label>
+          <label class="field-label">Unit type</label>
           <input class="field-input" id="${l.slug}-unitType" value="${esc(l.unitType || '')}" placeholder="e.g. 1BR Apartment, 3BR Villa" />
         </div>
         <div class="field-group">
-          <label class="field-label">Area Tag</label>
+          <label class="field-label">Area tag</label>
           <input class="field-input" id="${l.slug}-tag" value="${esc(l.tag || '')}" placeholder="e.g. Tumbak Bayuh, Pererenan" />
         </div>
       </div>
@@ -435,7 +435,7 @@ function defaultCard(l) {
       <div class="section-label">WhatsApp Contact</div>
       <div class="field-row">
         <div class="field-group">
-          <label class="field-label">Contact Name</label>
+          <label class="field-label">Contact name</label>
           <input class="field-input" id="${l.slug}-waContactName" value="${esc(l.waContactName || '')}" placeholder="Era (default)" />
         </div>
         <div class="field-group">
@@ -454,12 +454,12 @@ function defaultCard(l) {
         <span class="field-hint" id="${l.slug}-folder-hint">Paste a Drive folder link to update photos</span>
       </div>
       <div class="field-group" style="margin-top:12px">
-        <label class="field-label">Card Preview Photo <span class="field-hint">(click to choose · click again to clear)</span></label>
+        <label class="field-label">Card preview photo <span class="field-hint">(click to choose · click again to clear)</span></label>
         <div class="drive-grid" id="${l.slug}-drive-grid"><div class="drive-preview-placeholder">Loading photos…</div></div>
         <input type="hidden" id="${l.slug}-coverPhotoId" value="${esc(l.coverPhotoId || '')}" />
       </div>
       <div class="field-group" style="margin-top:12px">
-        <label class="field-label">Preview Position <span class="field-hint">(drag to choose what stays centered in the 3:2 card crop)</span></label>
+        <label class="field-label">Preview position <span class="field-hint">(drag to choose what stays centered in the 3:2 card crop)</span></label>
         <div class="cover-focus" id="${l.slug}-cover-focus" onpointerdown="startCoverDrag('${l.slug}', event)">
           <img class="cover-focus-img" id="${l.slug}-cover-focus-img" alt="" style="display:none" />
           <div class="cover-focus-dot" id="${l.slug}-cover-dot" style="display:none"></div>
@@ -502,19 +502,19 @@ function defaultCard(l) {
           <textarea class="field-textarea" id="${l.slug}-features" rows="8">${esc(l.features.join('\n'))}</textarea>
         </div>
         <div class="field-group">
-          <label class="field-label">Monthly Inclusions <span class="field-hint">(one per line)</span></label>
+          <label class="field-label">Monthly inclusions <span class="field-hint">(one per line)</span></label>
           <textarea class="field-textarea" id="${l.slug}-inclusions" rows="8">${esc(l.inclusions.join('\n'))}</textarea>
         </div>
       </div>
       <div class="field-row full">
         <div class="field-group">
-          <label class="field-label">Yearly Inclusions <span class="field-hint">(one per line — what's covered for a yearly lease)</span></label>
+          <label class="field-label">Yearly inclusions <span class="field-hint">(one per line — what's covered for a yearly lease)</span></label>
           <textarea class="field-textarea" id="${l.slug}-yearlyInclusions" rows="3">${esc((l.yearlyInclusions || []).join('\n'))}</textarea>
         </div>
       </div>
       <div class="field-row full">
         <div class="field-group">
-          <label class="field-label">Location Highlights <span class="field-hint">(one per line)</span></label>
+          <label class="field-label">Location highlights <span class="field-hint">(one per line)</span></label>
           <textarea class="field-textarea" id="${l.slug}-locationHighlights" rows="5">${esc(l.locationHighlights.join('\n'))}</textarea>
         </div>
       </div>
@@ -529,7 +529,7 @@ function customCard(l, isNew) {
     <div class="listing-card" id="card-${slug}">
       <div class="card-header">
         <div>
-          <div class="card-title">${isNew ? 'New Property' : esc(l.name)}<span class="custom-badge">custom</span>${statusBadge(l)}</div>
+          <div class="card-title">${isNew ? 'New property' : esc(l.name)}<span class="custom-badge">custom</span>${statusBadge(l)}</div>
           <div class="card-slug">${isNew ? 'slug auto-generated from name' : slug}</div>
           ${l.ownerSub ? `<div class="owner-note">Owner-submitted listing${l.status === 'approved' ? ' · public once subscription is active' : ''}</div>` : ''}
         </div>
@@ -546,13 +546,13 @@ function customCard(l, isNew) {
           <input class="field-input" id="${slug}-name" value="${esc(l.name || '')}" placeholder="e.g. Villa Sunrise" />
         </div>
         <div class="field-group">
-          <label class="field-label">Area Tag</label>
+          <label class="field-label">Area tag</label>
           <input class="field-input" id="${slug}-tag" value="${esc(l.tag || '')}" placeholder="e.g. Umalas · Canggu" />
         </div>
       </div>
       <div class="field-row">
         <div class="field-group">
-          <label class="field-label">Unit Type</label>
+          <label class="field-label">Unit type</label>
           <input class="field-input" id="${slug}-unitType" value="${esc(l.unitType || '')}" placeholder="e.g. 1BR Apartment, 3BR Villa" />
         </div>
         <div class="field-group">
@@ -569,7 +569,7 @@ function customCard(l, isNew) {
       </div>
       <div class="field-row full">
         <div class="field-group">
-          <label class="field-label" title="Booked days show red on the agent calendar">Manual Booked Dates <span class="field-hint">(added on top of iCal · one range per line: 2026-07-01 to 2026-07-15)</span></label>
+          <label class="field-label" title="Booked days show red on the agent calendar">Manual booked dates <span class="field-hint">(added on top of iCal · one range per line: 2026-07-01 to 2026-07-15)</span></label>
           <textarea class="field-textarea" id="${slug}-ranges" rows="2" placeholder="2026-07-01 to 2026-07-15">${esc(ranges)}</textarea>
         </div>
       </div>
@@ -577,7 +577,7 @@ function customCard(l, isNew) {
       <div class="section-label">WhatsApp Contact</div>
       <div class="field-row">
         <div class="field-group">
-          <label class="field-label">Contact Name</label>
+          <label class="field-label">Contact name</label>
           <input class="field-input" id="${slug}-waContactName" value="${esc(l.waContactName || '')}" placeholder="Era (default)" />
         </div>
         <div class="field-group">
@@ -596,12 +596,12 @@ function customCard(l, isNew) {
         <span class="field-hint" id="${slug}-folder-hint">Paste a Drive folder link for photos</span>
       </div>
       <div class="field-group" style="margin-top:12px">
-        <label class="field-label">Card Preview Photo <span class="field-hint">(click to choose · click again to clear)</span></label>
+        <label class="field-label">Card preview photo <span class="field-hint">(click to choose · click again to clear)</span></label>
         <div class="drive-grid" id="${slug}-drive-grid"><div class="drive-preview-placeholder">${l.folder ? 'Loading photos…' : 'Add a Drive folder first'}</div></div>
         <input type="hidden" id="${slug}-coverPhotoId" value="${esc(l.coverPhotoId || '')}" />
       </div>
       <div class="field-group" style="margin-top:12px">
-        <label class="field-label">Preview Position <span class="field-hint">(drag to choose what stays centered in the 3:2 card crop)</span></label>
+        <label class="field-label">Preview position <span class="field-hint">(drag to choose what stays centered in the 3:2 card crop)</span></label>
         <div class="cover-focus" id="${slug}-cover-focus" onpointerdown="startCoverDrag('${slug}', event)">
           <img class="cover-focus-img" id="${slug}-cover-focus-img" alt="" style="display:none" />
           <div class="cover-focus-dot" id="${slug}-cover-dot" style="display:none"></div>
@@ -644,19 +644,19 @@ function customCard(l, isNew) {
           <textarea class="field-textarea" id="${slug}-features" rows="8">${esc((l.features || []).join('\n'))}</textarea>
         </div>
         <div class="field-group">
-          <label class="field-label">Monthly Inclusions <span class="field-hint">(one per line)</span></label>
+          <label class="field-label">Monthly inclusions <span class="field-hint">(one per line)</span></label>
           <textarea class="field-textarea" id="${slug}-inclusions" rows="8">${esc((l.inclusions || []).join('\n'))}</textarea>
         </div>
       </div>
       <div class="field-row full">
         <div class="field-group">
-          <label class="field-label">Yearly Inclusions <span class="field-hint">(one per line — what's covered for a yearly lease)</span></label>
+          <label class="field-label">Yearly inclusions <span class="field-hint">(one per line — what's covered for a yearly lease)</span></label>
           <textarea class="field-textarea" id="${slug}-yearlyInclusions" rows="3">${esc((l.yearlyInclusions || ['Villa only, no services included.']).join('\n'))}</textarea>
         </div>
       </div>
       <div class="field-row full">
         <div class="field-group">
-          <label class="field-label">Location Highlights <span class="field-hint">(one per line)</span></label>
+          <label class="field-label">Location highlights <span class="field-hint">(one per line)</span></label>
           <textarea class="field-textarea" id="${slug}-locationHighlights" rows="5">${esc((l.locationHighlights || []).join('\n'))}</textarea>
         </div>
       </div>

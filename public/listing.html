@@ -493,11 +493,11 @@
         <h3>Pricing</h3>
         <div id="price-rows"></div>
         <div class="inclusions-list">
-          <div class="inclusions-title">Monthly Inclusions</div>
+          <div class="inclusions-title">Monthly inclusions</div>
           <div id="inclusions-list"></div>
         </div>
         <div class="inclusions-list" id="yearly-inclusions-block" style="display:none">
-          <div class="inclusions-title">Yearly Inclusions</div>
+          <div class="inclusions-title">Yearly inclusions</div>
           <div id="yearly-inclusions-list"></div>
         </div>
       </div>
@@ -759,8 +759,8 @@ async function boot() {
   // Details grid
   const grid = document.getElementById('details-grid');
   const sections = [
-    { title: 'Property Features', items: listing.features || [] },
-    { title: 'Location Highlights', items: listing.locationHighlights || [] },
+    { title: 'Property features', items: listing.features || [] },
+    { title: 'Location highlights', items: listing.locationHighlights || [] },
   ].filter(s => s.items.length);
   grid.innerHTML = sections.map(s =>
     '<div><div class="detail-section-title">' + s.title + '</div>' +
