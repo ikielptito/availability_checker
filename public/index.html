@@ -1234,7 +1234,7 @@ function openModal(propId) {
   const waMsg=encodeURIComponent('Hi '+waName+', I\'m interested in '+info.name+'. Could you tell me more?');
   const waBtn=document.getElementById('modal-wa-btn');
   waBtn.href='https://wa.me/'+waNum+'?text='+waMsg;
-  waBtn.innerHTML=icon('message','sm')+'<span>Enquire with '+esc(waName)+'</span>';
+  waBtn.innerHTML=icon('message','sm')+'<span>Enquire with owner</span>';
   waBtn.onclick=()=>track('whatsapp_click',propId,info.name);
   document.getElementById('modal').classList.add('open');
   document.body.style.overflow='hidden';
