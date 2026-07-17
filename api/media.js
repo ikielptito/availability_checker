@@ -40,19 +40,24 @@ async function getPhotoOrder(folder) {
 }
 
 // Curated files first (by stored position), then files Drive has that the
-// order hasn't seen yet (new uploads), then the utility/junk tail. Files
-// deleted from Drive drop out automatically.
-function applyPhotoOrder(files, photoOrder) {
+// order hasn't seen yet (new uploads), then the utility/junk tail. Photos on
+// the `excluded` list (AI-flagged duplicates / overly-similar shots) are
+// dropped entirely — unless includeHidden is set (the admin grid, which shows
+// them dimmed with a restore control). Files deleted from Drive drop out too.
+function applyPhotoOrder(files, photoOrder, includeHidden) {
   const pos = new Map(photoOrder.order.map((id, i) => [id, i]));
+  const excluded = new Set(photoOrder.excluded || []);
   const junkStart = Number.isInteger(photoOrder.junkStart) ? photoOrder.junkStart : photoOrder.order.length;
-  const curated = [], fresh = [], junk = [];
+  const curated = [], fresh = [], junk = [], hidden = [];
   for (const f of files) {
+    if (excluded.has(f.id)) { if (includeHidden) hidden.push({ ...f, hidden: true }); continue; }
     if (!pos.has(f.id)) fresh.push(f);
     else if (pos.get(f.id) < junkStart) curated.push(f);
     else junk.push(f);
   }
   const byPos = (a, b) => pos.get(a.id) - pos.get(b.id);
-  return [...curated.sort(byPos), ...fresh, ...junk.sort(byPos)];
+  // Hidden photos go last so the visible gallery order is unaffected.
+  return [...curated.sort(byPos), ...fresh, ...junk.sort(byPos), ...hidden];
 }
 
 async function driveFolder(req, res) {
@@ -64,15 +69,17 @@ async function driveFolder(req, res) {
 
   try {
     const url = `https://www.googleapis.com/drive/v3/files?q='${folder}'+in+parents+and+mimeType+contains+'image/'&fields=files(id,name,mimeType)&key=${apiKey}&pageSize=150`;
+    const includeHidden = req.query.includeHidden === '1';
     const [r, photoOrder] = await Promise.all([fetch(url), getPhotoOrder(folder)]);
     const data = await r.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
     let files = data.files || [];
-    if (photoOrder) files = applyPhotoOrder(files, photoOrder);
+    if (photoOrder) files = applyPhotoOrder(files, photoOrder, includeHidden);
     const photos = files.map(f => ({
       id: f.id,
       url: `https://lh3.googleusercontent.com/d/${f.id}`,
-      thumb: `https://lh3.googleusercontent.com/d/${f.id}=w400`
+      thumb: `https://lh3.googleusercontent.com/d/${f.id}=w400`,
+      ...(f.hidden ? { hidden: true } : {})
     }));
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).json({ photos });

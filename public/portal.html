@@ -637,10 +637,10 @@ async function aiSortPhotos(slug, quiet){
       const r=await api('?action=rank',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug})});
       if(!r.ok)throw new Error(r.body?.error||'Could not sort photos.');
       const d=r.body||{};
-      if(d.status==='done'){showToast('Photos sorted — best ones now show first.');return;}
+      if(d.status==='done'){showToast(d.removed?`Photos sorted — ${d.removed} duplicate/similar hidden.`:'Photos sorted — best ones now show first.');return;}
       if(d.status==='up_to_date'){if(!quiet)showToast('Photos are already sorted.');return;}
       if(d.status==='empty'){if(!quiet)showToast('No photos found in the folder yet.');return;}
-      if(btn)btn.textContent=`Sorting… ${d.scored||0}/${d.total||'?'}`;
+      if(btn)btn.textContent=d.status==='deduping'?`Removing duplicates… ${d.deduped}/${d.groups}`:`Sorting… ${d.scored||0}/${d.total||'?'}`;
     }
     throw new Error('Sorting is taking a while — tap the button to continue.');
   }catch(e){

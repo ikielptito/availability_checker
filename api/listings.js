@@ -274,6 +274,38 @@ export default async function handler(req, res) {
       }
     }
 
+    // Toggle a single photo's visibility on the live gallery (admin restore of
+    // an AI-hidden duplicate, or a manual hide). Edits photo_order.excluded;
+    // never touches Google Drive. No-op if there's no ranked order yet.
+    if (req.body?.action === 'set-photo-hidden') {
+      const folder = cleanStr(req.body.folder);
+      const photoId = cleanStr(req.body.photoId);
+      const hidden = !!req.body.hidden;
+      if (!/^[A-Za-z0-9_-]{10,}$/.test(folder) || !/^[A-Za-z0-9_-]{5,}$/.test(photoId)) {
+        return res.status(400).json({ error: 'Invalid folder or photo id' });
+      }
+      const order = await kvGet(`photo_order:${folder}`);
+      if (!order) return res.status(404).json({ error: 'No AI photo order for this folder yet' });
+      const excluded = new Set(order.excluded || []);
+      if (hidden) excluded.add(photoId); else excluded.delete(photoId);
+      order.excluded = [...excluded];
+      // A restored photo must re-enter the visible order; a manually hidden one
+      // must leave it. Cheapest correct fix: drop it from `order` if hiding, and
+      // if restoring, append it just before the junk tail so it shows again.
+      order.order = (order.order || []).filter(id => id !== photoId);
+      if (!hidden) {
+        const js = Number.isInteger(order.junkStart) ? order.junkStart : order.order.length;
+        order.order.splice(js, 0, photoId);
+        order.junkStart = js + 1;
+      } else if (Number.isInteger(order.junkStart) && order.junkStart > order.order.length) {
+        order.junkStart = order.order.length;
+      }
+      if (order.cover === photoId && hidden) order.cover = order.order[0] || '';
+      await kvSet(`photo_order:${folder}`, order);
+      await kvDel(`autocover:${folder}`);
+      return res.status(200).json({ ok: true, excluded: order.excluded.length });
+    }
+
     // Review action: approve / reject an owner-submitted listing.
     if (req.body?.action === 'set-status') {
       const { slug, status } = req.body;

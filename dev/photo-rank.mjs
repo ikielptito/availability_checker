@@ -32,7 +32,7 @@
 // "Sort photos with AI" button in admin / the owner portal).
 
 import { UNITS } from '../lib/catalog.js';
-import { listDriveFiles, scoreBatch, computeOrder, buildOrderRecord, BATCH_SIZE, DEFAULT_MODEL } from '../lib/photorank.js';
+import { listDriveFiles, scoreBatch, buildDedupQueue, dedupGroup, computeOrder, buildOrderRecord, BATCH_SIZE, DEFAULT_MODEL } from '../lib/photorank.js';
 
 // ── config ──────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
@@ -123,26 +123,43 @@ async function processFolder(folder, label) {
     console.log('  photo set changed since last rank, re-ranking');
   }
 
+  const callOpts = { apiKey: ANTHROPIC_API_KEY, model: MODEL, thumbW: THUMB_W };
   const scored = [];
   for (let i = 0; i < files.length; i += BATCH_SIZE) {
     const batch = files.slice(i, i + BATCH_SIZE);
     console.log(`    scoring photos ${i + 1}-${i + batch.length} of ${files.length}...`);
-    scored.push(...await scoreBatch(batch, { apiKey: ANTHROPIC_API_KEY, model: MODEL, thumbW: THUMB_W }));
+    scored.push(...await scoreBatch(batch, callOpts));
   }
-  const result = computeOrder(scored);
+
+  // Dedup pass: trim near-identical / overly-similar shots per category.
+  const dedupQueue = buildDedupQueue(scored);
+  const excluded = [];
+  for (let g = 0; g < dedupQueue.length; g++) {
+    const grp = dedupQueue[g];
+    console.log(`    dedup ${grp.category} (${grp.photos.length} photos) ${g + 1}/${dedupQueue.length}...`);
+    excluded.push(...await dedupGroup(grp.photos, callOpts));
+  }
+  const excludedSet = new Set(excluded);
+  const byId = new Map(scored.map(p => [p.id, p]));
+
+  const result = computeOrder(scored, excludedSet);
   const { order, junkStart, sequence } = result;
 
-  console.log(`  computed order: ${junkStart} gallery photos, ${order.length - junkStart} in junk tail`);
+  console.log(`  computed order: ${junkStart} gallery photos, ${order.length - junkStart} in junk tail, ${excluded.length} hidden (duplicates/similar)`);
   if (DRY_RUN) {
     sequence.forEach((p, i) => {
       const tag = i === 0 ? 'HERO' : (i >= junkStart ? 'JUNK' : String(i + 1).padStart(4));
       console.log(`  ${tag}  [${p.category}] appeal=${p.appeal}${p.flaws.length ? ' flaws=' + p.flaws.join(',') : ''}  ${p.name}`);
     });
+    excluded.forEach(id => {
+      const p = byId.get(id);
+      console.log(`  HIDE  [${p?.category}] appeal=${p?.appeal}  ${p?.name}`);
+    });
     console.log('  (dry run — nothing written)');
     return 'dry-run';
   }
 
-  await kvSet(`photo_order:${folder}`, buildOrderRecord(result, MODEL));
+  await kvSet(`photo_order:${folder}`, buildOrderRecord(result, MODEL, excluded, scored));
   await kvDel(`autocover:${folder}`);
   console.log('  ✓ wrote photo_order and cleared autocover');
   return 'ranked';

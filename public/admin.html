@@ -72,6 +72,14 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
 .ai-sort-row{margin-top:8px;display:flex;align-items:center;gap:10px;}
 .ai-sort-btn{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:6px 12px;font-family:'Geist',-apple-system,sans-serif;font-size:0.72rem;cursor:pointer;}
 .ai-sort-btn:disabled{opacity:0.5;cursor:default;}
+/* HIDDEN (AI-flagged duplicate/similar) PHOTOS */
+.drive-hidden-wrap{margin-top:10px;}
+.drive-hidden-label{font-size:0.65rem;color:var(--muted);margin-bottom:5px;}
+.drive-hidden-grid{display:flex;gap:6px;flex-wrap:wrap;}
+.drive-hidden-item{position:relative;width:56px;height:56px;}
+.drive-hidden-item img{width:56px;height:56px;border-radius:6px;object-fit:cover;opacity:0.4;filter:grayscale(0.4);}
+.drive-restore-btn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);color:#fff;border:none;border-radius:6px;font-size:0.6rem;font-weight:600;cursor:pointer;opacity:0;transition:opacity 0.15s;}
+.drive-hidden-item:hover .drive-restore-btn{opacity:1;}
 .cover-focus-reset:hover{border-color:var(--muted);}
 
 /* PRICING ROW */
@@ -462,8 +470,9 @@ function defaultCard(l) {
         <input type="hidden" id="${l.slug}-coverPhotoId" value="${esc(l.coverPhotoId || '')}" />
         <div class="ai-sort-row">
           <button type="button" class="ai-sort-btn" id="${l.slug}-ai-sort-btn" onclick="aiSortPhotos('${l.slug}')">✨ Sort photos with AI</button>
-          <span class="field-hint" id="${l.slug}-ai-sort-status">Puts the best photos first, junk shots last</span>
+          <span class="field-hint" id="${l.slug}-ai-sort-status">Puts the best photos first, hides duplicates, junk shots last</span>
         </div>
+        <div class="drive-hidden-wrap" id="${l.slug}-drive-hidden"></div>
       </div>
       <div class="field-group" style="margin-top:12px">
         <label class="field-label">Preview position <span class="field-hint">(drag to choose what stays centered in the 3:2 card crop)</span></label>
@@ -608,8 +617,9 @@ function customCard(l, isNew) {
         <input type="hidden" id="${slug}-coverPhotoId" value="${esc(l.coverPhotoId || '')}" />
         <div class="ai-sort-row">
           <button type="button" class="ai-sort-btn" id="${slug}-ai-sort-btn" onclick="aiSortPhotos('${slug}')">✨ Sort photos with AI</button>
-          <span class="field-hint" id="${slug}-ai-sort-status">Puts the best photos first, junk shots last</span>
+          <span class="field-hint" id="${slug}-ai-sort-status">Puts the best photos first, hides duplicates, junk shots last</span>
         </div>
+        <div class="drive-hidden-wrap" id="${slug}-drive-hidden"></div>
       </div>
       <div class="field-group" style="margin-top:12px">
         <label class="field-label">Preview position <span class="field-hint">(drag to choose what stays centered in the 3:2 card crop)</span></label>
@@ -827,21 +837,58 @@ async function loadDrivePreview(slug, folderId) {
   if (!grid) return;
   grid.innerHTML = '<div class="drive-preview-placeholder">Loading photos…</div>';
   try {
-    const r = await fetch('/api/gdrive?folder=' + encodeURIComponent(folderId));
+    // includeHidden=1 returns AI-hidden duplicates too (flagged hidden:true) so
+    // the admin can review and restore them.
+    const r = await fetch('/api/gdrive?includeHidden=1&folder=' + encodeURIComponent(folderId));
     if (!r.ok) throw new Error();
     const d = await r.json();
     if (!d.photos || !d.photos.length) {
       grid.innerHTML = '<div class="drive-preview-placeholder">Empty folder</div>';
+      renderHiddenPhotos(slug, folderId, []);
       return;
     }
     const selected = (document.getElementById(slug + '-coverPhotoId') || {}).value || '';
-    grid.innerHTML = d.photos.slice(0, 18).map(p =>
+    const visible = d.photos.filter(p => !p.hidden);
+    const hidden = d.photos.filter(p => p.hidden);
+    grid.innerHTML = visible.slice(0, 18).map(p =>
       `<img class="drive-thumb${p.id === selected ? ' selected' : ''}" src="${p.thumb}" data-id="${p.id}"
         onclick="pickCover('${slug}', '${p.id}', this)" onerror="this.remove()">`
     ).join('');
+    renderHiddenPhotos(slug, folderId, hidden);
     renderCoverFocus(slug);
   } catch {
     grid.innerHTML = '<div class="drive-preview-placeholder">Not found</div>';
+  }
+}
+
+// The AI-hidden duplicates/similar shots — shown dimmed, one click restores
+// each to the live gallery. Nothing here was deleted from Google Drive.
+function renderHiddenPhotos(slug, folderId, hidden) {
+  const wrap = document.getElementById(slug + '-drive-hidden');
+  if (!wrap) return;
+  if (!hidden.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `<div class="drive-hidden-label">Hidden by AI — ${hidden.length} duplicate/similar shot${hidden.length === 1 ? '' : 's'} (click to restore)</div>
+    <div class="drive-hidden-grid">` + hidden.map(p =>
+      `<div class="drive-hidden-item">
+         <img src="${p.thumb}" onerror="this.parentElement.remove()">
+         <button type="button" class="drive-restore-btn" onclick="restorePhoto('${slug}','${folderId}','${p.id}')">Restore</button>
+       </div>`
+    ).join('') + '</div>';
+}
+
+async function restorePhoto(slug, folderId, photoId) {
+  try {
+    const r = await fetch('/api/listings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminPw },
+      body: JSON.stringify({ action: 'set-photo-hidden', folder: folderId, photoId, hidden: false }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Could not restore');
+    showToast('Photo restored to the gallery', 'success');
+    loadDrivePreview(slug, folderId);
+  } catch (e) {
+    showToast(e.message);
   }
 }
 
@@ -871,12 +918,19 @@ async function aiSortPhotos(slug) {
       }
       if (d.status === 'empty') { status.textContent = 'No photos in this folder'; return; }
       if (d.status === 'done') {
-        status.textContent = `Sorted ${d.total} photos ✓${d.junk ? ` — ${d.junk} weak shot${d.junk === 1 ? '' : 's'} moved to the end` : ''}`;
+        const bits = [];
+        if (d.removed) bits.push(`${d.removed} duplicate/similar hidden`);
+        if (d.junk) bits.push(`${d.junk} weak shot${d.junk === 1 ? '' : 's'} moved to the end`);
+        status.textContent = `Sorted ${d.total} photos ✓${bits.length ? ' — ' + bits.join(', ') : ''}`;
         showToast('Photos sorted — galleries update within the hour', 'success');
         loadDrivePreview(slug, folderId);
         return;
       }
-      status.textContent = `Scoring photos… ${d.scored} of ${d.total}`;
+      if (d.status === 'deduping') {
+        status.textContent = `Checking for duplicates… ${d.deduped} of ${d.groups} groups${d.removed ? ` (${d.removed} hidden so far)` : ''}`;
+      } else {
+        status.textContent = `Scoring photos… ${d.scored} of ${d.total}`;
+      }
     }
     throw new Error('Took too long — click again to continue');
   } catch (e) {
