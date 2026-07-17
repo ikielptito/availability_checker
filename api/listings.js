@@ -44,6 +44,7 @@ const TROPICANA = {
 // The building-level constants above (tag, location, map, overview, features,
 // inclusions…) are the portal's presentation layer and stay here.
 import { UNITS } from '../lib/catalog.js';
+import { rankStep } from '../lib/photorank.js';
 const BUILDING = {
   'haus-1': HAUS, 'haus-2': HAUS, 'haus-4': HAUS, 'haus-5': HAUS,
   'lanehaus-1': LANE, 'lanehaus-3': LANE,
@@ -109,6 +110,13 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { Authorization: `Bearer ${kvToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(value)
+    });
+  }
+
+  async function kvDel(key) {
+    await fetch(`${kvUrl}/del/${encodeURIComponent(key)}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${kvToken}` }
     });
   }
 
@@ -244,6 +252,26 @@ export default async function handler(req, res) {
       delete promos[code];
       await kvSet('promo_codes', promos);
       return res.status(200).json({ ok: true, promos });
+    }
+
+    // AI photo sort: one scoring step per call (serverless time limits) —
+    // the admin UI keeps calling until { status: 'done' }. Logic shared with
+    // dev/photo-rank.mjs via lib/photorank.js.
+    if (req.body?.action === 'rank') {
+      const folder = cleanStr(req.body.folder);
+      if (!/^[A-Za-z0-9_-]{10,}$/.test(folder)) return res.status(400).json({ error: 'Invalid folder id' });
+      if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+      try {
+        const result = await rankStep(folder, {
+          kvGet, kvSet, kvDel,
+          googleApiKey: GOOGLE_API_KEY,
+          anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+          force: !!req.body.force,
+        });
+        return res.status(200).json(result);
+      } catch (e) {
+        return res.status(502).json({ error: e.message });
+      }
     }
 
     // Review action: approve / reject an owner-submitted listing.

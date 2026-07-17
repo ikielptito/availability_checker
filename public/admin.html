@@ -69,6 +69,9 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
 .cover-focus-dot{position:absolute;width:20px;height:20px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,0.3);box-shadow:0 0 0 1px rgba(0,0,0,0.5),0 1px 3px rgba(0,0,0,0.5);transform:translate(-50%,-50%);pointer-events:none;}
 .cover-focus-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;color:var(--muted);font-size:0.78rem;}
 .cover-focus-reset{margin-top:8px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:6px 12px;font-family:'Geist',-apple-system,sans-serif;font-size:0.72rem;cursor:pointer;}
+.ai-sort-row{margin-top:8px;display:flex;align-items:center;gap:10px;}
+.ai-sort-btn{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:6px 12px;font-family:'Geist',-apple-system,sans-serif;font-size:0.72rem;cursor:pointer;}
+.ai-sort-btn:disabled{opacity:0.5;cursor:default;}
 .cover-focus-reset:hover{border-color:var(--muted);}
 
 /* PRICING ROW */
@@ -457,6 +460,10 @@ function defaultCard(l) {
         <label class="field-label">Card preview photo <span class="field-hint">(click to choose · click again to clear)</span></label>
         <div class="drive-grid" id="${l.slug}-drive-grid"><div class="drive-preview-placeholder">Loading photos…</div></div>
         <input type="hidden" id="${l.slug}-coverPhotoId" value="${esc(l.coverPhotoId || '')}" />
+        <div class="ai-sort-row">
+          <button type="button" class="ai-sort-btn" id="${l.slug}-ai-sort-btn" onclick="aiSortPhotos('${l.slug}')">✨ Sort photos with AI</button>
+          <span class="field-hint" id="${l.slug}-ai-sort-status">Puts the best photos first, junk shots last</span>
+        </div>
       </div>
       <div class="field-group" style="margin-top:12px">
         <label class="field-label">Preview position <span class="field-hint">(drag to choose what stays centered in the 3:2 card crop)</span></label>
@@ -599,6 +606,10 @@ function customCard(l, isNew) {
         <label class="field-label">Card preview photo <span class="field-hint">(click to choose · click again to clear)</span></label>
         <div class="drive-grid" id="${slug}-drive-grid"><div class="drive-preview-placeholder">${l.folder ? 'Loading photos…' : 'Add a Drive folder first'}</div></div>
         <input type="hidden" id="${slug}-coverPhotoId" value="${esc(l.coverPhotoId || '')}" />
+        <div class="ai-sort-row">
+          <button type="button" class="ai-sort-btn" id="${slug}-ai-sort-btn" onclick="aiSortPhotos('${slug}')">✨ Sort photos with AI</button>
+          <span class="field-hint" id="${slug}-ai-sort-status">Puts the best photos first, junk shots last</span>
+        </div>
       </div>
       <div class="field-group" style="margin-top:12px">
         <label class="field-label">Preview position <span class="field-hint">(drag to choose what stays centered in the 3:2 card crop)</span></label>
@@ -831,6 +842,48 @@ async function loadDrivePreview(slug, folderId) {
     renderCoverFocus(slug);
   } catch {
     grid.innerHTML = '<div class="drive-preview-placeholder">Not found</div>';
+  }
+}
+
+// ── AI PHOTO SORT ──
+// The server scores ~20 photos per request (serverless time limits), so we
+// keep calling until it reports done, showing progress along the way.
+async function aiSortPhotos(slug) {
+  const btn = document.getElementById(slug + '-ai-sort-btn');
+  const status = document.getElementById(slug + '-ai-sort-status');
+  const folderId = extractFolderId((document.getElementById(slug + '-folder-url') || {}).value || '');
+  if (!folderId) { showToast('Add a Drive folder link first'); return; }
+  btn.disabled = true;
+  status.textContent = 'Looking at the photos…';
+  try {
+    for (let i = 0; i < 40; i++) {
+      const r = await fetch('/api/listings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminPw },
+        body: JSON.stringify({ action: 'rank', folder: folderId }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Sorting failed');
+      if (d.status === 'up_to_date') {
+        status.textContent = 'Already sorted ✓ (re-runs automatically when photos change)';
+        showToast('Photos are already AI-sorted', 'success');
+        return;
+      }
+      if (d.status === 'empty') { status.textContent = 'No photos in this folder'; return; }
+      if (d.status === 'done') {
+        status.textContent = `Sorted ${d.total} photos ✓${d.junk ? ` — ${d.junk} weak shot${d.junk === 1 ? '' : 's'} moved to the end` : ''}`;
+        showToast('Photos sorted — galleries update within the hour', 'success');
+        loadDrivePreview(slug, folderId);
+        return;
+      }
+      status.textContent = `Scoring photos… ${d.scored} of ${d.total}`;
+    }
+    throw new Error('Took too long — click again to continue');
+  } catch (e) {
+    status.textContent = e.message;
+    showToast(e.message);
+  } finally {
+    btn.disabled = false;
   }
 }
 

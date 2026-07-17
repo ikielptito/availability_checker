@@ -10,6 +10,7 @@
 // sessions are random tokens stored in KV with a TTL, cookies are httpOnly.
 import crypto from 'node:crypto';
 import { logError } from '../lib/errlog.js';
+import { rankStep } from '../lib/photorank.js';
 
 const SESSION_COOKIE = 'samba_session';
 const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days
@@ -116,6 +117,15 @@ export default async function handler(req, res) {
       const owner = await currentOwner(req, { kvGet });
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
       return redeemPromo(req, res, owner, { kvGet, kvSet });
+    }
+    // AI photo sort for one of the owner's own listings. One scoring step per
+    // call (serverless time limits) — the portal keeps calling until
+    // { status: 'done' }. Folder is resolved server-side from the owner's
+    // listing so an owner can only ever rank their own photo sets.
+    if (action === 'rank' && req.method === 'POST') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      return rankPhotos(req, res, owner, { kvGet, kvSet, kvDel });
     }
     // Pre-fill the listing form from a public Airbnb / Booking.com page.
     if (action === 'import-listing' && req.method === 'POST') {
@@ -600,6 +610,32 @@ async function saveProperty(req, res, owner, { kvGet, kvSet, kvDel }) {
   if (!owned.includes(slug)) { owned.push(slug); await kvSet(`owner_listings:${owner.sub}`, owned); }
 
   return res.status(200).json({ ok: true, slug, status });
+}
+
+async function rankPhotos(req, res, owner, { kvGet, kvSet, kvDel }) {
+  const slug = cleanStr(req.body?.slug);
+  if (!slug) return res.status(400).json({ error: 'Missing slug' });
+  const all = (await kvGet(CUSTOM_KEY)) || {};
+  if (!all[slug] || all[slug].ownerSub !== owner.sub) {
+    return res.status(403).json({ error: 'Not your listing' });
+  }
+  const folder = all[slug].folder;
+  if (!folder) return res.status(400).json({ error: 'This listing has no photo folder yet' });
+  if (!process.env.ANTHROPIC_API_KEY || !process.env.GOOGLE_API_KEY) {
+    return res.status(500).json({ error: 'Photo sorting not configured' });
+  }
+  try {
+    const result = await rankStep(folder, {
+      kvGet, kvSet, kvDel,
+      googleApiKey: process.env.GOOGLE_API_KEY,
+      anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+      force: false,
+    });
+    return res.status(200).json(result);
+  } catch (e) {
+    await logError('portal-rank', e);
+    return res.status(502).json({ error: 'Photo sorting failed — try again' });
+  }
 }
 
 async function deleteProperty(req, res, owner, { kvGet, kvSet, kvDel }) {

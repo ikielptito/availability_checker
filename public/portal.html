@@ -495,6 +495,7 @@ function propCard(p){
       ${canSub?`<button class="btn-sm primary" onclick="openCheckout('${esc(p.slug)}')">Activate listing</button>`:''}
       ${(active&&!comped&&!promo)?`<button class="btn-sm" onclick="manageBilling()">Manage billing</button>`:''}
       <button class="btn-sm" onclick="editProperty('${esc(p.slug)}')">Edit</button>
+      ${p.folder?`<button class="btn-sm" id="ai-sort-${esc(p.slug)}" onclick="aiSortPhotos('${esc(p.slug)}')">✨ Sort photos with AI</button>`:''}
       <button class="btn-sm danger" onclick="removeProperty('${esc(p.slug)}')">Delete</button>
     </div>
   </div>`;
@@ -616,7 +617,37 @@ async function submitProperty(){
   closePropModal();
   showToast(wasNew?'Submitted — almost there.':'Saved.');
   await loadProperties();
+  // Kick off AI photo sorting in the background — instant no-op when the
+  // photo set hasn't changed since the last sort.
+  if(newSlug && data.photosLink) aiSortPhotos(newSlug, true);
   if(wasNew && newSlug) openCheckout(newSlug);
+}
+
+// ── AI photo sort ──
+// The server scores ~20 photos per request (serverless time limits); keep
+// calling until it reports done. Safe to re-click: if the photos haven't
+// changed since the last sort it returns immediately.
+async function aiSortPhotos(slug, quiet){
+  if(DEMO)return demoBlock();
+  const btn=document.getElementById('ai-sort-'+slug);
+  const label=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='Sorting…';}
+  try{
+    for(let i=0;i<40;i++){
+      const r=await api('?action=rank',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug})});
+      if(!r.ok)throw new Error(r.body?.error||'Could not sort photos.');
+      const d=r.body||{};
+      if(d.status==='done'){showToast('Photos sorted — best ones now show first.');return;}
+      if(d.status==='up_to_date'){if(!quiet)showToast('Photos are already sorted.');return;}
+      if(d.status==='empty'){if(!quiet)showToast('No photos found in the folder yet.');return;}
+      if(btn)btn.textContent=`Sorting… ${d.scored||0}/${d.total||'?'}`;
+    }
+    throw new Error('Sorting is taking a while — tap the button to continue.');
+  }catch(e){
+    if(!quiet)showToast(e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=label;}
+  }
 }
 
 async function removeProperty(slug){
