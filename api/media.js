@@ -21,6 +21,40 @@ export default async function handler(req, res) {
 }
 
 // ── Google Drive folder photos (was gdrive.js) ──────────────────────
+
+// AI-curated presentation order written by dev/photo-rank.mjs. Fail-open:
+// any KV problem just means the gallery falls back to raw Drive order.
+async function getPhotoOrder(folder) {
+  const kvUrl = process.env.KV_REST_API_URL;
+  const kvToken = process.env.KV_REST_API_TOKEN;
+  if (!kvUrl || !kvToken) return null;
+  try {
+    const r = await fetch(`${kvUrl}/get/${encodeURIComponent(`photo_order:${folder}`)}`, {
+      headers: { Authorization: `Bearer ${kvToken}` }
+    });
+    const json = await r.json();
+    if (!json.result) return null;
+    const parsed = JSON.parse(json.result);
+    return Array.isArray(parsed?.order) ? parsed : null;
+  } catch { return null; }
+}
+
+// Curated files first (by stored position), then files Drive has that the
+// order hasn't seen yet (new uploads), then the utility/junk tail. Files
+// deleted from Drive drop out automatically.
+function applyPhotoOrder(files, photoOrder) {
+  const pos = new Map(photoOrder.order.map((id, i) => [id, i]));
+  const junkStart = Number.isInteger(photoOrder.junkStart) ? photoOrder.junkStart : photoOrder.order.length;
+  const curated = [], fresh = [], junk = [];
+  for (const f of files) {
+    if (!pos.has(f.id)) fresh.push(f);
+    else if (pos.get(f.id) < junkStart) curated.push(f);
+    else junk.push(f);
+  }
+  const byPos = (a, b) => pos.get(a.id) - pos.get(b.id);
+  return [...curated.sort(byPos), ...fresh, ...junk.sort(byPos)];
+}
+
 async function driveFolder(req, res) {
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'GOOGLE_API_KEY not configured' });
@@ -30,10 +64,12 @@ async function driveFolder(req, res) {
 
   try {
     const url = `https://www.googleapis.com/drive/v3/files?q='${folder}'+in+parents+and+mimeType+contains+'image/'&fields=files(id,name,mimeType)&key=${apiKey}&pageSize=150`;
-    const r = await fetch(url);
+    const [r, photoOrder] = await Promise.all([fetch(url), getPhotoOrder(folder)]);
     const data = await r.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
-    const photos = (data.files || []).map(f => ({
+    let files = data.files || [];
+    if (photoOrder) files = applyPhotoOrder(files, photoOrder);
+    const photos = files.map(f => ({
       id: f.id,
       url: `https://lh3.googleusercontent.com/d/${f.id}`,
       thumb: `https://lh3.googleusercontent.com/d/${f.id}=w400`

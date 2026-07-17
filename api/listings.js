@@ -122,6 +122,14 @@ export default async function handler(req, res) {
     if (!folder) return '';
     const cached = await kvGet(`autocover:${folder}`);
     if (typeof cached === 'string') return cached;
+    // Prefer the AI-picked hero shot (written by dev/photo-rank.mjs) over the
+    // filename-sort heuristic. Manual coverPhotoId still wins upstream in
+    // fillCovers, which only calls this when no cover was set.
+    const ranked = await kvGet(`photo_order:${folder}`);
+    if (ranked?.cover) {
+      await kvSet(`autocover:${folder}`, ranked.cover);
+      return ranked.cover;
+    }
     if (!GOOGLE_API_KEY) return '';
     try {
       const url = `https://www.googleapis.com/drive/v3/files?q='${folder}'+in+parents+and+mimeType+contains+'image/'&fields=files(id,name)&key=${GOOGLE_API_KEY}&pageSize=150`;
