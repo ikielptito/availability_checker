@@ -81,7 +81,11 @@ async function driveFolder(req, res) {
       thumb: `https://lh3.googleusercontent.com/d/${f.id}=w400`,
       ...(f.hidden ? { hidden: true } : {})
     }));
-    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
+    // The admin review view (includeHidden) must reflect restores immediately,
+    // so it isn't CDN-cached; the public gallery keeps the long cache.
+    res.setHeader('Cache-Control', includeHidden
+      ? 'no-store'
+      : 's-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).json({ photos });
   } catch (e) {
     return res.status(502).json({ error: e.message });
