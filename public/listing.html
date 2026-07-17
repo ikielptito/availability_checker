@@ -327,6 +327,32 @@
     margin-bottom: 20px;
   }
 
+  .gallery-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .gallery-filter {
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .gallery-filter:hover { border-color: var(--muted); }
+  .gallery-filter.active {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+  }
+  .gallery-filter .cnt { opacity: 0.5; margin-left: 5px; font-variant-numeric: tabular-nums; }
+
   .gallery-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -467,7 +493,7 @@
 <div id="listing" style="display:none">
   <div class="hero" id="hero">
     <div class="hero-placeholder" id="hero-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px;opacity:.3"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-    <img class="hero-img" id="hero-img" src="" alt="" style="display:none" onclick="openLb(0)" />
+    <img class="hero-img" id="hero-img" src="" alt="" style="display:none" onclick="openFullGallery()" />
     <div class="hero-overlay"></div>
     <div class="hero-head">
       <div class="property-tag" id="prop-tag"></div>
@@ -477,7 +503,7 @@
         <span id="prop-location-text"></span>
       </a>
     </div>
-    <div class="hero-label" id="photo-count" onclick="openLb(0)" style="display:none"></div>
+    <div class="hero-label" id="photo-count" onclick="openFullGallery()" style="display:none"></div>
   </div>
 
   <div class="content">
@@ -517,6 +543,7 @@
     <div class="gallery-section">
       <h2 class="gallery-title">Photos</h2>
       <div class="gallery-loading" id="gallery-loading">Loading photos…</div>
+      <div class="gallery-filters" id="gallery-filters" style="display:none"></div>
       <div class="gallery-grid" id="gallery-grid"></div>
     </div>
   </div>
@@ -875,6 +902,27 @@ async function boot() {
   else document.getElementById('gallery-loading').textContent = 'No photos available yet.';
 }
 
+// AI photo categories → Airbnb-style filter labels. Order = chip order.
+// Categories not listed (e.g. amenity/detail) fall under "Other".
+const CATEGORY_TAGS = [
+  ['pool', 'Pool'],
+  ['living', 'Living room'],
+  ['bedroom', 'Bedroom'],
+  ['bathroom', 'Bathroom'],
+  ['kitchen', 'Kitchen'],
+  ['workspace', 'Workspace'],
+  ['outdoor', 'Garden'],
+  ['hero-exterior', 'Exterior'],
+  ['view', 'View'],
+];
+function tagFor(cat) {
+  const hit = CATEGORY_TAGS.find(t => t[0] === cat);
+  return hit ? hit[1] : 'Other';
+}
+
+let ALL_PHOTOS = [];      // full ordered list [{id,url,thumb,cat}]
+let activeFilter = 'All'; // current tag label
+
 async function loadPhotos(folderId) {
   try {
     const r = await fetch('/api/gdrive?folder=' + folderId);
@@ -893,7 +941,7 @@ async function loadPhotos(folderId) {
       if (ci > 0) d.photos.unshift(d.photos.splice(ci, 1)[0]);
     }
 
-    lbPhotos = d.photos.map(p => p.url);
+    ALL_PHOTOS = d.photos;
 
     // Hero
     document.getElementById('hero-placeholder').style.display = 'none';
@@ -904,15 +952,67 @@ async function loadPhotos(folderId) {
     countLabel.style.display = 'inline-flex';
     countLabel.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> ' + d.photos.length + ' photos';
 
-    // Gallery grid
-    const grid = document.getElementById('gallery-grid');
-    grid.innerHTML = d.photos.map((p, i) =>
-      '<img class="gallery-thumb" src="' + p.thumb + '" loading="lazy" onclick="openLb(' + i + ')" alt="Photo ' + (i+1) + '">'
-    ).join('');
+    renderFilters();
+    renderGallery();
 
   } catch(e) {
     document.getElementById('gallery-loading').textContent = 'Could not load photos.';
   }
+}
+
+// Build the filter chips — only tags that actually have photos, in a fixed
+// order, each with its count. Hidden entirely if photos aren't categorised
+// yet (older listings not re-sorted), so the gallery just shows everything.
+function renderFilters() {
+  const wrap = document.getElementById('gallery-filters');
+  const counts = {};
+  let categorised = 0;
+  ALL_PHOTOS.forEach(p => {
+    if (!p.cat) return;
+    categorised++;
+    const tag = tagFor(p.cat);
+    counts[tag] = (counts[tag] || 0) + 1;
+  });
+  // Need at least two distinct tags to be worth showing a filter.
+  const presentTags = CATEGORY_TAGS.map(t => t[1]).filter(l => counts[l]);
+  if (counts['Other']) presentTags.push('Other');
+  if (categorised < 2 || presentTags.length < 2) { wrap.style.display = 'none'; return; }
+
+  const chips = [['All', ALL_PHOTOS.length]].concat(presentTags.map(l => [l, counts[l]]));
+  wrap.style.display = 'flex';
+  wrap.innerHTML = chips.map(([label, n]) =>
+    '<button class="gallery-filter' + (label === activeFilter ? ' active' : '') +
+    '" onclick="setFilter(\'' + label.replace(/'/g, "\\'") + '\')">' +
+    label + '<span class="cnt">' + n + '</span></button>'
+  ).join('');
+}
+
+// Hero / "N photos" always open the whole gallery — reset to All first so the
+// lightbox set and the grid match.
+function openFullGallery() {
+  if (activeFilter !== 'All') setFilter('All');
+  else renderGallery();
+  openLb(0);
+}
+
+function setFilter(label) {
+  activeFilter = label;
+  document.querySelectorAll('.gallery-filter').forEach(b =>
+    b.classList.toggle('active', b.textContent.replace(/\d+$/, '').trim() === label));
+  renderGallery();
+}
+
+// Renders the grid for the active filter and re-scopes the lightbox to the
+// same subset, so prev/next stay within what the guest is viewing.
+function renderGallery() {
+  const shown = activeFilter === 'All'
+    ? ALL_PHOTOS
+    : ALL_PHOTOS.filter(p => p.cat && tagFor(p.cat) === activeFilter);
+  lbPhotos = shown.map(p => p.url);
+  const grid = document.getElementById('gallery-grid');
+  grid.innerHTML = shown.map((p, i) =>
+    '<img class="gallery-thumb" src="' + p.thumb + '" loading="lazy" onclick="openLb(' + i + ')" alt="Photo ' + (i+1) + '">'
+  ).join('');
 }
 
 boot();

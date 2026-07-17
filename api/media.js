@@ -75,10 +75,12 @@ async function driveFolder(req, res) {
     if (data.error) return res.status(400).json({ error: data.error.message });
     let files = data.files || [];
     if (photoOrder) files = applyPhotoOrder(files, photoOrder, includeHidden);
+    const meta = photoOrder?.meta || {};
     const photos = files.map(f => ({
       id: f.id,
       url: `https://lh3.googleusercontent.com/d/${f.id}`,
       thumb: `https://lh3.googleusercontent.com/d/${f.id}=w400`,
+      ...(meta[f.id]?.c ? { cat: meta[f.id].c } : {}),
       ...(f.hidden ? { hidden: true } : {})
     }));
     // The admin review view (includeHidden) must reflect restores immediately,
