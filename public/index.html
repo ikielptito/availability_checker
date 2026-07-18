@@ -399,14 +399,16 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 /* CAROUSEL */
 .carousel{position:relative;background:#1a1a1a;height:min(50vh,380px);flex-shrink:0;overflow:hidden}
 @media(min-width:760px){.carousel{height:min(55vh,520px)}}
-.carousel-img{width:100%;height:100%;object-fit:cover;display:block}
+/* True sliding track: prev/current/next photos sit side by side and follow
+   the finger as one strip — no gap, no two-phase animation. */
+.carousel-track{display:flex;height:100%;width:300%;transform:translateX(-33.3333%);cursor:zoom-in;will-change:transform}
+.carousel-cell{width:33.3333%;height:100%;object-fit:cover;flex-shrink:0;background:#141210}
 .carousel-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.32);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:none;color:#fff;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:background .18s var(--ease)}
 .carousel-nav:hover{background:rgba(0,0,0,.55)}
 .carousel-prev{left:12px}.carousel-next{right:12px}
 .carousel-counter{position:absolute;bottom:10px;right:12px;background:rgba(0,0,0,.5);color:#fff;font-size:.7rem;padding:3px 8px;border-radius:10px}
 .carousel-loading{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:.82rem;flex-direction:column;gap:10px}
 .carousel-spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
-.carousel-img{cursor:zoom-in}
 /* Fullscreen photo viewer (tap a carousel photo) */
 .pv-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 .pv-overlay.open{display:flex}
@@ -546,7 +548,11 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
     <div class="modal-body">
       <div class="carousel" id="carousel">
         <div class="carousel-loading" id="carousel-loading"><div class="carousel-spinner"></div><span>Loading photos…</span></div>
-        <img class="carousel-img" id="carousel-img" src="" alt="" style="display:none" onclick="openPv()" />
+        <div class="carousel-track" id="carousel-track" style="display:none">
+          <img class="carousel-cell" id="car-prev" src="" alt="" />
+          <img class="carousel-cell" id="car-cur" src="" alt="" />
+          <img class="carousel-cell" id="car-next" src="" alt="" />
+        </div>
         <button class="carousel-nav carousel-prev" onclick="carNav(-1)" style="display:none" id="carousel-prev" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-lg"><polyline points="15 18 9 12 15 6"/></svg></button>
         <button class="carousel-nav carousel-next" onclick="carNav(1)" style="display:none" id="carousel-next" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-lg"><polyline points="9 18 15 12 9 6"/></svg></button>
         <div class="carousel-counter" id="carousel-counter" style="display:none"></div>
@@ -1280,7 +1286,7 @@ function closeModal(e) {
   document.getElementById('modal').classList.remove('open');
   document.body.style.overflow='';
   const _tabs=document.getElementById('snav-tabs');if(_tabs)_tabs.style.display='';
-  document.getElementById('carousel-img').style.display='none';
+  document.getElementById('carousel-track').style.display='none';
   document.getElementById('carousel-loading').style.display='flex';
   document.getElementById('carousel-loading').innerHTML='<div class="carousel-spinner"></div><span>Loading photos…</span>';
   document.getElementById('carousel-prev').style.display='none';
@@ -1306,7 +1312,7 @@ function maybeSignupPrompt(){
 
 async function loadCarousel(propId,folderId) {
   carPhotos=[]; carIdx=0;
-  document.getElementById('carousel-img').style.display='none';
+  document.getElementById('carousel-track').style.display='none';
   document.getElementById('carousel-loading').style.display='flex';
   document.getElementById('carousel-prev').style.display='none';
   document.getElementById('carousel-next').style.display='none';
@@ -1325,75 +1331,107 @@ async function loadCarousel(propId,folderId) {
   if(!carPhotos.length) document.getElementById('carousel-loading').innerHTML='<span style="color:var(--muted)">No photos available yet</span>';
 }
 
-function preloadAdjacent(){
-  if(carPhotos.length<=1)return;
-  [1,-1,2].forEach(off=>{const i=new Image();i.src=carPhotos[(carIdx+off+carPhotos.length)%carPhotos.length].show;});
+// Fills the 3-cell track (prev | current | next) and re-centres it. The side
+// cells are real <img>s, so neighbours are always decoded before a swipe.
+function carSync(){
+  const n=carPhotos.length;
+  if(!n)return;
+  const t=document.getElementById('carousel-track');
+  const prev=document.getElementById('car-prev');
+  const cur=document.getElementById('car-cur');
+  const next=document.getElementById('car-next');
+  cur.src=carPhotos[carIdx].show;
+  if(n>1){
+    prev.src=carPhotos[(carIdx-1+n)%n].show;
+    next.src=carPhotos[(carIdx+1)%n].show;
+    prev.style.visibility='visible'; next.style.visibility='visible';
+    const i=new Image();i.src=carPhotos[(carIdx+2)%n].show;
+  } else {
+    prev.style.visibility='hidden'; next.style.visibility='hidden';
+  }
+  t.style.transition='none';
+  t.style.transform='translateX(-33.3333%)';
+  document.getElementById('carousel-counter').textContent=(carIdx+1)+' / '+n;
 }
 
 function showCarPhoto(){
-  const img=document.getElementById('carousel-img');
   document.getElementById('carousel-loading').style.display='none';
-  const src=carPhotos[carIdx].show;
+  const t=document.getElementById('carousel-track');
   if(carPhotos.length>1){
     document.getElementById('carousel-prev').style.display='flex';
     document.getElementById('carousel-next').style.display='flex';
     document.getElementById('carousel-counter').style.display='block';
-    document.getElementById('carousel-counter').textContent=(carIdx+1)+' / '+carPhotos.length;
   }
-  img.style.transition='none'; img.style.transform='translateX(0)';
-  img.style.opacity='0';
-  const p=new Image();let done=false;
-  const apply=()=>{if(done)return;done=true;img.src=src;img.style.display='block';requestAnimationFrame(()=>requestAnimationFrame(()=>{img.style.transition='opacity .2s ease';img.style.opacity='1';}));preloadAdjacent();};
-  p.onload=p.onerror=apply; setTimeout(apply,600); p.src=src;
+  carSync();
+  if(t.style.display==='none'){
+    t.style.opacity='0'; t.style.display='flex';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      t.style.transition='opacity .25s ease'; t.style.opacity='1';
+      setTimeout(()=>{t.style.transition='none';},280);
+    }));
+  }
 }
 
-function carNav(dir){
+// One step of travel: slide the strip to the neighbouring third, then
+// instantly re-centre with the new photo set. Continuous from any mid-drag
+// position — this is what makes the swipe feel native.
+function carGo(dir){
   if(carBusy||carPhotos.length<=1)return;
-  carIdx=(carIdx+dir+carPhotos.length)%carPhotos.length;
-  showCarPhoto();
+  carBusy=true;
+  const t=document.getElementById('carousel-track');
+  t.style.transition='transform .28s cubic-bezier(.22,.61,.36,1)';
+  t.style.transform='translateX('+(dir>0?'-66.6667%':'0%')+')';
+  let fb;
+  const done=()=>{
+    t.removeEventListener('transitionend',done); clearTimeout(fb);
+    carIdx=(carIdx+dir+carPhotos.length)%carPhotos.length;
+    carSync(); carBusy=false;
+  };
+  fb=setTimeout(done,360);
+  t.addEventListener('transitionend',done);
 }
+function carNav(dir){carGo(dir);}
 
+// Carousel drag: the strip follows the finger (neighbouring photo visibly
+// peeking in), snaps to the nearest photo on release. Tap opens the viewer;
+// a drag never counts as a tap.
 (function(){
   const el=document.getElementById('carousel');
-  const img=document.getElementById('carousel-img');
-  let startX=0,startY=0,isHoriz=null;
+  const track=()=>document.getElementById('carousel-track');
+  let startX=0,startY=0,isHoriz=null,dragged=false;
   el.addEventListener('touchstart',e=>{
     if(e.touches.length!==1||carBusy)return;
-    startX=e.touches[0].clientX; startY=e.touches[0].clientY; isHoriz=null;
-    img.style.transition='none';
+    startX=e.touches[0].clientX; startY=e.touches[0].clientY; isHoriz=null; dragged=false;
+    track().style.transition='none';
   },{passive:true});
   el.addEventListener('touchmove',e=>{
-    if(!carPhotos.length||e.touches.length!==1||carBusy)return;
+    if(carPhotos.length<=1||e.touches.length!==1||carBusy)return;
     const dx=e.touches[0].clientX-startX, dy=e.touches[0].clientY-startY;
     if(isHoriz===null) isHoriz=Math.abs(dx)>Math.abs(dy);
     if(!isHoriz)return;
     e.preventDefault();
-    img.style.transform='translateX('+Math.max(-el.offsetWidth,Math.min(el.offsetWidth,dx))+'px)';
+    dragged=true;
+    const c=Math.max(-el.offsetWidth,Math.min(el.offsetWidth,dx));
+    track().style.transform='translateX(calc(-33.3333% + '+c+'px))';
   },{passive:false});
   el.addEventListener('touchend',e=>{
-    if(!carPhotos.length||!isHoriz||carBusy){isHoriz=null;return;}
+    if(!isHoriz||carBusy){isHoriz=null;return;}
     const dx=e.changedTouches[0].clientX-startX;
     isHoriz=null;
-    if(Math.abs(dx)<50){img.style.transition='transform .2s ease-out';img.style.transform='translateX(0)';return;}
-    carBusy=true;
-    const nextIdx=(carIdx+(dx<0?1:-1)+carPhotos.length)%carPhotos.length;
-    const nextSrc=carPhotos[nextIdx].show;
-    const outTo=dx<0?'-110%':'110%', inFrom=dx<0?'110%':'-110%';
-    // Preload next image in parallel with slide-out so slide-in is never blank
-    const imgReady=new Promise(res=>{const p=new Image();p.onload=p.onerror=res;setTimeout(res,800);p.src=nextSrc;});
-    img.style.transition='transform .25s ease-in';
-    img.style.transform='translateX('+outTo+')';
-    Promise.all([imgReady,new Promise(res=>setTimeout(res,250))]).then(()=>{
-      carIdx=nextIdx; img.src=nextSrc;
-      document.getElementById('carousel-counter').textContent=(carIdx+1)+' / '+carPhotos.length;
-      img.style.transition='none'; img.style.transform='translateX('+inFrom+')';
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        img.style.transition='transform .25s ease-out';
-        img.style.transform='translateX(0)';
-        setTimeout(()=>{carBusy=false;preloadAdjacent();},250);
-      }));
-    });
-  },{passive:false});
+    if(Math.abs(dx)<Math.min(60,el.offsetWidth*0.15)){
+      const t=track();
+      t.style.transition='transform .2s ease-out';
+      t.style.transform='translateX(-33.3333%)';
+      setTimeout(()=>{t.style.transition='none';},220);
+      return;
+    }
+    carGo(dx<0?1:-1);
+  },{passive:true});
+  // Tap → fullscreen viewer (suppressed when the touch was a drag).
+  el.addEventListener('click',e=>{
+    if(dragged){dragged=false;return;}
+    if(e.target.classList&&e.target.classList.contains('carousel-cell'))openPv();
+  });
 })();
 
 // ── FULLSCREEN PHOTO VIEWER ──
