@@ -1655,13 +1655,26 @@ document.addEventListener('keydown',e=>{
 });
 
 // Swipe-down to dismiss modal on mobile (#18)
+// Sheet semantics: only a mostly-vertical pull that BEGINS with the card
+// content already scrolled to the top counts as a dismiss. A downward drag
+// that scrolls the content back up (e.g. returning to the photos) must never
+// close the card.
 (function(){
   const box=document.getElementById('modal-box');
-  let _sy=0;
-  box.addEventListener('touchstart',e=>{if(e.touches.length===1)_sy=e.touches[0].clientY;},{passive:true});
+  const body=box.querySelector('.modal-body');
+  let _sy=0,_sx=0,_atTop=false;
+  box.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1)return;
+    _sy=e.touches[0].clientY;_sx=e.touches[0].clientX;
+    _atTop=!body||body.scrollTop<=0;
+  },{passive:true});
   box.addEventListener('touchend',e=>{
     if(!document.getElementById('modal').classList.contains('open'))return;
-    if(e.changedTouches[0].clientY-_sy>90)closeModal({target:null});
+    const dy=e.changedTouches[0].clientY-_sy;
+    const dx=Math.abs(e.changedTouches[0].clientX-_sx);
+    const stillTop=!body||body.scrollTop<=0;
+    if(_atTop&&stillTop&&dy>90&&dy>dx*1.5)closeModal({target:null});
+    _atTop=false;
   },{passive:true});
 })();
 
