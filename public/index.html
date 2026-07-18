@@ -412,8 +412,12 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 /* Fullscreen photo viewer (tap a carousel photo) */
 .pv-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 .pv-overlay.open{display:flex}
-.pv-img{max-width:94vw;max-height:80vh;object-fit:contain;border-radius:6px;touch-action:none}
-.pv-img.zoomed{cursor:grab;border-radius:0}
+/* Sliding track: prev/current/next full-width cells move as one strip */
+.pv-stage{width:100vw;height:76vh;overflow:hidden}
+.pv-track{display:flex;width:300vw;height:100%;transform:translateX(-33.3333%);will-change:transform}
+.pv-cell{width:100vw;height:100%;display:flex;align-items:center;justify-content:center;flex-shrink:0;touch-action:none}
+.pv-cell img{max-width:94vw;max-height:100%;object-fit:contain;border-radius:6px}
+.pv-cell img.zoomed{cursor:grab;border-radius:0}
 .pv-caption{color:rgba(255,255,255,.85);font-size:.8rem;min-height:1.2em}
 .pv-controls{display:flex;align-items:center;gap:20px}
 .pv-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;width:42px;height:42px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
@@ -530,7 +534,13 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 <!-- Fullscreen photo viewer — opens on carousel tap, sits above the modal -->
 <div class="pv-overlay" id="pv" onclick="pvClickOverlay(event)">
   <button class="pv-close" onclick="closePv()" aria-label="Close photos"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-  <img class="pv-img" id="pv-img" src="" alt="" />
+  <div class="pv-stage" id="pv-stage">
+    <div class="pv-track" id="pv-track">
+      <div class="pv-cell"><img id="pv-prev-img" src="" alt="" /></div>
+      <div class="pv-cell"><img id="pv-cur-img" src="" alt="" /></div>
+      <div class="pv-cell"><img id="pv-next-img" src="" alt="" /></div>
+    </div>
+  </div>
   <div class="pv-caption" id="pv-cap"></div>
   <div class="pv-controls">
     <button class="pv-btn" onclick="pvNav(-1)" aria-label="Previous photo"><svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8l8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -1453,27 +1463,54 @@ function pvChrome(){
   document.getElementById('pv-counter').textContent=(pvIdx+1)+' / '+carPhotos.length;
   document.getElementById('pv-cap').textContent=(it&&it.cat&&PV_TAGS[it.cat])||'';
 }
-function pvShowFull(){
-  const img=document.getElementById('pv-img');
-  const it=carPhotos[pvIdx],want=pvIdx;
-  const full=new Image();
-  full.onload=()=>{if(want===pvIdx)img.src=it.full;};
-  full.src=it.full;
-  if(carPhotos.length>1)[1,-1].forEach(off=>{const i=new Image();i.src=carPhotos[(pvIdx+off+carPhotos.length)%carPhotos.length].show;});
-}
-function showPv(){
-  const img=document.getElementById('pv-img');
+// Fills the viewer's 3-cell track (prev | current | next) and re-centres it —
+// same native-feel strip as the card carousel. Current cell shows the cached
+// carousel-size image instantly, then upgrades to the w1600 variant.
+function pvSync(){
+  const n=carPhotos.length;
+  if(!n)return;
+  const prev=document.getElementById('pv-prev-img');
+  const cur=document.getElementById('pv-cur-img');
+  const next=document.getElementById('pv-next-img');
   pvResetZoom();
+  cur.src=carPhotos[pvIdx].show;
+  if(n>1){
+    prev.src=carPhotos[(pvIdx-1+n)%n].show;
+    next.src=carPhotos[(pvIdx+1)%n].show;
+    prev.style.visibility='visible'; next.style.visibility='visible';
+  } else {
+    prev.style.visibility='hidden'; next.style.visibility='hidden';
+  }
+  const t=document.getElementById('pv-track');
+  t.style.transition='none';
+  t.style.transform='translateX(-33.3333%)';
   pvChrome();
-  img.style.transition='none';img.style.transform='translateX(0)';
-  img.src=carPhotos[pvIdx].show;
   pvShowFull();
 }
-function pvNav(dir){
-  if(pvBusy)return;
-  pvIdx=(pvIdx+dir+carPhotos.length)%carPhotos.length;
-  showPv();
+function pvShowFull(){
+  const cur=document.getElementById('pv-cur-img');
+  const it=carPhotos[pvIdx],want=pvIdx;
+  const full=new Image();
+  full.onload=()=>{if(want===pvIdx)cur.src=it.full;};
+  full.src=it.full;
 }
+function showPv(){pvSync();}
+function pvGo(dir){
+  if(pvBusy||carPhotos.length<=1)return;
+  pvBusy=true;
+  const t=document.getElementById('pv-track');
+  t.style.transition='transform .28s cubic-bezier(.22,.61,.36,1)';
+  t.style.transform='translateX('+(dir>0?'-66.6667%':'0%')+')';
+  let fb;
+  const done=()=>{
+    t.removeEventListener('transitionend',done); clearTimeout(fb);
+    pvIdx=(pvIdx+dir+carPhotos.length)%carPhotos.length;
+    pvSync(); pvBusy=false;
+  };
+  fb=setTimeout(done,360);
+  t.addEventListener('transitionend',done);
+}
+function pvNav(dir){pvGo(dir);}
 function closePv(){
   pvResetZoom();
   document.getElementById('pv').classList.remove('open');
@@ -1481,78 +1518,81 @@ function closePv(){
   // land the carousel on the photo the viewer was left on
   if(carIdx!==pvIdx&&carPhotos.length){carIdx=pvIdx;showCarPhoto();}
 }
-function pvClickOverlay(e){if(e.target===document.getElementById('pv'))closePv();}
+// Tap on the dark letterbox area (overlay or a cell, outside the image)
+// closes — but never right after a drag.
+function pvClickOverlay(e){
+  if(window._pvDragged){window._pvDragged=false;return;}
+  const t=e.target;
+  if(t===document.getElementById('pv')||(t.classList&&t.classList.contains('pv-cell')))closePv();
+}
 
-// Viewer gestures: swipe to navigate, pinch/double-tap zoom, pan while zoomed.
+// Viewer gestures: the strip follows the finger to navigate; pinch or
+// double-tap zooms the current photo (pan while zoomed, swipe-nav disabled).
 let pvResetZoom=()=>{};
 (function(){
-  const el=document.getElementById('pv');
-  const img=document.getElementById('pv-img');
+  const stage=document.getElementById('pv-stage');
+  const track=()=>document.getElementById('pv-track');
+  const cur=()=>document.getElementById('pv-cur-img');
   let zs=1,ztx=0,zty=0;
   let sx=0,sy=0,horiz=null,pinch=null,pan=null;
   let lastTap=0,lastTapX=0,lastTapY=0;
   function apply(){
-    img.style.transform=zs>1?'translate('+ztx+'px,'+zty+'px) scale('+zs+')':'translateX(0)';
-    img.classList.toggle('zoomed',zs>1);
+    const c=cur();
+    c.style.transform=zs>1?'translate('+ztx+'px,'+zty+'px) scale('+zs+')':'';
+    c.classList.toggle('zoomed',zs>1);
   }
-  pvResetZoom=function(){zs=1;ztx=0;zty=0;apply();};
+  pvResetZoom=function(){zs=1;ztx=0;zty=0;const c=cur();c.style.transition='none';apply();};
   function clampPan(){
     const lim=(zs-1)*Math.min(window.innerWidth,window.innerHeight)/2+40;
     ztx=Math.max(-lim,Math.min(lim,ztx));
     zty=Math.max(-lim,Math.min(lim,zty));
   }
   function toggleZoom(cx,cy){
-    if(zs>1){img.style.transition='transform .25s ease';pvResetZoom();return;}
+    const c=cur();
+    if(zs>1){c.style.transition='transform .25s ease';zs=1;ztx=0;zty=0;apply();return;}
     zs=2.5;ztx=(window.innerWidth/2-cx)*1.5;zty=(window.innerHeight/2-cy)*1.5;
-    clampPan();img.style.transition='transform .25s ease';apply();
+    clampPan();c.style.transition='transform .25s ease';apply();
   }
   function dist(e){const a=e.touches[0],b=e.touches[1];return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);}
-  el.addEventListener('touchstart',e=>{
-    if(e.touches.length===2){pinch={d0:dist(e),s0:zs};pan=null;horiz=null;img.style.transition='none';return;}
+  stage.addEventListener('touchstart',e=>{
+    window._pvDragged=false;
+    if(e.touches.length===2){pinch={d0:dist(e),s0:zs};pan=null;horiz=null;cur().style.transition='none';return;}
     if(e.touches.length!==1)return;
     const t=e.touches[0],now=Date.now();
     if(now-lastTap<300&&Math.hypot(t.clientX-lastTapX,t.clientY-lastTapY)<30){lastTap=0;toggleZoom(t.clientX,t.clientY);return;}
     lastTap=now;lastTapX=t.clientX;lastTapY=t.clientY;
-    img.style.transition='none';
-    if(zs>1){pan={x:t.clientX,y:t.clientY,tx0:ztx,ty0:zty};return;}
+    if(zs>1){cur().style.transition='none';pan={x:t.clientX,y:t.clientY,tx0:ztx,ty0:zty};return;}
+    track().style.transition='none';
     sx=t.clientX;sy=t.clientY;horiz=null;
   },{passive:true});
-  el.addEventListener('touchmove',e=>{
-    if(pinch&&e.touches.length===2){e.preventDefault();zs=Math.max(1,Math.min(4,pinch.s0*dist(e)/pinch.d0));clampPan();apply();return;}
-    if(pan&&e.touches.length===1){e.preventDefault();ztx=pan.tx0+e.touches[0].clientX-pan.x;zty=pan.ty0+e.touches[0].clientY-pan.y;clampPan();apply();return;}
+  stage.addEventListener('touchmove',e=>{
+    if(pinch&&e.touches.length===2){e.preventDefault();window._pvDragged=true;zs=Math.max(1,Math.min(4,pinch.s0*dist(e)/pinch.d0));clampPan();apply();return;}
+    if(pan&&e.touches.length===1){e.preventDefault();window._pvDragged=true;ztx=pan.tx0+e.touches[0].clientX-pan.x;zty=pan.ty0+e.touches[0].clientY-pan.y;clampPan();apply();return;}
     if(e.touches.length!==1||pvBusy||zs>1)return;
     const dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
     if(horiz===null)horiz=Math.abs(dx)>Math.abs(dy);
     if(!horiz)return;
     e.preventDefault();
-    img.style.transform='translateX('+Math.max(-window.innerWidth,Math.min(window.innerWidth,dx))+'px)';
+    window._pvDragged=true;
+    const c=Math.max(-window.innerWidth,Math.min(window.innerWidth,dx));
+    track().style.transform='translateX(calc(-33.3333% + '+c+'px))';
   },{passive:false});
-  el.addEventListener('touchend',e=>{
+  stage.addEventListener('touchend',e=>{
     if(pinch){if(e.touches.length<2){pinch=null;if(zs<1.1)pvResetZoom();}return;}
     if(pan){if(!e.touches.length)pan=null;return;}
     if(!horiz||pvBusy||zs>1){horiz=null;return;}
     const dx=e.changedTouches[0].clientX-sx;
     horiz=null;
-    if(Math.abs(dx)<50){img.style.transition='transform .2s ease-out';img.style.transform='translateX(0)';return;}
-    pvBusy=true;
-    const nextIdx=(pvIdx+(dx<0?1:-1)+carPhotos.length)%carPhotos.length;
-    const next=carPhotos[nextIdx];
-    const outTo=dx<0?'-110%':'110%',inFrom=dx<0?'110%':'-110%';
-    const imgReady=new Promise(res=>{const p=new Image();p.onload=p.onerror=res;setTimeout(res,400);p.src=next.show;});
-    img.style.transition='transform .25s ease-in';
-    img.style.transform='translateX('+outTo+')';
-    Promise.all([imgReady,new Promise(res=>setTimeout(res,250))]).then(()=>{
-      pvIdx=nextIdx;img.src=next.show;
-      pvChrome();
-      img.style.transition='none';img.style.transform='translateX('+inFrom+')';
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        img.style.transition='transform .25s ease-out';
-        img.style.transform='translateX(0)';
-        setTimeout(()=>{pvBusy=false;pvShowFull();},250);
-      }));
-    });
-  });
-  img.addEventListener('dblclick',e=>{e.preventDefault();toggleZoom(e.clientX,e.clientY);});
+    if(Math.abs(dx)<Math.min(60,window.innerWidth*0.12)){
+      const t=track();
+      t.style.transition='transform .2s ease-out';
+      t.style.transform='translateX(-33.3333%)';
+      setTimeout(()=>{t.style.transition='none';},220);
+      return;
+    }
+    pvGo(dx<0?1:-1);
+  },{passive:true});
+  stage.addEventListener('dblclick',e=>{e.preventDefault();toggleZoom(e.clientX,e.clientY);});
 })();
 
 // Modal tabs — click scrolls to section; IntersectionObserver tracks active tab

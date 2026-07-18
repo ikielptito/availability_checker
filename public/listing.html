@@ -594,15 +594,31 @@
 
   .lb-overlay.open { display: flex; }
 
-  .lb-img {
+  /* Sliding track: prev/current/next full-width cells move as one strip */
+  .lb-stage { width: 100vw; height: 76vh; overflow: hidden; }
+  .lb-track {
+    display: flex;
+    width: 300vw;
+    height: 100%;
+    transform: translateX(-33.3333%);
+    will-change: transform;
+  }
+  .lb-cell {
+    width: 100vw;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    touch-action: none;
+  }
+  .lb-cell img {
     max-width: 92vw;
-    max-height: 80vh;
+    max-height: 100%;
     object-fit: contain;
     border-radius: 6px;
-    transition: opacity .2s ease;
-    touch-action: none;
-    view-transition-name: lbphoto;
   }
+  .lb-img { view-transition-name: lbphoto; }
   .lb-img.zoomed { cursor: grab; border-radius: 0; }
 
   .lb-caption {
@@ -807,7 +823,13 @@
 <!-- LIGHTBOX -->
 <div class="lb-overlay" id="lb" onclick="lbClickOverlay(event)">
   <button class="lb-close" onclick="closeLb()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-  <img class="lb-img" id="lb-img" src="" alt="" />
+  <div class="lb-stage" id="lb-stage">
+    <div class="lb-track" id="lb-track">
+      <div class="lb-cell"><img id="lb-prev-img" src="" alt="" /></div>
+      <div class="lb-cell"><img class="lb-img" id="lb-img" src="" alt="" /></div>
+      <div class="lb-cell"><img id="lb-next-img" src="" alt="" /></div>
+    </div>
+  </div>
   <div class="lb-caption" id="lb-cap"></div>
   <div class="lb-controls">
     <button class="lb-btn" onclick="lbNav(-1)"><svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8l8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -927,22 +949,48 @@ function lbShowFull() {
   lbPreloadAdjacent();
 }
 
+// Fills the 3-cell track (prev | current | next) and re-centres it. Current
+// cell shows the cached thumbnail instantly, then upgrades to w1600.
 function showLbPhoto() {
-  const img = document.getElementById('lb-img');
+  const n = TOUR.length;
+  const prev = document.getElementById('lb-prev-img');
+  const cur = document.getElementById('lb-img');
+  const next = document.getElementById('lb-next-img');
   resetZoom();
   updateLbChrome();
-  img.style.transition = 'none';
-  img.style.transform = 'translateX(0)';
-  img.src = TOUR[lbIdx].thumb; // cached — instant
-  img.style.opacity = '1';
+  cur.src = TOUR[lbIdx].thumb; // cached — instant
+  if (n > 1) {
+    prev.src = TOUR[(lbIdx - 1 + n) % n].thumb;
+    next.src = TOUR[(lbIdx + 1) % n].thumb;
+    prev.style.visibility = 'visible'; next.style.visibility = 'visible';
+  } else {
+    prev.style.visibility = 'hidden'; next.style.visibility = 'hidden';
+  }
+  const t = document.getElementById('lb-track');
+  t.style.transition = 'none';
+  t.style.transform = 'translateX(-33.3333%)';
   lbShowFull();
 }
 
-function lbNav(dir) {
-  if (lbBusy) return;
-  lbIdx = (lbIdx + dir + TOUR.length) % TOUR.length;
-  showLbPhoto();
+// One step of travel: slide the strip to the neighbouring third, then
+// instantly re-centre with the new photo set.
+function lbGo(dir) {
+  if (lbBusy || TOUR.length <= 1) return;
+  lbBusy = true;
+  const t = document.getElementById('lb-track');
+  t.style.transition = 'transform .28s cubic-bezier(.22,.61,.36,1)';
+  t.style.transform = 'translateX(' + (dir > 0 ? '-66.6667%' : '0%') + ')';
+  let fb;
+  const done = () => {
+    t.removeEventListener('transitionend', done); clearTimeout(fb);
+    lbIdx = (lbIdx + dir + TOUR.length) % TOUR.length;
+    showLbPhoto(); lbBusy = false;
+  };
+  fb = setTimeout(done, 360);
+  t.addEventListener('transitionend', done);
 }
+
+function lbNav(dir) { lbGo(dir); }
 
 function closeLb() {
   resetZoom();
@@ -951,26 +999,32 @@ function closeLb() {
   lbBusy = false;
 }
 
+// Tap on the dark letterbox area (overlay or a cell, outside the image)
+// closes — but never right after a drag.
 function lbClickOverlay(e) {
-  if (e.target === document.getElementById('lb')) closeLb();
+  if (window._lbDragged) { window._lbDragged = false; return; }
+  const t = e.target;
+  if (t === document.getElementById('lb') || (t.classList && t.classList.contains('lb-cell'))) closeLb();
 }
 
-// Lightbox gestures: swipe to navigate, pinch/double-tap to zoom, one-finger
-// pan while zoomed. Swipe navigation is disabled while zoomed.
+// Lightbox gestures: the strip follows the finger to navigate; pinch or
+// double-tap zooms the current photo (pan while zoomed, swipe-nav disabled).
 let resetZoom = () => {};
 (function(){
-  const el = document.getElementById('lb');
-  const img = document.getElementById('lb-img');
+  const stage = document.getElementById('lb-stage');
+  const track = () => document.getElementById('lb-track');
+  const cur = () => document.getElementById('lb-img');
   let zs = 1, ztx = 0, zty = 0;        // zoom scale + pan offset
   let sx = 0, sy = 0, horiz = null;    // swipe state
   let pinch = null, pan = null;
   let lastTap = 0, lastTapX = 0, lastTapY = 0;
 
   function apply() {
-    img.style.transform = zs > 1 ? 'translate(' + ztx + 'px,' + zty + 'px) scale(' + zs + ')' : 'translateX(0)';
-    img.classList.toggle('zoomed', zs > 1);
+    const c = cur();
+    c.style.transform = zs > 1 ? 'translate(' + ztx + 'px,' + zty + 'px) scale(' + zs + ')' : '';
+    c.classList.toggle('zoomed', zs > 1);
   }
-  resetZoom = function() { zs = 1; ztx = 0; zty = 0; apply(); };
+  resetZoom = function() { zs = 1; ztx = 0; zty = 0; const c = cur(); c.style.transition = 'none'; apply(); };
 
   function clampPan() {
     const lim = (zs - 1) * Math.min(window.innerWidth, window.innerHeight) / 2 + 40;
@@ -978,20 +1032,22 @@ let resetZoom = () => {};
     zty = Math.max(-lim, Math.min(lim, zty));
   }
   function toggleZoom(cx, cy) {
-    if (zs > 1) { img.style.transition = 'transform .25s ease'; resetZoom(); return; }
+    const c = cur();
+    if (zs > 1) { c.style.transition = 'transform .25s ease'; zs = 1; ztx = 0; zty = 0; apply(); return; }
     zs = 2.5;
     ztx = (window.innerWidth / 2 - cx) * 1.5;
     zty = (window.innerHeight / 2 - cy) * 1.5;
     clampPan();
-    img.style.transition = 'transform .25s ease';
+    c.style.transition = 'transform .25s ease';
     apply();
   }
   function dist(e) { const a = e.touches[0], b = e.touches[1]; return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); }
 
-  el.addEventListener('touchstart', e => {
+  stage.addEventListener('touchstart', e => {
+    window._lbDragged = false;
     if (e.touches.length === 2) {
       pinch = { d0: dist(e), s0: zs }; pan = null; horiz = null;
-      img.style.transition = 'none';
+      cur().style.transition = 'none';
       return;
     }
     if (e.touches.length !== 1) return;
@@ -1001,20 +1057,20 @@ let resetZoom = () => {};
       lastTap = 0; toggleZoom(t.clientX, t.clientY); return;
     }
     lastTap = now; lastTapX = t.clientX; lastTapY = t.clientY;
-    img.style.transition = 'none';
-    if (zs > 1) { pan = { x: t.clientX, y: t.clientY, tx0: ztx, ty0: zty }; return; }
+    if (zs > 1) { cur().style.transition = 'none'; pan = { x: t.clientX, y: t.clientY, tx0: ztx, ty0: zty }; return; }
+    track().style.transition = 'none';
     sx = t.clientX; sy = t.clientY; horiz = null;
   }, {passive: true});
 
-  el.addEventListener('touchmove', e => {
+  stage.addEventListener('touchmove', e => {
     if (pinch && e.touches.length === 2) {
-      e.preventDefault();
+      e.preventDefault(); window._lbDragged = true;
       zs = Math.max(1, Math.min(4, pinch.s0 * dist(e) / pinch.d0));
       clampPan(); apply();
       return;
     }
     if (pan && e.touches.length === 1) {
-      e.preventDefault();
+      e.preventDefault(); window._lbDragged = true;
       ztx = pan.tx0 + e.touches[0].clientX - pan.x;
       zty = pan.ty0 + e.touches[0].clientY - pan.y;
       clampPan(); apply();
@@ -1025,36 +1081,28 @@ let resetZoom = () => {};
     if (horiz === null) horiz = Math.abs(dx) > Math.abs(dy);
     if (!horiz) return;
     e.preventDefault();
-    img.style.transform = 'translateX(' + Math.max(-window.innerWidth, Math.min(window.innerWidth, dx)) + 'px)';
+    window._lbDragged = true;
+    const c = Math.max(-window.innerWidth, Math.min(window.innerWidth, dx));
+    track().style.transform = 'translateX(calc(-33.3333% + ' + c + 'px))';
   }, {passive: false});
 
-  el.addEventListener('touchend', e => {
+  stage.addEventListener('touchend', e => {
     if (pinch) { if (e.touches.length < 2) { pinch = null; if (zs < 1.1) resetZoom(); } return; }
     if (pan) { if (!e.touches.length) pan = null; return; }
     if (!horiz || lbBusy || zs > 1) { horiz = null; return; }
     const dx = e.changedTouches[0].clientX - sx;
     horiz = null;
-    if (Math.abs(dx) < 50) { img.style.transition = 'transform .2s ease-out'; img.style.transform = 'translateX(0)'; return; }
-    lbBusy = true;
-    const nextIdx = (lbIdx + (dx < 0 ? 1 : -1) + TOUR.length) % TOUR.length;
-    const next = TOUR[nextIdx];
-    const outTo = dx < 0 ? '-110%' : '110%', inFrom = dx < 0 ? '110%' : '-110%';
-    const imgReady = new Promise(res => { const p = new Image(); p.onload = p.onerror = res; setTimeout(res, 400); p.src = next.thumb; });
-    img.style.transition = 'transform .25s ease-in';
-    img.style.transform = 'translateX(' + outTo + ')';
-    Promise.all([imgReady, new Promise(res => setTimeout(res, 250))]).then(() => {
-      lbIdx = nextIdx; img.src = next.thumb;
-      updateLbChrome();
-      img.style.transition = 'none'; img.style.transform = 'translateX(' + inFrom + ')';
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        img.style.transition = 'transform .25s ease-out';
-        img.style.transform = 'translateX(0)';
-        setTimeout(() => { lbBusy = false; lbShowFull(); }, 250);
-      }));
-    });
-  });
+    if (Math.abs(dx) < Math.min(60, window.innerWidth * 0.12)) {
+      const t = track();
+      t.style.transition = 'transform .2s ease-out';
+      t.style.transform = 'translateX(-33.3333%)';
+      setTimeout(() => { t.style.transition = 'none'; }, 220);
+      return;
+    }
+    lbGo(dx < 0 ? 1 : -1);
+  }, {passive: true});
 
-  img.addEventListener('dblclick', e => { e.preventDefault(); toggleZoom(e.clientX, e.clientY); });
+  stage.addEventListener('dblclick', e => { e.preventDefault(); toggleZoom(e.clientX, e.clientY); });
 })();
 
 document.addEventListener('keydown', e => {
