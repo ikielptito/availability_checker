@@ -85,8 +85,16 @@
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* HERO */
+  /* HERO
+     Mobile: full-bleed single photo with the title overlaid (unchanged look).
+     Desktop (≥900px): Airbnb-style — title block above, then a mosaic of the
+     hero photo + the 4 best room shots (the AI order's positions 1–5). */
   .hero {
+    width: 100%;
+    position: relative;
+  }
+
+  .hero-media {
     width: 100%;
     height: 70vh;
     max-height: 600px;
@@ -102,9 +110,12 @@
     opacity: 0.85;
     cursor: pointer;
     transition: opacity 0.2s;
+    background: #2a2620;
   }
 
   .hero-img:hover { opacity: 0.75; }
+
+  .hero-mosaic { display: none; }
 
   .hero-overlay {
     position: absolute;
@@ -116,6 +127,43 @@
   /* Title block overlaid on the hero — same language as the portal cards */
   .hero-head { position: absolute; left: 28px; right: 150px; bottom: 26px; z-index: 2; text-shadow: 0 1px 12px rgba(0,0,0,.4); }
   @media(max-width: 600px) { .hero-head { left: 18px; right: 18px; bottom: 64px; } }
+
+  @media(min-width: 900px) {
+    .hero { max-width: 1064px; margin: 0 auto; padding: 26px 32px 0; }
+    .hero-head { position: static; text-shadow: none; margin-bottom: 16px; }
+    .hero-head .property-tag { color: var(--muted); }
+    .hero-head .property-title { color: var(--text); }
+    .hero-head .property-location { color: var(--muted); }
+    .hero-head .property-location:hover { color: var(--text); }
+    .hero-overlay { display: none; }
+    .hero-media {
+      height: 430px;
+      border-radius: 16px;
+      background: transparent;
+    }
+    /* Mosaic active only when we have ≥5 photos (JS adds .has-mosaic) */
+    .hero-media.has-mosaic {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 8px;
+    }
+    .hero-media.has-mosaic .hero-img { grid-column: 1; grid-row: 1 / 3; opacity: 1; border-radius: 0; }
+    .hero-media.has-mosaic .hero-img:hover { opacity: 0.9; }
+    .hero-media.has-mosaic .hero-mosaic { display: contents; }
+    .hero-media:not(.has-mosaic) .hero-img { opacity: 1; }
+    .mosaic-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      background: #EFEAE3;
+    }
+    .mosaic-img:hover { opacity: 0.9; }
+  }
+
+  .hero-placeholder-wrap { position: absolute; inset: 0; }
 
   .hero-label {
     position: absolute;
@@ -353,6 +401,160 @@
   }
   .gallery-filter .cnt { opacity: 0.5; margin-left: 5px; font-variant-numeric: tabular-nums; }
 
+  /* Photo tour: chips stick under the nav and jump-scroll to room sections */
+  .gallery-filters.sticky-chips {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(250,248,245,0.96);
+    backdrop-filter: blur(10px);
+    padding: 10px 0;
+    margin: 0 0 6px;
+  }
+  .tour-section { margin-bottom: 28px; scroll-margin-top: 76px; }
+  .tour-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .tour-title .cnt { font-size: 0.78rem; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+
+  /* Share button on the hero */
+  .hero-share {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 3;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.92);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.18);
+    transition: transform 0.15s, background 0.15s;
+  }
+  .hero-share:hover { background: #fff; transform: scale(1.05); }
+  .hero-share:active { transform: scale(0.96); }
+
+  /* Availability strip — 12 weeks of day cells under the banner */
+  .avail-strip-wrap { margin: 14px 0 4px; }
+  .avail-strip-months {
+    display: flex;
+    font-size: 0.62rem;
+    color: var(--muted);
+    margin-bottom: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .avail-strip {
+    display: flex;
+    gap: 2px;
+    height: 26px;
+  }
+  .avail-day {
+    flex: 1;
+    border-radius: 3px;
+    background: #DCE9DF;
+    min-width: 0;
+  }
+  .avail-day.booked { background: #EDE7DF; }
+  .avail-day.today { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .avail-legend { display: flex; gap: 14px; margin-top: 8px; font-size: 0.68rem; color: var(--muted); }
+  .avail-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .avail-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+
+  /* Sticky summary bar — slides over the nav once the hero scrolls away */
+  .sticky-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 101;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 2px 12px rgba(60,45,20,0.06);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 20px;
+    transform: translateY(-110%);
+    transition: transform 0.25s ease;
+  }
+  .sticky-bar.show { transform: translateY(0); }
+  .sticky-bar-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1;
+  }
+  .sticky-bar-price { font-size: 0.8rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .sticky-bar-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 15px;
+    border-radius: 999px;
+    border: none;
+    background: var(--text);
+    color: var(--bg);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .sticky-bar-cta .dot { width: 7px; height: 7px; border-radius: 50%; background: #4CAF7A; }
+  @media(max-width: 480px) { .sticky-bar-price { display: none; } }
+
+  /* Amenity icons */
+  .detail-row svg, .inclusion-row svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  .detail-row, .inclusion-row { display: flex; gap: 10px; align-items: flex-start; }
+
+  /* Similar villas */
+  .similar-section { margin-top: 56px; padding-top: 32px; border-top: 1px solid var(--border); }
+  .similar-title { font-size: 1.15rem; font-weight: 600; margin-bottom: 18px; }
+  .similar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .similar-card { text-decoration: none; color: var(--text); display: block; }
+  .similar-card img {
+    width: 100%;
+    aspect-ratio: 3/2;
+    object-fit: cover;
+    border-radius: 10px;
+    background: #EFEAE3;
+    margin-bottom: 8px;
+    transition: opacity 0.2s;
+  }
+  .similar-card:hover img { opacity: 0.88; }
+  .similar-name { font-size: 0.88rem; font-weight: 600; }
+  .similar-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  .similar-price { font-size: 0.78rem; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+  /* Scroll reveal — sections fade up gently as they enter */
+  .rev { opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  .rev.in { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    .rev { opacity: 1; transform: none; }
+  }
+
   .gallery-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -366,6 +568,7 @@
     cursor: pointer;
     transition: opacity 0.2s, transform 0.2s;
     width: 100%;
+    background: #EFEAE3; /* reserves space + warm placeholder before load */
   }
 
   .gallery-thumb:hover { opacity: 0.85; transform: scale(1.02); }
@@ -397,6 +600,15 @@
     object-fit: contain;
     border-radius: 6px;
     transition: opacity .2s ease;
+    touch-action: none;
+    view-transition-name: lbphoto;
+  }
+  .lb-img.zoomed { cursor: grab; border-radius: 0; }
+
+  .lb-caption {
+    color: rgba(255,255,255,0.85);
+    font-size: 0.8rem;
+    min-height: 1.2em;
   }
 
   .lb-controls {
@@ -492,9 +704,6 @@
 <!-- LISTING -->
 <div id="listing" style="display:none">
   <div class="hero" id="hero">
-    <div class="hero-placeholder" id="hero-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px;opacity:.3"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-    <img class="hero-img" id="hero-img" src="" alt="" style="display:none" onclick="openFullGallery()" />
-    <div class="hero-overlay"></div>
     <div class="hero-head">
       <div class="property-tag" id="prop-tag"></div>
       <h1 class="property-title" id="prop-title"></h1>
@@ -503,7 +712,14 @@
         <span id="prop-location-text"></span>
       </a>
     </div>
-    <div class="hero-label" id="photo-count" onclick="openFullGallery()" style="display:none"></div>
+    <div class="hero-media" id="hero-media">
+      <div class="hero-placeholder-wrap" id="hero-placeholder"><div class="hero-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px;opacity:.3"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div></div>
+      <img class="hero-img" id="hero-img" src="" alt="" style="display:none" onclick="openFullGallery(this)" />
+      <div class="hero-mosaic" id="hero-mosaic"></div>
+      <div class="hero-overlay"></div>
+      <button class="hero-share" id="hero-share" type="button" onclick="sharePage()" aria-label="Share this listing"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg></button>
+      <div class="hero-label" id="photo-count" onclick="openFullGallery()" style="display:none"></div>
+    </div>
   </div>
 
   <div class="content">
@@ -511,6 +727,15 @@
       <span class="listing-avail-dot"></span>
       <span id="listing-avail-text"></span>
       <span class="listing-avail-window" id="listing-avail-window"></span>
+    </div>
+    <div class="avail-strip-wrap" id="avail-strip-wrap" style="display:none">
+      <div class="avail-strip-months" id="avail-strip-months"></div>
+      <div class="avail-strip" id="avail-strip"></div>
+      <div class="avail-legend">
+        <span><i style="background:#DCE9DF"></i>Available</span>
+        <span><i style="background:#EDE7DF"></i>Booked</span>
+        <span>Next 12 weeks</span>
+      </div>
     </div>
     <p class="overview" id="prop-overview"></p>
 
@@ -540,13 +765,28 @@
       </div>
     </section>
 
-    <div class="gallery-section">
+    <div class="gallery-section" id="gallery-section">
       <h2 class="gallery-title">Photos</h2>
       <div class="gallery-loading" id="gallery-loading">Loading photos…</div>
       <div class="gallery-filters" id="gallery-filters" style="display:none"></div>
       <div class="gallery-grid" id="gallery-grid"></div>
+      <div id="gallery-tour"></div>
     </div>
+
+    <section class="similar-section" id="similar-section" style="display:none">
+      <h2 class="similar-title">More places from Samba</h2>
+      <div class="similar-grid" id="similar-grid"></div>
+    </section>
   </div>
+</div>
+
+<!-- Sticky summary — appears once the hero scrolls out of view -->
+<div class="sticky-bar" id="sticky-bar">
+  <div class="sticky-bar-name" id="sticky-bar-name"></div>
+  <div class="sticky-bar-price" id="sticky-bar-price"></div>
+  <button class="sticky-bar-cta" id="sticky-bar-cta" type="button" onclick="scrollToAvailability()">
+    <span class="dot" id="sticky-bar-dot"></span><span id="sticky-bar-cta-text">Availability</span>
+  </button>
 </div>
 
 <footer>© Samba · Bali, Indonesia</footer>
@@ -568,6 +808,7 @@
 <div class="lb-overlay" id="lb" onclick="lbClickOverlay(event)">
   <button class="lb-close" onclick="closeLb()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
   <img class="lb-img" id="lb-img" src="" alt="" />
+  <div class="lb-caption" id="lb-cap"></div>
   <div class="lb-controls">
     <button class="lb-btn" onclick="lbNav(-1)"><svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8l8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <span class="lb-counter" id="lb-counter"></span>
@@ -640,41 +881,71 @@ function track(event, propId, propName) {
 }
 
 // ── LIGHTBOX ──
-let lbPhotos = [], lbIdx = 0, lbBusy = false;
+// Opens instantly on the already-cached thumbnail, then upgrades in place to
+// the w1600 variant once it arrives. TOUR is the photo list (grouped order).
+let lbIdx = 0, lbBusy = false;
 
 function lbPreloadAdjacent() {
-  if (lbPhotos.length <= 1) return;
-  [1, -1, 2].forEach(off => { const i = new Image(); i.src = lbPhotos[(lbIdx + off + lbPhotos.length) % lbPhotos.length]; });
+  if (TOUR.length <= 1) return;
+  [1, -1, 2].forEach(off => { const i = new Image(); i.src = TOUR[(lbIdx + off + TOUR.length) % TOUR.length].full; });
 }
 
-function openLb(idx) {
-  if (!lbPhotos.length) return;
+// Thumbnail → lightbox shared-element morph (View Transitions API; plain
+// open/close where unsupported or when the user prefers reduced motion).
+function withVT(mutate, srcEl) {
+  if (!document.startViewTransition || REDUCED || !srcEl || !srcEl.isConnected) { mutate(); return; }
+  srcEl.style.viewTransitionName = 'lbphoto';
+  try {
+    const vt = document.startViewTransition(() => { srcEl.style.viewTransitionName = ''; mutate(); });
+    vt.finished.finally(() => { srcEl.style.viewTransitionName = ''; });
+  } catch { srcEl.style.viewTransitionName = ''; mutate(); }
+}
+
+function openLb(idx, srcEl) {
+  if (!TOUR.length) return;
   if (LISTING) track('photo_view', PROP_ID, LISTING.name);
   lbIdx = idx;
+  withVT(() => {
+    showLbPhoto();
+    document.getElementById('lb').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }, srcEl);
+}
+
+function updateLbChrome() {
+  const it = TOUR[lbIdx];
+  document.getElementById('lb-counter').textContent = (lbIdx + 1) + ' / ' + TOUR.length;
+  document.getElementById('lb-cap').textContent = it && it.cat ? tagFor(it.cat) : '';
+}
+
+function lbShowFull() {
   const img = document.getElementById('lb-img');
-  img.style.transition = 'none'; img.style.opacity = '0';
-  showLbPhoto();
-  document.getElementById('lb').classList.add('open');
-  document.body.style.overflow = 'hidden';
+  const it = TOUR[lbIdx], want = lbIdx;
+  const full = new Image();
+  full.onload = () => { if (want === lbIdx) img.src = it.full; };
+  full.src = it.full;
+  lbPreloadAdjacent();
 }
 
 function showLbPhoto() {
   const img = document.getElementById('lb-img');
-  const src = lbPhotos[lbIdx];
-  document.getElementById('lb-counter').textContent = (lbIdx+1) + ' / ' + lbPhotos.length;
-  img.style.opacity = '0';
-  const p = new Image(); let done = false;
-  const apply = () => { if (done) return; done = true; img.src = src; requestAnimationFrame(() => requestAnimationFrame(() => { img.style.transition = 'opacity .2s ease'; img.style.opacity = '1'; })); lbPreloadAdjacent(); };
-  p.onload = p.onerror = apply; setTimeout(apply, 600); p.src = src;
+  resetZoom();
+  updateLbChrome();
+  img.style.transition = 'none';
+  img.style.transform = 'translateX(0)';
+  img.src = TOUR[lbIdx].thumb; // cached — instant
+  img.style.opacity = '1';
+  lbShowFull();
 }
 
 function lbNav(dir) {
   if (lbBusy) return;
-  lbIdx = (lbIdx + dir + lbPhotos.length) % lbPhotos.length;
+  lbIdx = (lbIdx + dir + TOUR.length) % TOUR.length;
   showLbPhoto();
 }
 
 function closeLb() {
+  resetZoom();
   document.getElementById('lb').classList.remove('open');
   document.body.style.overflow = '';
   lbBusy = false;
@@ -684,47 +955,106 @@ function lbClickOverlay(e) {
   if (e.target === document.getElementById('lb')) closeLb();
 }
 
-// Swipe support for lightbox
+// Lightbox gestures: swipe to navigate, pinch/double-tap to zoom, one-finger
+// pan while zoomed. Swipe navigation is disabled while zoomed.
+let resetZoom = () => {};
 (function(){
   const el = document.getElementById('lb');
   const img = document.getElementById('lb-img');
-  let sx = 0, sy = 0, horiz = null;
+  let zs = 1, ztx = 0, zty = 0;        // zoom scale + pan offset
+  let sx = 0, sy = 0, horiz = null;    // swipe state
+  let pinch = null, pan = null;
+  let lastTap = 0, lastTapX = 0, lastTapY = 0;
+
+  function apply() {
+    img.style.transform = zs > 1 ? 'translate(' + ztx + 'px,' + zty + 'px) scale(' + zs + ')' : 'translateX(0)';
+    img.classList.toggle('zoomed', zs > 1);
+  }
+  resetZoom = function() { zs = 1; ztx = 0; zty = 0; apply(); };
+
+  function clampPan() {
+    const lim = (zs - 1) * Math.min(window.innerWidth, window.innerHeight) / 2 + 40;
+    ztx = Math.max(-lim, Math.min(lim, ztx));
+    zty = Math.max(-lim, Math.min(lim, zty));
+  }
+  function toggleZoom(cx, cy) {
+    if (zs > 1) { img.style.transition = 'transform .25s ease'; resetZoom(); return; }
+    zs = 2.5;
+    ztx = (window.innerWidth / 2 - cx) * 1.5;
+    zty = (window.innerHeight / 2 - cy) * 1.5;
+    clampPan();
+    img.style.transition = 'transform .25s ease';
+    apply();
+  }
+  function dist(e) { const a = e.touches[0], b = e.touches[1]; return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); }
+
   el.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      pinch = { d0: dist(e), s0: zs }; pan = null; horiz = null;
+      img.style.transition = 'none';
+      return;
+    }
     if (e.touches.length !== 1) return;
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY; horiz = null;
+    const t = e.touches[0];
+    const now = Date.now();
+    if (now - lastTap < 300 && Math.hypot(t.clientX - lastTapX, t.clientY - lastTapY) < 30) {
+      lastTap = 0; toggleZoom(t.clientX, t.clientY); return;
+    }
+    lastTap = now; lastTapX = t.clientX; lastTapY = t.clientY;
     img.style.transition = 'none';
+    if (zs > 1) { pan = { x: t.clientX, y: t.clientY, tx0: ztx, ty0: zty }; return; }
+    sx = t.clientX; sy = t.clientY; horiz = null;
   }, {passive: true});
+
   el.addEventListener('touchmove', e => {
-    if (e.touches.length !== 1 || lbBusy) return;
+    if (pinch && e.touches.length === 2) {
+      e.preventDefault();
+      zs = Math.max(1, Math.min(4, pinch.s0 * dist(e) / pinch.d0));
+      clampPan(); apply();
+      return;
+    }
+    if (pan && e.touches.length === 1) {
+      e.preventDefault();
+      ztx = pan.tx0 + e.touches[0].clientX - pan.x;
+      zty = pan.ty0 + e.touches[0].clientY - pan.y;
+      clampPan(); apply();
+      return;
+    }
+    if (e.touches.length !== 1 || lbBusy || zs > 1) return;
     const dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
     if (horiz === null) horiz = Math.abs(dx) > Math.abs(dy);
     if (!horiz) return;
     e.preventDefault();
     img.style.transform = 'translateX(' + Math.max(-window.innerWidth, Math.min(window.innerWidth, dx)) + 'px)';
   }, {passive: false});
+
   el.addEventListener('touchend', e => {
-    if (!horiz || lbBusy) { horiz = null; return; }
+    if (pinch) { if (e.touches.length < 2) { pinch = null; if (zs < 1.1) resetZoom(); } return; }
+    if (pan) { if (!e.touches.length) pan = null; return; }
+    if (!horiz || lbBusy || zs > 1) { horiz = null; return; }
     const dx = e.changedTouches[0].clientX - sx;
     horiz = null;
     if (Math.abs(dx) < 50) { img.style.transition = 'transform .2s ease-out'; img.style.transform = 'translateX(0)'; return; }
     lbBusy = true;
-    const nextIdx = (lbIdx + (dx < 0 ? 1 : -1) + lbPhotos.length) % lbPhotos.length;
-    const nextSrc = lbPhotos[nextIdx];
+    const nextIdx = (lbIdx + (dx < 0 ? 1 : -1) + TOUR.length) % TOUR.length;
+    const next = TOUR[nextIdx];
     const outTo = dx < 0 ? '-110%' : '110%', inFrom = dx < 0 ? '110%' : '-110%';
-    const imgReady = new Promise(res => { const p = new Image(); p.onload = p.onerror = res; setTimeout(res, 800); p.src = nextSrc; });
+    const imgReady = new Promise(res => { const p = new Image(); p.onload = p.onerror = res; setTimeout(res, 400); p.src = next.thumb; });
     img.style.transition = 'transform .25s ease-in';
     img.style.transform = 'translateX(' + outTo + ')';
     Promise.all([imgReady, new Promise(res => setTimeout(res, 250))]).then(() => {
-      lbIdx = nextIdx; img.src = nextSrc;
-      document.getElementById('lb-counter').textContent = (lbIdx+1) + ' / ' + lbPhotos.length;
+      lbIdx = nextIdx; img.src = next.thumb;
+      updateLbChrome();
       img.style.transition = 'none'; img.style.transform = 'translateX(' + inFrom + ')';
       requestAnimationFrame(() => requestAnimationFrame(() => {
         img.style.transition = 'transform .25s ease-out';
         img.style.transform = 'translateX(0)';
-        setTimeout(() => { lbBusy = false; lbPreloadAdjacent(); }, 250);
+        setTimeout(() => { lbBusy = false; lbShowFull(); }, 250);
       }));
     });
   });
+
+  img.addEventListener('dblclick', e => { e.preventDefault(); toggleZoom(e.clientX, e.clientY); });
 })();
 
 document.addEventListener('keydown', e => {
@@ -748,12 +1078,13 @@ function fmtPrice(p) { return p ? p.replace(/(\d+)jt/i, 'IDR $1M') : ''; }
 
 async function boot() {
   const slug = getSlug();
-  let listing = null;
+  let listing = null, allListings = [];
   try {
     const r = await fetch('/api/listings');
     if (r.ok) {
       const { listings } = await r.json();
-      listing = (listings || []).find(l => l.slug === slug && !l.hidden);
+      allListings = listings || [];
+      listing = allListings.find(l => l.slug === slug && !l.hidden);
     }
   } catch {}
 
@@ -783,15 +1114,16 @@ async function boot() {
   }
   document.getElementById('prop-overview').textContent = listing.overview || '';
 
-  // Details grid
+  // Details grid — each row gets a matching amenity icon (Airbnb's "what this
+  // place offers" pattern); location highlights get the map pin.
   const grid = document.getElementById('details-grid');
   const sections = [
-    { title: 'Property features', items: listing.features || [] },
-    { title: 'Location highlights', items: listing.locationHighlights || [] },
+    { title: 'What this place offers', items: listing.features || [], icon: amenityIcon },
+    { title: 'Location highlights', items: listing.locationHighlights || [], icon: () => PIN_ICON },
   ].filter(s => s.items.length);
   grid.innerHTML = sections.map(s =>
     '<div><div class="detail-section-title">' + s.title + '</div>' +
-    s.items.map(i => '<div class="detail-row">' + esc(i) + '</div>').join('') +
+    s.items.map(i => '<div class="detail-row">' + s.icon(i) + '<span>' + esc(i) + '</span></div>').join('') +
     '</div>'
   ).join('');
 
@@ -803,15 +1135,15 @@ async function boot() {
   if (listing.yearly2) priceHtml += '<div class="price-row"><span class="price-amount">' + fmtPrice(listing.yearly2) + '</span><span class="price-period">/ 2 years</span></div>';
   priceRows.innerHTML = priceHtml;
 
-  // Inclusions
+  // Inclusions (with amenity icons)
   document.getElementById('inclusions-list').innerHTML = (listing.inclusions || []).map(i =>
-    '<div class="inclusion-row">' + esc(i) + '</div>'
+    '<div class="inclusion-row">' + amenityIcon(i) + '<span>' + esc(i) + '</span></div>'
   ).join('');
   const yearlyInc = listing.yearlyInclusions || [];
   if (yearlyInc.length > 0) {
     document.getElementById('yearly-inclusions-block').style.display = '';
     document.getElementById('yearly-inclusions-list').innerHTML = yearlyInc.map(i =>
-      '<div class="inclusion-row">' + esc(i) + '</div>'
+      '<div class="inclusion-row">' + amenityIcon(i) + '<span>' + esc(i) + '</span></div>'
     ).join('');
   }
 
@@ -842,28 +1174,36 @@ async function boot() {
       const el = document.getElementById('listing-avail');
       const txtEl = document.getElementById('listing-avail-text');
       const winEl = document.getElementById('listing-avail-window');
+      const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      let stickyText = 'Availability', stickyColor = '#B8B0A4';
       if (!firstFree) {
         el.className = 'listing-avail full';
         txtEl.textContent = 'Fully booked';
         winEl.textContent = 'check back soon';
+        stickyText = 'Fully booked'; stickyColor = '#B8B0A4';
       } else {
         let win = 0;
         for (let i = firstIdx; i < 180; i++) {
           const d = new Date(today); d.setDate(d.getDate() + i);
           if (booked.has(d.toISOString().split('T')[0])) break; win++;
         }
-        const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const winStr = (win >= 180 ? '180+' : win) + ' days';
         if (firstIdx === 0) {
           el.className = 'listing-avail now';
           txtEl.textContent = 'Available now';
+          stickyText = 'Available now'; stickyColor = '#4CAF7A';
         } else {
           el.className = 'listing-avail from';
           txtEl.textContent = 'Available from ' + MN[firstFree.getMonth()] + ' ' + firstFree.getDate();
+          stickyText = 'From ' + MN[firstFree.getMonth()] + ' ' + firstFree.getDate();
+          stickyColor = '#D9A036';
         }
         winEl.textContent = winStr;
       }
       el.style.display = 'flex';
+      document.getElementById('sticky-bar-cta-text').textContent = stickyText;
+      document.getElementById('sticky-bar-dot').style.background = stickyColor;
+      renderAvailStrip(booked, today);
     } catch {}
   })();
 
@@ -897,9 +1237,126 @@ async function boot() {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('listing').style.display = 'block';
 
+  initStickyBar(listing);
+  renderSimilar(listing, allListings);
+
+  // Scroll reveal — sections fade up as they enter the viewport.
+  if (!REDUCED && 'IntersectionObserver' in window) {
+    const els = document.querySelectorAll('.pricing-block, .details-grid, #map-section, #gallery-section, #similar-section');
+    const io = new IntersectionObserver(entries => entries.forEach(en => {
+      if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+    }), { threshold: 0.08 });
+    els.forEach(el => { el.classList.add('rev'); io.observe(el); });
+  }
+
   // Load photos
   if (listing.folder) loadPhotos(listing.folder);
   else document.getElementById('gallery-loading').textContent = 'No photos available yet.';
+}
+
+// ── STICKY SUMMARY BAR ──
+function initStickyBar(listing) {
+  document.getElementById('sticky-bar-name').textContent = listing.name;
+  if (listing.monthly) document.getElementById('sticky-bar-price').textContent = 'From ' + fmtPrice(listing.monthly) + '/mo';
+  const bar = document.getElementById('sticky-bar');
+  const hero = document.getElementById('hero');
+  let ticking = false;
+  addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      bar.classList.toggle('show', scrollY > hero.offsetTop + hero.offsetHeight - 60);
+      ticking = false;
+    });
+  }, { passive: true });
+}
+
+function scrollToAvailability() {
+  track('sticky_avail_click', PROP_ID, LISTING && LISTING.name);
+  document.getElementById('listing-avail').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
+}
+
+// ── AVAILABILITY STRIP (next 12 weeks) ──
+function renderAvailStrip(booked, today) {
+  const DAYS = 84;
+  const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let cells = '';
+  const monthSpans = [];
+  for (let i = 0; i < DAYS; i++) {
+    const d = new Date(today); d.setDate(d.getDate() + i);
+    const iso = d.toISOString().split('T')[0];
+    const m = MN[d.getMonth()];
+    if (!monthSpans.length || monthSpans[monthSpans.length - 1].m !== m) monthSpans.push({ m, n: 0 });
+    monthSpans[monthSpans.length - 1].n++;
+    cells += '<span class="avail-day' + (booked.has(iso) ? ' booked' : '') + (i === 0 ? ' today' : '') + '" title="' + iso + '"></span>';
+  }
+  document.getElementById('avail-strip-months').innerHTML = monthSpans.map(s =>
+    '<span style="width:' + (s.n / DAYS * 100) + '%;overflow:hidden">' + (s.n >= 8 ? s.m : '') + '</span>'
+  ).join('');
+  document.getElementById('avail-strip').innerHTML = cells;
+  document.getElementById('avail-strip-wrap').style.display = '';
+}
+
+// ── SIMILAR VILLAS ──
+// Preserves the current query string (?a= agent attribution, ref) on links so
+// an agent's shared page never leaks their lead to an unattributed listing.
+function renderSimilar(listing, listings) {
+  const cands = (listings || []).filter(l => l.slug !== listing.slug && !l.hidden && l.coverPhotoId);
+  if (!cands.length) return;
+  const score = l => (l.tag && l.tag === listing.tag ? 2 : 0) + (l.unitType && l.unitType === listing.unitType ? 1 : 0);
+  cands.sort((a, b) => score(b) - score(a));
+  document.getElementById('similar-grid').innerHTML = cands.slice(0, 3).map(l =>
+    '<a class="similar-card" href="/l/' + encodeURIComponent(l.slug) + location.search + '" onclick="track(\'similar_click\', \'' + (l.custom ? 'c_' + l.slug : l.hostexId) + '\', \'' + esc(l.name).replace(/'/g, '') + '\')">' +
+    '<img src="https://lh3.googleusercontent.com/d/' + l.coverPhotoId + '=w600" alt="' + esc(l.name) + '" loading="lazy">' +
+    '<div class="similar-name">' + esc(l.name) + '</div>' +
+    '<div class="similar-meta">' + esc(l.unitType || '') + (l.tag ? ' · ' + esc(l.tag) : '') + '</div>' +
+    (l.monthly ? '<div class="similar-price">From ' + fmtPrice(l.monthly) + '/mo</div>' : '') +
+    '</a>'
+  ).join('');
+  document.getElementById('similar-section').style.display = '';
+}
+
+// ── SHARE ──
+async function sharePage() {
+  track('share', PROP_ID, LISTING && LISTING.name);
+  if (navigator.share) {
+    try { await navigator.share({ title: document.title, url: location.href }); } catch {}
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(location.href);
+    const b = document.getElementById('hero-share');
+    const orig = b.innerHTML;
+    b.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    setTimeout(() => { b.innerHTML = orig; }, 1600);
+  } catch {}
+}
+
+// ── AMENITY ICONS ──
+const _icon = p => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
+const PIN_ICON = _icon('<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>');
+const AMENITY_ICONS = [
+  [/bed(room)?s?\b/i, _icon('<path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/>')],
+  [/bath/i, _icon('<path d="M2 12h20v3a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"/><path d="M6 12V5a2 2 0 0 1 4 0"/><path d="M7 21v-2M17 21v-2"/>')],
+  [/pool|swim/i, _icon('<path d="M2 14c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 6 0"/><path d="M2 18c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 6 0"/><path d="M14 4v6M18 4v6M14 7h4"/>')],
+  [/wifi|internet|fib(re|er)|mbps/i, _icon('<path d="M5 12a11 11 0 0 1 14 0"/><path d="M8.5 15.5a6 6 0 0 1 7 0"/><circle cx="12" cy="19" r="1"/>')],
+  [/kitchen|cook/i, _icon('<path d="M3 2v7a2 2 0 0 0 4 0V2"/><path d="M5 11v11"/><path d="M19 2c-2 2-3 5-3 8h3v12"/>')],
+  [/air.?con|\ba\/?c\b/i, _icon('<path d="M3 8h10a3 3 0 1 0-3-3"/><path d="M3 12h15a3 3 0 1 1-3 3"/><path d="M3 16h7a2 2 0 1 1-2 2"/>')],
+  [/work(space)?|desk|office/i, _icon('<rect x="3" y="4" width="18" height="12" rx="1"/><path d="M8 20h8M12 16v4"/>')],
+  [/park/i, _icon('<path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><rect x="3" y="11" width="18" height="6" rx="2"/><circle cx="7.5" cy="17" r="0.5"/><circle cx="16.5" cy="17" r="0.5"/>')],
+  [/gym|fitness/i, _icon('<path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>')],
+  [/water/i, _icon('<path d="M12 2s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/>')],
+  [/electric/i, _icon('<polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/>')],
+  [/housekeep|clean|linen|towel/i, _icon('<path d="M12 3l1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>')],
+  [/furnish|sofa|lounge/i, _icon('<path d="M4 12V9a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3"/><rect x="2" y="12" width="20" height="5" rx="1"/><path d="M4 17v2M20 17v2"/>')],
+  [/gas/i, _icon('<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3 2.5.5 5 2.5 5 5.5a4 4 0 0 1-8 0c0-1 .4-2 1.3-3 .2 1.5.7 2.5 1.2 3z"/>')],
+  [/m²|sqm|land|building/i, _icon('<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>')],
+  [/terrace|balcon|garden|outdoor/i, _icon('<path d="M12 3a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7z"/><path d="M12 10v11M8 21h8"/>')],
+];
+const CHECK_ICON = _icon('<polyline points="20 6 9 17 4 12"/>');
+function amenityIcon(text) {
+  for (const [re, svg] of AMENITY_ICONS) if (re.test(text)) return svg;
+  return CHECK_ICON;
 }
 
 // AI photo categories → Airbnb-style filter labels. Order = chip order.
@@ -920,8 +1377,11 @@ function tagFor(cat) {
   return hit ? hit[1] : 'Other';
 }
 
-let ALL_PHOTOS = [];      // full ordered list [{id,url,thumb,cat}]
-let activeFilter = 'All'; // current tag label
+const REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let ALL_PHOTOS = [];      // stored order [{id,url,thumb,srcset,full,cat}]
+let TOUR = [];            // lightbox/tour order (grouped by room when categorised)
+let TOUR_SECTIONS = null; // [{label, photos}] or null when uncategorised
 
 async function loadPhotos(folderId) {
   try {
@@ -941,78 +1401,119 @@ async function loadPhotos(folderId) {
       if (ci > 0) d.photos.unshift(d.photos.splice(ci, 1)[0]);
     }
 
-    ALL_PHOTOS = d.photos;
+    // Sized variants: thumbs get a srcset, the lightbox gets w1600 (the raw
+    // Drive original can be 5–10MB — never ship that to a phone).
+    ALL_PHOTOS = d.photos.map(p => {
+      const b = 'https://lh3.googleusercontent.com/d/' + p.id;
+      return { ...p, full: b + '=w1600', srcset: b + '=w400 400w, ' + b + '=w800 800w' };
+    });
 
-    // Hero
+    // Hero + mosaic. The AI order is hero → best-of-each-room tout, so
+    // positions 0–4 are exactly the Airbnb-style mosaic set.
     document.getElementById('hero-placeholder').style.display = 'none';
     const heroImg = document.getElementById('hero-img');
-    heroImg.src = d.photos[0].url;
+    heroImg.src = ALL_PHOTOS[0].full;
     heroImg.style.display = 'block';
+    if (ALL_PHOTOS.length >= 5) {
+      document.getElementById('hero-media').classList.add('has-mosaic');
+      document.getElementById('hero-mosaic').innerHTML = ALL_PHOTOS.slice(1, 5).map(p =>
+        '<img class="mosaic-img" src="https://lh3.googleusercontent.com/d/' + p.id + '=w800" alt="" onclick="openLbById(\'' + p.id + '\', this)">'
+      ).join('');
+    }
     const countLabel = document.getElementById('photo-count');
     countLabel.style.display = 'inline-flex';
-    countLabel.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> ' + d.photos.length + ' photos';
+    countLabel.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;margin-right:6px"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Show all ' + ALL_PHOTOS.length + ' photos';
 
-    renderFilters();
-    renderGallery();
+    buildTour();
+    renderTour();
 
   } catch(e) {
     document.getElementById('gallery-loading').textContent = 'Could not load photos.';
   }
 }
 
-// Build the filter chips — only tags that actually have photos, in a fixed
-// order, each with its count. Hidden entirely if photos aren't categorised
-// yet (older listings not re-sorted), so the gallery just shows everything.
-function renderFilters() {
-  const wrap = document.getElementById('gallery-filters');
-  const counts = {};
-  let categorised = 0;
-  ALL_PHOTOS.forEach(p => {
-    if (!p.cat) return;
-    categorised++;
-    const tag = tagFor(p.cat);
-    counts[tag] = (counts[tag] || 0) + 1;
-  });
-  // Need at least two distinct tags to be worth showing a filter.
-  const presentTags = CATEGORY_TAGS.map(t => t[1]).filter(l => counts[l]);
-  if (counts['Other']) presentTags.push('Other');
-  if (categorised < 2 || presentTags.length < 2) { wrap.style.display = 'none'; return; }
-
-  const chips = [['All', ALL_PHOTOS.length]].concat(presentTags.map(l => [l, counts[l]]));
-  wrap.style.display = 'flex';
-  wrap.innerHTML = chips.map(([label, n]) =>
-    '<button class="gallery-filter' + (label === activeFilter ? ' active' : '') +
-    '" onclick="setFilter(\'' + label.replace(/'/g, "\\'") + '\')">' +
-    label + '<span class="cnt">' + n + '</span></button>'
-  ).join('');
+// Group photos into room sections (Airbnb photo-tour style). Falls back to a
+// flat grid when the photos aren't categorised yet.
+function buildTour() {
+  const tagged = ALL_PHOTOS.filter(p => p.cat);
+  const distinct = new Set(tagged.map(p => tagFor(p.cat)));
+  if (tagged.length < ALL_PHOTOS.length * 0.6 || distinct.size < 2) {
+    TOUR = ALL_PHOTOS; TOUR_SECTIONS = null; return;
+  }
+  const labels = CATEGORY_TAGS.map(t => t[1]).concat(['Other']);
+  TOUR_SECTIONS = [];
+  for (const label of labels) {
+    const photos = ALL_PHOTOS.filter(p => (p.cat ? tagFor(p.cat) : 'Other') === label);
+    if (photos.length) TOUR_SECTIONS.push({ label, photos });
+  }
+  TOUR = TOUR_SECTIONS.flatMap(s => s.photos);
 }
 
-// Hero / "N photos" always open the whole gallery — reset to All first so the
-// lightbox set and the grid match.
-function openFullGallery() {
-  if (activeFilter !== 'All') setFilter('All');
-  else renderGallery();
-  openLb(0);
+function thumbHtml(p, alt) {
+  return '<img class="gallery-thumb" src="' + p.thumb + '" srcset="' + p.srcset +
+    '" sizes="(max-width:600px) 50vw, 300px" loading="lazy" onclick="openLbById(\'' + p.id + '\', this)" alt="' + alt + '">';
 }
 
-function setFilter(label) {
-  activeFilter = label;
-  document.querySelectorAll('.gallery-filter').forEach(b =>
-    b.classList.toggle('active', b.textContent.replace(/\d+$/, '').trim() === label));
-  renderGallery();
-}
-
-// Renders the grid for the active filter and re-scopes the lightbox to the
-// same subset, so prev/next stay within what the guest is viewing.
-function renderGallery() {
-  const shown = activeFilter === 'All'
-    ? ALL_PHOTOS
-    : ALL_PHOTOS.filter(p => p.cat && tagFor(p.cat) === activeFilter);
-  lbPhotos = shown.map(p => p.url);
+function renderTour() {
   const grid = document.getElementById('gallery-grid');
-  grid.innerHTML = shown.map((p, i) =>
-    '<img class="gallery-thumb" src="' + p.thumb + '" loading="lazy" onclick="openLb(' + i + ')" alt="Photo ' + (i+1) + '">'
+  const tour = document.getElementById('gallery-tour');
+  const chips = document.getElementById('gallery-filters');
+
+  if (!TOUR_SECTIONS) {
+    tour.innerHTML = '';
+    chips.style.display = 'none';
+    grid.innerHTML = TOUR.map((p, i) => thumbHtml(p, 'Photo ' + (i + 1))).join('');
+    return;
+  }
+
+  grid.innerHTML = '';
+  tour.innerHTML = TOUR_SECTIONS.map(s =>
+    '<section class="tour-section" id="tour-' + s.label.replace(/\s+/g, '-') + '">' +
+    '<h3 class="tour-title">' + s.label + '<span class="cnt">' + s.photos.length + '</span></h3>' +
+    '<div class="gallery-grid">' + s.photos.map(p => thumbHtml(p, s.label)).join('') + '</div>' +
+    '</section>'
   ).join('');
+
+  chips.className = 'gallery-filters sticky-chips';
+  chips.style.display = 'flex';
+  chips.innerHTML = '<button class="gallery-filter active" data-label="All" onclick="jumpToSection(\'All\')">All<span class="cnt">' + TOUR.length + '</span></button>' +
+    TOUR_SECTIONS.map(s =>
+      '<button class="gallery-filter" data-label="' + s.label + '" onclick="jumpToSection(\'' + s.label.replace(/'/g, "\\'") + '\')">' +
+      s.label + '<span class="cnt">' + s.photos.length + '</span></button>'
+    ).join('');
+
+  // Scroll-spy: highlight the chip for the section under the chips bar.
+  if ('IntersectionObserver' in window) {
+    const spy = new IntersectionObserver(entries => {
+      entries.forEach(en => {
+        if (en.isIntersecting) setActiveChip(en.target.querySelector('.tour-title').childNodes[0].textContent);
+      });
+    }, { rootMargin: '-15% 0px -70% 0px' });
+    document.querySelectorAll('.tour-section').forEach(s => spy.observe(s));
+  }
+}
+
+function setActiveChip(label) {
+  document.querySelectorAll('.gallery-filter').forEach(b =>
+    b.classList.toggle('active', b.dataset.label === label));
+}
+
+function jumpToSection(label) {
+  setActiveChip(label);
+  const behavior = REDUCED ? 'auto' : 'smooth';
+  if (label === 'All') { document.getElementById('gallery-section').scrollIntoView({ behavior }); return; }
+  const el = document.getElementById('tour-' + label.replace(/\s+/g, '-'));
+  if (el) el.scrollIntoView({ behavior });
+}
+
+function openLbById(id, el) {
+  const idx = TOUR.findIndex(p => p.id === id);
+  if (idx >= 0) openLb(idx, el);
+}
+
+// Hero / "Show all photos" always open the full tour from the top.
+function openFullGallery(srcEl) {
+  openLb(0, srcEl instanceof Element ? srcEl : document.getElementById('hero-img'));
 }
 
 boot();
