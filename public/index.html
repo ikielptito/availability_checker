@@ -406,6 +406,19 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .carousel-counter{position:absolute;bottom:10px;right:12px;background:rgba(0,0,0,.5);color:#fff;font-size:.7rem;padding:3px 8px;border-radius:10px}
 .carousel-loading{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:.82rem;flex-direction:column;gap:10px}
 .carousel-spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+.carousel-img{cursor:zoom-in}
+/* Fullscreen photo viewer (tap a carousel photo) */
+.pv-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.pv-overlay.open{display:flex}
+.pv-img{max-width:94vw;max-height:80vh;object-fit:contain;border-radius:6px;touch-action:none}
+.pv-img.zoomed{cursor:grab;border-radius:0}
+.pv-caption{color:rgba(255,255,255,.85);font-size:.8rem;min-height:1.2em}
+.pv-controls{display:flex;align-items:center;gap:20px}
+.pv-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;width:42px;height:42px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.pv-btn:hover{background:rgba(255,255,255,.22)}
+.pv-counter{color:rgba(255,255,255,.8);font-size:.8rem;min-width:64px;text-align:center;font-variant-numeric:tabular-nums}
+.pv-close{position:absolute;top:18px;right:18px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.pv-close:hover{background:rgba(255,255,255,.22)}
 /* MODAL TABS */
 .modal-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;scrollbar-width:none;flex-shrink:0;position:sticky;top:0;z-index:5}
 .modal-tabs::-webkit-scrollbar{display:none}
@@ -512,6 +525,18 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 </div>
 
 <!-- DETAIL MODAL -->
+<!-- Fullscreen photo viewer — opens on carousel tap, sits above the modal -->
+<div class="pv-overlay" id="pv" onclick="pvClickOverlay(event)">
+  <button class="pv-close" onclick="closePv()" aria-label="Close photos"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  <img class="pv-img" id="pv-img" src="" alt="" />
+  <div class="pv-caption" id="pv-cap"></div>
+  <div class="pv-controls">
+    <button class="pv-btn" onclick="pvNav(-1)" aria-label="Previous photo"><svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8l8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="pv-counter" id="pv-counter"></span>
+    <button class="pv-btn" onclick="pvNav(1)" aria-label="Next photo"><svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M1 1l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal" onclick="closeModal(event)">
   <div class="modal" id="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
     <div class="modal-header">
@@ -521,7 +546,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
     <div class="modal-body">
       <div class="carousel" id="carousel">
         <div class="carousel-loading" id="carousel-loading"><div class="carousel-spinner"></div><span>Loading photos…</span></div>
-        <img class="carousel-img" id="carousel-img" src="" alt="" style="display:none" />
+        <img class="carousel-img" id="carousel-img" src="" alt="" style="display:none" onclick="openPv()" />
         <button class="carousel-nav carousel-prev" onclick="carNav(-1)" style="display:none" id="carousel-prev" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-lg"><polyline points="15 18 9 12 15 6"/></svg></button>
         <button class="carousel-nav carousel-next" onclick="carNav(1)" style="display:none" id="carousel-next" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-lg"><polyline points="9 18 15 12 9 6"/></svg></button>
         <div class="carousel-counter" id="carousel-counter" style="display:none"></div>
@@ -1287,24 +1312,28 @@ async function loadCarousel(propId,folderId) {
   document.getElementById('carousel-next').style.display='none';
   document.getElementById('carousel-counter').style.display='none';
   const prop=properties.find(p=>p.id==propId);
-  if(prop&&prop.photo){carPhotos=[prop.photo];showCarPhoto();}
+  if(prop&&prop.photo){carPhotos=[{show:prop.photo,full:prop.photo}];showCarPhoto();}
   try {
     const r=await fetch('/api/gdrive?folder='+folderId);
     const d=await r.json();
-    if(d.photos&&d.photos.length){carPhotos=d.photos.map(p=>p.url);carIdx=0;showCarPhoto();}
+    // Sized variants: the raw Drive original can be 5–10MB, never ship it.
+    if(d.photos&&d.photos.length){
+      carPhotos=d.photos.map(p=>({show:p.url+'=w1200',full:p.url+'=w1600',cat:p.cat}));
+      carIdx=0;showCarPhoto();
+    }
   } catch(e){}
   if(!carPhotos.length) document.getElementById('carousel-loading').innerHTML='<span style="color:var(--muted)">No photos available yet</span>';
 }
 
 function preloadAdjacent(){
   if(carPhotos.length<=1)return;
-  [1,-1,2].forEach(off=>{const i=new Image();i.src=carPhotos[(carIdx+off+carPhotos.length)%carPhotos.length];});
+  [1,-1,2].forEach(off=>{const i=new Image();i.src=carPhotos[(carIdx+off+carPhotos.length)%carPhotos.length].show;});
 }
 
 function showCarPhoto(){
   const img=document.getElementById('carousel-img');
   document.getElementById('carousel-loading').style.display='none';
-  const src=carPhotos[carIdx];
+  const src=carPhotos[carIdx].show;
   if(carPhotos.length>1){
     document.getElementById('carousel-prev').style.display='flex';
     document.getElementById('carousel-next').style.display='flex';
@@ -1348,7 +1377,7 @@ function carNav(dir){
     if(Math.abs(dx)<50){img.style.transition='transform .2s ease-out';img.style.transform='translateX(0)';return;}
     carBusy=true;
     const nextIdx=(carIdx+(dx<0?1:-1)+carPhotos.length)%carPhotos.length;
-    const nextSrc=carPhotos[nextIdx];
+    const nextSrc=carPhotos[nextIdx].show;
     const outTo=dx<0?'-110%':'110%', inFrom=dx<0?'110%':'-110%';
     // Preload next image in parallel with slide-out so slide-in is never blank
     const imgReady=new Promise(res=>{const p=new Image();p.onload=p.onerror=res;setTimeout(res,800);p.src=nextSrc;});
@@ -1365,6 +1394,127 @@ function carNav(dir){
       }));
     });
   },{passive:false});
+})();
+
+// ── FULLSCREEN PHOTO VIEWER ──
+// Tap a carousel photo to open. Shows the carousel-sized image instantly
+// (already cached), then upgrades to the w1600 variant. Swipe to navigate,
+// pinch or double-tap to zoom. Closing syncs the carousel to the last photo.
+let pvIdx=0,pvBusy=false;
+const PV_TAGS={pool:'Pool',living:'Living room',bedroom:'Bedroom',bathroom:'Bathroom',kitchen:'Kitchen',workspace:'Workspace',outdoor:'Garden','hero-exterior':'Exterior',view:'View'};
+
+function openPv(){
+  if(!carPhotos.length)return;
+  track('photo_view',modalPropId);
+  pvIdx=carIdx;
+  showPv();
+  document.getElementById('pv').classList.add('open');
+}
+function pvChrome(){
+  const it=carPhotos[pvIdx];
+  document.getElementById('pv-counter').textContent=(pvIdx+1)+' / '+carPhotos.length;
+  document.getElementById('pv-cap').textContent=(it&&it.cat&&PV_TAGS[it.cat])||'';
+}
+function pvShowFull(){
+  const img=document.getElementById('pv-img');
+  const it=carPhotos[pvIdx],want=pvIdx;
+  const full=new Image();
+  full.onload=()=>{if(want===pvIdx)img.src=it.full;};
+  full.src=it.full;
+  if(carPhotos.length>1)[1,-1].forEach(off=>{const i=new Image();i.src=carPhotos[(pvIdx+off+carPhotos.length)%carPhotos.length].show;});
+}
+function showPv(){
+  const img=document.getElementById('pv-img');
+  pvResetZoom();
+  pvChrome();
+  img.style.transition='none';img.style.transform='translateX(0)';
+  img.src=carPhotos[pvIdx].show;
+  pvShowFull();
+}
+function pvNav(dir){
+  if(pvBusy)return;
+  pvIdx=(pvIdx+dir+carPhotos.length)%carPhotos.length;
+  showPv();
+}
+function closePv(){
+  pvResetZoom();
+  document.getElementById('pv').classList.remove('open');
+  pvBusy=false;
+  // land the carousel on the photo the viewer was left on
+  if(carIdx!==pvIdx&&carPhotos.length){carIdx=pvIdx;showCarPhoto();}
+}
+function pvClickOverlay(e){if(e.target===document.getElementById('pv'))closePv();}
+
+// Viewer gestures: swipe to navigate, pinch/double-tap zoom, pan while zoomed.
+let pvResetZoom=()=>{};
+(function(){
+  const el=document.getElementById('pv');
+  const img=document.getElementById('pv-img');
+  let zs=1,ztx=0,zty=0;
+  let sx=0,sy=0,horiz=null,pinch=null,pan=null;
+  let lastTap=0,lastTapX=0,lastTapY=0;
+  function apply(){
+    img.style.transform=zs>1?'translate('+ztx+'px,'+zty+'px) scale('+zs+')':'translateX(0)';
+    img.classList.toggle('zoomed',zs>1);
+  }
+  pvResetZoom=function(){zs=1;ztx=0;zty=0;apply();};
+  function clampPan(){
+    const lim=(zs-1)*Math.min(window.innerWidth,window.innerHeight)/2+40;
+    ztx=Math.max(-lim,Math.min(lim,ztx));
+    zty=Math.max(-lim,Math.min(lim,zty));
+  }
+  function toggleZoom(cx,cy){
+    if(zs>1){img.style.transition='transform .25s ease';pvResetZoom();return;}
+    zs=2.5;ztx=(window.innerWidth/2-cx)*1.5;zty=(window.innerHeight/2-cy)*1.5;
+    clampPan();img.style.transition='transform .25s ease';apply();
+  }
+  function dist(e){const a=e.touches[0],b=e.touches[1];return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);}
+  el.addEventListener('touchstart',e=>{
+    if(e.touches.length===2){pinch={d0:dist(e),s0:zs};pan=null;horiz=null;img.style.transition='none';return;}
+    if(e.touches.length!==1)return;
+    const t=e.touches[0],now=Date.now();
+    if(now-lastTap<300&&Math.hypot(t.clientX-lastTapX,t.clientY-lastTapY)<30){lastTap=0;toggleZoom(t.clientX,t.clientY);return;}
+    lastTap=now;lastTapX=t.clientX;lastTapY=t.clientY;
+    img.style.transition='none';
+    if(zs>1){pan={x:t.clientX,y:t.clientY,tx0:ztx,ty0:zty};return;}
+    sx=t.clientX;sy=t.clientY;horiz=null;
+  },{passive:true});
+  el.addEventListener('touchmove',e=>{
+    if(pinch&&e.touches.length===2){e.preventDefault();zs=Math.max(1,Math.min(4,pinch.s0*dist(e)/pinch.d0));clampPan();apply();return;}
+    if(pan&&e.touches.length===1){e.preventDefault();ztx=pan.tx0+e.touches[0].clientX-pan.x;zty=pan.ty0+e.touches[0].clientY-pan.y;clampPan();apply();return;}
+    if(e.touches.length!==1||pvBusy||zs>1)return;
+    const dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
+    if(horiz===null)horiz=Math.abs(dx)>Math.abs(dy);
+    if(!horiz)return;
+    e.preventDefault();
+    img.style.transform='translateX('+Math.max(-window.innerWidth,Math.min(window.innerWidth,dx))+'px)';
+  },{passive:false});
+  el.addEventListener('touchend',e=>{
+    if(pinch){if(e.touches.length<2){pinch=null;if(zs<1.1)pvResetZoom();}return;}
+    if(pan){if(!e.touches.length)pan=null;return;}
+    if(!horiz||pvBusy||zs>1){horiz=null;return;}
+    const dx=e.changedTouches[0].clientX-sx;
+    horiz=null;
+    if(Math.abs(dx)<50){img.style.transition='transform .2s ease-out';img.style.transform='translateX(0)';return;}
+    pvBusy=true;
+    const nextIdx=(pvIdx+(dx<0?1:-1)+carPhotos.length)%carPhotos.length;
+    const next=carPhotos[nextIdx];
+    const outTo=dx<0?'-110%':'110%',inFrom=dx<0?'110%':'-110%';
+    const imgReady=new Promise(res=>{const p=new Image();p.onload=p.onerror=res;setTimeout(res,400);p.src=next.show;});
+    img.style.transition='transform .25s ease-in';
+    img.style.transform='translateX('+outTo+')';
+    Promise.all([imgReady,new Promise(res=>setTimeout(res,250))]).then(()=>{
+      pvIdx=nextIdx;img.src=next.show;
+      pvChrome();
+      img.style.transition='none';img.style.transform='translateX('+inFrom+')';
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        img.style.transition='transform .25s ease-out';
+        img.style.transform='translateX(0)';
+        setTimeout(()=>{pvBusy=false;pvShowFull();},250);
+      }));
+    });
+  });
+  img.addEventListener('dblclick',e=>{e.preventDefault();toggleZoom(e.clientX,e.clientY);});
 })();
 
 // Modal tabs — click scrolls to section; IntersectionObserver tracks active tab
@@ -1634,6 +1784,13 @@ function _kbMove(dir){
   if(fc)fc.scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 document.addEventListener('keydown',e=>{
+  // Fullscreen photo viewer takes keyboard priority over the modal beneath it.
+  if(document.getElementById('pv').classList.contains('open')){
+    if(e.key==='Escape')closePv();
+    if(e.key==='ArrowRight')pvNav(1);
+    if(e.key==='ArrowLeft')pvNav(-1);
+    return;
+  }
   const modalOpen=document.getElementById('modal').classList.contains('open');
   if(modalOpen){
     if(e.key==='Escape'){closeModal({target:null});return;}
