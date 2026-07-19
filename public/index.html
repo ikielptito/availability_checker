@@ -50,7 +50,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .error-title{font-size:1.6rem;font-weight:700;letter-spacing:-.02em;color:var(--text)}
 .error-msg{color:var(--text-2);font-size:.9rem;max-width:380px;line-height:1.7}
 #app{display:none}#app.on{display:block}
-.topbar{position:relative;z-index:100;padding:14px 20px 4px;display:flex;align-items:center;gap:16px;max-width:960px;margin:0 auto;width:100%}
+.topbar{position:relative;z-index:100;padding:12px 20px 2px;display:flex;align-items:center;gap:16px;max-width:960px;margin:0 auto;width:100%}
 .brand-mark{display:flex;align-items:center;flex-shrink:0;text-decoration:none}
 .brand-mark img{height:41px}
 .topbar-avatar{margin-left:auto;display:flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:4px;-webkit-tap-highlight-color:transparent}
@@ -84,11 +84,6 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .tool-btn svg{width:17px;height:17px}
 .tool-btn.set{background:var(--primary-soft);color:var(--primary);border-color:rgba(196,110,75,.22)}
 /* Value prop — one dismissible line for first-time agents, above the grid */
-.value-prop{display:flex;align-items:center;gap:10px;max-width:960px;margin:0 auto;padding:12px 20px 0;width:100%;box-sizing:border-box}
-.value-prop p{flex:1;margin:0;font-size:12.5px;font-weight:500;color:var(--text-2);line-height:1.5}
-.value-prop p b{color:var(--text);font-weight:650}
-.value-prop button{background:none;border:none;color:var(--subtle);cursor:pointer;font-size:15px;line-height:1;padding:4px;flex-shrink:0}
-.value-prop button:hover{color:var(--text-2)}
 /* One-time coachmark — anchored under the view toggle */
 .coachmark{position:fixed;z-index:450;background:var(--text);color:#fff;font-size:12px;font-weight:550;line-height:1.5;padding:10px 14px;border-radius:12px;max-width:230px;box-shadow:0 6px 20px rgba(28,25,23,.3);animation:pop-in .25s var(--ease)}
 .coachmark::before{content:'';position:absolute;top:-5px;right:18px;width:10px;height:10px;background:var(--text);transform:rotate(45deg)}
@@ -163,7 +158,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 @media(min-width:600px){.install-prompt{left:auto;right:24px;bottom:24px;max-width:380px}}
 .spacer{flex:1}
 .prop-grid{padding:14px 20px 150px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;max-width:1120px;margin:0 auto}
-@media(max-width:640px){.prop-grid{grid-template-columns:repeat(2,1fr);padding:12px 14px 150px;gap:11px}}
+@media(max-width:640px){.prop-grid{grid-template-columns:repeat(2,1fr);padding:6px 14px 150px;gap:11px}}
 /* Property card — one uniform tile: full-bleed photo, gradient, overlaid info.
    Tap anywhere opens details. No expand/collapse. */
 .prop-card{position:relative;width:100%;border-radius:20px;overflow:hidden;background:var(--surface);border:var(--hairline);cursor:pointer;transform:translateZ(0);box-shadow:0 1px 2px rgba(0,0,0,.05),0 6px 18px rgba(0,0,0,.08);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
@@ -176,10 +171,13 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .prop-card:hover .prop-hero-img{transform:scale(1.04)}
 .prop-hero-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.25);background:#2a2622}
 .prop-gradient{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 34%,rgba(0,0,0,.5) 66%,rgba(0,0,0,.85) 100%);pointer-events:none;z-index:1}
-.top-pick{position:absolute;top:12px;left:12px;z-index:2;background:rgba(88,96,66,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.16);color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:6px 10px;border-radius:8px}
+/* Badges are full-width ribbons above the photo — the media area is too
+   crowded on the 2-up mobile grid (tools top, name/price bottom) for an
+   overlay chip to sit anywhere without colliding. */
+.top-pick{display:block;text-align:center;background:#586042;color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:6px 10px}
 /* Manual marketing badge from admin ("Price drop", "New") — takes the
    top-pick slot when set; the owner's explicit call wins over the heuristic. */
-.card-badge{position:absolute;top:12px;left:12px;z-index:2;background:rgba(184,97,63,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:6px 10px;border-radius:8px}
+.card-badge{display:block;text-align:center;background:#B8613F;color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:6px 10px}
 /* Top-right action cluster — share + heart, glass circles */
 .card-tools{position:absolute;top:10px;right:10px;z-index:3;display:flex;gap:7px}
 .card-tool{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.16);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .18s var(--ease),background .18s var(--ease);-webkit-tap-highlight-color:transparent;padding:0}
@@ -210,8 +208,18 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .prop-cal .dow{font-size:8.5px}
 .prop-cal .day{font-size:10.5px;border-radius:4px}
 .prop-cal-nc{font-size:11px;font-weight:500;color:var(--subtle);padding:8px 0 4px}
-.calbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:2px 2px 0}
-.calbar>span{font-size:11px;font-weight:600;color:var(--muted)}
+.prop-cal-scroll{position:relative;display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.prop-cal-scroll::-webkit-scrollbar{display:none}
+.prop-cal-page{flex:0 0 100%;min-width:100%;scroll-snap-align:start}
+/* Single filter row: one horizontal scroll strip, no wrap. The "when" and
+   "beds" axes stay visually distinct via a hairline divider rather than a
+   second row, so the bar reads as one line. Fits fully on desktop; on mobile
+   the trailing chip peeks to signal there's more to scroll. */
+.calbar{grid-column:1/-1;display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:2px 2px 4px}
+.calbar::-webkit-scrollbar{display:none}
+.calbar>*{flex:0 0 auto}
+.calbar .mc-jump{margin:0;flex-wrap:nowrap;gap:6px}
+.cal-div{width:1px;height:16px;background:rgba(28,25,23,.12);margin:0 2px}
 .mc-jump button.on{background:var(--text);border-color:var(--text);color:#fff}
 .saved-banner{grid-column:1/-1;display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:20px;padding:16px 20px;box-shadow:var(--shadow)}
 .saved-banner b{font-size:1.05rem;font-weight:650;color:var(--text)}
@@ -282,7 +290,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 @keyframes shimmer{to{background-position:-200% 0}}
 @keyframes shimmer-soft{0%,100%{opacity:.6}50%{opacity:1}}
 .empty-state{grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--text-2);font-size:.95rem;font-weight:500}
-.complex-header{grid-column:1/-1;font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:14px 4px 0;scroll-margin-top:56px}
+.complex-header{grid-column:1/-1;font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:8px 4px 0;scroll-margin-top:56px}
 .complex-header:first-child{padding-top:0}
 /* List view — compact scannable rows, one per property */
 .lrow{grid-column:1/-1;display:flex;align-items:center;gap:12px;background:var(--surface);border:var(--hairline);border-radius:16px;padding:9px 12px;cursor:pointer;box-shadow:var(--shadow-btn);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
@@ -493,10 +501,6 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
     <div id="samba-nav"></div>
   </div>
   <div id="browse-chrome">
-    <div class="value-prop" id="value-prop" style="display:none">
-      <p><b>Long-term villa rentals in Canggu &amp; Pererenan, with live calendars.</b> Share any villa with your client and earn 10% commission — already included in the price.</p>
-      <button onclick="dismissValueProp()" aria-label="Dismiss">&#10005;</button>
-    </div>
     <div class="search-section">
       <div class="search-row">
       <div class="search-pill">
@@ -831,21 +835,82 @@ function buildMultiCal(list,cxCount,groupSingles){
   });
   return bar+'<div class="mc-wrap"><div class="mc">'+head+rows+'</div></div>';
 }
-// Card calendars: every card shows the same month, chosen by one global chip
-// bar (current month + next 3, matching the multi-calendar horizon).
-// Lazy init — TODAY is declared further down the script.
+// Card calendars: every card carries a horizontal snap-scroll of 4 months
+// (current + next 3, matching the multi-calendar horizon); swiping one card
+// moves just that card. The chip bar above the grid is all filters — no
+// navigation-only chips: a single-select "when" axis (Now = free today; a
+// month = a 14+ night open run can start that month, which also flips every
+// card calendar to that month as visible proof of the match) plus a bedrooms
+// axis. Lazy init — TODAY is declared further down the script.
 let cardMonth=null;
 function getCardMonth(){if(!cardMonth)cardMonth={y:TODAY.getFullYear(),m:TODAY.getMonth()};return cardMonth;}
-function setCardMonth(y,m){cardMonth={y:y,m:m};track('card_month_chip');render();}
-function cardMonthChips(){
+function syncCardCalScroll(smooth){
   const cur=getCardMonth();
-  let h='';
-  for(let i=0;i<4;i++){
+  const idx=(cur.y-TODAY.getFullYear())*12+(cur.m-TODAY.getMonth());
+  document.querySelectorAll('.prop-cal-scroll').forEach(el=>{
+    const t=el.children[idx];if(!t)return;
+    if(smooth)el.scrollTo({left:t.offsetLeft,behavior:'smooth'});
+    else el.scrollLeft=t.offsetLeft;
+  });
+}
+// The 3 upcoming months (current month is covered by Now + swiping).
+function monthOpts(){
+  const out=[];
+  for(let i=1;i<4;i++){
     const d=new Date(TODAY.getFullYear(),TODAY.getMonth()+i,1);
-    const on=d.getFullYear()===cur.y&&d.getMonth()===cur.m;
-    h+='<button class="'+(on?'on':'')+'" onclick="setCardMonth('+d.getFullYear()+','+d.getMonth()+')">'+MONTHS[d.getMonth()].slice(0,3)+'</button>';
+    out.push({k:'m'+d.getFullYear()+'-'+(d.getMonth()+1),y:d.getFullYear(),m:d.getMonth(),l:MONTHS[d.getMonth()].slice(0,3)});
   }
-  return '<div class="calbar"><span>Calendar month</span><div class="mc-jump">'+h+'</div></div>';
+  return out;
+}
+// Rebuild the query string from filter state. Only the shareable filters
+// persist; ref/aid arrive on inbound links and are consumed at load.
+function syncFilterURL(){
+  const q=new URLSearchParams();
+  if(bedroomFilter!=='all')q.set('bedrooms',bedroomFilter);
+  if(availFilter!=='all')q.set('avail',availFilter);
+  const s=q.toString();
+  history.replaceState(null,'',s?'?'+s:location.pathname);
+}
+function toggleNowFilter(){
+  availFilter=availFilter==='now'?'all':'now';
+  if(availFilter==='now'){cardMonth={y:TODAY.getFullYear(),m:TODAY.getMonth()};track('filter_applied');}
+  syncFilterURL();renderChrome();render();
+}
+function toggleMonthFilter(k){
+  if(availFilter===k)availFilter='all';
+  else{
+    availFilter=k;
+    const o=monthOpts().find(x=>x.k===k);
+    if(o)cardMonth={y:o.y,m:o.m};
+    track('filter_applied');
+  }
+  syncFilterURL();renderChrome();render();
+}
+function toggleBRFilter(v){const nv=String(bedroomFilter)===String(v)?'all':v;if(nv!=='all')track('filter_applied');setBedrooms(nv);}
+// Month-filter match: a 14+ night open run STARTS on some day of the filter
+// month — long enough to mean a real monthly-rental opening, and it catches
+// stays that begin late in the month and run into the next one.
+function monthHasOpening(propId,key){
+  const mm=key.match(/^m(\d+)-(\d+)$/);if(!mm)return true;
+  const y=+mm[1],m=+mm[2]-1;
+  const booked=avail[propId]||new Set();
+  const dim=new Date(y,m+1,0).getDate();
+  for(let d=1;d<=dim;d++){
+    if(ds(new Date(y,m,d))<todayStr)continue;
+    let ok=true;
+    for(let i=0;i<14;i++){
+      if(booked.has(ds(new Date(y,m,d+i)))){ok=false;break;}
+    }
+    if(ok)return true;
+  }
+  return false;
+}
+function cardMonthChips(){
+  const when='<button class="'+(availFilter==='now'?'on':'')+'" onclick="toggleNowFilter()">Now</button>'
+    +monthOpts().map(o=>'<button class="'+(availFilter===o.k?'on':'')+'" onclick="toggleMonthFilter(\''+o.k+'\')">'+o.l+'</button>').join('');
+  const br=[['1','1 BR'],['2','2 BR'],['3p','3 BR+']].map(x=>
+    '<button class="'+(String(bedroomFilter)===x[0]?'on':'')+'" onclick="toggleBRFilter(\''+x[0]+'\')">'+x[1]+'</button>').join('');
+  return '<div class="calbar"><div class="mc-jump">'+when+'</div><span class="cal-div"></span><div class="mc-jump">'+br+'</div></div>';
 }
 // Jump chips: scroll the frame so the 1st of the month lands just right of
 // the sticky villa column. -1 = back to today (leftmost).
@@ -876,7 +941,7 @@ document.addEventListener('mousemove',function(e){
 });
 // Any scroll (page or the calendar frame) invalidates the tip's position.
 document.addEventListener('scroll',function(){const tip=document.getElementById('tl-tip');if(tip&&tip.style.display!=='none')tip.style.display='none';},true);
-function setBedrooms(v){bedroomFilter=v;history.replaceState(null,'',v==='all'?location.pathname:'?bedrooms='+v);renderChrome();render();}
+function setBedrooms(v){bedroomFilter=v;syncFilterURL();renderChrome();render();}
 // Popover menus (shared element, fixed-positioned under the anchor)
 let popKind=null;
 function openPop(kind,ev){
@@ -903,14 +968,18 @@ function openPop(kind,ev){
 function closePop(){const pop=document.getElementById('pop');if(pop)pop.classList.remove('open');popKind=null;}
 function popPick(kind,val){
   if(kind==='view'){closePop();setView(val);return;}
-  if(kind==='avail')availFilter=val;
-  else if(kind==='bed'){bedroomFilter=val;history.replaceState(null,'',val==='all'?location.pathname:'?bedrooms='+val);}
+  if(kind==='avail'){
+    availFilter=val;
+    const _mo=monthOpts().find(x=>x.k===val);
+    if(_mo)cardMonth={y:_mo.y,m:_mo.m};
+  }
+  else if(kind==='bed')bedroomFilter=val;
   else if(kind==='budget')budgetFilter=val;
   else if(kind==='dur')durationFilter=val;
   else if(kind==='ws')pillWs=(val==='yes');
   else if(kind==='sort'){sortMode=val;if(val!=='default')track('sort_changed');}
   if(kind!=='sort'&&val!=='all')track('filter_applied');
-  closePop();renderChrome();render();
+  syncFilterURL();closePop();renderChrome();render();
 }
 document.addEventListener('click',function(e){const pop=document.getElementById('pop');if(pop&&pop.classList.contains('open')&&!pop.contains(e.target))closePop();});
 window.addEventListener('scroll',function(){closePop();},{passive:true});
@@ -926,10 +995,6 @@ function cardEnquire(propId){
   track('enquiry_from_card',propId,name);
   track('whatsapp_click',propId,name);
   window.open('https://wa.me/'+waNum+'?text='+encodeURIComponent('Hi '+waName+', I\'m interested in '+name+'. Could you tell me more?'),'_blank');
-}
-function dismissValueProp(){
-  try{localStorage.setItem('samba_vp_dismissed','1');}catch(e){}
-  const el=document.getElementById('value-prop');if(el)el.style.display='none';
 }
 // One-time coachmark pointing at the view toggle — the Calendar view is the
 // headline feature and a single icon button doesn't sell it by itself.
@@ -951,9 +1016,12 @@ function maybeCoach(){
 // All-filters sheet (selections apply live)
 function renderAF(){
   const grp=(label,opts,cur,kind)=>'<div class="af-section"><div class="af-label">'+label+'</div><div class="af-opts">'+opts.map(o=>'<button class="af-opt'+(o.k===cur?' on':'')+'" onclick="afPick(\''+kind+'\',\''+o.k+'\')">'+esc(o.l)+'</button>').join('')+'</div></div>';
-  const bedOpts=[{k:'all',l:'Any'}].concat(bedroomCounts().map(n=>({k:String(n),l:n+' BR'})));
+  // 3+ BR is one bucket ('3p'), matching the quick chips above the card grid.
+  const bcs=bedroomCounts();
+  const bedOpts=[{k:'all',l:'Any'}].concat(bcs.filter(n=>n<3).map(n=>({k:String(n),l:n+' BR'})));
+  if(bcs.some(n=>n>=3))bedOpts.push({k:'3p',l:'3+ BR'});
   document.getElementById('af-body').innerHTML=
-    grp('Availability',AVAIL_OPTS,availFilter,'avail')
+    grp('Availability',AVAIL_OPTS.concat(monthOpts().map(o=>({k:o.k,l:'In '+MONTHS[o.m]}))),availFilter,'avail')
     +grp('Bedrooms',bedOpts,bedroomFilter,'bed')
     +grp('Budget',BUDGET_OPTS,budgetFilter,'budget')
     +grp('Duration',DUR_OPTS,durationFilter,'dur')
@@ -961,7 +1029,7 @@ function renderAF(){
     +'<div class="af-section"><div class="af-label">Locations</div><div class="af-opts"><button class="af-opt" onclick="closeAllFilters();openMapSheet()">'+icon('map','sm')+' Open map</button></div></div>';
 }
 function afPick(kind,val){popPick(kind,val);renderAF();}
-function afReset(){availFilter='all';budgetFilter='all';durationFilter='all';bedroomFilter='all';pillWs=false;history.replaceState(null,'',location.pathname);renderChrome();render();renderAF();}
+function afReset(){availFilter='all';budgetFilter='all';durationFilter='all';bedroomFilter='all';pillWs=false;syncFilterURL();renderChrome();render();renderAF();}
 function openAllFilters(){
   renderAF();
   document.getElementById('af-ov').classList.add('open');
@@ -1927,6 +1995,14 @@ if (URL_AID && /^[a-zA-Z0-9_-]{1,64}$/.test(URL_AID)) {
   if (URL_REF) sessionStorage.setItem('samba_session_src', URL_REF);
 }
 if (URL_PARAMS.get('bedrooms')) bedroomFilter = URL_PARAMS.get('bedrooms');
+// Restore the "when" filter; a stale month link (past the 3-month chip
+// horizon) is ignored rather than silently filtering everything out.
+const URL_AVAIL = URL_PARAMS.get('avail');
+if (URL_AVAIL === 'now' || URL_AVAIL === 'week' || monthOpts().some(o => o.k === URL_AVAIL)) {
+  availFilter = URL_AVAIL;
+  const _mo = monthOpts().find(o => o.k === URL_AVAIL);
+  if (_mo) cardMonth = {y: _mo.y, m: _mo.m};
+}
 if (URL_PARAMS.get('view') === 'saved') savedView = true;
 if (URL_PARAMS.get('view') === 'shortlists') shortlistsView = true;
 const SESSION_SRC = sessionStorage.getItem('samba_session_src') || 'portal';
@@ -1984,8 +2060,6 @@ async function boot() {
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('app').classList.add('on');
   document.getElementById('search').placeholder='Search '+properties.length+' properties';
-  let _vpOff=null;try{_vpOff=localStorage.getItem('samba_vp_dismissed');}catch(e){}
-  if(!_vpOff)document.getElementById('value-prop').style.display='';
   track('page_view'); renderChrome(); showSkeletons(); await loadAll(); computeTopPick(); render(); setLastUpdated(); maybeCoach();
 
   // Deep-link to a specific property — broadcasts use this so an agent
@@ -2143,7 +2217,11 @@ function render() {
     const info=PROPS[p.id];
     const hay=(p.name+' '+(p.type||'')+' '+((info&&info.tag)||'')+' '+((info&&info.unitType)||'')).toLowerCase();
     if(!hay.includes(q)) return false;
-    if(bedroomFilter!=='all'){const b=getBedrooms(p.id); if(b!==+bedroomFilter) return false;}
+    if(bedroomFilter!=='all'){
+      const b=getBedrooms(p.id);
+      if(bedroomFilter==='3p'){if(!(b>=3)) return false;}
+      else if(b!==+bedroomFilter) return false;
+    }
     if(savedView && !myFavorites.has(SLUGS[p.id])) return false;
     if(pillWs && !hasWorkspace(info)) return false;
     if(budgetFilter!=='all'){
@@ -2157,6 +2235,7 @@ function render() {
       const ad=availData(p.id);
       if(availFilter==='now'&&ad.firstFreeIdx!==0) return false;
       if(availFilter==='week'&&ad.firstFreeIdx>7) return false;
+      if(availFilter.charAt(0)==='m'&&!monthHasOpening(p.id,availFilter)) return false;
       if(durationFilter==='1mo'&&ad.window<30) return false;
       if(durationFilter==='3mo'&&ad.window<90) return false;
       if(durationFilter==='6mo'&&ad.window<180) return false;
@@ -2240,9 +2319,9 @@ function render() {
         +'</div>';
     }
     return _cxHdr+'<div class="prop-card pre" data-id="'+p.id+'" onclick="openModal(\''+p.id+'\')" title="View photos &amp; details">'
+      +(p.badge?'<div class="card-badge">'+esc(p.badge)+'</div>':(p.id===topPickId?'<div class="top-pick">Top pick</div>':''))
       +'<div class="prop-media">'+heroInner
       +'<div class="prop-gradient"></div>'
-      +(p.badge?'<div class="card-badge">'+esc(p.badge)+'</div>':(p.id===topPickId?'<div class="top-pick">Top pick</div>':''))
       +'<div class="card-tools">'
       +'<button class="card-tool" onclick="event.stopPropagation();cardEnquire(\''+p.id+'\')" aria-label="Enquire on WhatsApp" title="Enquire"><svg viewBox="0 0 24 24"><path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.73 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.89-7.01z"/></svg></button>'
       +'<button class="card-tool" onclick="event.stopPropagation();shareCard(\''+p.id+'\',\''+esc(p.name)+'\')" aria-label="Share villa" title="Share"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg></button>'
@@ -2255,12 +2334,25 @@ function render() {
       +(mn?'<div class="prop-price">IDR '+mn+'M <span>/ mo</span></div>':'')
       +'</div>'
       +'</div>'
-      +'<div class="prop-cal"><div class="prop-cal-lbl">'+MONTHS[getCardMonth().m]+' '+getCardMonth().y+'</div>'
-      +(failedAvail.has(p.id)?'<div class="prop-cal-nc">No calendar data</div>':buildMonth(getCardMonth().y,getCardMonth().m,booked))
+      +'<div class="prop-cal">'
+      +(failedAvail.has(p.id)
+        ?'<div class="prop-cal-lbl">'+MONTHS[TODAY.getMonth()]+' '+TODAY.getFullYear()+'</div><div class="prop-cal-nc">No calendar data</div>'
+        :cardCalPages(booked))
       +'</div>'
       +'</div>';
   }).join('');
+  // Re-renders rebuild the calendars at scroll 0 — restore the chosen month.
+  if(viewMode==='bento')syncCardCalScroll(false);
   revealCards();
+}
+
+function cardCalPages(booked){
+  let h='<div class="prop-cal-scroll">';
+  for(let i=0;i<4;i++){
+    const d=new Date(TODAY.getFullYear(),TODAY.getMonth()+i,1);
+    h+='<div class="prop-cal-page"><div class="prop-cal-lbl">'+MONTHS[d.getMonth()]+' '+d.getFullYear()+'</div>'+buildMonth(d.getFullYear(),d.getMonth(),booked)+'</div>';
+  }
+  return h+'</div>';
 }
 
 function buildSix(booked) {
@@ -2486,7 +2578,7 @@ function doFilter(){
   if(query&&!sessionStorage.getItem('samba_srch')){sessionStorage.setItem('samba_srch','1');track('search_used');}
   render();
 }
-function clearSearch(){const s=document.getElementById('search');s.value='';query='';bedroomFilter='all';sortMode='default';availFilter='all';budgetFilter='all';durationFilter='all';pillWs=false;history.replaceState(null,'',location.pathname);renderChrome();render();}
+function clearSearch(){const s=document.getElementById('search');s.value='';query='';bedroomFilter='all';sortMode='default';availFilter='all';budgetFilter='all';durationFilter='all';pillWs=false;syncFilterURL();renderChrome();render();}
 async function doRefresh(){
   track('refresh');
   const btn=document.querySelector('.rf-btn');if(btn)btn.style.opacity='.5';
