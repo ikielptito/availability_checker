@@ -186,7 +186,51 @@ export default async function handler(req, res) {
 
   const recent = recentRaw.map(v => { try { return JSON.parse(v); } catch { return null; } }).filter(Boolean);
 
-  return res.status(200).json({ period, days, totals, allTotals, series, properties, recent, attribution });
+  // ── Signed-up agents (real Google accounts, not device-tracked visitors) ──
+  // The "unique agents" counters above come from anonymous visit tracking. These
+  // are actual portal accounts created via Google sign-in (owner:{sub} records).
+  // No index set exists, so SCAN the keyspace — signups are small (tens), and
+  // this endpoint is admin-only and infrequent, so the scan cost is negligible.
+  let signups = { count: 0, recent: [] };
+  try {
+    const ownerKeys = [];
+    let cursor = '0';
+    do {
+      const sr = await fetch(`${url}/scan/${cursor}?match=${encodeURIComponent('owner:*')}&count=500`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const sd = await sr.json();
+      const [next, batch] = Array.isArray(sd.result) ? sd.result : ['0', []];
+      cursor = next;
+      (batch || []).forEach(k => ownerKeys.push(k));
+    } while (cursor && cursor !== '0');
+
+    if (ownerKeys.length) {
+      const vals = await pipeline(ownerKeys.map(k => ['GET', k]));
+      const owners = vals
+        .map(v => { try { return JSON.parse(v); } catch { return null; } })
+        .filter(Boolean);
+      owners.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      const newInPeriod = period === 'all'
+        ? owners.length
+        : owners.filter(o => o.createdAt && days.includes(o.createdAt.split('T')[0])).length;
+      signups = {
+        count: owners.length,
+        newInPeriod,
+        recent: owners.slice(0, 25).map(o => ({
+          name: o.name || o.email || 'Agent',
+          email: o.email || '',
+          picture: o.picture || '',
+          createdAt: o.createdAt || null,
+          favorites: Array.isArray(o.favorites) ? o.favorites.length : 0,
+          lists: Array.isArray(o.lists) ? o.lists.length : 0,
+          handle: (o.profile && o.profile.handle) || null,
+        })),
+      };
+    }
+  } catch {}
+
+  return res.status(200).json({ period, days, totals, allTotals, series, properties, recent, attribution, signups });
 }
 
 // ── Manual broadcast: preview or fire ───────────────────────────────

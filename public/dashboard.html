@@ -257,7 +257,7 @@ const EVENT_LABELS = {
 };
 
 function render(data) {
-  const { totals, series, properties, recent, period } = data;
+  const { totals, series, properties, recent, period, signups } = data;
   const periodLabel = {
     'today':'today','7d':'last 7 days','30d':'last 30 days','90d':'last 90 days','all':'all time'
   }[period] || period;
@@ -276,9 +276,14 @@ function render(data) {
         <div class="stat-sub">${periodLabel}</div>
       </div>
       <div class="stat-card">
+        <div class="stat-label">Signed-up agents</div>
+        <div class="stat-value" style="color:var(--accent)">${fmt(signups?.count || 0)}</div>
+        <div class="stat-sub">Google accounts${signups?.newInPeriod ? ` · ${fmt(signups.newInPeriod)} new ${periodLabel}` : ''}</div>
+      </div>
+      <div class="stat-card">
         <div class="stat-label">Active agents</div>
         <div class="stat-value" style="color:var(--green)">${fmt(totals.unique_agents)}</div>
-        <div class="stat-sub">${fmt(totals.unique_agents_today)} today · ${fmt(totals.unique_agents_all)} all-time</div>
+        <div class="stat-sub">unique visitors · ${fmt(totals.unique_agents_today)} today · ${fmt(totals.unique_agents_all)} all-time</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Details opened</div>
@@ -310,6 +315,40 @@ function render(data) {
         <div class="stat-value">${fmt(totals.photo_download)}</div>
         <div class="stat-sub">Drive folder opens</div>
       </div>
+    </div>
+
+    <!-- SIGNED-UP AGENTS — real Google accounts created in the portal -->
+    <div class="table-card">
+      <div class="table-header">Signed-up agents · ${fmt(signups?.count || 0)} total</div>
+      ${(signups?.recent && signups.recent.length) ? `
+      <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Email</th>
+            <th>Signed up</th>
+            <th>Favourites</th>
+            <th>Lists</th>
+            <th>Profile</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${signups.recent.map(a => `
+            <tr>
+              <td style="font-weight:500">${esc(a.name)}</td>
+              <td><span style="color:var(--muted)">${esc(a.email)}</span></td>
+              <td>${a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '—'}</td>
+              <td>${fmt(a.favorites)}</td>
+              <td>${fmt(a.lists)}</td>
+              <td>${a.handle ? `<a href="/${esc(a.handle)}" target="_blank" style="color:var(--accent)">@${esc(a.handle)}</a>` : '<span style="color:var(--subtle)">—</span>'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      </div>
+      ${signups.count > signups.recent.length ? `<div class="funnel-note" style="padding:10px 16px">Showing the ${signups.recent.length} most recent of ${fmt(signups.count)} accounts.</div>` : ''}
+      ` : `<div class="loading-state" style="padding:16px">No agents have signed up yet. Accounts are created when an agent logs in with Google in the portal.</div>`}
     </div>
 
     <!-- FUNNEL — unique sessions per stage (first action per visit), so
