@@ -1378,14 +1378,31 @@ function closeModal(e) {
   maybeSignupPrompt();
 }
 
-// One-time sign-up pitch, shown at a value moment (the agent just looked at
-// a villa) rather than ambushing them on page load.
+// Sign-up pitch at a value moment (the agent just looked at a villa), with an
+// engagement threshold and capped cadence instead of the old one-shot flag:
+//   - only after the 3rd villa viewed (they've seen the value first)
+//   - at most once per session
+//   - escalating cooldowns between shows (1d → 3d → 7d → 14d)
+//   - retired permanently after 4 shows (the gates + One Tap remain)
 function maybeSignupPrompt(){
-  let seen=null;try{seen=localStorage.getItem('samba_signup_prompted');}catch(e){}
-  if(seen)return;
   if(window.SambaNav&&SambaNav.isSignedIn())return;
-  try{localStorage.setItem('samba_signup_prompted','1');}catch(e){}
-  setTimeout(()=>{if(window.SambaNav&&!SambaNav.isSignedIn())SambaNav.openSignIn();},600);
+  let st=null;try{st=JSON.parse(localStorage.getItem('samba_signup_state')||'null');}catch(e){}
+  if(!st||typeof st!=='object'){
+    // Migrate the legacy one-shot flag: count it as one show, but make the
+    // never-again cohort eligible again under the new cadence.
+    let legacy=null;try{legacy=localStorage.getItem('samba_signup_prompted');}catch(e){}
+    st={views:0,shows:legacy?1:0,next:0};
+  }
+  st.views=(st.views||0)+1;
+  const save=()=>{try{localStorage.setItem('samba_signup_state',JSON.stringify(st));}catch(e){}};
+  const now=Date.now();
+  if((st.shows||0)>=4){save();return;}
+  if(sessionStorage.getItem('samba_sp_sess')){save();return;}
+  if(st.views<3||now<(st.next||0)){save();return;}
+  const coolDays=[1,3,7,14][Math.min(st.shows||0,3)];
+  st.shows=(st.shows||0)+1;st.next=now+coolDays*864e5;save();
+  try{sessionStorage.setItem('samba_sp_sess','1');}catch(e){}
+  setTimeout(()=>{if(window.SambaNav&&!SambaNav.isSignedIn())SambaNav.openSignIn('auto');},600);
 }
 
 async function loadCarousel(propId,folderId) {
@@ -2463,7 +2480,7 @@ function setLastUpdated(){
 
 function toggleFav(slug){
   if(!slug || !window.SambaNav) return;
-  if(!SambaNav.isSignedIn()){ SambaNav.requireSignIn(function(){ toggleFav(slug); }); return; }
+  if(!SambaNav.isSignedIn()){ SambaNav.requireSignIn(function(){ toggleFav(slug); }, 'favorite'); return; }
   try{navigator.vibrate&&navigator.vibrate(8);}catch(e){}
   // Optimistic toggle, then reconcile with the server's authoritative list.
   if(myFavorites.has(slug)) myFavorites.delete(slug); else myFavorites.add(slug);
@@ -2501,7 +2518,7 @@ window.addEventListener('load',function(){
   });
   // Landed straight on the shortlists view while logged out → prompt sign-in.
   if(new URLSearchParams(location.search).get('view')==='shortlists'){
-    setTimeout(function(){ if(!SambaNav.isSignedIn()) SambaNav.requireSignIn(function(){ setShortlistsView(true); }); }, 600);
+    setTimeout(function(){ if(!SambaNav.isSignedIn()) SambaNav.requireSignIn(function(){ setShortlistsView(true); }, 'shortlist'); }, 600);
   }
 });
 
@@ -2509,7 +2526,7 @@ window.addEventListener('load',function(){
 function setSavedViewOff(){ savedView=false; }
 function setShortlistsView(on){
   shortlistsView=on;
-  if(on){ savedView=false; if(window.SambaNav && !SambaNav.isSignedIn()){ SambaNav.requireSignIn(function(){ setShortlistsView(true); }); return; } }
+  if(on){ savedView=false; if(window.SambaNav && !SambaNav.isSignedIn()){ SambaNav.requireSignIn(function(){ setShortlistsView(true); }, 'shortlist'); return; } }
   history.replaceState(null,'',on?'?view=shortlists':location.pathname);
   render();
   if(on) renderShortlists();

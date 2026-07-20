@@ -221,7 +221,9 @@ async function authGoogle(req, res, { kvGet, kvSet, kvSetEx }) {
   const token = crypto.randomBytes(32).toString('hex');
   await kvSetEx(`session:${token}`, { sub: info.sub, exp: Date.now() + SESSION_TTL * 1000 }, SESSION_TTL);
   res.setHeader('Set-Cookie', sessionCookie(token, isSecure(req)));
-  return res.status(200).json({ owner: publicOwner(owner) });
+  // isNew lets the frontend distinguish a first-time signup from a returning
+  // sign-in when reporting funnel events to /api/track.
+  return res.status(200).json({ owner: publicOwner(owner), isNew: !existing });
 }
 
 // ── Session helpers ─────────────────────────────────────────────────

@@ -18,6 +18,23 @@
   var isDev = ['localhost', '127.0.0.1'].includes(location.hostname);
   var account = null, listeners = [], pendingAfterSignIn = null, cfgPromise = null;
   var pendingPhoto = null; // data URL staged in the account sheet before save
+  var sigSource = 'nav';   // which surface opened sign-in: nav | gate | auto | onetap
+  var oneTapTried = false;
+
+  // Fire-and-forget funnel events (event names must match /^[a-z_]{1,32}$/).
+  function snTrack(event) {
+    try {
+      fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: event }) }).catch(function () {});
+    } catch (e) {}
+  }
+
+  // Google blocks OAuth inside embedded webviews (403 disallowed_useragent),
+  // and One Tap/FedCM can freeze silently there. WhatsApp/IG/FB in-app
+  // browsers are common for our agents, so detect and route around it.
+  function isInAppBrowser() {
+    var ua = navigator.userAgent || '';
+    return /\bwv\b|FBAN|FBAV|FB_IAB|Instagram|Line\/|WhatsApp|; ?wv\)/i.test(ua);
+  }
 
   // ── Styles ──
   var css = `
@@ -71,6 +88,7 @@
   .snav-benefits .snav-bicon{flex-shrink:0;width:26px;height:26px;border-radius:8px;background:#F6E7DE;color:#B8613F;display:flex;align-items:center;justify-content:center;font-size:13px}
   .snav-gbtn{display:flex;justify-content:center;min-height:44px}
   .snav-guest{display:block;width:100%;text-align:center;background:none;border:none;color:#8a8478;font-family:inherit;font-size:.82rem;cursor:pointer;padding:4px;text-decoration:underline}
+  .snav-inapp{background:#F6E7DE;border-radius:10px;padding:12px 14px;font-size:.82rem;line-height:1.55;color:#514C45;margin-bottom:10px}
   .snav-acct-top{display:flex;align-items:center;gap:13px}
   .snav-acct-av{width:58px;height:58px;border-radius:50%;background:#C46E4B;color:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:'Geist',-apple-system,sans-serif;font-weight:650;font-size:1.3rem;flex-shrink:0;position:relative}
   .snav-acct-av img{width:100%;height:100%;object-fit:cover}
@@ -212,7 +230,7 @@
   }
   function loadConfig() { if (!cfgPromise) cfgPromise = api('?action=config').then(function (r) { return r.body || {}; }); return cfgPromise; }
   function setAccount(a) { account = a; renderNav(); listeners.forEach(function (fn) { try { fn(account); } catch (e) {} }); }
-  function loadMe() { return api('?action=auth/me').then(function (r) { setAccount(r.ok && r.body && r.body.owner ? r.body.owner : null); return account; }); }
+  function loadMe() { return api('?action=auth/me').then(function (r) { setAccount(r.ok && r.body && r.body.owner ? r.body.owner : null); if (!account) maybeOneTap(); return account; }); }
 
   function loadGsi(cb) {
     if (window.google && google.accounts && google.accounts.id) return cb();
@@ -220,30 +238,73 @@
     if (!s) { s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true; s.id = 'snav-gsi'; document.head.appendChild(s); }
     var t = setInterval(function () { if (window.google && google.accounts && google.accounts.id) { clearInterval(t); cb(); } }, 100);
   }
+  // Contextual headlines: the gate that opened the modal names the value the
+  // agent was reaching for, instead of a generic welcome pitch.
+  var SIGNIN_COPY = {
+    favorite:  { title: 'Save this villa',          lede: 'Sign in with Google to keep favourites on every device — free for agents.' },
+    shortlist: { title: 'Build a client shortlist', lede: 'Sign in with Google to pick villas and send your client one link — free for agents.' },
+    'default': { title: 'Welcome to Samba',         lede: 'Free for agents — sign in with Google to unlock:' }
+  };
   function ensureSignIn() {
     var ov = document.getElementById('snav-signin'); if (ov) return ov;
     ov = document.createElement('div'); ov.className = 'snav-ov'; ov.id = 'snav-signin';
-    ov.innerHTML = '<div class="snav-box"><div class="snav-box-head"><div class="snav-box-title">Welcome to Samba</div><button class="snav-x" data-close>&times;</button></div><div class="snav-box-body">' +
-      '<p class="snav-lede">Free for agents — sign in with Google to unlock:</p>' +
+    ov.innerHTML = '<div class="snav-box"><div class="snav-box-head"><div class="snav-box-title" id="snav-si-title">Welcome to Samba</div><button class="snav-x" data-close>&times;</button></div><div class="snav-box-body">' +
+      '<p class="snav-lede" id="snav-si-lede">Free for agents — sign in with Google to unlock:</p>' +
       '<ul class="snav-benefits">' +
-      '<li><span class="snav-bicon">♥</span><span><b>Save favourites</b> — synced on every device you use</span></li>' +
+      '<li><span class="snav-bicon">👤</span><span><b>Clients enquire with you</b> — every villa you share carries your name, photo and WhatsApp</span></li>' +
+      '<li><span class="snav-bicon">♥</span><span><b>Favourites &amp; private notes</b> — synced on every device</span></li>' +
       '<li><span class="snav-bicon">☰</span><span><b>Client shortlists</b> — pick villas, send one link</span></li>' +
-      '<li><span class="snav-bicon">👤</span><span><b>Personalised share pages</b> — every villa you share carries your name, photo and WhatsApp, so clients enquire with <b>you</b> directly</span></li>' +
-      '<li><span class="snav-bicon">✎</span><span><b>Private notes</b> on any villa</span></li>' +
-      '<li><span class="snav-bicon">🔗</span><span><b>Your public agent page</b> — one link with all your picks</span></li>' +
       '</ul>' +
       '<div class="snav-gbtn" id="snav-gbtn"></div><div class="snav-err" id="snav-signin-err"></div><button class="snav-guest" data-close>Continue as guest</button></div></div>';
     document.body.appendChild(ov);
-    ov.addEventListener('click', function (e) { if (e.target === ov || e.target.hasAttribute('data-close')) ov.classList.remove('open'); });
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov || e.target.hasAttribute('data-close')) {
+        ov.classList.remove('open');
+        if (!account) snTrack('signup_dismissed_' + sigSource);
+      }
+    });
     return ov;
   }
-  function openSignIn() {
+  function openSignIn(src, ctx) {
+    sigSource = src || 'nav';
     var ov = ensureSignIn(); ov.classList.add('open');
+    var copy = SIGNIN_COPY[ctx] || SIGNIN_COPY['default'];
+    document.getElementById('snav-si-title').textContent = copy.title;
+    document.getElementById('snav-si-lede').textContent = copy.lede;
     var slot = document.getElementById('snav-gbtn'); slot.innerHTML = ''; document.getElementById('snav-signin-err').textContent = '';
+    snTrack('signup_shown_' + sigSource);
     if (isDev) { var b = document.createElement('button'); b.className = 'snav-btn'; b.textContent = 'Dev sign-in (local only)'; b.onclick = function () { doGoogle('dev'); }; slot.appendChild(b); return; }
+    if (isInAppBrowser()) {
+      // Google sign-in fails inside embedded webviews — guide out instead of
+      // rendering a button that silently 403s.
+      slot.innerHTML = '<div class="snav-inapp">Google sign-in doesn\'t work inside this in-app browser. Tap the <b>⋮</b> or share menu and choose <b>"Open in browser"</b>, then sign in there.</div>' +
+        '<button class="snav-btn" id="snav-copylink">Copy page link</button>';
+      document.getElementById('snav-copylink').onclick = function () {
+        try { navigator.clipboard.writeText(location.href); this.textContent = 'Link copied ✓'; } catch (e) {}
+      };
+      snTrack('signup_inapp_blocked');
+      return;
+    }
     loadConfig().then(function (cfg) {
       if (!cfg.googleClientId) { document.getElementById('snav-signin-err').textContent = 'Sign-in is not configured yet.'; return; }
       loadGsi(function () { google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: function (resp) { doGoogle(resp.credential); } }); google.accounts.id.renderButton(slot, { theme: 'filled_blue', size: 'large', shape: 'pill', text: 'continue_with', width: 280 }); });
+    });
+  }
+
+  // Google One Tap for guests: a small non-blocking card with the agent's own
+  // Google account — one tap to sign in, no modal. Google handles the show/
+  // dismiss cadence itself (escalating cooldowns after each dismissal).
+  function maybeOneTap() {
+    if (oneTapTried || account || isDev || isInAppBrowser()) return;
+    oneTapTried = true;
+    try { if (Date.now() < +(localStorage.getItem('samba_onetap_snooze') || 0)) return; } catch (e) {}
+    loadConfig().then(function (cfg) {
+      if (!cfg.googleClientId) return;
+      loadGsi(function () {
+        if (account) return;
+        google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: function (resp) { sigSource = 'onetap'; doGoogle(resp.credential); } });
+        google.accounts.id.prompt();
+      });
     });
   }
   function doGoogle(credential) {
@@ -251,6 +312,7 @@
     api('?action=auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential: credential }) }).then(function (r) {
       if (r.ok && r.body && r.body.owner) {
         setAccount(r.body.owner);
+        snTrack(r.body.isNew ? 'signup_done_' + sigSource : 'signin_done');
         var ov = document.getElementById('snav-signin'); if (ov) ov.classList.remove('open');
         var cb = pendingAfterSignIn; pendingAfterSignIn = null;
         // WhatsApp-required onboarding for new/incomplete agents.
@@ -259,8 +321,12 @@
       } else { document.getElementById('snav-signin-err').textContent = (r.body && r.body.error) || 'Sign-in failed.'; }
     });
   }
-  function logout() { api('?action=auth/logout', { method: 'POST' }).then(function () { location.reload(); }); }
-  function requireSignIn(fn) { if (account) { fn(); return; } pendingAfterSignIn = fn; openSignIn(); }
+  function logout() {
+    // Don't One Tap someone who just chose to log out — snooze it for a day.
+    try { localStorage.setItem('samba_onetap_snooze', String(Date.now() + 864e5)); } catch (e) {}
+    api('?action=auth/logout', { method: 'POST' }).then(function () { location.reload(); });
+  }
+  function requireSignIn(fn, ctx) { if (account) { fn(); return; } pendingAfterSignIn = fn; openSignIn('gate', ctx); }
 
   // ── Agent profile sheet ──
   function ensureAccount() {
