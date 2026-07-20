@@ -42,7 +42,9 @@
   #snav-sub.inline{padding:0;margin:0;max-width:none;flex:1;min-width:0;justify-content:flex-end}
   #snav-sub.inline .snav-stab{padding:7px 9px}
   @media(max-width:640px){
-    #snav-sub.inline .snav-stab span{display:none}
+    /* Icon-only tabs on mobile — but keep .snav-av: it IS the icon for the
+       signed-in Profile/Account tab (hiding it made the tab vanish). */
+    #snav-sub.inline .snav-stab span:not(.snav-av){display:none}
     #snav-sub.inline .snav-stab{padding:9px}
     #snav-sub.inline .snav-stab svg{width:19px;height:19px}
   }

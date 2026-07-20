@@ -267,4 +267,5 @@ for (const e of seedEvents) await handlers.track.default({ method: 'POST', heade
 // Pre-warm digest cache so /api/notify-agents has data to flip
 await handlers.digest.default({ method: 'GET', headers: { authorization: 'Bearer dev_secret' }, query: { force: '1' } }, shimRes());
 
-server.listen(3456, () => console.log('dev server on http://localhost:3456'));
+const PORT = Number(process.env.PORT) || 3456;
+server.listen(PORT, () => console.log(`dev server on http://localhost:${PORT}`));

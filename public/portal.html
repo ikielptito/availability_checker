@@ -63,7 +63,10 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
 .logout-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:6px 13px;font-family:'Geist',-apple-system,sans-serif;font-size:0.72rem;cursor:pointer;}
 .logout-btn:hover{color:var(--text);}
 .content{padding:28px;max-width:1100px;margin:0 auto;}
-@media(max-width:640px){.content{padding:16px;}.topbar{padding:8px 16px;}.owner-email{display:none;}.brand-mark img{height:56px;}.owner-chip,.logout-btn{display:none;}.howto-link svg{display:none;}.howto-link{padding:7px 12px;}}
+/* Mobile: spacer + text "How it works" were crushing #samba-nav (flex:1,min-width:0)
+   to ~18px, clipping the Dashboard/List/Account tabs. Icon-only howto + no spacer
+   leaves the nav enough room. */
+@media(max-width:640px){.content{padding:16px;}.topbar{padding:8px 16px;}.owner-email{display:none;}.brand-mark img{height:44px;}.owner-chip,.logout-btn{display:none;}.spacer{display:none;}.howto-link span{display:none;}.howto-link{padding:8px;border-radius:50%;}.howto-link svg{width:17px;height:17px;}}
 .section-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
 .section-title{font-family:'Geist',-apple-system,sans-serif;font-size:1.4rem;}
 .add-btn{background:var(--accent);border:1px solid var(--accent);border-radius:8px;color:#fff;padding:8px 16px;font-family:'Geist',-apple-system,sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;}
