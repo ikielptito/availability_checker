@@ -16,6 +16,17 @@ export default async function handler(req, res) {
     return handleAgentFunnel(req, res);
   }
 
+  // ── Portal pulse for Maya's morning report (same sync-secret auth) ────────
+  // Compact overnight summary: yesterday+today activity, signup-funnel event
+  // counts, and real Google-account signups (total + new in last 24h).
+  if (req.query.portal_pulse === '1') {
+    const secret = process.env.LISTING_SYNC_SECRET;
+    if (secret && (req.headers.authorization || '') !== `Bearer ${secret}`) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    return handlePortalPulse(req, res);
+  }
+
   // Password check (shared between analytics GET and notify-agents POST).
   // Accept ADMIN_PASSWORD too so the unified /admin console's single login
   // works for the embedded analytics tab regardless of which env var is set.
@@ -331,6 +342,106 @@ async function handleNotifyAgents(req, res) {
 // Per-agent portal engagement for the CRM funnel join. Reads the durable
 // per-agent counters written by api/track.js (agent:{aid}:events / :last_seen)
 // plus channel totals. Auth is checked by the caller (sync-secret).
+// Overnight portal summary for the CRM's 9am-WITA owner briefing. That cron
+// fires ~1am UTC, so "overnight" spans two UTC day buckets — sum yesterday +
+// today for all day counters. Signups are computed from owner:* records by
+// createdAt (exact 24h window, no bucket skew).
+async function handlePortalPulse(req, res) {
+  const url = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  if (!url || !token) return res.status(500).json({ error: 'Redis not configured' });
+  const kv = async (cmds) => {
+    const r = await fetch(`${url}/pipeline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(cmds),
+    });
+    return r.json();
+  };
+  const num = v => parseInt(v) || 0;
+  try {
+    const d0 = new Date().toISOString().split('T')[0];
+    const d1 = new Date(Date.now() - 864e5).toISOString().split('T')[0];
+    const ACT = ['sessions', 'eng_sessions', 'wa_sessions', 'whatsapp_click', 'listing_view', 'details_open', 'share'];
+    const FUNNEL = [
+      'signup_shown_gate', 'signup_shown_auto', 'signup_shown_nav',
+      'signup_done_gate', 'signup_done_auto', 'signup_done_nav', 'signup_done_onetap',
+      'signup_dismissed_gate', 'signup_dismissed_auto', 'signup_dismissed_nav',
+      'signup_inapp_blocked', 'signin_done',
+    ];
+    // Trailing 7-day baseline (the 7 days before the overnight window) so the
+    // briefing can say "41 sessions, ~2x your usual" instead of a bare number.
+    const base7 = [];
+    for (let i = 2; i <= 8; i++) base7.push(new Date(Date.now() - i * 864e5).toISOString().split('T')[0]);
+    const SRC = ['wa_digest', 'wa_alert'];
+    const cmds = [];
+    [d0, d1].forEach(d => {
+      ACT.forEach(e => cmds.push(['GET', `day:${d}:${e}`]));
+      FUNNEL.forEach(e => cmds.push(['GET', `day:${d}:${e}`]));
+      cmds.push(['SCARD', `unique:agents:${d}`]);
+      SRC.forEach(s => cmds.push(['GET', `day:${d}:src:${s}`]));
+    });
+    base7.forEach(d => cmds.push(['GET', `day:${d}:sessions`], ['GET', `day:${d}:wa_sessions`]));
+    cmds.push(['LRANGE', 'errors:recent', '0', '99']);
+    const out = await kv(cmds);
+    let ptr = 0;
+    const activity = {}, funnel = {}, broadcast = {};
+    let uniqueAgents = 0;
+    [d0, d1].forEach(() => {
+      ACT.forEach(e => activity[e] = (activity[e] || 0) + num(out[ptr++]?.result));
+      FUNNEL.forEach(e => funnel[e] = (funnel[e] || 0) + num(out[ptr++]?.result));
+      uniqueAgents += num(out[ptr++]?.result); // approx: day-sets may overlap
+      SRC.forEach(s => broadcast[s] = (broadcast[s] || 0) + num(out[ptr++]?.result));
+    });
+    activity.unique_agents = uniqueAgents;
+    let baseSessions = 0, baseWa = 0;
+    base7.forEach(() => { baseSessions += num(out[ptr++]?.result); baseWa += num(out[ptr++]?.result); });
+    const baseline = { avg_sessions: +(baseSessions / 7).toFixed(1), avg_wa_sessions: +(baseWa / 7).toFixed(1) };
+    // Overnight captured errors (lib/errlog.js entries carry a ts).
+    let errorsOvernight = 0;
+    try {
+      const since = Date.now() - 24 * 3600e3;
+      const raw = out[ptr++]?.result || [];
+      errorsOvernight = raw
+        .map(v => { try { return JSON.parse(v); } catch { return null; } })
+        .filter(e => e && (e.ts || e.at) && new Date(e.ts || e.at).getTime() >= since).length;
+    } catch { /* best-effort */ }
+
+    // Signups: total accounts + accounts created in the last 24h.
+    let signups = { total: 0, new_24h: [] };
+    try {
+      const ownerKeys = [];
+      let cursor = '0';
+      do {
+        const sr = await fetch(`${url}/scan/${cursor}?match=${encodeURIComponent('owner:*')}&count=500`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const sd = await sr.json();
+        const [next, batch] = Array.isArray(sd.result) ? sd.result : ['0', []];
+        cursor = next;
+        (batch || []).forEach(k => ownerKeys.push(k));
+      } while (cursor && cursor !== '0');
+      if (ownerKeys.length) {
+        const vals = await kv(ownerKeys.map(k => ['GET', k]));
+        const owners = vals
+          .map(v => { try { return JSON.parse(v?.result); } catch { return null; } })
+          .filter(Boolean);
+        const since = Date.now() - 24 * 3600e3;
+        signups = {
+          total: owners.length,
+          new_24h: owners
+            .filter(o => o.createdAt && new Date(o.createdAt).getTime() >= since)
+            .map(o => ({ name: o.name || o.email || 'Agent', email: o.email || '' })),
+        };
+      }
+    } catch { /* best-effort */ }
+
+    return res.status(200).json({ days: [d1, d0], activity, funnel, signups, baseline, broadcast, errors_overnight: errorsOvernight });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+}
+
 async function handleAgentFunnel(req, res) {
   const url = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
