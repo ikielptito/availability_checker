@@ -260,17 +260,17 @@
   function setAccount(a) { account = a; renderNav(); listeners.forEach(function (fn) { try { fn(account); } catch (e) {} }); }
   function loadMe() { return api('?action=auth/me').then(function (r) { setAccount(r.ok && r.body && r.body.owner ? r.body.owner : null); if (!account && !maybeLandingPrompt()) maybeOneTap(); return account; }); }
 
-  // First-ever landing on the agent portal: open the full sign-in sheet once
-  // the grid has painted behind it — a richer welcome than One Tap for someone
-  // who has never seen Samba. Shown once per visitor; after that One Tap, the
-  // contextual gates and the engagement-cadence prompt take over. Returns true
-  // when it claims this page load (so One Tap stays quiet).
+  // Landing on the agent portal signed out: open the full sign-in sheet once
+  // the grid has painted behind it — a richer welcome than One Tap. Shown once
+  // per session; within the session One Tap, the contextual gates and the
+  // engagement-cadence prompt take over. Returns true when it claims this page
+  // load (so One Tap stays quiet).
   function maybeLandingPrompt() {
     if (curPortal() !== 'agent') return false;   // owner portal has its own flow
     if (isInAppBrowser()) return false;          // Google sign-in can't work there — don't wall the page
     try {
-      if (localStorage.getItem('samba_landing_prompted')) return false;
-      localStorage.setItem('samba_landing_prompted', '1');
+      if (sessionStorage.getItem('samba_landing_prompted')) return false;
+      sessionStorage.setItem('samba_landing_prompted', '1');
       sessionStorage.setItem('samba_sp_sess', '1');  // villa-close prompt stays quiet this session
     } catch (e) { return false; }
     setTimeout(function () { if (!account) openSignIn('landing'); }, 1400);
