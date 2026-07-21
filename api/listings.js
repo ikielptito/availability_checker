@@ -372,6 +372,7 @@ export default async function handler(req, res) {
         waContactName: cleanStr(data.waContactName),
         bookedRanges: Array.isArray(data.bookedRanges) ? cleanRanges(data.bookedRanges) : existing.bookedRanges || [],
         hidden: !!data.hidden,
+        petFriendly: !!data.petFriendly,
         // Ownership/review fields are owned by the portal + review flow; never
         // clobbered by an admin content edit.
         ownerSub: existing.ownerSub || null,
@@ -415,6 +416,7 @@ export default async function handler(req, res) {
       coverPhotoId: typeof data.coverPhotoId === 'string' && /^[A-Za-z0-9_-]{0,80}$/.test(data.coverPhotoId.trim())
         ? data.coverPhotoId.trim() : existing.coverPhotoId || '',
       coverPosition: data.coverPosition !== undefined ? cleanPos(data.coverPosition) : (existing.coverPosition || '50% 50%'),
+      petFriendly: typeof data.petFriendly === 'boolean' ? data.petFriendly : (existing.petFriendly ?? false),
     };
 
     await kvSet(`listing:${slug}`, safe);

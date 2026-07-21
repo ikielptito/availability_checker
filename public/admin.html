@@ -534,6 +534,12 @@ function defaultCard(l) {
           <textarea class="field-textarea" id="${l.slug}-locationHighlights" rows="5">${esc(l.locationHighlights.join('\n'))}</textarea>
         </div>
       </div>
+      <div class="field-row full">
+        <label class="check-row">
+          <input type="checkbox" id="${l.slug}-petfriendly" ${l.petFriendly ? 'checked' : ''} />
+          Pet friendly
+        </label>
+      </div>
     </div>
   `;
 }
@@ -686,6 +692,10 @@ function customCard(l, isNew) {
           <input type="checkbox" id="${slug}-hidden" ${l.hidden ? 'checked' : ''} />
           Hide from agent portal
         </label>
+        <label class="check-row" style="margin-top:8px">
+          <input type="checkbox" id="${slug}-petfriendly" ${l.petFriendly ? 'checked' : ''} />
+          Pet friendly
+        </label>
       </div>
     </div>
   `;
@@ -746,6 +756,7 @@ async function saveCustom(cardSlug, isNew) {
     coverPhotoId: document.getElementById(cardSlug + '-coverPhotoId').value,
     coverPosition: document.getElementById(cardSlug + '-coverPosition').value,
     hidden: document.getElementById(cardSlug + '-hidden').checked,
+    petFriendly: document.getElementById(cardSlug + '-petfriendly').checked,
   };
 
   try {
@@ -1029,6 +1040,7 @@ async function saveListing(slug) {
     tag: document.getElementById(slug + '-tag').value,
     coverPhotoId: document.getElementById(slug + '-coverPhotoId').value,
     coverPosition: document.getElementById(slug + '-coverPosition').value,
+    petFriendly: document.getElementById(slug + '-petfriendly').checked,
   };
 
   try {

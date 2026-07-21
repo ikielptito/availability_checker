@@ -1166,7 +1166,7 @@ async function boot() {
   // place offers" pattern); location highlights get the map pin.
   const grid = document.getElementById('details-grid');
   const sections = [
-    { title: 'What this place offers', items: listing.features || [], icon: amenityIcon },
+    { title: 'What this place offers', items: [...(listing.features || []), ...(listing.petFriendly ? ['Pet friendly'] : [])], icon: amenityIcon },
     { title: 'Location highlights', items: listing.locationHighlights || [], icon: () => PIN_ICON },
   ].filter(s => s.items.length);
   grid.innerHTML = sections.map(s =>
