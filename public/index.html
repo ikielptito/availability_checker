@@ -2112,6 +2112,13 @@ window.maybeShowInstallPrompt = function() {
   if (window.navigator.standalone) return;  // iOS standalone flag
   if (localStorage.getItem('install_dismissed')) return;
 
+  // One ask at a time: if a sign-in surface (One Tap or the sign-in modal)
+  // is up, yield and retry once things are quiet. Sign-in outranks install.
+  if (window.SambaNav && SambaNav.signInSurfaceActive && SambaNav.signInSurfaceActive()) {
+    setTimeout(window.maybeShowInstallPrompt, 25000);
+    return;
+  }
+
   const prompt = document.getElementById('install-prompt');
   if (!prompt) return;
   const detail = document.getElementById('install-prompt-detail');

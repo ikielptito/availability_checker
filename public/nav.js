@@ -20,6 +20,7 @@
   var pendingPhoto = null; // data URL staged in the account sheet before save
   var sigSource = 'nav';   // which surface opened sign-in: nav | gate | auto | onetap
   var oneTapTried = false;
+  var oneTapAt = 0;        // when we last asked Google to show One Tap (for prompt sequencing)
 
   // Fire-and-forget funnel events (event names must match /^[a-z_]{1,32}$/).
   function snTrack(event) {
@@ -75,21 +76,47 @@
     #snav-sub{padding:8px 16px 0;gap:8px}
     #snav-sub .snav-seg{display:none}
   }
-  /* Overlays (sign-in + account sheets) */
-  .snav-ov{position:fixed;inset:0;background:rgba(28,25,23,.5);z-index:1100;display:none;align-items:flex-start;justify-content:center;padding:7vh 16px;overflow-y:auto}
-  .snav-ov.open{display:flex}
-  .snav-box{background:#fff;border:none;border-radius:24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.16)}
+  /* Overlays (sign-in + account sheets) — animated in/out, blurred scrim */
+  .snav-ov{position:fixed;inset:0;background:rgba(28,25,23,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:1100;display:flex;align-items:flex-start;justify-content:center;padding:7vh 16px;overflow-y:auto;opacity:0;visibility:hidden;transition:opacity .22s ease,visibility 0s linear .22s}
+  .snav-ov.open{opacity:1;visibility:visible;transition:opacity .22s ease}
+  .snav-box{background:#fff;border:none;border-radius:24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.16);transform:translateY(14px) scale(.97);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+  .snav-ov.open .snav-box{transform:none}
   .snav-box-head{padding:18px 22px;border-bottom:1px solid #F1ECE7;display:flex;align-items:center;justify-content:space-between}
   .snav-box-title{font-family:'Geist',-apple-system,sans-serif;font-weight:650;font-size:1.15rem;color:#1C1917;letter-spacing:-.01em}
   .snav-x{background:none;border:none;font-size:1.5rem;line-height:1;color:#8a8478;cursor:pointer;padding:0 4px}
   .snav-box-body{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
   .snav-lede{color:#8a8478;font-size:.88rem;line-height:1.6;text-align:center}
-  .snav-benefits{list-style:none;margin:2px 0 6px;padding:0;display:flex;flex-direction:column;gap:9px}
-  .snav-benefits li{display:flex;gap:10px;align-items:flex-start;font-size:.84rem;line-height:1.5;color:#514C45}
+  .snav-benefits{list-style:none;margin:2px 0 6px;padding:0;display:flex;flex-direction:column;gap:11px}
+  .snav-benefits li{display:flex;gap:12px;align-items:flex-start;font-size:.84rem;line-height:1.5;color:#514C45}
   .snav-benefits li b{color:#1C1917}
-  .snav-benefits .snav-bicon{flex-shrink:0;width:26px;height:26px;border-radius:8px;background:#F6E7DE;color:#B8613F;display:flex;align-items:center;justify-content:center;font-size:13px}
+  .snav-benefits .snav-bicon{flex-shrink:0;width:28px;height:28px;border-radius:9px;background:#F6E7DE;color:#B8613F;display:flex;align-items:center;justify-content:center}
+  .snav-benefits .snav-bicon svg{width:14px;height:14px}
   .snav-gbtn{display:flex;justify-content:center;min-height:44px}
-  .snav-guest{display:block;width:100%;text-align:center;background:none;border:none;color:#8a8478;font-family:inherit;font-size:.82rem;cursor:pointer;padding:4px;text-decoration:underline}
+  .snav-guest{display:block;width:100%;text-align:center;background:none;border:none;color:#8a8478;font-family:'Geist',-apple-system,sans-serif;font-size:.8rem;font-weight:500;cursor:pointer;padding:8px 4px;transition:color .18s ease}
+  .snav-guest:hover{color:#514C45}
+  /* Sign-in modal — hero layout */
+  .snav-si-box{position:relative}
+  .snav-x-float{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:#F5F1EB;border:none;color:#8a8478;font-size:1.25rem;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;z-index:2;transition:color .18s ease,background .18s ease}
+  .snav-x-float:hover{color:#1C1917;background:#F1ECE7}
+  .snav-si-hero{padding:32px 26px 0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px}
+  .snav-si-mark{width:52px;height:52px;border-radius:15px;overflow:hidden;box-shadow:0 1px 2px rgba(28,25,23,.08),0 6px 16px rgba(28,25,23,.12)}
+  .snav-si-mark img{width:100%;height:100%;display:block}
+  .snav-si-title{font-family:'Geist',-apple-system,sans-serif;font-weight:650;font-size:1.3rem;color:#1C1917;letter-spacing:-.02em}
+  .snav-si-lede{color:#8a8478;font-size:.86rem;line-height:1.6;margin:-4px 0 0;max-width:300px}
+  .snav-wait{display:flex;align-items:center;justify-content:center;gap:9px;min-height:44px;font-size:.84rem;color:#514C45}
+  .snav-spin{width:16px;height:16px;border:2px solid rgba(196,110,75,.22);border-top-color:#C46E4B;border-radius:50%;animation:snavspin .7s linear infinite;flex-shrink:0}
+  @keyframes snavspin{to{transform:rotate(360deg)}}
+  .snav-fineprint{text-align:center;font-size:.7rem;color:#b3ac9f;line-height:1.5;margin-top:-4px}
+  /* Onboarding welcome hero (account sheet, new sign-ups) */
+  .snav-welcome{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:6px 0 2px}
+  .snav-welcome .snav-acct-av{width:64px;height:64px;box-shadow:0 1px 2px rgba(28,25,23,.08),0 6px 16px rgba(28,25,23,.12)}
+  .snav-step{font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:#C46E4B;font-weight:650}
+  .snav-welcome-title{font-family:'Geist',-apple-system,sans-serif;font-weight:650;font-size:1.25rem;color:#1C1917;letter-spacing:-.02em;margin-top:2px}
+  .snav-welcome-sub{font-size:.84rem;color:#8a8478;line-height:1.6;max-width:300px}
+  /* Toast — quiet confirmation pill */
+  .snav-toast{position:fixed;left:50%;bottom:92px;transform:translate(-50%,10px);background:#1C1917;color:#fff;padding:11px 20px;border-radius:999px;font-family:'Geist',-apple-system,sans-serif;font-size:.8rem;font-weight:500;z-index:1300;opacity:0;pointer-events:none;display:flex;align-items:center;gap:9px;box-shadow:0 10px 30px rgba(28,25,23,.25);white-space:nowrap;transition:opacity .25s ease,transform .25s cubic-bezier(.2,.8,.2,1)}
+  .snav-toast.show{opacity:1;transform:translate(-50%,0)}
+  .snav-toast .snav-spin{border-color:rgba(255,255,255,.25);border-top-color:#fff}
   .snav-inapp{background:#F6E7DE;border-radius:10px;padding:12px 14px;font-size:.82rem;line-height:1.55;color:#514C45;margin-bottom:10px}
   .snav-acct-top{display:flex;align-items:center;gap:13px}
   .snav-acct-av{width:58px;height:58px;border-radius:50%;background:#C46E4B;color:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:'Geist',-apple-system,sans-serif;font-weight:650;font-size:1.3rem;flex-shrink:0;position:relative}
@@ -106,7 +133,6 @@
   .snav-row{display:flex;align-items:center;gap:9px;font-size:.85rem;color:#514C45}
   .snav-row input{width:auto}
   .snav-link-box{background:#F5F1EB;border:none;border-radius:13px;padding:10px 13px;font-size:.76rem;color:#514C45;word-break:break-all}
-  .snav-banner{background:#F6E7DE;border:none;color:#A85737;border-radius:14px;padding:12px 14px;font-size:.8rem;line-height:1.5}
   .snav-btn{background:#C46E4B;color:#fff;border:none;border-radius:14px;padding:13px 18px;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;display:inline-block;box-shadow:0 4px 12px rgba(0,0,0,.08);transition:background .18s cubic-bezier(.2,.8,.2,1)}
   .snav-btn:hover{background:#B8613F}
   .snav-btn:active{background:#A85737}
@@ -243,21 +269,28 @@
   // Contextual headlines: the gate that opened the modal names the value the
   // agent was reaching for, instead of a generic welcome pitch.
   var SIGNIN_COPY = {
-    favorite:  { title: 'Save this villa',          lede: 'Sign in with Google to keep favourites on every device — free for agents.' },
-    shortlist: { title: 'Build a client shortlist', lede: 'Sign in with Google to pick villas and send your client one link — free for agents.' },
-    'default': { title: 'Welcome to Samba',         lede: 'Free for agents — sign in with Google to unlock:' }
+    favorite:  { title: 'Save this villa',          lede: 'Sign in to keep favourites and private notes on every device.' },
+    shortlist: { title: 'Build a client shortlist', lede: 'Sign in to pick villas and send your client one polished link.' },
+    'default': { title: 'Welcome to Samba',         lede: 'One account for favourites, shortlists and your public agent profile.' }
   };
   function ensureSignIn() {
     var ov = document.getElementById('snav-signin'); if (ov) return ov;
     ov = document.createElement('div'); ov.className = 'snav-ov'; ov.id = 'snav-signin';
-    ov.innerHTML = '<div class="snav-box"><div class="snav-box-head"><div class="snav-box-title" id="snav-si-title">Welcome to Samba</div><button class="snav-x" data-close>&times;</button></div><div class="snav-box-body">' +
-      '<p class="snav-lede" id="snav-si-lede">Free for agents — sign in with Google to unlock:</p>' +
+    ov.innerHTML = '<div class="snav-box snav-si-box"><button class="snav-x-float" data-close aria-label="Close">&times;</button>' +
+      '<div class="snav-si-hero"><div class="snav-si-mark"><img src="/icon-192.png" alt=""></div>' +
+      '<div class="snav-si-title" id="snav-si-title">Welcome to Samba</div>' +
+      '<p class="snav-si-lede" id="snav-si-lede">One account for favourites, shortlists and your public agent profile.</p></div>' +
+      '<div class="snav-box-body">' +
       '<ul class="snav-benefits">' +
-      '<li><span class="snav-bicon">👤</span><span><b>Clients enquire with you</b> — every villa you share carries your name, photo and WhatsApp</span></li>' +
-      '<li><span class="snav-bicon">♥</span><span><b>Favourites &amp; private notes</b> — synced on every device</span></li>' +
-      '<li><span class="snav-bicon">☰</span><span><b>Client shortlists</b> — pick villas, send one link</span></li>' +
+      '<li><span class="snav-bicon">' + I.person + '</span><span><b>Clients enquire with you</b> — every villa you share carries your name, photo and WhatsApp</span></li>' +
+      '<li><span class="snav-bicon">' + I.saved + '</span><span><b>Favourites &amp; private notes</b> — synced on every device</span></li>' +
+      '<li><span class="snav-bicon">' + I.list + '</span><span><b>Client shortlists</b> — pick villas, send one link</span></li>' +
       '</ul>' +
-      '<div class="snav-gbtn" id="snav-gbtn"></div><div class="snav-err" id="snav-signin-err"></div><button class="snav-guest" data-close>Continue as guest</button></div></div>';
+      '<div class="snav-gbtn" id="snav-gbtn"></div>' +
+      '<div class="snav-wait" id="snav-signin-wait" style="display:none"><span class="snav-spin"></span> Signing you in…</div>' +
+      '<div class="snav-err" id="snav-signin-err"></div>' +
+      '<div class="snav-fineprint">Free for agents · no card required</div>' +
+      '<button class="snav-guest" data-close>Continue as guest</button></div></div>';
     document.body.appendChild(ov);
     ov.addEventListener('click', function (e) {
       if (e.target === ov || e.target.hasAttribute('data-close')) {
@@ -273,7 +306,9 @@
     var copy = SIGNIN_COPY[ctx] || SIGNIN_COPY['default'];
     document.getElementById('snav-si-title').textContent = copy.title;
     document.getElementById('snav-si-lede').textContent = copy.lede;
-    var slot = document.getElementById('snav-gbtn'); slot.innerHTML = ''; document.getElementById('snav-signin-err').textContent = '';
+    var slot = document.getElementById('snav-gbtn'); slot.innerHTML = ''; slot.style.display = '';
+    document.getElementById('snav-signin-wait').style.display = 'none';
+    document.getElementById('snav-signin-err').textContent = '';
     snTrack('signup_shown_' + sigSource);
     if (isDev) { var b = document.createElement('button'); b.className = 'snav-btn'; b.textContent = 'Dev sign-in (local only)'; b.onclick = function () { doGoogle('dev'); }; slot.appendChild(b); return; }
     if (isInAppBrowser()) {
@@ -289,7 +324,13 @@
     }
     loadConfig().then(function (cfg) {
       if (!cfg.googleClientId) { document.getElementById('snav-signin-err').textContent = 'Sign-in is not configured yet.'; return; }
-      loadGsi(function () { google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: function (resp) { doGoogle(resp.credential); } }); google.accounts.id.renderButton(slot, { theme: 'filled_blue', size: 'large', shape: 'pill', text: 'continue_with', width: 280 }); });
+      loadGsi(function () {
+        google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: function (resp) { doGoogle(resp.credential); } });
+        // Outline theme sits quietly in the warm palette (filled_blue fought it);
+        // width tracks the modal so the button never floats undersized.
+        var w = Math.max(240, Math.min(400, slot.clientWidth || 320));
+        google.accounts.id.renderButton(slot, { theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'center', width: w });
+      });
     });
   }
 
@@ -304,23 +345,57 @@
       if (!cfg.googleClientId) return;
       loadGsi(function () {
         if (account) return;
+        oneTapAt = Date.now();
         google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: function (resp) { sigSource = 'onetap'; doGoogle(resp.credential); } });
         google.accounts.id.prompt();
       });
     });
   }
+  // Transient confirmation pill (welcome back, profile saved, signing in…).
+  var toastEl = null, toastTimer = null;
+  function snToast(html, ms) {
+    if (!toastEl) { toastEl = document.createElement('div'); toastEl.className = 'snav-toast'; document.body.appendChild(toastEl); }
+    toastEl.innerHTML = html;
+    requestAnimationFrame(function () { toastEl.classList.add('show'); });
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, ms || 2600);
+  }
+  function hideToast() { if (toastEl) toastEl.classList.remove('show'); clearTimeout(toastTimer); }
+  function firstName() {
+    var p = account && account.profile;
+    return (((p && p.displayName) || (account && account.name) || '').trim().split(/\s+/)[0]) || '';
+  }
   function doGoogle(credential) {
-    document.getElementById('snav-signin-err').textContent = '';
+    var ov = document.getElementById('snav-signin');
+    var inModal = !!(ov && ov.classList.contains('open'));
+    // Visible progress between the Google tap and our server round-trip —
+    // dead air here reads as broken on slow connections.
+    if (inModal) {
+      document.getElementById('snav-signin-err').textContent = '';
+      document.getElementById('snav-gbtn').style.display = 'none';
+      document.getElementById('snav-signin-wait').style.display = 'flex';
+    } else snToast('<span class="snav-spin"></span> Signing you in…', 15000);
     api('?action=auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential: credential }) }).then(function (r) {
       if (r.ok && r.body && r.body.owner) {
         setAccount(r.body.owner);
         snTrack(r.body.isNew ? 'signup_done_' + sigSource : 'signin_done');
-        var ov = document.getElementById('snav-signin'); if (ov) ov.classList.remove('open');
+        if (ov) ov.classList.remove('open');
         var cb = pendingAfterSignIn; pendingAfterSignIn = null;
         // WhatsApp-required onboarding for new/incomplete agents.
-        if (!(account.profile && account.profile.waNumber)) openAccount(true);
-        else if (cb) try { cb(); } catch (e) {}
-      } else { document.getElementById('snav-signin-err').textContent = (r.body && r.body.error) || 'Sign-in failed.'; }
+        if (!(account.profile && account.profile.waNumber)) { hideToast(); openAccount(true); }
+        else {
+          var f = firstName();
+          snToast('Welcome back' + (f ? ', ' + esc(f) : ''));
+          if (cb) try { cb(); } catch (e) {}
+        }
+      } else {
+        var msg = (r.body && r.body.error) || 'Sign-in failed.';
+        if (inModal) {
+          document.getElementById('snav-signin-wait').style.display = 'none';
+          document.getElementById('snav-gbtn').style.display = '';
+          document.getElementById('snav-signin-err').textContent = msg;
+        } else snToast(esc(msg));
+      }
     });
   }
   function logout() {
@@ -343,11 +418,18 @@
     if (!account) { requireSignIn(function () { openAccount(); }); return; }
     pendingPhoto = null;
     var ov = ensureAccount(); var p = account.profile || {};
+    var ttl = ov.querySelector('.snav-box-title'); if (ttl) ttl.textContent = onboarding ? 'Welcome to Samba' : 'Your profile';
     var avPhoto = p.photo || account.picture || '';
     var pubLink = (p.handle && p.public) ? (location.origin + '/a/' + p.handle) : '';
+    var avInner = (avPhoto ? '<img src="' + esc(avPhoto) + '" alt="">' : esc(initials(p.displayName || account.name))) + '<span class="snav-cam" id="snav-cam">' + I.cam + '</span>';
+    // Onboarding gets a welcome moment (their own name and photo, one clear
+    // next step) instead of the settings-sheet header with a warning banner.
     document.getElementById('snav-account-body').innerHTML =
-      (onboarding ? '<div class="snav-banner">Add your WhatsApp number to finish setting up — clients use it to contact you when you share a villa.</div>' : '') +
-      '<div class="snav-acct-top"><div class="snav-acct-av" id="snav-av-preview">' + (avPhoto ? '<img src="' + esc(avPhoto) + '" alt="">' : esc(initials(p.displayName || account.name))) + '<span class="snav-cam" id="snav-cam">' + I.cam + '</span></div><div class="snav-acct-id"><div class="snav-acct-name">' + esc(p.displayName || account.name || '') + '</div><div class="snav-acct-email">' + esc(account.email || '') + '</div></div></div>' +
+      (onboarding
+        ? '<div class="snav-welcome"><div class="snav-acct-av" id="snav-av-preview">' + avInner + '</div>' +
+          '<div><div class="snav-step">Step 2 of 2</div><div class="snav-welcome-title">Welcome' + (firstName() ? ', ' + esc(firstName()) : '') + '</div></div>' +
+          '<div class="snav-welcome-sub">You\'re in — this is your agent card. Add your WhatsApp number so clients can reach you about villas you share.</div></div>'
+        : '<div class="snav-acct-top"><div class="snav-acct-av" id="snav-av-preview">' + avInner + '</div><div class="snav-acct-id"><div class="snav-acct-name">' + esc(p.displayName || account.name || '') + '</div><div class="snav-acct-email">' + esc(account.email || '') + '</div></div></div>') +
       '<input type="file" id="snav-photo-input" accept="image/*" style="display:none">' +
       '<div class="snav-fg"><label>Display name</label><input id="snav-pf-name" value="' + esc(p.displayName || account.name || '') + '" placeholder="Your name"></div>' +
       '<div class="snav-fg"><label>Agency</label><input id="snav-pf-agency" value="' + esc(p.agency || '') + '" placeholder="e.g. Bali Homes"></div>' +
@@ -356,7 +438,7 @@
       (pubLink ? '<div class="snav-fg"><label>Your shareable profile</label><div class="snav-link-box">' + esc(pubLink) + '</div></div>' : '') +
       '<div class="snav-fg" id="snav-mystats" style="display:none"></div>' +
       '<div class="snav-err" id="snav-pf-err"></div>' +
-      '<button class="snav-btn block" id="snav-pf-save">Save profile</button>' +
+      '<button class="snav-btn block" id="snav-pf-save">' + (onboarding ? 'Finish setup' : 'Save profile') + '</button>' +
       '<div class="snav-div"></div>' +
       '<button class="snav-list-link" id="snav-logout">' + I.out + ' Log out</button>';
     document.getElementById('snav-cam').onclick = function () { document.getElementById('snav-photo-input').click(); };
@@ -394,6 +476,7 @@
     var wa = document.getElementById('snav-pf-wa').value.trim();
     var err = document.getElementById('snav-pf-err');
     if (!wa.replace(/[^0-9]/g, '')) { err.textContent = 'A WhatsApp number is required.'; return; }
+    var label = onboarding ? 'Finish setup' : 'Save profile';
     var btn = document.getElementById('snav-pf-save'); btn.disabled = true; btn.textContent = 'Saving…';
     var payload = {
       displayName: document.getElementById('snav-pf-name').value,
@@ -403,11 +486,12 @@
     };
     if (pendingPhoto) payload.photo = pendingPhoto;
     api('?action=profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(function (r) {
-      btn.disabled = false; btn.textContent = 'Save profile';
+      btn.disabled = false; btn.textContent = label;
       if (r.ok && r.body && r.body.profile) {
         account.profile = r.body.profile; pendingPhoto = null; renderNav();
         var cb = pendingAfterSignIn; pendingAfterSignIn = null;
         document.getElementById('snav-account').classList.remove('open');
+        snToast(onboarding ? 'You\'re all set' + (firstName() ? ', ' + esc(firstName()) : '') : 'Profile saved');
         if (onboarding && cb) try { cb(); } catch (e) {}
       } else { err.textContent = (r.body && r.body.error) || 'Could not save.'; }
     });
@@ -441,9 +525,21 @@
     ov.classList.add('open');
   }
 
+  // True while any sign-in surface could be on screen: our sheets, or Google
+  // One Tap within a grace window of prompting it (FedCM One Tap is browser
+  // UI with no DOM we can query, so we also check the classic container ids).
+  // Other prompts (e.g. the install banner) use this to avoid stacking.
+  function signInSurfaceActive() {
+    if (!account && oneTapAt && Date.now() - oneTapAt < 25000) return true;
+    if (document.querySelector('.snav-ov.open')) return true;
+    var el = document.getElementById('credential_picker_container') || document.getElementById('credential_picker_iframe');
+    return !!(el && (el.offsetWidth || el.offsetHeight));
+  }
+
   window.SambaNav = {
     get account() { return account; },
     isSignedIn: function () { return !!account; },
+    signInSurfaceActive: signInSurfaceActive,
     openSignIn: openSignIn, requireSignIn: requireSignIn, openAccount: openAccount,
     onChange: function (fn) { listeners.push(fn); try { fn(account); } catch (e) {} },
     updateFavorites: function (a) { if (account) account.favorites = a; },
