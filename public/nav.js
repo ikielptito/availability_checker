@@ -117,7 +117,8 @@
   .snav-toast{position:fixed;left:50%;bottom:92px;transform:translate(-50%,10px);background:#1C1917;color:#fff;padding:11px 20px;border-radius:999px;font-family:'Geist',-apple-system,sans-serif;font-size:.8rem;font-weight:500;z-index:1300;opacity:0;pointer-events:none;display:flex;align-items:center;gap:9px;box-shadow:0 10px 30px rgba(28,25,23,.25);white-space:nowrap;transition:opacity .25s ease,transform .25s cubic-bezier(.2,.8,.2,1)}
   .snav-toast.show{opacity:1;transform:translate(-50%,0)}
   .snav-toast .snav-spin{border-color:rgba(255,255,255,.25);border-top-color:#fff}
-  .snav-inapp{background:#F6E7DE;border-radius:10px;padding:12px 14px;font-size:.82rem;line-height:1.55;color:#514C45;margin-bottom:10px}
+  .snav-inapp{background:#F6E7DE;border-radius:10px;padding:12px 14px;font-size:.82rem;line-height:1.55;color:#514C45}
+  .snav-handoff{width:100%;display:flex;flex-direction:column;gap:10px}
   .snav-acct-top{display:flex;align-items:center;gap:13px}
   .snav-acct-av{width:58px;height:58px;border-radius:50%;background:#C46E4B;color:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:'Geist',-apple-system,sans-serif;font-weight:650;font-size:1.3rem;flex-shrink:0;position:relative}
   .snav-acct-av img{width:100%;height:100%;object-fit:cover}
@@ -258,7 +259,7 @@
   }
   function loadConfig() { if (!cfgPromise) cfgPromise = api('?action=config').then(function (r) { return r.body || {}; }); return cfgPromise; }
   function setAccount(a) { account = a; renderNav(); listeners.forEach(function (fn) { try { fn(account); } catch (e) {} }); }
-  function loadMe() { return api('?action=auth/me').then(function (r) { setAccount(r.ok && r.body && r.body.owner ? r.body.owner : null); if (!account && !maybeLandingPrompt()) maybeOneTap(); return account; }); }
+  function loadMe() { return api('?action=auth/me').then(function (r) { setAccount(r.ok && r.body && r.body.owner ? r.body.owner : null); if (!account && !maybeHandoff() && !maybeLandingPrompt()) maybeOneTap(); return account; }); }
 
   // Landing on the agent portal signed out: open the full sign-in sheet once
   // the grid has painted behind it — a richer welcome than One Tap. Shown once
@@ -267,7 +268,8 @@
   // load (so One Tap stays quiet).
   function maybeLandingPrompt() {
     if (curPortal() !== 'agent') return false;   // owner portal has its own flow
-    if (isInAppBrowser()) return false;          // Google sign-in can't work there — don't wall the page
+    // In-app browsers (most WhatsApp arrivals) get the sheet too — its CTA
+    // there is the browser-escape hop rather than the Google button.
     try {
       if (sessionStorage.getItem('samba_landing_prompted')) return false;
       sessionStorage.setItem('samba_landing_prompted', '1');
@@ -327,18 +329,23 @@
     document.getElementById('snav-signin-wait').style.display = 'none';
     document.getElementById('snav-signin-err').textContent = '';
     snTrack('signup_shown_' + sigSource);
-    if (isDev) { var b = document.createElement('button'); b.className = 'snav-btn'; b.textContent = 'Dev sign-in (local only)'; b.onclick = function () { doGoogle('dev'); }; slot.appendChild(b); return; }
     if (isInAppBrowser()) {
-      // Google sign-in fails inside embedded webviews — guide out instead of
-      // rendering a button that silently 403s.
-      slot.innerHTML = '<div class="snav-inapp">Google sign-in doesn\'t work inside this in-app browser. Tap the <b>⋮</b> or share menu and choose <b>"Open in browser"</b>, then sign in there.</div>' +
-        '<button class="snav-btn" id="snav-copylink">Copy page link</button>';
+      // Google blocks OAuth inside embedded webviews (403 disallowed_useragent),
+      // so the primary CTA hops to the real browser, which reopens this sheet
+      // on arrival (?signin=1 → maybeHandoff). Manual instructions only appear
+      // if the hop is blocked.
+      slot.innerHTML = '<div class="snav-handoff">' +
+        '<button class="snav-btn block" id="snav-inapp-open">Continue in your browser</button>' +
+        '<div class="snav-fineprint">Google sign-in opens in your phone\'s browser — you\'ll land right back here.</div>' +
+        '<div class="snav-inapp" id="snav-inapp-help" style="display:none">Nothing opened? Tap the <b>⋮</b> or share menu and choose <b>Open in browser</b>, then sign in there.<br><br><button class="snav-btn block" id="snav-copylink">Copy page link</button></div></div>';
+      document.getElementById('snav-inapp-open').onclick = escapeInApp;
       document.getElementById('snav-copylink').onclick = function () {
         try { navigator.clipboard.writeText(location.href); this.textContent = 'Link copied ✓'; } catch (e) {}
       };
       snTrack('signup_inapp_blocked');
       return;
     }
+    if (isDev) { var b = document.createElement('button'); b.className = 'snav-btn'; b.textContent = 'Dev sign-in (local only)'; b.onclick = function () { doGoogle('dev'); }; slot.appendChild(b); return; }
     loadConfig().then(function (cfg) {
       if (!cfg.googleClientId) { document.getElementById('snav-signin-err').textContent = 'Sign-in is not configured yet.'; return; }
       loadGsi(function () {
@@ -349,6 +356,49 @@
         google.accounts.id.renderButton(slot, { theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'center', width: w });
       });
     });
+  }
+
+  // Break out of the in-app webview into the real browser, carrying ?signin=1
+  // so the sheet reopens on arrival. Android: an intent:// URL reaches the
+  // default browser from most webviews (incl. WhatsApp's). iOS: the x-safari-
+  // scheme does the same for Safari. If the page is still visible after a
+  // beat the hop was blocked — reveal the manual instructions instead.
+  function escapeInApp() {
+    snTrack('signup_inapp_escape');
+    var u = new URL(location.href);
+    u.searchParams.set('signin', '1');
+    u.hash = '';
+    var bare = u.href.replace(/^https?:\/\//, '');
+    if (/Android/i.test(navigator.userAgent)) {
+      location.href = 'intent://' + bare + '#Intent;scheme=https;action=android.intent.action.VIEW;S.browser_fallback_url=' + encodeURIComponent(u.href) + ';end';
+    } else {
+      location.href = 'x-safari-https://' + bare;
+    }
+    // Default to revealing the manual fallback; cancel only if the page went
+    // to background (= the browser actually opened). Safer than requiring a
+    // 'visible' report, which some webviews get wrong.
+    var fallbackTimer = setTimeout(function () {
+      snTrack('signup_inapp_escape_fail');
+      var help = document.getElementById('snav-inapp-help');
+      if (help) help.style.display = '';
+    }, 1600);
+    document.addEventListener('visibilitychange', function onVis() {
+      if (document.visibilityState !== 'hidden') return;
+      clearTimeout(fallbackTimer);
+      document.removeEventListener('visibilitychange', onVis);
+    });
+  }
+
+  // Arrival from an in-app escape: ?signin=1 means the visitor already chose
+  // to sign in — reopen the sheet immediately and strip the flag from the URL.
+  function maybeHandoff() {
+    var sp = new URLSearchParams(location.search);
+    if (sp.get('signin') !== '1') return false;
+    sp.delete('signin');
+    try { history.replaceState(null, '', location.pathname + (sp.toString() ? '?' + sp.toString() : '') + location.hash); } catch (e) {}
+    try { sessionStorage.setItem('samba_landing_prompted', '1'); sessionStorage.setItem('samba_sp_sess', '1'); } catch (e) {}
+    setTimeout(function () { if (!account) openSignIn('handoff'); }, 400);
+    return true;
   }
 
   // Google One Tap for guests: a small non-blocking card with the agent's own

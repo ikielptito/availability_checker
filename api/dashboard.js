@@ -364,10 +364,10 @@ async function handlePortalPulse(req, res) {
     const d1 = new Date(Date.now() - 864e5).toISOString().split('T')[0];
     const ACT = ['sessions', 'eng_sessions', 'wa_sessions', 'whatsapp_click', 'listing_view', 'details_open', 'share'];
     const FUNNEL = [
-      'signup_shown_gate', 'signup_shown_auto', 'signup_shown_nav',
-      'signup_done_gate', 'signup_done_auto', 'signup_done_nav', 'signup_done_onetap',
-      'signup_dismissed_gate', 'signup_dismissed_auto', 'signup_dismissed_nav',
-      'signup_inapp_blocked', 'signin_done',
+      'signup_shown_gate', 'signup_shown_auto', 'signup_shown_nav', 'signup_shown_landing', 'signup_shown_handoff',
+      'signup_done_gate', 'signup_done_auto', 'signup_done_nav', 'signup_done_onetap', 'signup_done_landing', 'signup_done_handoff',
+      'signup_dismissed_gate', 'signup_dismissed_auto', 'signup_dismissed_nav', 'signup_dismissed_landing', 'signup_dismissed_handoff',
+      'signup_inapp_blocked', 'signup_inapp_escape', 'signup_inapp_escape_fail', 'signin_done',
     ];
     // Trailing 7-day baseline (the 7 days before the overnight window) so the
     // briefing can say "41 sessions, ~2x your usual" instead of a bare number.
