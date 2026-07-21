@@ -119,6 +119,11 @@
   .snav-toast .snav-spin{border-color:rgba(255,255,255,.25);border-top-color:#fff}
   .snav-inapp{background:#F6E7DE;border-radius:10px;padding:12px 14px;font-size:.82rem;line-height:1.55;color:#514C45}
   .snav-handoff{width:100%;display:flex;flex-direction:column;gap:10px}
+  /* Google-look button for the webview escape — same promise as the real GSI
+     pill, the browser hop is just plumbing */
+  .snav-gsi-like{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;box-sizing:border-box;background:#fff;border:1px solid #dadce0;border-radius:999px;padding:12px 18px;font-family:'Geist',-apple-system,sans-serif;font-size:.88rem;font-weight:500;color:#3c4043;cursor:pointer;transition:background .18s ease,box-shadow .18s ease}
+  .snav-gsi-like:hover{background:#f8f9fa;box-shadow:0 1px 3px rgba(60,64,67,.15)}
+  .snav-gsi-like svg{width:18px;height:18px;flex-shrink:0}
   .snav-acct-top{display:flex;align-items:center;gap:13px}
   .snav-acct-av{width:58px;height:58px;border-radius:50%;background:#C46E4B;color:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:'Geist',-apple-system,sans-serif;font-weight:650;font-size:1.3rem;flex-shrink:0;position:relative}
   .snav-acct-av img{width:100%;height:100%;object-fit:cover}
@@ -334,9 +339,10 @@
       // so the primary CTA hops to the real browser, which reopens this sheet
       // on arrival (?signin=1 → maybeHandoff). Manual instructions only appear
       // if the hop is blocked.
+      var gLogo = '<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
       slot.innerHTML = '<div class="snav-handoff">' +
-        '<button class="snav-btn block" id="snav-inapp-open">Continue in your browser</button>' +
-        '<div class="snav-fineprint">Google sign-in opens in your phone\'s browser — you\'ll land right back here.</div>' +
+        '<button class="snav-gsi-like" id="snav-inapp-open">' + gLogo + 'Continue with Google</button>' +
+        '<div class="snav-fineprint">Opens in your phone\'s browser — you\'ll land right back here.</div>' +
         '<div class="snav-inapp" id="snav-inapp-help" style="display:none">Nothing opened? Tap the <b>⋮</b> or share menu and choose <b>Open in browser</b>, then sign in there.<br><br><button class="snav-btn block" id="snav-copylink">Copy page link</button></div></div>';
       document.getElementById('snav-inapp-open').onclick = escapeInApp;
       document.getElementById('snav-copylink').onclick = function () {
