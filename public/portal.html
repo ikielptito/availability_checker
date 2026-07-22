@@ -657,8 +657,7 @@ function repSummary(d){
   let s=`Interest in <b>${escapeHtml(d.name)}</b> `;
   s+=(dv==null)?`is building`:dv>0?`climbed ${dv}% this week`:dv<0?`eased ${Math.abs(dv)}% this week`:`held steady this week`;
   s+=` — <b>${v.now}</b> ${v.now===1?'person':'people'} opened your listing`;
-  s+=e.now?` and <b>${e.now}</b> reached out to enquire.`:`.`;
-  if(d.occupancy) s+=` You're booked <b>${d.occupancy.pct}%</b> of the next 30 nights${d.occupancy.openWindows.length?`, with <b>${d.occupancy.openWindows[0].nights} open nights</b> worth filling.`:'.'}`;
+  s+=e.now?` and <b>${e.now}</b> reached out to enquire.`:`, though none enquired yet.`;
   return s;
 }
 function repChart(daily){
@@ -689,7 +688,7 @@ function renderReport(d){
     ${kpi('Listing views',m.views.now,'',repChip(repPctDelta(m.views.now,m.views.prev)),`vs ${m.views.prev} last week`)}
     ${kpi('Enquiries',m.enquiries.now,'',repChip(repPtsDelta(m.enquiries.now,m.enquiries.prev)),'agents who messaged to book')}
     ${kpi('Agents reached',ar.now,'',repChip(repPtsDelta(ar.now,ar.prev)),'unique agents this week')}
-    ${occ?kpi('Occupancy · 30d',occ.pct,'%','',`${occ.bookedNights} of 30 nights booked`):kpi('Occupancy · 30d','—','','','add an iCal link to track')}
+    ${occ?kpi('Occupancy · 30d',occ.pct,'%','','of the next 30 nights'):kpi('Occupancy · 30d','—','','','add an iCal link to track')}
   </div>`;
 
   const fmax=Math.max(d.funnel.viewed,d.funnel.engaged,d.funnel.enquired,1);
@@ -704,12 +703,12 @@ function renderReport(d){
   const reachCards=`<div class="rep-cols">
     <div class="rep-card fill"><h4>Agent network</h4><div class="rep-big">${ar.now} <small>agents</small></div><p style="margin:9px 0 14px;color:var(--text-2);font-size:0.8rem;line-height:1.5">saw or shared this villa this week — each selling to their own guest list.</p>
       <div class="rep-line"><span class="lk">Times shared onward</span><span class="lv">${m.shares.now}</span></div>
-      <div class="rep-line"><span class="lk">New agents vs last week</span><span class="lv">${ar.now-ar.prev>=0?'+':''}${ar.now-ar.prev}</span></div>
-      <div class="rep-line"><span class="lk">Agent detail views</span><span class="lv">${m.agentViews.now}</span></div></div>
+      <div class="rep-line"><span class="lk">New agents this week</span><span class="lv">${ar.now-ar.prev>=0?'+':''}${ar.now-ar.prev}</span></div>
+      <div class="rep-line"><span class="lk">Maya's active network</span><span class="lv">${d.maya.networkAgents.toLocaleString()}</span></div>
+      ${d.maya.broadcastEligible!=null?`<div class="rep-line"><span class="lk">Daily availability broadcast</span><span class="lv">${d.maya.broadcastEligible?'Included':'—'}</span></div>`:''}</div>
     <div class="rep-card"><h4>Photo engagement</h4><div class="rep-big">${m.photoViews.now.toLocaleString()} <small>photo views</small></div><p style="margin:9px 0 14px;color:var(--text-2);font-size:0.8rem;line-height:1.5">How hard your gallery is working to sell the villa.</p>
-      <div class="rep-line"><span class="lk">Full-size opens</span><span class="lv">${m.photoViews.now.toLocaleString()}</span></div>
-      <div class="rep-line"><span class="lk">Downloads by agents</span><span class="lv">${m.downloads.now}</span></div>
-      <div class="rep-line"><span class="lk">vs last week</span><span class="lv">${repPctDelta(m.photoViews.now,m.photoViews.prev).txt}</span></div></div>
+      <div class="rep-line"><span class="lk">vs last week</span><span class="lv">${repPctDelta(m.photoViews.now,m.photoViews.prev).txt}</span></div>
+      <div class="rep-line"><span class="lk">Downloaded by agents</span><span class="lv">${m.downloads.now}</span></div></div>
   </div>`;
 
   let occSection='';
@@ -736,14 +735,6 @@ function renderReport(d){
     </div></div>`;
   }
 
-  const maya=d.maya;
-  const mayaSection=`<div class="rep-pad"><div class="rep-sec-h">What Maya did this week</div><div class="rep-maya"><div class="mav">M</div><div style="flex:1">
-    <div class="mrow"><b>${maya.agentsReached}</b><span>agents saw your villa through Maya's network</span></div>
-    <div class="mrow"><b>${maya.networkAgents.toLocaleString()}</b><span>active agents in the network your listing reaches</span></div>
-    ${maya.broadcastEligible!=null?`<div class="mrow"><b>${maya.broadcastEligible?'Yes':'—'}</b><span>included in Maya's daily availability broadcast${maya.broadcastEligible?' (you have open nights)':' — no open nights this week'}</span></div>`:''}
-    <div class="mnote">Per-message Maya activity for this specific villa is coming soon — these are the numbers we can attribute to your listing today.</div>
-  </div></div></div>`;
-
   const recs=repRecs(d).map((r,i)=>`<div class="rep-rec"><span class="rn">${i+1}</span><p class="rt"><b>${escapeHtml(r[0])}.</b><span>${escapeHtml(r[1])}</span></p></div>`).join('');
 
   return `<div class="rep-sheet">
@@ -752,7 +743,7 @@ function renderReport(d){
       <div class="rep-eyebrow">Owner report</div>
       <div class="rep-title">${escapeHtml(d.name)}</div>
       <div class="rep-loc">${d.unitType?`<span>${escapeHtml(d.unitType)}</span><span class="rd"></span>`:''}${d.area?`<span>${escapeHtml(d.area)}</span>`:''}</div>
-      ${d.ownerName?`<p class="rep-prep">Prepared for <b>${escapeHtml(d.ownerName)}</b> · your agent <b>Maya</b> keeps this listing in front of Bali's rental network every day.</p>`:''}
+      ${d.ownerName?`<p class="rep-prep">Prepared for <b>${escapeHtml(d.ownerName)}</b> by <b>Maya</b>, your Samba listings agent.</p>`:''}
       <p class="rep-note">${repSummary(d)}</p>
     </div>
     <div class="rep-pad"><div class="rep-sec-h">This week at a glance</div>${kpis}</div>
@@ -761,7 +752,6 @@ function renderReport(d){
     <div class="rep-pad"><div class="rep-sec-h">Your reach across the network</div>${reachCards}</div>
     ${occSection}
     ${benchSection}
-    ${mayaSection}
     <div class="rep-pad"><div class="rep-sec-h">Suggested next steps</div><div class="rep-recs">${recs}</div></div>
     <div class="rep-foot"><div class="rep-fmeta">Maya sends this to you on WhatsApp every Monday morning.<br>Numbers update live — open any time from the Weekly reports tab.</div></div>
   </div>`;
