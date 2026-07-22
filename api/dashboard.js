@@ -504,7 +504,7 @@ async function handleOwnerSync(req, res) {
     ownerSlugs.forEach((s, i) => { try { subBySlug[s] = JSON.parse(subs[i]?.result); } catch { subBySlug[s] = null; } });
     const isLive = (c, slug) => {
       if (c.hidden) return false;
-      if (!c.ownerSub && !c.ownerEmail) return true;         // admin-curated, always public
+      if (!c.ownerSub && !c.ownerEmail && !c.ownerWa) return true;   // admin-curated, always public
       if (c.status === 'pending_review' || c.status === 'rejected') return false;
       if (c.comped) return true;
       const sub = subBySlug[slug];

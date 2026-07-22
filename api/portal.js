@@ -113,11 +113,29 @@ export default async function handler(req, res) {
       return ownerAnalytics(req, res, owner, { kvGet, kvPipeline });
     }
     // Full weekly performance report for one of the owner's listings — the
-    // rich, sendable report shown under the portal's Reports tab.
+    // rich, sendable report shown under the portal's Reports tab. Two auth
+    // modes: an owner session (portal UI) OR the CRM service secret (so Maya
+    // can fetch any listing's report server-side to answer owner questions on
+    // WhatsApp). Service mode skips the ownership check; sessions are scoped.
     if (action === 'report' && req.method === 'GET') {
+      const svcSecret = process.env.LISTING_SYNC_SECRET;
+      if (svcSecret && (req.headers.authorization || '') === `Bearer ${svcSecret}`) {
+        return ownerReport(req, res, null, { kvGet, kvPipeline });
+      }
       const owner = await currentOwner(req, { kvGet });
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
       return ownerReport(req, res, owner, { kvGet, kvPipeline });
+    }
+    // Service-authed listing intake: Maya creates or updates a listing on
+    // behalf of an owner she's chatting with on WhatsApp (identified by their
+    // number/email). Always lands as pending_review — you still approve before
+    // it goes live. Same trust boundary as the sync secret (server-to-server).
+    if (action === 'intake' && req.method === 'POST') {
+      const svcSecret = process.env.LISTING_SYNC_SECRET;
+      if (!svcSecret || (req.headers.authorization || '') !== `Bearer ${svcSecret}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      return intakeListing(req, res, { kvGet, kvSet, kvDel });
     }
     // Redeem a promo code to activate a listing for free (stopgap while card
     // billing is offline). Writes an active sub:{slug} with promo metadata.
@@ -596,7 +614,10 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
   if (!slug) return res.status(400).json({ error: 'Missing slug' });
   const customMap = (await kvGet(CUSTOM_KEY)) || {};
   const prop = customMap[slug];
-  if (!prop || prop.ownerSub !== owner.sub) return res.status(403).json({ error: 'Not your listing' });
+  // owner === null means the caller is service-authed (Maya server-side) and may
+  // read any listing; a session caller is scoped to their own listings.
+  if (!prop) return res.status(404).json({ error: 'Unknown listing' });
+  if (owner && prop.ownerSub !== owner.sub) return res.status(403).json({ error: 'Not your listing' });
   const propId = 'c_' + slug;
   const num = v => parseInt(v) || 0;
 
@@ -688,7 +709,7 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
 
   return res.status(200).json({
     slug, name: prop.name || slug, area: prop.tag || prop.area || '', unitType: prop.unitType || '',
-    listedAt: prop.createdAt || null, ownerName: owner.name || '',
+    listedAt: prop.createdAt || null, ownerName: (owner && owner.name) || prop.waContactName || '',
     week: { from: days[7], to: days[13] },
     metrics, daily, funnel, agentsReached, benchmark, occupancy, maya,
   });
@@ -755,6 +776,54 @@ async function saveProperty(req, res, owner, { kvGet, kvSet, kvDel }) {
   if (!owned.includes(slug)) { owned.push(slug); await kvSet(`owner_listings:${owner.sub}`, owned); }
 
   return res.status(200).json({ ok: true, slug, status });
+}
+
+// Maya-driven listing intake (service-authed). Creates or updates a custom
+// listing on behalf of an owner Maya is chatting with on WhatsApp. The owner is
+// identified by their WhatsApp number (ownerWa) and, when given, their email
+// (so the listing auto-claims when they later sign in with Google). Always
+// pending_review — never auto-live — and ownerWa keeps it out of the public
+// feed until you approve it (see listingVisible).
+async function intakeListing(req, res, { kvGet, kvSet, kvDel }) {
+  const body = req.body || {};
+  const data = { ...(body.data || {}) };
+  const waNumber = cleanStr(body.waNumber || data.waNumber).replace(/[^0-9]/g, '');
+  const ownerEmail = cleanStr(body.ownerEmail || data.ownerEmail).toLowerCase();
+  if (waNumber) data.waNumber = waNumber;                 // carry the contact into the listing
+  if (body.waContactName && !data.waContactName) data.waContactName = body.waContactName;
+
+  const name = cleanStr(data.name);
+  if (!name) return res.status(400).json({ error: 'Property name is required' });
+  if (!waNumber && !ownerEmail) return res.status(400).json({ error: 'An owner WhatsApp number or email is required' });
+
+  const all = (await kvGet(CUSTOM_KEY)) || {};
+  let slug = normSlug(body.slug || '');
+
+  if (slug) {
+    const ex = all[slug];
+    if (!ex) return res.status(404).json({ error: 'Unknown listing' });
+    // Maya may only edit the listing that belongs to the owner she's talking to.
+    const okOwner = (waNumber && String(ex.waNumber || '').replace(/[^0-9]/g, '') === waNumber)
+                 || (waNumber && String(ex.ownerWa || '') === waNumber)
+                 || (ownerEmail && String(ex.ownerEmail || '').toLowerCase() === ownerEmail);
+    if (!okOwner) return res.status(403).json({ error: 'Listing belongs to a different owner' });
+  } else {
+    const base = slugify(name);
+    slug = base; let n = 2;
+    while (all[slug]) slug = `${base}-${n++}`;
+  }
+
+  const existing = all[slug];
+  const listing = buildOwnerListing(slug, data, existing, existing?.ownerSub || null, 'pending_review');
+  listing.ownerEmail = ownerEmail || existing?.ownerEmail || null;
+  listing.ownerWa = waNumber || existing?.ownerWa || '';   // owner-identity signal → stays gated
+  listing.source = existing?.source || 'maya-intake';
+  all[slug] = listing;
+  await kvSet(CUSTOM_KEY, all);
+
+  if (listing.folder) await kvDel(`autocover:${listing.folder}`);
+
+  return res.status(200).json({ ok: true, slug, status: listing.status, name: listing.name });
 }
 
 async function rankPhotos(req, res, owner, { kvGet, kvSet, kvDel }) {

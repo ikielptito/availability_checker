@@ -65,8 +65,10 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 // both approved AND carry an active subscription.
 function listingVisible(c, sub) {
   if (c.hidden) return false;
-  // Pure admin-curated listing with no owner assigned: always public.
-  if (!c.ownerSub && !c.ownerEmail) return true;
+  // Pure admin-curated listing with no owner assigned: always public. A listing
+  // linked to an owner by Google sub, email, OR WhatsApp number (Maya intake)
+  // is NOT admin-curated and must pass the review + subscription gates below.
+  if (!c.ownerSub && !c.ownerEmail && !c.ownerWa) return true;
   // Owner-linked listings must not be pending review or rejected.
   if (c.status === 'pending_review' || c.status === 'rejected') return false;
   // Complimentary (comped) listings stay public for free; otherwise an active
