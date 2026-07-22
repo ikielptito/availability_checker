@@ -7,22 +7,22 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<meta name="theme-color" content="#FAF8F5">
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..750&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#F4F1ED">
+<link rel="stylesheet" href="/brand.css">
 <style>
-:root{--bg:#FAF8F5;--surface:#ffffff;--surface2:#F5F1EB;--border:#F1ECE7;--text:#1C1917;--muted:#8a8478;--subtle:#b5ac9a;--accent:#C46E4B;--accent-2:#B8613F;--green:#2a6a3a;--red:#b5453a;--yellow:#b8860b;--orange:#cc7a3b;--purple:#8a6cb0;}
+:root{--bg:#F4F1ED;--surface:#ffffff;--surface2:#E9E2D6;--border:#F1ECE7;--text:#131A17;--muted:#8a8478;--subtle:#b5ac9a;--accent:#E2572B;--accent-2:#CE4A20;--green:#2a6a3a;--red:#b5453a;--yellow:#b8860b;--orange:#cc7a3b;--purple:#8a6cb0;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
 
 /* LOGIN */
 #login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse 60% 40% at 70% 30%,rgba(194,106,74,0.08) 0%,transparent 60%),var(--bg);}
 .login-box{width:100%;max-width:360px;padding:0 20px;}
-.login-brand{font-family:'Geist',-apple-system,sans-serif;font-size:1.8rem;margin-bottom:6px;color:var(--accent);}
+.login-brand{font-family:'Satoshi',-apple-system,sans-serif;font-size:1.8rem;margin-bottom:6px;color:var(--accent);}
 .login-sub{font-size:0.72rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:32px;}
 .login-label{font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:block;}
-.login-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 16px;font-family:'Geist',-apple-system,sans-serif;font-size:0.85rem;color:var(--text);outline:none;transition:border-color 0.2s;}
+.login-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 16px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.85rem;color:var(--text);outline:none;transition:border-color 0.2s;}
 .login-input:focus{border-color:var(--accent);}
-.login-btn{margin-top:14px;width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Geist',-apple-system,sans-serif;font-size:0.85rem;font-weight:500;cursor:pointer;transition:opacity 0.2s;}
+.login-btn{margin-top:14px;width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.85rem;font-weight:500;cursor:pointer;transition:opacity 0.2s;}
 .login-btn:hover{opacity:0.88;}
 .login-err{margin-top:10px;color:var(--red);font-size:0.78rem;text-align:center;}
 
@@ -34,11 +34,11 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
 @media(max-width:600px){.topbar{padding:8px 16px}.brand-mark img{height:56px}}
 .spacer{flex:1;}
 .period-btns{display:flex;gap:4px;}
-.period-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:5px 12px;font-family:'Geist',-apple-system,sans-serif;font-size:0.72rem;cursor:pointer;transition:all 0.2s;}
+.period-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:5px 12px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.72rem;cursor:pointer;transition:all 0.2s;}
 .period-btn.active,.period-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff;}
-.refresh-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:5px 12px;font-family:'Geist',-apple-system,sans-serif;font-size:0.72rem;cursor:pointer;transition:all 0.2s;}
+.refresh-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:5px 12px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.72rem;cursor:pointer;transition:all 0.2s;}
 .refresh-btn:hover{color:var(--text);}
-.notify-btn{background:var(--accent);border:1px solid var(--accent);border-radius:6px;color:#fff;padding:5px 13px;font-family:'Geist',-apple-system,sans-serif;font-size:0.72rem;font-weight:500;cursor:pointer;transition:opacity 0.2s;}
+.notify-btn{background:var(--accent);border:1px solid var(--accent);border-radius:6px;color:#fff;padding:5px 13px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.72rem;font-weight:500;cursor:pointer;transition:opacity 0.2s;}
 .notify-btn:hover{opacity:0.85;}
 .notify-btn:disabled{opacity:0.4;cursor:default;}
 
@@ -48,7 +48,7 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
 .notify-modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:520px;width:100%;padding:0;overflow:hidden;animation:slideUp 0.25s ease;}
 @keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:none;opacity:1;}}
 .notify-modal-head{padding:20px 24px 12px;border-bottom:1px solid var(--border);}
-.notify-modal-title{font-family:'Geist',-apple-system,sans-serif;font-size:1.2rem;color:var(--text);margin-bottom:4px;}
+.notify-modal-title{font-family:'Satoshi',-apple-system,sans-serif;font-size:1.2rem;color:var(--text);margin-bottom:4px;}
 .notify-modal-sub{font-size:0.78rem;color:var(--muted);}
 .notify-modal-body{padding:18px 24px 8px;}
 .mode-card{display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border);border-radius:10px;cursor:pointer;margin-bottom:10px;transition:all 0.15s;background:var(--surface2);}
@@ -61,9 +61,9 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
 .mode-label{font-size:0.85rem;font-weight:500;color:var(--text);margin-bottom:3px;}
 .mode-desc{font-size:0.72rem;color:var(--muted);line-height:1.45;}
 .notify-modal-actions{padding:14px 24px 18px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border);background:var(--surface);}
-.notify-cancel{background:none;border:1px solid var(--border);color:var(--muted);padding:8px 18px;border-radius:8px;font-family:'Geist',-apple-system,sans-serif;font-size:0.78rem;cursor:pointer;}
+.notify-cancel{background:none;border:1px solid var(--border);color:var(--muted);padding:8px 18px;border-radius:8px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.78rem;cursor:pointer;}
 .notify-cancel:hover{color:var(--text);}
-.notify-confirm{background:var(--accent);border:1px solid var(--accent);color:#fff;padding:8px 18px;border-radius:8px;font-family:'Geist',-apple-system,sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;}
+.notify-confirm{background:var(--accent);border:1px solid var(--accent);color:#fff;padding:8px 18px;border-radius:8px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;}
 .notify-confirm:hover{opacity:0.85;}
 .notify-confirm:disabled{opacity:0.5;cursor:default;}
 .notify-result{padding:18px 24px;font-size:0.82rem;line-height:1.6;}
@@ -74,7 +74,7 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
 .preview-stat .pill{background:var(--surface2);border:1px solid var(--border);padding:3px 10px;border-radius:14px;font-size:0.7rem;color:var(--text);}
 .preview-stat .pill b{color:var(--accent);}
 .wa-preview{background:#e7ddd0;border:1px solid var(--border);border-radius:12px;padding:16px;color:#111b21;font-family:'Helvetica Neue','Arial',sans-serif;line-height:1.5;font-size:0.85rem;white-space:pre-wrap;word-break:break-word;max-height:380px;overflow-y:auto;margin:0 -2px 14px;}
-.wa-preview-head{font-size:0.62rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px;font-family:'Geist',-apple-system,sans-serif;}
+.wa-preview-head{font-size:0.62rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px;font-family:'Satoshi',-apple-system,sans-serif;}
 .wa-preview-note{font-size:0.7rem;color:var(--muted);margin-top:-8px;margin-bottom:12px;font-style:italic;}
 
 .content{padding:24px 28px 60px;max-width:1200px;margin:0 auto;}
@@ -84,7 +84,7 @@ body{font-family:'Geist',-apple-system,sans-serif;background:var(--bg);color:var
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:28px;}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
 .stat-label{font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
-.stat-value{font-family:'Geist',-apple-system,sans-serif;font-size:1.8rem;line-height:1;}
+.stat-value{font-family:'Satoshi',-apple-system,sans-serif;font-size:1.8rem;line-height:1;}
 .stat-sub{font-size:0.7rem;color:var(--muted);margin-top:4px;}
 
 /* CHART */
@@ -369,7 +369,7 @@ function render(data) {
         Daily Activity${period === 'all' ? ' · last 90 days' : ''}
       </div>
       <div class="chart-legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#C46E4B"></div>Sessions</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#E2572B"></div>Sessions</div>
         <div class="legend-item"><div class="legend-dot" style="background:#2a6a3a"></div>Details opened</div>
         <div class="legend-item"><div class="legend-dot" style="background:#8a6cb0"></div>Listing views</div>
         <div class="legend-item"><div class="legend-dot" style="background:#c9a227"></div>WhatsApp</div>
@@ -522,7 +522,7 @@ function drawChart(series) {
   const ch = H - pad.top - pad.bottom;
 
   const metrics = [
-    { key: 'sessions', color: '#C46E4B' },
+    { key: 'sessions', color: '#E2572B' },
     { key: 'details_open', color: '#2a6a3a' },
     { key: 'listing_view', color: '#8a6cb0' },
     { key: 'whatsapp_click', color: '#c9a227' },

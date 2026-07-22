@@ -7,23 +7,23 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<meta name="theme-color" content="#FAF8F5">
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..750&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#F4F1ED">
+<link rel="stylesheet" href="/brand.css">
 <style>
   :root {
-    --bg: #FAF8F5;
+    --bg: #F4F1ED;
     --surface: #ffffff;
     --border: #F1ECE7;
-    --text: #1C1917;
+    --text: #131A17;
     --muted: #8a8478;
-    --accent: #c8402a;
+    --accent: #E2572B;
     --green: #2a6a3a;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'Geist',-apple-system,sans-serif;
+    font-family: 'Satoshi',-apple-system,sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -99,7 +99,7 @@
     height: 70vh;
     max-height: 600px;
     position: relative;
-    background: #1C1917;
+    background: #131A17;
     overflow: hidden;
   }
 
@@ -191,7 +191,7 @@
     align-items: center;
     justify-content: center;
     font-size: 4rem;
-    background: linear-gradient(135deg, #2a2620 0%, #1C1917 100%);
+    background: linear-gradient(135deg, #2a2620 0%, #131A17 100%);
   }
 
   /* CONTENT */
@@ -211,7 +211,7 @@
   }
 
   .property-title {
-    font-family: 'Geist',-apple-system,sans-serif;
+    font-family: 'Satoshi',-apple-system,sans-serif;
     font-size: 2.4rem;
     font-weight: 700;
     letter-spacing: -0.02em;
@@ -291,7 +291,7 @@
   }
 
   .pricing-left h3 {
-    font-family: 'Geist',-apple-system,sans-serif;
+    font-family: 'Satoshi',-apple-system,sans-serif;
     font-size: 0.72rem;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -310,7 +310,7 @@
     font-size: 1.6rem;
     font-weight: 700;
     color: var(--text);
-    font-family: 'Geist',-apple-system,sans-serif;
+    font-family: 'Satoshi',-apple-system,sans-serif;
     letter-spacing: -0.02em;
   }
 
@@ -342,9 +342,9 @@
   .inclusion-row::before { content: '✓ '; color: var(--green); }
 
   /* Availability banner — shown to client after calendar fetch */
-  .listing-avail{display:flex;align-items:center;gap:10px;padding:13px 20px;border-radius:12px;font-family:'Geist',-apple-system,sans-serif;font-size:.85rem;font-weight:600;margin-bottom:24px}
+  .listing-avail{display:flex;align-items:center;gap:10px;padding:13px 20px;border-radius:12px;font-family:'Satoshi',-apple-system,sans-serif;font-size:.85rem;font-weight:600;margin-bottom:24px}
   .listing-avail.now{background:#dfe9dd;color:#2a6a3a}
-  .listing-avail.from{background:#f5e6e1;color:#c8402a}
+  .listing-avail.from{background:#f5e6e1;color:#E2572B}
   .listing-avail.full{background:#f2ddd6;color:#a8331f}
   .listing-avail-dot{width:9px;height:9px;border-radius:50%;background:currentColor;flex-shrink:0}
   .listing-avail-window{margin-left:auto;font-size:.75rem;font-weight:500;opacity:.8}
@@ -353,12 +353,12 @@
 
   /* MAP */
   .map-section { margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid var(--border); }
-  .map-title { font-family: 'Geist',-apple-system,sans-serif; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 16px; }
+  .map-title { font-family: 'Satoshi',-apple-system,sans-serif; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 16px; }
   .map-wrap { position: relative; width: 100%; height: 320px; border-radius: 12px; overflow: hidden; background: var(--bg); border: 1px solid var(--border); }
   .map-iframe { width: 100%; height: 100%; border: none; display: block; }
-  .map-open { position: absolute; top: 12px; right: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'Geist',-apple-system,sans-serif; font-size: 0.78rem; padding: 8px 14px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: background 0.2s; }
+  .map-open { position: absolute; top: 12px; right: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'Satoshi',-apple-system,sans-serif; font-size: 0.78rem; padding: 8px 14px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: background 0.2s; }
   .map-open:hover { background: var(--bg); }
-  .map-copy { position: absolute; top: 12px; left: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'Geist',-apple-system,sans-serif; font-size: 0.78rem; padding: 8px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: background 0.2s; }
+  .map-copy { position: absolute; top: 12px; left: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'Satoshi',-apple-system,sans-serif; font-size: 0.78rem; padding: 8px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: background 0.2s; }
   .map-copy:hover { background: var(--bg); }
   .map-copy.copied { color: var(--green); border-color: var(--green); }
   @media(max-width: 600px) { .map-wrap { height: 240px; } }
@@ -367,7 +367,7 @@
   .gallery-section { margin-bottom: 48px; }
 
   .gallery-title {
-    font-family: 'Geist',-apple-system,sans-serif;
+    font-family: 'Satoshi',-apple-system,sans-serif;
     font-size: 0.72rem;
     font-weight: 600;
     letter-spacing: 0.04em;

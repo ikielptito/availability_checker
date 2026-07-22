@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Samba — Brand Kit</title>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="/brand.css">
+<style>
+  body{margin:0; background:var(--sb-bg); color:var(--sb-text); font:var(--sb-body);}
+  .wrap{max-width:1080px; margin:0 auto; padding:40px 24px 80px;}
+  .sec{margin-top:56px;}
+  .sec > .sb-eyebrow{display:block; margin-bottom:16px;}
+  .swatches{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px;}
+  .sw{border-radius:var(--sb-r-md); overflow:hidden; border:1px solid var(--sb-hairline); background:var(--sb-surface);}
+  .sw .chip{height:78px;}
+  .sw .meta{padding:10px 12px; font:500 12px/1.4 var(--sb-font-ui);}
+  .sw .meta b{display:block; color:var(--sb-text); font-weight:600;}
+  .sw .meta span{color:var(--sb-muted); font-family:var(--sb-font-mono); font-size:11px;}
+  .row{display:flex; flex-wrap:wrap; gap:12px; align-items:center;}
+  .type-row{display:flex; align-items:baseline; gap:16px; padding:12px 0; border-bottom:1px solid var(--sb-hairline);}
+  .type-row .tag{font:var(--sb-mono); font-family:var(--sb-font-mono); font-size:11px; color:var(--sb-muted); width:64px; flex:none;}
+  .grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px;}
+  /* north-star villa card */
+  .villa .ph{height:180px; background:linear-gradient(135deg,#cdd7c4,#b6c1a4 60%,#9fae86); position:relative;}
+  .villa .ph .sb-pill{position:absolute; top:12px; left:12px;}
+  .villa .ph .fav{position:absolute; top:12px; right:12px; width:34px;height:34px; border-radius:50%; background:var(--sb-surface); display:grid;place-items:center; box-shadow:var(--sb-shadow-sm);}
+  .villa .bd{padding:16px;}
+  .villa .t{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;}
+  .villa .price{font:700 18px/1 var(--sb-font-display); color:var(--sb-text); white-space:nowrap;}
+  .villa .price small{display:block; font:500 11px/1.4 var(--sb-font-ui); color:var(--sb-muted); text-align:right; margin-top:3px;}
+  .villa .loc{font:var(--sb-small); color:var(--sb-muted); margin-top:4px;}
+  .villa .specs{display:flex; gap:16px; margin:14px 0; font:500 13px/1 var(--sb-font-ui); color:var(--sb-text-2);}
+  .villa .actions{display:flex; gap:10px;}
+  .themebtn{position:fixed; top:16px; right:16px; z-index:99;}
+</style>
+</head>
+<body>
+<button class="sb-btn sb-btn--ghost sb-btn--sm themebtn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">Toggle theme</button>
+<div class="wrap">
+
+  <div class="row" style="gap:24px; margin-bottom:8px; align-items:center;">
+    <img src="/brand/samba-logo.png" alt="Samba — connecting owners & agents" style="height:52px">
+    <img src="/brand/samba-mark.png" alt="Samba" style="height:48px">
+  </div>
+  <p class="sb-small">Brand design system · v1.0 · Connecting owners &amp; agents</p>
+
+  <div class="sec">
+    <span class="sb-eyebrow">Primary &amp; Secondary</span>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:var(--sb-terracotta)"></div><div class="meta"><b>Terracotta</b><span>#E2572B</span></div></div>
+      <div class="sw"><div class="chip" style="background:var(--sb-green)"></div><div class="meta"><b>Deep Green</b><span>#131A17</span></div></div>
+      <div class="sw"><div class="chip" style="background:var(--sb-sand)"></div><div class="meta"><b>Sand</b><span>#E9E2D6</span></div></div>
+      <div class="sw"><div class="chip" style="background:var(--sb-olive)"></div><div class="meta"><b>Olive</b><span>#6F7A5A</span></div></div>
+      <div class="sw"><div class="chip" style="background:var(--sb-sage)"></div><div class="meta"><b>Sage</b><span>#B9C1A6</span></div></div>
+      <div class="sw"><div class="chip" style="background:var(--sb-offwhite)"></div><div class="meta"><b>Off White</b><span>#F4F1ED</span></div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <span class="sb-eyebrow">Typography — Satoshi + Inter</span>
+    <div class="type-row"><span class="tag">H1</span><span class="sb-h1">The easiest way to rent out your property.</span></div>
+    <div class="type-row"><span class="tag">H2</span><span class="sb-h2">Connecting owners and agents.</span></div>
+    <div class="type-row"><span class="tag">H3</span><span class="sb-h3">Built for trust. Designed for speed.</span></div>
+    <div class="type-row"><span class="tag">Body</span><span class="sb-body">Samba helps property owners connect with trusted rental agents.</span></div>
+    <div class="type-row"><span class="tag">Small</span><span class="sb-small">Real-time availability, up-to-date pricing, beautiful photos.</span></div>
+  </div>
+
+  <div class="sec">
+    <span class="sb-eyebrow">Buttons</span>
+    <div class="row">
+      <button class="sb-btn">Share villa</button>
+      <button class="sb-btn sb-btn--secondary">Details</button>
+      <button class="sb-btn sb-btn--dark">List your villa</button>
+      <button class="sb-btn sb-btn--ghost">Cancel</button>
+      <button class="sb-btn" disabled>Disabled</button>
+    </div>
+  </div>
+
+  <div class="sec">
+    <span class="sb-eyebrow">Pills &amp; tabs</span>
+    <div class="row" style="margin-bottom:16px">
+      <span class="sb-pill sb-pill--avail sb-pill--dot">Available now</span>
+      <span class="sb-pill sb-pill--busy sb-pill--dot">Booked</span>
+      <span class="sb-pill sb-pill--accent">30+ day stays</span>
+      <span class="sb-pill sb-pill--olive">Trusted agent</span>
+    </div>
+    <div class="sb-tabs">
+      <button class="sb-tab is-active">All Villas</button>
+      <button class="sb-tab">Canggu</button>
+      <button class="sb-tab">Umalas</button>
+      <button class="sb-tab">Pererenan</button>
+      <button class="sb-tab">Ubud</button>
+    </div>
+  </div>
+
+  <div class="sec">
+    <span class="sb-eyebrow">Components — villa card &amp; empty state</span>
+    <div class="grid2" style="margin-top:16px">
+      <div class="sb-card villa sb-card--interactive">
+        <div class="ph">
+          <span class="sb-pill sb-pill--avail sb-pill--dot">Available now</span>
+          <div class="fav">♡</div>
+        </div>
+        <div class="bd">
+          <div class="t">
+            <div>
+              <div class="sb-h4">Villa Merman</div>
+              <div class="loc">Tumbak Bayuh, Canggu</div>
+            </div>
+            <div class="price">IDR 27M<small>per month</small></div>
+          </div>
+          <div class="specs"><span>3 Bed</span><span>3 Bath</span><span>250 m²</span></div>
+          <div class="actions">
+            <button class="sb-btn sb-btn--block">Share</button>
+            <button class="sb-btn sb-btn--secondary sb-btn--block">Details</button>
+          </div>
+        </div>
+      </div>
+      <div class="sb-card">
+        <div class="sb-empty">
+          <div class="sb-empty__ico">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>
+          </div>
+          <h3>No villas here yet</h3>
+          <p>Try a different area, or invite an owner to list their property with Samba.</p>
+          <button class="sb-btn sb-btn--sm">Invite an owner</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <span class="sb-eyebrow">Feature tiles</span>
+    <div class="row" style="gap:32px; margin-top:8px">
+      <div style="text-align:center"><div class="sb-feature-ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10v11h6v-6h6v6h6V10z"/></svg></div><div class="sb-small" style="margin-top:8px;color:var(--sb-text)">More Exposure</div></div>
+      <div style="text-align:center"><div class="sb-feature-ico sb-feature-ico--olive"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-8 1a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm0 2c-2.7 0-8 1.3-8 4v3h9v-3c0-1 .4-1.9 1-2.7A13 13 0 0 0 8 14Zm8 0c-3 0-9 1.5-9 4.5V21h18v-2.5c0-3-6-4.5-9-4.5Z"/></svg></div><div class="sb-small" style="margin-top:8px;color:var(--sb-text)">Trusted Agents</div></div>
+      <div style="text-align:center"><div class="sb-feature-ico sb-feature-ico--green"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M9 15l2 2 4-4"/></svg></div><div class="sb-small" style="margin-top:8px;color:var(--sb-text)">30+ Day Stays</div></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
