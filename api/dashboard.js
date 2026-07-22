@@ -27,6 +27,18 @@ export default async function handler(req, res) {
     return handlePortalPulse(req, res);
   }
 
+  // ── Owner-contact feed for the CRM owners table (same sync-secret auth) ───
+  // Returns the WhatsApp booking contact for each owner-linked listing so the
+  // CRM can build/refresh its owners table. Owner phone numbers only ever leave
+  // the portal over this authed channel — never on the public listings API.
+  if (req.query.owner_sync === '1') {
+    const secret = process.env.LISTING_SYNC_SECRET;
+    if (secret && (req.headers.authorization || '') !== `Bearer ${secret}`) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    return handleOwnerSync(req, res);
+  }
+
   // Password check (shared between analytics GET and notify-agents POST).
   // Accept ADMIN_PASSWORD too so the unified /admin console's single login
   // works for the embedded analytics tab regardless of which env var is set.
@@ -437,6 +449,86 @@ async function handlePortalPulse(req, res) {
     } catch { /* best-effort */ }
 
     return res.status(200).json({ days: [d1, d0], activity, funnel, signups, baseline, broadcast, errors_overnight: errorsOvernight });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+}
+
+// Owner-contact feed: one row per owner-linked listing that has a WhatsApp
+// booking contact, enriched with the owner's account email/name when they've
+// signed in. The CRM groups these by waNumber into its owners table.
+async function handleOwnerSync(req, res) {
+  const url = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  if (!url || !token) return res.status(500).json({ error: 'Redis not configured' });
+  const kv = async (cmds) => {
+    const r = await fetch(`${url}/pipeline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(cmds),
+    });
+    return r.json();
+  };
+  const kvGet = async (key) => {
+    const r = await fetch(`${url}/get/${encodeURIComponent(key)}`, { headers: { Authorization: `Bearer ${token}` } });
+    const j = await r.json();
+    if (j.result == null) return null;
+    try { return JSON.parse(j.result); } catch { return null; }
+  };
+  try {
+    const customMap = (await kvGet('custom_properties')) || {};
+    const entries = Object.entries(customMap);
+
+    // owner:{sub} account records → email/name to enrich rows for signed-in owners.
+    const ownerAccounts = {};
+    try {
+      const ownerKeys = [];
+      let cursor = '0';
+      do {
+        const sr = await fetch(`${url}/scan/${cursor}?match=${encodeURIComponent('owner:*')}&count=500`, { headers: { Authorization: `Bearer ${token}` } });
+        const sd = await sr.json();
+        const [next, batch] = Array.isArray(sd.result) ? sd.result : ['0', []];
+        cursor = next;
+        (batch || []).forEach(k => ownerKeys.push(k));
+      } while (cursor && cursor !== '0');
+      if (ownerKeys.length) {
+        const vals = await kv(ownerKeys.map(k => ['GET', k]));
+        vals.forEach(v => { let o = null; try { o = JSON.parse(v?.result); } catch {} if (o && o.sub) ownerAccounts[o.sub] = { email: o.email || '', name: o.name || '' }; });
+      }
+    } catch { /* best-effort — rows still return with listing-level contact */ }
+
+    // sub:{slug} → live status for owner-linked listings.
+    const ownerSlugs = entries.filter(([, c]) => c && (c.ownerSub || c.ownerEmail)).map(([s]) => s);
+    const subs = ownerSlugs.length ? await kv(ownerSlugs.map(s => ['GET', `sub:${s}`])) : [];
+    const subBySlug = {};
+    ownerSlugs.forEach((s, i) => { try { subBySlug[s] = JSON.parse(subs[i]?.result); } catch { subBySlug[s] = null; } });
+    const isLive = (c, slug) => {
+      if (c.hidden) return false;
+      if (!c.ownerSub && !c.ownerEmail) return true;         // admin-curated, always public
+      if (c.status === 'pending_review' || c.status === 'rejected') return false;
+      if (c.comped) return true;
+      const sub = subBySlug[slug];
+      return !!(sub && sub.status === 'active');
+    };
+
+    const owners = [];
+    for (const [slug, c] of entries) {
+      if (!c) continue;
+      const waNumber = String(c.waNumber || '').replace(/[^0-9]/g, '');
+      if (!waNumber) continue;                                 // can't message without a number
+      const acct = c.ownerSub ? ownerAccounts[c.ownerSub] : null;
+      owners.push({
+        slug,
+        listingName: c.name || slug,
+        waNumber,
+        waContactName: c.waContactName || '',
+        ownerSub: c.ownerSub || null,
+        ownerEmail: c.ownerEmail || acct?.email || '',
+        ownerName: acct?.name || c.waContactName || '',
+        live: isLive(c, slug),
+      });
+    }
+    return res.status(200).json({ owners, count: owners.length });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
