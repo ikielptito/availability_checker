@@ -11,6 +11,7 @@
 import crypto from 'node:crypto';
 import { logError } from '../lib/errlog.js';
 import { rankStep } from '../lib/photorank.js';
+import { parseIcsBookedDates } from './ical.js';
 
 const SESSION_COOKIE = 'samba_session';
 const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days
@@ -110,6 +111,13 @@ export default async function handler(req, res) {
       const owner = await currentOwner(req, { kvGet });
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
       return ownerAnalytics(req, res, owner, { kvGet, kvPipeline });
+    }
+    // Full weekly performance report for one of the owner's listings — the
+    // rich, sendable report shown under the portal's Reports tab.
+    if (action === 'report' && req.method === 'GET') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      return ownerReport(req, res, owner, { kvGet, kvPipeline });
     }
     // Redeem a promo code to activate a listing for free (stopgap while card
     // billing is offline). Writes an active sub:{slug} with promo metadata.
@@ -575,6 +583,141 @@ async function ownerAnalytics(req, res, owner, { kvGet, kvPipeline }) {
   return res.status(200).json({ period, properties, totals });
 }
 function zeroEvents() { return Object.fromEntries(PEVENTS.map(e => [e, 0])); }
+
+// ── Weekly report for a single listing ──────────────────────────────
+// Powers the portal's Reports tab. Everything here is real, owner-scoped data:
+// this-week-vs-last-week engagement, a 7-day daily series, the view→enquiry
+// funnel, per-listing agent reach (from the uprop:* sets track.js now writes),
+// a portfolio benchmark, live occupancy parsed from the villa's own iCal, and
+// the honestly-attributable slice of Maya's network activity. Anything we can't
+// yet attribute per-villa is omitted rather than faked.
+async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
+  const slug = normSlug(req.query.slug || '');
+  if (!slug) return res.status(400).json({ error: 'Missing slug' });
+  const customMap = (await kvGet(CUSTOM_KEY)) || {};
+  const prop = customMap[slug];
+  if (!prop || prop.ownerSub !== owner.sub) return res.status(403).json({ error: 'Not your listing' });
+  const propId = 'c_' + slug;
+  const num = v => parseInt(v) || 0;
+
+  // 14 days of per-property stats hashes: [0] = 13 days ago … [13] = today.
+  const days = [];
+  for (let i = 13; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(d.toISOString().split('T')[0]); }
+  const hashes = await kvPipeline(days.map(d => ['HGETALL', `pstats:${d}`]));
+
+  // Parse each hash once into { propId: { event: n } }. We get this listing's
+  // numbers AND every listing's (for the benchmark) in a single pass.
+  const byDay = hashes.map(h => {
+    const o = {};
+    if (Array.isArray(h)) for (let i = 0; i < h.length; i += 2) {
+      const f = h[i]; const idx = String(f).lastIndexOf(':'); if (idx < 0) continue;
+      const pid = f.slice(0, idx), ev = f.slice(idx + 1);
+      (o[pid] || (o[pid] = {}))[ev] = num(h[i + 1]);
+    }
+    return o;
+  });
+
+  const sumRange = (from, to, ev) => { let s = 0; for (let i = from; i <= to; i++) s += (byDay[i][propId]?.[ev] || 0); return s; };
+  const metric = ev => ({ now: sumRange(7, 13, ev), prev: sumRange(0, 6, ev) });
+  const metrics = {
+    views: metric('listing_view'),
+    agentViews: metric('details_open'),
+    shares: metric('share'),
+    enquiries: metric('whatsapp_click'),
+    photoViews: metric('photo_view'),
+    downloads: metric('photo_download'),
+  };
+
+  // Daily "views" (link opens) series for the last 7 days.
+  const daily = days.slice(7).map(d => ({ date: d, views: 0 }));
+  for (let i = 7; i <= 13; i++) daily[i - 7].views = byDay[i][propId]?.listing_view || 0;
+
+  // View → engaged → enquired, this week. Not strictly nested (different
+  // audiences), so the frontend clamps bar widths; the counts are exact.
+  const funnel = { viewed: metrics.views.now, engaged: metrics.agentViews.now, enquired: metrics.enquiries.now };
+
+  // Real per-listing agent reach: union the daily agent-id sets.
+  const wkKeys = days.slice(7).map(d => `uprop:${propId}:agents:${d}`);
+  const pvKeys = days.slice(0, 7).map(d => `uprop:${propId}:agents:${d}`);
+  const netKeys = days.slice(7).map(d => `unique:agents:${d}`);
+  const [aNow, aPrev, netUnion] = await kvPipeline([
+    ['SUNION', ...wkKeys], ['SUNION', ...pvKeys], ['SUNION', ...netKeys],
+  ]);
+  const agentsReached = {
+    now: Array.isArray(aNow) ? aNow.length : 0,
+    prev: Array.isArray(aPrev) ? aPrev.length : 0,
+  };
+  const networkAgents = Array.isArray(netUnion) ? netUnion.length : 0;
+
+  // Benchmark: percentile rank of this listing's weekly enquiries among all
+  // listings that had any activity this week.
+  const peerEnq = {};
+  for (let i = 7; i <= 13; i++) for (const [pid, evs] of Object.entries(byDay[i])) {
+    if (!pid.startsWith('c_')) continue;
+    peerEnq[pid] = (peerEnq[pid] || 0) + (evs.whatsapp_click || 0);
+  }
+  const peers = Object.values(peerEnq);
+  const mine = peerEnq[propId] || 0;
+  const below = peers.filter(v => v < mine).length;
+  const benchmark = {
+    metric: 'enquiries',
+    peerCount: peers.length,
+    percentile: peers.length > 1 ? Math.round((below / (peers.length - 1)) * 100) : null,
+  };
+
+  // Live occupancy from the villa's own iCal (reuses the parser api/ical.js
+  // exposes). Degrades to null — the section hides — if no calendar or fetch fails.
+  let occupancy = null;
+  if (prop.icalUrl && /^https?:\/\//.test(prop.icalUrl)) {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const horizon = new Date(); horizon.setDate(horizon.getDate() + 90);
+      const icsRes = await fetch(prop.icalUrl, { headers: { 'User-Agent': 'SambaRentals/1.0' } });
+      if (icsRes.ok) occupancy = buildOccupancy(parseIcsBookedDates(await icsRes.text(), today, horizon.toISOString().split('T')[0]));
+    } catch { /* keep occupancy null */ }
+  }
+
+  // Maya activity we can honestly attribute to THIS villa: the real agent
+  // reach above, the live size of the network it sits in, and whether it's
+  // currently eligible for the daily availability broadcast (has open nights).
+  const maya = {
+    agentsReached: agentsReached.now,
+    networkAgents,
+    broadcastEligible: occupancy ? occupancy.openNights > 0 : null,
+  };
+
+  return res.status(200).json({
+    slug, name: prop.name || slug, area: prop.tag || prop.area || '', unitType: prop.unitType || '',
+    listedAt: prop.createdAt || null, ownerName: owner.name || '',
+    week: { from: days[7], to: days[13] },
+    metrics, daily, funnel, agentsReached, benchmark, occupancy, maya,
+  });
+}
+
+// Turn a Set of booked YYYY-MM-DD into the occupancy shape the report renders:
+// next-30-night %, upcoming confirmed stays, and open gaps worth filling.
+function buildOccupancy(bookedSet) {
+  const iso = d => d.toISOString().split('T')[0];
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const cal = [];
+  for (let i = 0; i < 60; i++) { const d = new Date(start); d.setDate(d.getDate() + i); cal.push({ date: iso(d), booked: bookedSet.has(iso(d)) }); }
+  const bookedNights = cal.slice(0, 30).filter(c => c.booked).length;
+  const contiguous = (want) => {
+    const out = []; let s = null;
+    for (let i = 0; i <= cal.length; i++) {
+      const match = i < cal.length && cal[i].booked === want;
+      if (match && s === null) s = i;
+      else if (!match && s !== null) { out.push({ from: cal[s].date, to: cal[i - 1].date, nights: i - s }); s = null; }
+    }
+    return out;
+  };
+  return {
+    pct: Math.round((bookedNights / 30) * 100),
+    bookedNights, openNights: 30 - bookedNights,
+    bookings: contiguous(true).slice(0, 5),
+    openWindows: contiguous(false).filter(r => r.nights >= 2).slice(0, 4),
+  };
+}
 
 async function saveProperty(req, res, owner, { kvGet, kvSet, kvDel }) {
   const data = req.body?.data || {};

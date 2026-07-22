@@ -79,6 +79,15 @@ export default async function handler(req, res) {
       cmds.push(['HINCRBY', `agent:${aid}:events`, event, '1']);
       cmds.push(['SET', `agent:${aid}:last_seen`, String(now)]);
       if (propId) cmds.push(['HINCRBY', `agent:${aid}:props`, `${propId}:${event}`, '1']);
+      // Per-listing unique-agent reach: one daily set of agent ids per
+      // property, so the owner report can SUNION the last 7 days for a real
+      // "agents who saw or shared your villa this week" count (and the prior 7
+      // for the week-over-week delta). Expire after 40 days — long enough to
+      // cover a fortnight window with slack, short enough not to accumulate.
+      if (propId) cmds.push(
+        ['SADD', `uprop:${propId}:agents:${day}`, aid],
+        ['EXPIRE', `uprop:${propId}:agents:${day}`, '3456000']
+      );
     }
   }
 
