@@ -673,22 +673,27 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
 
   const sumRange = (from, to, ev) => { let s = 0; for (let i = from; i <= to; i++) s += (byDay[i][propId]?.[ev] || 0); return s; };
   const metric = ev => ({ now: sumRange(7, 13, ev), prev: sumRange(0, 6, ev) });
+  const listingV = metric('listing_view'), agentV = metric('details_open');
   const metrics = {
-    views: metric('listing_view'),
-    agentViews: metric('details_open'),
+    // "Views" = anyone who opened the villa: agents opening it in the portal
+    // (details_open) PLUS guests on shared links (listing_view). listing_view
+    // alone reads as 0 for listings agents browse in-portal — which misleads
+    // owners (0 views yet enquiries). Both are someone looking at the villa.
+    views: { now: listingV.now + agentV.now, prev: listingV.prev + agentV.prev },
+    agentViews: agentV,
     shares: metric('share'),
     enquiries: metric('whatsapp_click'),
     photoViews: metric('photo_view'),
     downloads: metric('photo_download'),
   };
 
-  // Daily "views" (link opens) series for the last 7 days.
+  // Daily views series (portal opens + shared-link opens) for the last 7 days.
   const daily = days.slice(7).map(d => ({ date: d, views: 0 }));
-  for (let i = 7; i <= 13; i++) daily[i - 7].views = byDay[i][propId]?.listing_view || 0;
+  for (let i = 7; i <= 13; i++) daily[i - 7].views = (byDay[i][propId]?.listing_view || 0) + (byDay[i][propId]?.details_open || 0);
 
-  // View → engaged → enquired, this week. Not strictly nested (different
-  // audiences), so the frontend clamps bar widths; the counts are exact.
-  const funnel = { viewed: metrics.views.now, engaged: metrics.agentViews.now, enquired: metrics.enquiries.now };
+  // View → engaged → enquired this week: opened the villa → looked at the photos
+  // → messaged. Not strictly nested, so the frontend clamps bar widths.
+  const funnel = { viewed: metrics.views.now, engaged: metrics.photoViews.now, enquired: metrics.enquiries.now };
 
   // Real per-listing agent reach: union the daily agent-id sets.
   const wkKeys = days.slice(7).map(d => `uprop:${propId}:agents:${d}`);

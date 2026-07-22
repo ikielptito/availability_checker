@@ -696,7 +696,7 @@ function renderReport(d){
   const conv=d.funnel.viewed?(d.funnel.enquired/d.funnel.viewed*100):0;
   const funnel=`<div class="rep-funnel">
     <div class="rep-fstep"><div class="ffl">Viewed the listing<small>opened the page</small></div><div class="rep-ftrack"><div class="rep-ffill s1" style="width:${fw(d.funnel.viewed)}%"><span class="fn">${d.funnel.viewed}</span></div></div></div>
-    <div class="rep-fstep"><div class="ffl">Engaged<small>opened photos &amp; details</small></div><div class="rep-ftrack"><div class="rep-ffill s2" style="width:${fw(d.funnel.engaged)}%"><span class="fn">${d.funnel.engaged}</span></div></div></div>
+    <div class="rep-fstep"><div class="ffl">Engaged<small>opened your photos</small></div><div class="rep-ftrack"><div class="rep-ffill s2" style="width:${fw(d.funnel.engaged)}%"><span class="fn">${d.funnel.engaged}</span></div></div></div>
     <div class="rep-fstep"><div class="ffl">Enquired<small>tapped to message</small></div><div class="rep-ftrack"><div class="rep-ffill s3" style="width:${fw(d.funnel.enquired)}%"><span class="fn">${d.funnel.enquired}</span></div></div></div>
   </div><p class="rep-conv">A <b>${conv.toFixed(1)}%</b> view-to-enquiry rate this week. Guests who open your photos convert well — the opportunity is getting more of them past the first screen.</p>`;
 
