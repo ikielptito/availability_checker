@@ -137,6 +137,17 @@ export default async function handler(req, res) {
       }
       return intakeListing(req, res, { kvGet, kvSet, kvDel });
     }
+    // Public tokenized report (no login) — powers the "View report" link Maya
+    // sends owners on WhatsApp, so an owner without a Google account can still
+    // open their report. The signed token IS the auth: it embeds the slug plus
+    // an HMAC that can't be forged, and can't be used to enumerate other
+    // listings. Same secret both apps share (LISTING_SYNC_SECRET).
+    if (action === 'public-report' && req.method === 'GET') {
+      const slug = verifyReportToken(req.query.token || '');
+      if (!slug) return res.status(403).json({ error: 'Invalid or expired report link' });
+      req.query.slug = slug;
+      return ownerReport(req, res, null, { kvGet, kvPipeline });
+    }
     // Redeem a promo code to activate a listing for free (stopgap while card
     // billing is offline). Writes an active sub:{slug} with promo metadata.
     if (action === 'redeem-promo' && req.method === 'POST') {
@@ -291,6 +302,28 @@ function publicOwner(o) {
 
 // ── Agent account: favourites, notes, shortlists, public profile ─────
 function normSlug(s) { return cleanStr(s).toLowerCase().replace(/[^a-z0-9-]/g, ''); }
+
+// Signed report-link tokens: `${slug}~${hmac}`. The CRM computes the identical
+// token (same LISTING_SYNC_SECRET + algorithm) to build the "View report" link
+// it sends owners; this side verifies it. Unguessable, needs no KV storage, and
+// stays stable per listing. Falls back to an empty-string key if the secret is
+// unset (dev) — still consistent across both apps in that environment.
+function reportSig(slug) {
+  return crypto.createHmac('sha256', process.env.LISTING_SYNC_SECRET || '').update(String(slug)).digest('hex').slice(0, 16);
+}
+function verifyReportToken(token) {
+  const t = String(token || '');
+  const i = t.lastIndexOf('~');
+  if (i < 0) return null;
+  const slug = normSlug(t.slice(0, i));
+  const sig = t.slice(i + 1);
+  const expect = reportSig(slug);
+  if (!slug || sig.length !== expect.length) return null;
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expect))) return null;
+  } catch { return null; }
+  return slug;
+}
 
 async function toggleFavorite(req, res, owner, { kvSet }) {
   const slug = normSlug(req.body?.slug);

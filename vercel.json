@@ -11,6 +11,7 @@
     { "source": "/terms", "destination": "/terms.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/refund", "destination": "/refund.html" },
+    { "source": "/r/(.*)", "destination": "/report-view.html" },
     { "source": "/l/(.*)", "destination": "/api/listing-page?slug=$1" },
     { "source": "/a/(.*)", "destination": "/api/listing-page?agent=$1" },
     { "source": "/s/(.*)", "destination": "/api/listing-page?list=$1" },
