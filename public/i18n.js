@@ -254,14 +254,22 @@
   }
 
   // ---------- toggle pill ----------
-  var pill;
+  // Mounted INLINE into the page's own header (so it sits beside the existing
+  // top-right controls instead of covering them); falls back to a fixed pill
+  // only on pages with no header. Headers that toggle visibility (e.g. the
+  // portal's signed-out vs signed-in views) are handled by re-homing on change.
+  var pill, pillHosts = [];
+  var HOST_SEL = '.topbar, .lp-nav, .nav, nav';
+
   function buildPill() {
     var style = document.createElement('style');
     style.textContent =
-      '#samba-lang{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;z-index:960;' +
-      'display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:rgba(255,255,255,.92);' +
-      'backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(28,25,23,.10);' +
-      'box-shadow:0 1px 2px rgba(28,25,23,.06),0 4px 14px rgba(28,25,23,.10);font-family:"Geist",-apple-system,BlinkMacSystemFont,sans-serif}' +
+      '#samba-lang{display:inline-flex;gap:2px;padding:3px;border-radius:999px;box-sizing:border-box;' +
+      'font-family:"Geist",-apple-system,BlinkMacSystemFont,sans-serif;flex-shrink:0}' +
+      '#samba-lang.floating{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;z-index:960;' +
+      'background:rgba(255,255,255,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);' +
+      'border:1px solid rgba(28,25,23,.10);box-shadow:0 1px 2px rgba(28,25,23,.06),0 4px 14px rgba(28,25,23,.10)}' +
+      '#samba-lang.inline{position:static;align-self:center;background:rgba(28,25,23,.05);border:1px solid rgba(28,25,23,.08)}' +
       '#samba-lang button{border:none;background:none;cursor:pointer;font:inherit;font-size:.72rem;font-weight:600;' +
       'letter-spacing:.03em;color:#8a8478;padding:5px 10px;border-radius:999px;line-height:1;transition:background .18s,color .18s}' +
       '#samba-lang button.on{background:#F6E7DE;color:#C46E4B}' +
@@ -281,9 +289,47 @@
       var b = e.target.closest('button'); if (!b) return;
       setLang(b.getAttribute('data-set'));
     });
-    document.body.appendChild(pill);
+
+    pillHosts = Array.prototype.slice.call(document.querySelectorAll(HOST_SEL));
+    ensurePill();
+    watchHosts();
     updatePill();
   }
+
+  function visible(el) { return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length)); }
+
+  // Home the pill in the first visible header, else float it.
+  function ensurePill() {
+    if (!pill) return;
+    var host = null;
+    for (var i = 0; i < pillHosts.length; i++) { if (visible(pillHosts[i])) { host = pillHosts[i]; break; } }
+    if (host) {
+      if (pill.parentNode !== host) {
+        pill.classList.remove('floating'); pill.classList.add('inline');
+        host.appendChild(pill);
+      }
+    } else if (pill.parentNode !== document.body || !pill.classList.contains('floating')) {
+      pill.classList.remove('inline'); pill.classList.add('floating');
+      document.body.appendChild(pill);
+    }
+  }
+
+  // Re-home when a header shows/hides (portal auth swap toggles display on the
+  // #login / #app wrappers around the headers).
+  var homeTimer = null;
+  function watchHosts() {
+    var mo = new MutationObserver(function () {
+      if (homeTimer) return;
+      homeTimer = setTimeout(function () { homeTimer = null; ensurePill(); }, 60);
+    });
+    pillHosts.forEach(function (h) {
+      mo.observe(h, { attributes: true, attributeFilter: ['style', 'class'] });
+      if (h.parentNode && h.parentNode.nodeType === 1) {
+        mo.observe(h.parentNode, { attributes: true, attributeFilter: ['style', 'class'] });
+      }
+    });
+  }
+
   function updatePill() {
     if (!pill) return;
     pill.querySelectorAll('button').forEach(function (b) {
@@ -301,6 +347,8 @@
     scan(document.body);
     observeStart();
     if (lang === 'id') { renderAll(); flush(); }   // cached strings apply instantly; misses fetch
+    // Catch late-rendered headers (async auth) that weren't visible at boot.
+    [400, 1200, 2500].forEach(function (ms) { setTimeout(ensurePill, ms); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
