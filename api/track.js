@@ -1,4 +1,10 @@
+import { runTranslate } from '../lib/translate.js';
+
 export default async function handler(req, res) {
+  // Bilingual translation shares this public endpoint to stay under the
+  // serverless-function limit; /api/translate rewrites here (?action=translate).
+  if (req.query && req.query.action === 'translate') return runTranslate(req, res);
+
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
