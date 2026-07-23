@@ -29,6 +29,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Samba Agent">
 <link rel="stylesheet" href="/brand.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap">
 <style>
 :root{--bg:#F4F1ED;--surface:#ffffff;--surface2:#E9E2D6;--border:#F1ECE7;--text:#131A17;--text-2:#514C45;--muted:#8a8478;--subtle:#b5ac9a;--avail:#E4F0E2;--avail-text:#2F7A42;--avail-border:#bcd8b8;--booked:#F6E0DA;--booked-text:#a8331f;--booked-border:#e2bfb2;--primary:#E2572B;--primary-2:#CE4A20;--primary-3:#B23E19;--primary-soft:#F6E7DE;--today-ring:#E2572B;--today-bg:#F6E7DE;--accent:#E2572B;--hairline:1px solid rgba(28,25,23,.09);--shadow:0 1px 2px rgba(28,25,23,.05),0 5px 14px rgba(28,25,23,.05);--shadow-float:0 1px 2px rgba(28,25,23,.06),0 6px 18px rgba(28,25,23,.07);--shadow-btn:0 1px 2px rgba(28,25,23,.07),0 2px 5px rgba(28,25,23,.05);--ease:cubic-bezier(.2,.8,.2,1)}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -1839,6 +1841,16 @@ function wrapText(ctx,text,maxW){
     if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w;}else cur=t;}
   if(cur)lines.push(cur);return lines;
 }
+// Hand-drawn brush underline: a gently bowed stroke, tapered at both ends
+// (thicker in the middle), for that art-directed, non-typographic feel.
+function brushUnderline(ctx,x1,x2,y,thick,bow,color){
+  const N=28,pts=[];
+  for(let i=0;i<=N;i++){const t=i/N,x=x1+(x2-x1)*t,cy=y+bow*Math.sin(Math.PI*t),ht=(thick/2)*Math.sin(Math.PI*t);pts.push([x,cy-ht,cy+ht]);}
+  ctx.save();ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);           // top edge L→R
+  for(let i=pts.length-1;i>=0;i--)ctx.lineTo(pts[i][0],pts[i][2]);        // bottom edge R→L
+  ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.restore();
+}
 function fitText(ctx,text,maxW,base,weight,FF){
   let sz=base;ctx.font=weight+' '+sz+'px '+FF;
   while(ctx.measureText(text).width>maxW&&sz>34){sz-=2;ctx.font=weight+' '+sz+'px '+FF;}
@@ -1860,7 +1872,10 @@ async function makeStoryImage(propId){
   const W=1080,H=1920,HERO=1076,PX=84;         // 84px margin = the invisible grid
   const FF='Satoshi,-apple-system,Helvetica,Arial,sans-serif';
   const PANEL='#4B5540',INK='#1B2016',ORANGE='#E2572B',WA='#2FA44E',GREEN='#2C6E3F';
-  try{await document.fonts.load('800 88px Satoshi');await document.fonts.load('italic 600 40px Satoshi');await document.fonts.ready;}catch(e){}
+  let hasCaveat=false;
+  try{await document.fonts.load('800 88px Satoshi');await document.fonts.load('italic 600 40px Satoshi');
+    try{await document.fonts.load('700 54px "Caveat"');hasCaveat=document.fonts.check('700 54px "Caveat"');}catch(e){}
+    await document.fonts.ready;}catch(e){}
   const c=document.createElement('canvas');c.width=W;c.height=H;
   const ctx=c.getContext('2d');
   ctx.fillStyle=PANEL;ctx.fillRect(0,0,W,H);
@@ -1966,23 +1981,40 @@ async function makeStoryImage(propId){
     ctx.fillStyle=GREEN;ctx.fillText(waNum,tx+56,gy+(38-wsz)/2+1);
   }
   ctx.textBaseline='alphabetic';
-  // ── Footer ── logo anchors left, tagline anchors right, with room to breathe
-  const footY=1764;
-  ctx.textAlign='right';ctx.textBaseline='top';
-  ctx.font='italic 600 40px '+FF;ctx.fillStyle='rgba(255,255,255,.92)';
-  ctx.fillText("Let's find",W-PX,footY);
-  ctx.fillText('your perfect villa.',W-PX,footY+50);
-  const twU=ctx.measureText('your perfect villa.').width;
-  ctx.strokeStyle=ORANGE;ctx.lineWidth=4;ctx.lineCap='round';
-  ctx.beginPath();ctx.moveTo(W-PX-twU+4,footY+50+52);ctx.lineTo(W-PX,footY+50+52);ctx.stroke();
-  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  // ── Footer ── white brand mark anchors left, handwritten tagline anchors
+  // right, with a hand-drawn brush underline beneath the final line.
+  const footMid=1800;                                   // vertical centre of the footer band
+  // Tagline — Caveat (handwritten) when available, italic Satoshi as fallback.
+  const CREAM='#F5F3EE';
+  ctx.textAlign='right';ctx.textBaseline='alphabetic';
+  if('letterSpacing' in ctx)ctx.letterSpacing='-0.5px';
+  const tl1="Let's find",tl2='your perfect villa.';
+  if(hasCaveat){
+    const tsz2=58,tlH=Math.round(tsz2*0.98);
+    ctx.font='700 '+tsz2+'px "Caveat"';ctx.fillStyle=CREAM;
+    const b2=footMid+tlH/2;                             // baseline of line 2
+    ctx.fillText(tl1,W-PX,b2-tlH);
+    ctx.fillText(tl2,W-PX,b2);
+    const w2=ctx.measureText(tl2).width;
+    if('letterSpacing' in ctx)ctx.letterSpacing='0px';
+    brushUnderline(ctx,W-PX-w2+6,W-PX+2,b2+26,11,7,ORANGE);
+  }else{
+    ctx.font='italic 600 42px '+FF;ctx.fillStyle=CREAM;
+    ctx.fillText(tl1,W-PX,footMid-6);
+    ctx.fillText(tl2,W-PX,footMid+46);
+    const w2=ctx.measureText(tl2).width;
+    if('letterSpacing' in ctx)ctx.letterSpacing='0px';
+    brushUnderline(ctx,W-PX-w2+6,W-PX+2,footMid+46+22,10,6,ORANGE);
+  }
+  ctx.textAlign='left';
+  // White brand logo (Samba 3.0), vertically centred on the footer band.
   try{
-    const lg=await loadImg('/logo-samba.png');
-    const lh=62,lw=lg.width/lg.height*lh;
-    ctx.globalAlpha=.96;ctx.drawImage(lg,PX,footY+(102-lh)/2,lw,lh);ctx.globalAlpha=1;
+    const lg=await loadImg('/samba-logo-white.png');
+    const lh=96,lw=lg.width/lg.height*lh;
+    ctx.drawImage(lg,PX,footMid-lh/2,lw,lh);
   }catch(e){
-    ctx.font='800 52px '+FF;ctx.fillStyle='#fff';ctx.textBaseline='top';
-    ctx.fillText('samba',PX,footY+26);ctx.textBaseline='alphabetic';
+    ctx.font='800 52px '+FF;ctx.fillStyle='#fff';ctx.textBaseline='middle';
+    ctx.fillText('samba',PX,footMid);ctx.textBaseline='alphabetic';
   }
   return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('export failed')),'image/png'));
 }
