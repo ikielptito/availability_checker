@@ -1857,115 +1857,132 @@ function roundRectPath(ctx,x,y,w,h,r){
 // get a generic "message us" card.
 async function makeStoryImage(propId){
   const f=storyFacts(propId);
-  const W=1080,H=1920,HERO=1120,PX=76;
+  const W=1080,H=1920,HERO=1076,PX=84;         // 84px margin = the invisible grid
   const FF='Satoshi,-apple-system,Helvetica,Arial,sans-serif';
-  const PANEL='#4B5540',INK='#1C231A',ORANGE='#E2572B',WA='#2FA44E';
-  try{await document.fonts.load('800 84px Satoshi');await document.fonts.load('italic 600 40px Satoshi');await document.fonts.ready;}catch(e){}
+  const PANEL='#4B5540',INK='#1B2016',ORANGE='#E2572B',WA='#2FA44E',GREEN='#2C6E3F';
+  try{await document.fonts.load('800 88px Satoshi');await document.fonts.load('italic 600 40px Satoshi');await document.fonts.ready;}catch(e){}
   const c=document.createElement('canvas');c.width=W;c.height=H;
   const ctx=c.getContext('2d');
   ctx.fillStyle=PANEL;ctx.fillRect(0,0,W,H);
-  // ── Full-bleed hero photo ──
+  // ── Full-bleed hero photo ── treated as the aspirational hero.
   const urls=await listingPhotos(propId,1);
   let hero=null;
   for(const u of urls){try{hero=await loadImg(u.replace('=w1200','=w1400'));break;}catch(e){}}
   if(hero)drawCover(ctx,hero,0,0,W,HERO);
-  else{const g=ctx.createLinearGradient(0,0,0,HERO);g.addColorStop(0,'#6F7A5A');g.addColorStop(1,PANEL);ctx.fillStyle=g;ctx.fillRect(0,0,W,HERO);}
-  // Scrim so the overlay text stays legible over the lower photo.
-  const scrim=ctx.createLinearGradient(0,HERO*0.34,0,HERO);
-  scrim.addColorStop(0,'rgba(15,19,14,0)');scrim.addColorStop(.55,'rgba(15,19,14,.34)');scrim.addColorStop(1,'rgba(15,19,14,.82)');
+  else{const g=ctx.createLinearGradient(0,0,0,HERO);g.addColorStop(0,'#7C866A');g.addColorStop(1,PANEL);ctx.fillStyle=g;ctx.fillRect(0,0,W,HERO);}
+  // Soft, multi-stop scrim — invisible up top, gently anchoring the text below.
+  const scrim=ctx.createLinearGradient(0,HERO*0.40,0,HERO);
+  scrim.addColorStop(0,'rgba(14,20,14,0)');scrim.addColorStop(.45,'rgba(14,20,14,.10)');
+  scrim.addColorStop(.78,'rgba(14,20,14,.52)');scrim.addColorStop(1,'rgba(14,20,14,.82)');
   ctx.fillStyle=scrim;ctx.fillRect(0,0,W,HERO);
   // ── Hero overlay: measure the block, then lay it out bottom-aligned ──
   const title=(f.name||'').toUpperCase();
-  let tsz=88;ctx.font='800 '+tsz+'px '+FF;
+  let tsz=90;ctx.font='800 '+tsz+'px '+FF;
   let lines=wrapText(ctx,title,W-PX*2);
-  while(lines.length>2&&tsz>54){tsz-=4;ctx.font='800 '+tsz+'px '+FF;lines=wrapText(ctx,title,W-PX*2);}
+  while(lines.length>2&&tsz>56){tsz-=4;ctx.font='800 '+tsz+'px '+FF;lines=wrapText(ctx,title,W-PX*2);}
   lines.forEach(ln=>{const s=fitText(ctx,ln,W-PX*2,tsz,'800',FF);if(s<tsz)tsz=s;});
-  const lineH=Math.round(tsz*1.02);
-  const gLT=26,gTS=30,gSP=32,pillH=78;
-  const locH=f.loc?38:0,subH=f.subtitle?48:0,titleH=lines.length*lineH;
+  const lineH=Math.round(tsz*1.12);              // roomier line-height so the title breathes
+  const gLT=32,gTS=30,gSP=44,pillH=84;
+  const locH=f.loc?38:0,subH=f.subtitle?42:0,titleH=lines.length*lineH;
   const total=(locH?locH+gLT:0)+titleH+(subH?gTS+subH:0)+gSP+pillH;
-  let y=(HERO-64)-total;
+  let y=(HERO-76)-total;
   ctx.textAlign='left';ctx.textBaseline='top';
   if(f.loc){
-    drawStroke(ctx,STORY_ICONS.pin,PX,y-2,32,'rgba(255,255,255,.95)',2.2);
-    ctx.font='600 30px '+FF;ctx.fillStyle='rgba(255,255,255,.9)';
-    drawTracked(ctx,f.loc.toUpperCase(),PX+46,y+2,4);
+    const loc=f.loc.replace(/\s*·\s*/g,', ').toUpperCase();
+    drawStroke(ctx,STORY_ICONS.pin,PX,y-4,34,'rgba(255,255,255,.96)',2.2);
+    ctx.font='600 30px '+FF;ctx.fillStyle='rgba(255,255,255,.94)';
+    drawTracked(ctx,loc,PX+48,y+2,5);
     y+=locH+gLT;
   }
   ctx.font='800 '+tsz+'px '+FF;ctx.fillStyle='#fff';
   for(const ln of lines){ctx.fillText(ln,PX,y);y+=lineH;}
   if(f.subtitle){
-    y+=gTS;ctx.font='700 38px '+FF;ctx.fillStyle='rgba(255,255,255,.85)';
-    drawTracked(ctx,f.subtitle.toUpperCase(),PX,y,3);y+=subH;
+    y+=gTS;ctx.font='600 34px '+FF;ctx.fillStyle='rgba(255,255,255,.82)';
+    drawTracked(ctx,f.subtitle.toUpperCase(),PX,y,4);y+=subH;
   }
   y+=gSP;
   if(f.availTxt){
     const lbl=f.availTxt.toUpperCase(),booked=f.availTxt==='Fully booked';
-    ctx.font='700 33px '+FF;
-    const padL=booked?36:70,padR=40,pw=Math.ceil(ctx.measureText(lbl).width)+padL+padR;
-    ctx.fillStyle='#fff';roundRectPath(ctx,PX,y,pw,pillH,pillH/2);ctx.fill();
-    if(!booked){ctx.beginPath();ctx.arc(PX+42,y+pillH/2,12,0,Math.PI*2);ctx.fillStyle='#3E9B54';ctx.fill();}
-    ctx.fillStyle=booked?'#B23E19':'#2C6E3F';ctx.textBaseline='middle';
-    ctx.fillText(lbl,PX+padL,y+pillH/2);ctx.textBaseline='top';
+    ctx.font='700 32px '+FF;
+    const padL=booked?46:78,padR=48,pw=Math.ceil(ctx.measureText(lbl).width)+padL+padR;
+    ctx.save();ctx.shadowColor='rgba(0,0,0,.22)';ctx.shadowBlur=28;ctx.shadowOffsetY=10;
+    ctx.fillStyle='#fff';roundRectPath(ctx,PX,y,pw,pillH,pillH/2);ctx.fill();ctx.restore();
+    if(!booked){ctx.beginPath();ctx.arc(PX+46,y+pillH/2,12,0,Math.PI*2);ctx.fillStyle='#3E9B54';ctx.fill();}
+    ctx.fillStyle=booked?'#B23E19':GREEN;ctx.textBaseline='middle';
+    ctx.fillText(lbl,PX+padL,y+pillH/2+1);ctx.textBaseline='top';
   }
-  // ── Olive info panel (below the hero) ──
-  // Icon fact row
+  // ── Olive info panel (below the hero) — anchored on a fixed vertical grid ──
+  // Feature row
   const stats=[
     {d:STORY_ICONS.bed,l:f.beds?f.beds+' Bedroom':null},
     {d:STORY_ICONS.bath,l:f.baths?f.baths+' Bathroom':null},
     {d:STORY_ICONS.area,l:f.sqm?f.sqm+' m²':null},
     {d:STORY_ICONS.pool,l:f.pool}
   ].filter(s=>s.l);
-  const nS=stats.length||1,statTop=HERO+72,colW=(W-PX*2)/nS;
+  const nS=stats.length||1,ICON_TOP=1160,ICON=44,colW=(W-PX*2)/nS;
   ctx.textAlign='center';
   stats.forEach((s,i)=>{
     const xc=PX+colW*(i+0.5);
-    drawStroke(ctx,s.d,xc-24,statTop,48,'rgba(255,255,255,.92)',2.1);
-    ctx.font='600 30px '+FF;ctx.fillStyle='rgba(255,255,255,.82)';ctx.textBaseline='top';
-    ctx.fillText(s.l,xc,statTop+64);
+    drawStroke(ctx,s.d,xc-ICON/2,ICON_TOP,ICON,'rgba(255,255,255,.9)',2);
+    ctx.font='500 30px '+FF;ctx.fillStyle='rgba(255,255,255,.86)';ctx.textBaseline='top';
+    ctx.fillText(s.l,xc,ICON_TOP+ICON+24);
   });
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
-  // Price
-  const priceY=statTop+195,priceMain='IDR '+(f.mn?f.mn:'—')+'M';
-  ctx.font='800 86px '+FF;ctx.fillStyle='#fff';ctx.fillText(priceMain,PX,priceY);
+  // Price — a strong focal point, generous air above it
+  const priceBase=1406,priceMain='IDR '+(f.mn?f.mn:'—')+'M';
+  ctx.font='800 88px '+FF;ctx.fillStyle='#fff';ctx.fillText(priceMain,PX,priceBase);
   const pmw=ctx.measureText(priceMain).width;
-  ctx.font='500 42px '+FF;ctx.fillStyle='rgba(255,255,255,.6)';ctx.fillText(' / month',PX+pmw+14,priceY);
-  // Agent profile card
+  ctx.font='500 40px '+FF;ctx.fillStyle='rgba(255,255,255,.6)';ctx.fillText('/ month',PX+pmw+22,priceBase);
+  // ── Agent profile card ── lifted, airy, Airbnb/Apple-like
   const prof=f.prof;
   const nm=prof&&prof.displayName?prof.displayName:'Samba Rentals';
   const role=prof&&prof.displayName?'Your Samba agent':'Message us to enquire';
-  const waNum=prof&&prof.waNumber?('+'+String(prof.waNumber).replace(/[^0-9]/g,'')):null;
+  const waRaw=prof&&prof.waNumber?String(prof.waNumber).trim():null;   // keep agent's own spacing if present
+  const waNum=waRaw?(/^\+/.test(waRaw)?waRaw:'+'+waRaw.replace(/[^0-9]/g,'')):null;
   const photo=prof?(prof.photo||(f.acct&&f.acct.picture)):null;
-  const cardX=PX,cardW=W-PX*2,cardY=priceY+48,cardH=200,cardR=32;
-  ctx.fillStyle='#fff';roundRectPath(ctx,cardX,cardY,cardW,cardH,cardR);ctx.fill();
-  const ad=132,avx=cardX+36,avy=cardY+(cardH-ad)/2,acx=avx+ad/2,acy=avy+ad/2;
+  const cardX=PX,cardW=W-PX*2,cardY=1476,cardH=216,cardR=40;
+  ctx.save();ctx.shadowColor='rgba(18,26,16,.20)';ctx.shadowBlur=50;ctx.shadowOffsetY=18;
+  ctx.fillStyle='#fff';roundRectPath(ctx,cardX,cardY,cardW,cardH,cardR);ctx.fill();ctx.restore();
+  const ad=140,avx=cardX+40,avy=cardY+(cardH-ad)/2,acx=avx+ad/2,acy=avy+ad/2;
   let drew=false;
   if(photo){try{const ai=await loadImg(photo);ctx.save();ctx.beginPath();ctx.arc(acx,acy,ad/2,0,Math.PI*2);ctx.clip();drawCover(ctx,ai,avx,avy,ad,ad);ctx.restore();drew=true;}catch(e){}}
   if(!drew){
     ctx.beginPath();ctx.arc(acx,acy,ad/2,0,Math.PI*2);ctx.fillStyle=ORANGE;ctx.fill();
-    ctx.font='800 60px '+FF;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='800 62px '+FF;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText((nm.trim()[0]||'S').toUpperCase(),acx,acy+2);ctx.textAlign='left';ctx.textBaseline='alphabetic';
   }
-  const tx=avx+ad+34,maxTW=cardX+cardW-tx-30;
+  // Name / role / WhatsApp as one vertically-centred group beside the avatar
+  const tx=avx+ad+40,maxTW=cardX+cardW-tx-40;
+  const gName=16,gRole=18;                       // inter-line gaps
+  const grpH=46+gName+32+(waNum?gRole+38:0);     // measured to true content
+  let gy=cardY+(cardH-grpH)/2;
   ctx.textBaseline='top';
-  const nsz=fitText(ctx,nm,maxTW,46,'800',FF);ctx.font='800 '+nsz+'px '+FF;ctx.fillStyle=INK;ctx.fillText(nm,tx,cardY+40);
-  ctx.font='500 32px '+FF;ctx.fillStyle='#6F7A5A';ctx.fillText(role,tx,cardY+98);
-  if(waNum){drawFill(ctx,WA_PATH,tx,cardY+146,38,WA);ctx.font='700 38px '+FF;ctx.fillStyle='#2C6E3F';ctx.fillText(waNum,tx+52,cardY+148);}
+  const nsz=fitText(ctx,nm,maxTW,46,'800',FF);ctx.font='800 '+nsz+'px '+FF;ctx.fillStyle=INK;
+  ctx.fillText(nm,tx,gy+(46-nsz)/2);gy+=46+gName;
+  ctx.font='500 32px '+FF;ctx.fillStyle='#7A8467';ctx.fillText(role,tx,gy);gy+=32+gRole;
+  if(waNum){
+    drawFill(ctx,WA_PATH,tx,gy,38,WA);
+    const wsz=fitText(ctx,waNum,maxTW-56,38,'700',FF);ctx.font='700 '+wsz+'px '+FF;
+    ctx.fillStyle=GREEN;ctx.fillText(waNum,tx+56,gy+(38-wsz)/2+1);
+  }
   ctx.textBaseline='alphabetic';
-  // ── Footer: Samba brand mark + tagline ──
-  const footY=1772;
+  // ── Footer ── logo anchors left, tagline anchors right, with room to breathe
+  const footY=1764;
   ctx.textAlign='right';ctx.textBaseline='top';
-  ctx.font='italic 600 38px '+FF;ctx.fillStyle='rgba(255,255,255,.9)';
+  ctx.font='italic 600 40px '+FF;ctx.fillStyle='rgba(255,255,255,.92)';
   ctx.fillText("Let's find",W-PX,footY);
-  ctx.fillText('your perfect villa.',W-PX,footY+48);
+  ctx.fillText('your perfect villa.',W-PX,footY+50);
+  const twU=ctx.measureText('your perfect villa.').width;
+  ctx.strokeStyle=ORANGE;ctx.lineWidth=4;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(W-PX-twU+4,footY+50+52);ctx.lineTo(W-PX,footY+50+52);ctx.stroke();
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
   try{
     const lg=await loadImg('/logo-samba.png');
-    const lh=58,lw=lg.width/lg.height*lh;
-    ctx.globalAlpha=.96;ctx.drawImage(lg,PX,footY+(96-lh)/2,lw,lh);ctx.globalAlpha=1;
+    const lh=62,lw=lg.width/lg.height*lh;
+    ctx.globalAlpha=.96;ctx.drawImage(lg,PX,footY+(102-lh)/2,lw,lh);ctx.globalAlpha=1;
   }catch(e){
-    ctx.font='800 48px '+FF;ctx.fillStyle='#fff';ctx.textBaseline='top';
-    ctx.fillText('samba',PX,footY+24);ctx.textBaseline='alphabetic';
+    ctx.font='800 52px '+FF;ctx.fillStyle='#fff';ctx.textBaseline='top';
+    ctx.fillText('samba',PX,footY+26);ctx.textBaseline='alphabetic';
   }
   return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('export failed')),'image/png'));
 }
