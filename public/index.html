@@ -55,6 +55,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .topbar{position:relative;z-index:100;padding:12px 20px 2px;display:flex;align-items:center;gap:16px;max-width:960px;margin:0 auto;width:100%}
 .brand-mark{display:flex;align-items:center;flex-shrink:0;text-decoration:none}
 .brand-mark img{height:41px}
+.hiw-btn{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;font-family:var(--sb-font-display,inherit);font-size:.8rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:7px 13px;border:1px solid var(--border);border-radius:999px;background:var(--surface);box-shadow:var(--shadow-btn);transition:color .15s,border-color .15s}
+.hiw-btn:hover{color:var(--primary);border-color:var(--primary)}
+.hiw-btn svg{width:15px;height:15px;flex-shrink:0}
+@media(max-width:600px){.hiw-btn{padding:7px 11px;font-size:.76rem}.hiw-btn .hiw-label{display:none}}
 .topbar-avatar{margin-left:auto;display:flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:4px;-webkit-tap-highlight-color:transparent}
 .tb-av{width:34px;height:34px;border-radius:50%;overflow:hidden;background:var(--surface);border:var(--hairline);box-shadow:var(--shadow-btn);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:600;flex-shrink:0}
 .tb-av img{width:100%;height:100%;object-fit:cover}
@@ -509,6 +513,10 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
   <div class="topbar">
     <a class="brand-mark" href="/" aria-label="Samba">
       <img src="/logo-samba.png" alt="Samba">
+    </a>
+    <a class="hiw-btn" href="/for-agents" aria-label="How it works">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span class="hiw-label">How it works</span>
     </a>
     <div id="samba-nav"></div>
   </div>

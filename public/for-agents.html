@@ -53,11 +53,12 @@ body {
 .nav-brand { display: flex; align-items: center; text-decoration: none; }
 .nav-brand img { height: 80px; }
 .nav-spacer { flex: 1; }
-.nav-link { color: var(--ink, #514C45); font-family: var(--sb-font-display); font-size: .82rem; font-weight: 500; text-decoration: none; padding: 9px 6px; margin-right: 6px; white-space: nowrap; }
-.nav-link:hover { color: var(--primary); }
+.nav-ghost { display: inline-flex; align-items: center; gap: 7px; color: var(--text-2); font-family: var(--sb-font-display); font-size: .82rem; font-weight: 600; text-decoration: none; padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); transition: color .15s, border-color .15s; white-space: nowrap; margin-right: 4px; }
+.nav-ghost:hover { color: var(--primary); border-color: var(--primary); }
+.nav-ghost svg { width: 15px; height: 15px; flex-shrink: 0; }
 .nav-cta { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-family: var(--sb-font-display); font-size: .82rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: background .15s; white-space: nowrap; }
 .nav-cta:hover { background: var(--primary-2); }
-@media (max-width: 560px) { .nav-link { display: none; } .nav-brand img { height: 48px; } .nav-cta { padding: 9px 14px; } }
+@media (max-width: 560px) { .nav-brand img { height: 48px; } .nav-cta { padding: 9px 14px; } .nav-ghost { padding: 8px 12px; } .nav-ghost .nav-ghost-label { display: none; } }
 @media (max-width: 600px) {
   .nav { padding: 8px 16px; }
   .nav-brand img { height: 56px; }
@@ -206,7 +207,10 @@ body {
     <img src="/logo-samba.png" alt="Samba">
   </a>
   <div class="nav-spacer"></div>
-  <a class="nav-link" href="/">Browse villas</a>
+  <a class="nav-ghost" href="/">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg>
+    <span class="nav-ghost-label">Browse villas</span>
+  </a>
   <a class="nav-cta" href="/?signin=1">Sign up</a>
 </nav>
 
