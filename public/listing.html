@@ -687,7 +687,10 @@
   @media(min-width: 760px) { #agent-bar { justify-content: center; } #agent-bar .agent-bar-info { flex: 0 1 auto; margin-right: 8px; } }
 
   @media(max-width: 600px) {
-    .hero { height: 50vh; }
+    /* Constrain the photo itself, not the wrapper — otherwise .hero-media's
+       70vh overflows the shorter .hero box and .content tucks up underneath it,
+       overlapping the availability pill/strip. */
+    .hero-media { height: 50vh; }
     .content { padding: 32px 20px 60px; }
     .property-title { font-size: 1.8rem; }
     .pricing-block { flex-direction: column; }
