@@ -61,20 +61,19 @@ const CUSTOM_KEY = 'custom_properties';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Public visibility for a custom listing. Admin-curated listings (no ownerSub)
-// behave as before — visible unless hidden. Owner-submitted listings must be
-// both approved AND carry an active subscription.
-function listingVisible(c, sub) {
+// are visible unless hidden. Owner-submitted listings go public once approved.
+// Card billing is offline, so approval alone makes an owner listing live — the
+// subscription paywall is intentionally NOT enforced here for now. (comped is
+// still honoured so pre-comped listings behave the same.)
+function listingVisible(c) {
   if (c.hidden) return false;
   // Pure admin-curated listing with no owner assigned: always public. A listing
   // linked to an owner by Google sub, email, OR WhatsApp number (Maya intake)
-  // is NOT admin-curated and must pass the review + subscription gates below.
+  // is NOT admin-curated and must pass the review gate below.
   if (!c.ownerSub && !c.ownerEmail && !c.ownerWa) return true;
-  // Owner-linked listings must not be pending review or rejected.
-  if (c.status === 'pending_review' || c.status === 'rejected') return false;
-  // Complimentary (comped) listings stay public for free; otherwise an active
-  // subscription is required.
+  // Comped listings are always public; otherwise the listing must be approved.
   if (c.comped) return true;
-  return !!(sub && sub.status === 'active');
+  return c.status === 'approved';
 }
 
 function cleanStr(v) { return typeof v === 'string' ? v.trim() : ''; }
@@ -205,12 +204,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ listings: out });
     }
 
-    // Public view: hide owner listings that aren't approved + actively subscribed.
-    const ownerSlugs = customAll.filter(c => c.ownerSub).map(c => c.slug);
-    const subList = await Promise.all(ownerSlugs.map(s => kvGet(`sub:${s}`)));
-    const subBySlug = Object.fromEntries(ownerSlugs.map((s, i) => [s, subList[i]]));
+    // Public view: admin-curated listings, plus owner listings that have been
+    // approved (billing gate is currently off — approval alone makes them live).
     const customListings = customAll
-      .filter(c => listingVisible(c, subBySlug[c.slug]))
+      .filter(c => listingVisible(c))
       .map(c => ({ ...c, custom: true }));
     const out = [...listings, ...customListings];
     await fillCovers(out);
