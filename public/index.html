@@ -28,6 +28,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Samba Agent">
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="/brand.css">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap">
@@ -903,6 +906,7 @@ function syncCardCalScroll(smooth){
   const cur=getCardMonth();
   const idx=(cur.y-TODAY.getFullYear())*12+(cur.m-TODAY.getMonth());
   document.querySelectorAll('.prop-cal-scroll').forEach(el=>{
+    if(idx>0)fillCalPages(el);   // lazily-built months must exist before we scroll to them
     const t=el.children[idx];if(!t)return;
     if(smooth)el.scrollTo({left:t.offsetLeft,behavior:'smooth'});
     else el.scrollLeft=t.offsetLeft;
@@ -2567,24 +2571,46 @@ function render() {
       +'<div class="prop-cal">'
       +(failedAvail.has(p.id)
         ?'<div class="prop-cal-lbl">'+MONTHS[TODAY.getMonth()]+' '+TODAY.getFullYear()+'</div><div class="prop-cal-nc">No calendar data</div>'
-        :cardCalPages(booked))
+        :cardCalPages(booked,p.id))
       +'</div>'
       +'</div>';
   }).join('');
   // Re-renders rebuild the calendars at scroll 0 — restore the chosen month.
   if(viewMode==='bento')syncCardCalScroll(false);
+  // Deferred months 2–4: build them once the main thread is idle so first
+  // paint stays light; swiping or a month chip builds them sooner.
+  if(viewMode==='bento')(window.requestIdleCallback||function(f){setTimeout(f,600);})(fillAllCalPages,{timeout:2500});
   revealCards();
 }
 
 // Calendar-month pages (current month first, then the next three) — the
 // familiar 1st-to-end grid, swipeable per card and steered by the month chips.
-function cardCalPages(booked){
-  let h='<div class="prop-cal-scroll">';
+// Only the current month renders up front: 24 cards × 4 months ≈ 4k DOM cells
+// otherwise. Months 2–4 are filled in idle time after paint, or immediately
+// when the user swipes the strip / taps a month chip.
+function cardCalPages(booked,pid){
+  let h='<div class="prop-cal-scroll" data-pid="'+pid+'" onscroll="fillCalPages(this)">';
   for(let i=0;i<4;i++){
     const d=new Date(TODAY.getFullYear(),TODAY.getMonth()+i,1);
-    h+='<div class="prop-cal-page"><div class="prop-cal-lbl">'+MONTHS[d.getMonth()]+' '+d.getFullYear()+'</div>'+buildMonth(d.getFullYear(),d.getMonth(),booked)+'</div>';
+    h+='<div class="prop-cal-page"'+(i?' data-cal="'+d.getFullYear()+':'+d.getMonth()+'"':'')+'>'
+      +'<div class="prop-cal-lbl">'+MONTHS[d.getMonth()]+' '+d.getFullYear()+'</div>'
+      +(i?'':buildMonth(d.getFullYear(),d.getMonth(),booked))
+      +'</div>';
   }
   return h+'</div>';
+}
+function fillCalPages(scroller){
+  const pending=scroller.querySelectorAll('[data-cal]');
+  if(!pending.length)return;
+  const booked=avail[scroller.dataset.pid]||new Set();
+  pending.forEach(pg=>{
+    const parts=pg.getAttribute('data-cal').split(':');
+    pg.removeAttribute('data-cal');
+    pg.insertAdjacentHTML('beforeend',buildMonth(+parts[0],+parts[1],booked));
+  });
+}
+function fillAllCalPages(){
+  document.querySelectorAll('.prop-cal-scroll[data-pid]').forEach(fillCalPages);
 }
 
 function buildSix(booked) {
