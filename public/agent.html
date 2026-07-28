@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#F4F1ED">
 <link rel="stylesheet" href="/brand.css">
+<script src="/shared.js"></script>
 <style>
 /* Core tokens come from brand.css aliases; only page-specific extras live here. */
 :root{--green:var(--sb-success-fg);}
@@ -71,7 +72,7 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
   var key = path[1] || '';
   var content = document.getElementById('content');
 
-  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  // esc() comes from /shared.js
   function fmtPrice(p){ if(!p) return ''; var m=String(p).match(/(\d+(?:\.\d+)?)\s*jt/i); if(m) return 'IDR '+m[1]+'M'; return /^\d/.test(p)?'IDR '+p:p; }
   function photoUrl(l){ return l.coverPhotoId ? 'https://lh3.googleusercontent.com/d/'+l.coverPhotoId+'=w800' : ''; }
   function initials(n){ return (n||'A').trim().split(/\s+/).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase(); }

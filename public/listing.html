@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#F4F1ED">
 <link rel="stylesheet" href="/brand.css">
+<script src="/shared.js"></script>
 <style>
   /* Core tokens come from brand.css aliases; only page-specific extras live here. */
   :root { --green: var(--sb-success-fg); }
@@ -1122,9 +1123,7 @@ function getSlug() {
   return parts[parts.length - 1] || '';
 }
 
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
+/* esc() comes from /shared.js */
 function fmtPrice(p) { return p ? p.replace(/(\d+)jt/i, 'IDR $1M') : ''; }
 
 async function boot() {

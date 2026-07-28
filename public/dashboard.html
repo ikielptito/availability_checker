@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#F4F1ED">
 <link rel="stylesheet" href="/brand.css">
+<script src="/shared.js"></script>
 <style>
 /* Core tokens come from brand.css aliases; only page-specific extras live here. */
 :root{--green:var(--sb-success-fg);--red:var(--sb-error-fg);--yellow:#B8860B;--orange:#cc7a3b;--purple:#8a6cb0;}
@@ -516,7 +517,7 @@ function funnel(stages) {
   }).join('') + '</div>';
 }
 
-function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+/* esc() comes from /shared.js */
 
 function drawChart(series) {
   const canvas = document.getElementById('activity-chart');

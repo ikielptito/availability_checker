@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#F4F1ED">
 <link rel="stylesheet" href="/brand.css">
+<script src="/shared.js"></script>
 <style>
 /* Warm/light palette — matches the Samba agent portal (index.html). */
 /* Core tokens come from brand.css aliases; only page-specific extras live here. */
@@ -580,7 +581,7 @@ async function logout(){
 }
 
 // ── Properties ──
-function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+/* esc() comes from /shared.js */
 
 let myProps=[];
 let statsPeriod='30d';
@@ -651,7 +652,7 @@ async function selectReport(slug){
   if(reportSlug===slug) body.innerHTML=renderReport(data);
 }
 
-function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+/* escapeHtml() comes from /shared.js */
 function fmtRange(a,b){const da=new Date(a+'T00:00:00'),db=new Date(b+'T00:00:00'),sameM=da.getMonth()===db.getMonth()&&da.getFullYear()===db.getFullYear();return da.toLocaleDateString('en-GB',sameM?{day:'numeric'}:{day:'numeric',month:'short'})+' – '+db.toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
 function repPctDelta(now,prev){ if(!prev) return now>0?{cls:'up',txt:'▲ new'}:{cls:'flat',txt:'—'}; const d=Math.round((now-prev)/prev*100); if(d>0)return{cls:'up',txt:'▲ '+d+'%'}; if(d<0)return{cls:'down',txt:'▼ '+Math.abs(d)+'%'}; return{cls:'flat',txt:'even'};}
 function repPtsDelta(now,prev){ const d=now-prev; if(d>0)return{cls:'up',txt:'▲ '+d}; if(d<0)return{cls:'down',txt:'▼ '+Math.abs(d)}; return{cls:'flat',txt:'even'};}

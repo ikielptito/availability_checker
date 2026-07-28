@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Samba Rentals</title>
 <link rel="stylesheet" href="/brand.css">
+<script src="/shared.js"></script>
 <style>
 /* Core tokens come from brand.css aliases; only page-specific extras live here. */
 :root{--green:var(--sb-success-fg);--red:var(--sb-error-fg);--yellow:#B8860B;}
@@ -1135,7 +1136,7 @@ function lines(str) {
   return str.split('\n').map(s => s.trim()).filter(Boolean);
 }
 
-function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+/* esc() comes from /shared.js */
 
 // Boot
 const saved = sessionStorage.getItem('admin_pw');
