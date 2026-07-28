@@ -82,6 +82,14 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 
 /* PROPERTY CARDS */
 .prop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:16px;}
+/* Portfolio roll-up strip (3+ villas) */
+.portfolio-strip{display:flex;align-items:center;gap:26px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 22px;margin-bottom:16px;box-shadow:var(--shadow);}
+.pf-cell{display:flex;flex-direction:column;gap:1px;}
+.pf-v{font-size:1.25rem;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;line-height:1.1;}
+.pf-l{font-size:0.66rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);}
+.pf-best{margin-left:auto;display:flex;flex-direction:column;gap:1px;text-align:right;min-width:0;}
+.pf-best b{font-size:0.88rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;}
+@media(max-width:600px){.portfolio-strip{gap:18px;padding:12px 16px;}.pf-best{flex-basis:100%;text-align:left;margin-left:0;}}
 .prop-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0;box-shadow:var(--shadow);}
 .prop-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
 .prop-name{font-family:'Satoshi',-apple-system,sans-serif;font-size:1.15rem;color:var(--text);}
@@ -609,6 +617,7 @@ async function loadAnalytics(){
   const r=await api('?action=analytics&period='+statsPeriod);
   statsBySlug={};
   (r.body?.properties||[]).forEach(p=>{statsBySlug[p.slug]=p;});
+  statsTotals=r.body?.totals||null;
 }
 
 function setPeriod(p){
@@ -618,7 +627,28 @@ function setPeriod(p){
 }
 
 function render(){
-  document.getElementById('properties').innerHTML='<div class="prop-grid">'+myProps.map(propCard).join('')+'</div>';
+  document.getElementById('properties').innerHTML=portfolioStrip()+'<div class="prop-grid">'+myProps.map(propCard).join('')+'</div>';
+}
+
+// Portfolio roll-up above the grid — with a dozen-plus villas the per-card
+// stats become a wall; this is the one-line answer to "how's the portfolio
+// doing" plus the current standout. Hidden for 1-2 properties, where the
+// cards ARE the summary.
+let statsTotals=null;
+function portfolioStrip(){
+  if(myProps.length<3||!statsTotals)return '';
+  const t=statsTotals;
+  const eng=(t.engagement!=null)?t.engagement:((t.listing_view||0)+(t.details_open||0));
+  let best=null,bestEng=-1;
+  myProps.forEach(p=>{const s=statsBySlug[p.slug];if(!s)return;const e=(s.engagement!=null)?s.engagement:((s.listing_view||0)+(s.details_open||0));if(e>bestEng){bestEng=e;best=p;}});
+  const cell=(v,l)=>`<div class="pf-cell"><div class="pf-v">${v}</div><div class="pf-l">${l}</div></div>`;
+  return `<div class="portfolio-strip">
+    ${cell(myProps.length,'villas')}
+    ${cell(eng,'views')}
+    ${cell(t.whatsapp_click||0,'enquiries')}
+    ${cell(t.share||0,'shares')}
+    ${best&&bestEng>0?`<div class="pf-best"><span class="pf-l">Most viewed</span><b>${esc(best.name)}</b></div>`:''}
+  </div>`;
 }
 
 // ── Weekly reports tab ──

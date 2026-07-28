@@ -2516,8 +2516,13 @@ function render() {
     const isFav=myFavorites.has(slug);
     const av=availLabel(booked);
     const heroPos=(info&&info.coverPosition)||'50% 50%';
+    // Micro-thumb placeholder: a =w32 version of the same photo as the img's
+    // CSS background — it loads in a few KB and shows (naturally blurred by
+    // upscaling) while the full =w1200 arrives, so cards never sit as flat
+    // dark blocks. Drive URLs only; Hostex covers have no size variant.
+    const tiny=p.photo&&p.photo.indexOf('=w1200')>-1?p.photo.replace('=w1200','=w32'):'';
     const heroInner='<div class="prop-hero-ph"'+(p.photo?' style="display:none"':'')+'>'+icon('home','xl')+'</div>'
-      +(p.photo?'<img class="prop-hero-img" src="'+p.photo+'" alt="'+esc(p.name)+'" loading="lazy" style="object-position:'+heroPos+'" onerror="this.style.display=\'none\';this.closest(\'.prop-media\').querySelector(\'.prop-hero-ph\').style.display=\'flex\'">':'');
+      +(p.photo?'<img class="prop-hero-img" src="'+p.photo+'" alt="'+esc(p.name)+'" loading="lazy" style="object-position:'+heroPos+(tiny?';background-image:url('+tiny+');background-size:cover;background-position:'+heroPos:'')+'" onerror="this.style.display=\'none\';this.closest(\'.prop-media\').querySelector(\'.prop-hero-ph\').style.display=\'flex\'">':'');
     const mn=monthlyNum(info);
     const br=getBedrooms(p.id);
     const windowTxt=(av&&!failedAvail.has(p.id))?windowLabel(av.window):'';
