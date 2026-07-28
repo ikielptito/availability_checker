@@ -10,15 +10,8 @@
 <meta name="theme-color" content="#F4F1ED">
 <link rel="stylesheet" href="/brand.css">
 <style>
-  :root {
-    --bg: #F4F1ED;
-    --surface: #ffffff;
-    --border: #F1ECE7;
-    --text: #131A17;
-    --muted: #8a8478;
-    --accent: #E2572B;
-    --green: #2a6a3a;
-  }
+  /* Core tokens come from brand.css aliases; only page-specific extras live here. */
+  :root { --green: var(--sb-success-fg); }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
