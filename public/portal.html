@@ -381,6 +381,11 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
         <div class="fg"><label>WhatsApp contact name</label><input id="f-waContactName" placeholder="e.g. Ketut"></div>
         <div class="fg"><label>WhatsApp number</label><input id="f-waNumber" placeholder="62812…"></div>
       </div>
+      <div class="frow" id="report-contact-row">
+        <div class="fg"><label>Weekly report contact</label><input id="f-reportContactName" placeholder="Owner's name (optional)"></div>
+        <div class="fg"><label>Report WhatsApp number</label><input id="f-reportWaNumber" placeholder="62812…"></div>
+      </div>
+      <div class="hint" id="report-contact-hint" style="margin-top:-6px">The weekly performance report goes to this contact <b>and</b> the WhatsApp contact above. Useful when the main number is your villa manager — leave blank if they're the same person.</div>
     </div>
     <div class="modal-err" id="prop-err"></div>
     <div class="modal-actions">
@@ -758,6 +763,22 @@ function renderReport(d){
 }
 
 function propCard(p){
+  // Hostex catalog unit: Samba manages content/pricing/calendar; the owner
+  // sees full analytics + reports and maintains the two contact pairs.
+  if(p.hostex){
+    return `<div class="prop-card">
+      <div class="prop-card-top">
+        <div><div class="prop-name">${esc(p.name)}</div><div class="prop-meta">${esc(p.unitType||'')}${p.tag?' · '+esc(p.tag):''}</div></div>
+        <span class="badge live">Live</span>
+      </div>
+      <div class="prop-sub"><span class="dot on"></span>Managed by Samba</div>
+      <div class="prop-status-note">Samba manages this listing's photos, pricing and calendar. You can edit its contacts and see all of its analytics and weekly reports.</div>
+      ${statsStrip(p.slug)}
+      <div class="prop-actions">
+        <button class="btn-sm" onclick="editProperty('${esc(p.slug)}')">Edit contacts</button>
+      </div>
+    </div>`;
+  }
   const comped=!!p.comped;
   const active=comped||(p.subscription&&p.subscription.status==='active');
   // The badge reflects the public state: live when approved AND (subscribed OR complimentary).
@@ -816,6 +837,7 @@ function statsStrip(slug){
 
 // ── Add / edit modal ──
 let editingSlug=null;
+let editingHostex=false;
 
 function addProperty(){ if(DEMO)return demoBlock(); openPropModal(null); }
 
@@ -826,8 +848,17 @@ function editProperty(slug){
 
 function openPropModal(slug, rec){
   editingSlug=slug;
-  document.getElementById('prop-modal-title').textContent=slug?'Edit property':'Add a property';
-  document.getElementById('prop-save-btn').textContent=slug?'Save changes':'Submit & subscribe';
+  // Samba-managed (Hostex) units: only the contact fields are editable — the
+  // rest of the form is hidden and the server enforces the same restriction.
+  const hostexMode=!!(rec&&rec.hostex);
+  editingHostex=hostexMode;
+  document.querySelectorAll('#prop-modal .modal-body > *').forEach(el=>{
+    const keep=el.id==='report-contact-row'||el.id==='report-contact-hint'
+      ||(el.querySelector&&el.querySelector('#f-waContactName'));
+    el.style.display=(hostexMode&&!keep)?'none':'';
+  });
+  document.getElementById('prop-modal-title').textContent=hostexMode?'Edit contacts':(slug?'Edit property':'Add a property');
+  document.getElementById('prop-save-btn').textContent=hostexMode?'Save contacts':(slug?'Save changes':'Submit & subscribe');
   document.getElementById('f-slug').value=slug||'';
   rec=rec||{};
   document.getElementById('f-name').value=rec.name||'';
@@ -849,6 +880,8 @@ function openPropModal(slug, rec){
   document.getElementById('f-icalUrl').value=rec.icalUrl||'';
   document.getElementById('f-waContactName').value=rec.waContactName||'';
   document.getElementById('f-waNumber').value=rec.waNumber||'';
+  document.getElementById('f-reportContactName').value=rec.reportContactName||'';
+  document.getElementById('f-reportWaNumber').value=rec.reportWaNumber||'';
   document.getElementById('prop-err').textContent='';
   // Import block only makes sense for a brand-new listing.
   document.getElementById('import-block').style.display=slug?'none':'';
@@ -893,6 +926,7 @@ async function submitProperty(){
     locationHighlights:lines('locationHighlights'),
     photosLink:g('photosLink'), mapLink:g('mapLink'), icalUrl:g('icalUrl'),
     waContactName:g('waContactName'), waNumber:g('waNumber'),
+    reportContactName:g('reportContactName'), reportWaNumber:g('reportWaNumber'),
   };
   if(!data.name.trim()){document.getElementById('prop-err').textContent='Property name is required.';return;}
   const btn=document.getElementById('prop-save-btn');btn.disabled=true;btn.textContent='Saving…';
@@ -905,8 +939,9 @@ async function submitProperty(){
   showToast(wasNew?'Submitted — almost there.':'Saved.');
   await loadProperties();
   // Kick off AI photo sorting in the background — instant no-op when the
-  // photo set hasn't changed since the last sort.
-  if(newSlug && data.photosLink) aiSortPhotos(newSlug, true);
+  // photo set hasn't changed since the last sort. Skipped for Samba-managed
+  // units: a contacts-only save must not re-rank their (shared) photo folder.
+  if(newSlug && data.photosLink && !editingHostex) aiSortPhotos(newSlug, true);
   if(wasNew && newSlug) openCheckout(newSlug);
 }
 

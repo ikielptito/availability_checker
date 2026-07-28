@@ -1,3 +1,5 @@
+import { UNITS } from '../lib/catalog.js';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -512,22 +514,50 @@ async function handleOwnerSync(req, res) {
     };
 
     const owners = [];
-    for (const [slug, c] of entries) {
-      if (!c) continue;
+    // One row per (listing, contact) pair. Every listing with a WhatsApp
+    // number emits its operational row (role 'ops'); a listing with a
+    // distinct dedicated report contact emits a second row (role 'report').
+    // The CRM groups rows by waNumber, so a manager number and an owner
+    // number become separate owner records both carrying the slug — which is
+    // exactly the "weekly report goes to both" behaviour. `role` is advisory.
+    const pushRows = (slug, c, live) => {
       const waNumber = String(c.waNumber || '').replace(/[^0-9]/g, '');
-      if (!waNumber) continue;                                 // can't message without a number
+      const reportWa = String(c.reportWaNumber || '').replace(/[^0-9]/g, '');
       const acct = c.ownerSub ? ownerAccounts[c.ownerSub] : null;
-      owners.push({
+      const base = {
         slug,
         listingName: c.name || slug,
-        waNumber,
-        waContactName: c.waContactName || '',
         ownerSub: c.ownerSub || null,
         ownerEmail: c.ownerEmail || acct?.email || '',
         ownerName: acct?.name || c.waContactName || '',
-        live: isLive(c, slug),
-      });
+        live,
+      };
+      if (waNumber) {
+        owners.push({ ...base, waNumber, waContactName: c.waContactName || '', role: 'ops' });
+      }
+      if (reportWa && reportWa !== waNumber) {
+        owners.push({
+          ...base, waNumber: reportWa,
+          waContactName: c.reportContactName || '',
+          ownerName: c.reportContactName || base.ownerName,
+          role: 'report',
+        });
+      }
+    };
+    for (const [slug, c] of entries) {
+      if (!c) continue;
+      pushRows(slug, c, isLive(c, slug));
     }
+    // Hostex catalog units: ownership + contacts live in the per-slug
+    // override. Always live — they bypass the custom-listing review gate.
+    try {
+      const ov = await kv(UNITS.map(u => ['GET', `listing:${u.slug}`]));
+      UNITS.forEach((u, i) => {
+        let o = null; try { o = JSON.parse(ov[i]?.result); } catch {}
+        if (!o) return;
+        pushRows(u.slug, { ...o, name: o.name || u.name }, true);
+      });
+    } catch { /* best-effort — custom rows still returned */ }
     return res.status(200).json({ owners, count: owners.length });
   } catch (e) {
     return res.status(500).json({ error: e.message });

@@ -455,6 +455,29 @@ function defaultCard(l) {
         </div>
       </div>
 
+      <div class="section-label">Weekly report contact <span class="field-hint">(owner — gets Maya's weekly report in addition to the contact above; leave blank if same)</span></div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Report contact name</label>
+          <input class="field-input" id="${l.slug}-reportContactName" value="${esc(l.reportContactName || '')}" placeholder="Owner's name" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Report WhatsApp number</label>
+          <input class="field-input" id="${l.slug}-reportWaNumber" value="${esc(l.reportWaNumber || '')}" placeholder="628…" />
+        </div>
+      </div>
+
+      <div class="section-label">Owner portal access</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Owner email <span class="field-hint">(listing appears in their portal after Google sign-in)</span></label>
+          <input class="field-input" id="${l.slug}-ownerEmail" value="${esc(l.ownerEmail || '')}" placeholder="owner@example.com" />
+        </div>
+        <div class="field-group" style="display:flex;align-items:flex-end">
+          <button type="button" class="review-btn" onclick="assignOwner('${l.slug}')">Assign owner</button>
+        </div>
+      </div>
+
       <div class="section-label">Photos</div>
       <div class="field-group">
         <label class="field-label">Google Drive Folder URL</label>
@@ -608,6 +631,18 @@ function customCard(l, isNew) {
         </div>
       </div>
 
+      <div class="section-label">Weekly report contact <span class="field-hint">(owner — gets Maya's weekly report in addition to the contact above; leave blank if same)</span></div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Report contact name</label>
+          <input class="field-input" id="${slug}-reportContactName" value="${esc(l.reportContactName || '')}" placeholder="Owner's name" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Report WhatsApp number</label>
+          <input class="field-input" id="${slug}-reportWaNumber" value="${esc(l.reportWaNumber || '')}" placeholder="628…" />
+        </div>
+      </div>
+
       <div class="section-label">Photos</div>
       <div class="field-group">
         <label class="field-label">Google Drive Folder URL</label>
@@ -751,6 +786,8 @@ async function saveCustom(cardSlug, isNew) {
     locationHighlights: lines(document.getElementById(cardSlug + '-locationHighlights').value),
     waContactName: document.getElementById(cardSlug + '-waContactName').value,
     waNumber: document.getElementById(cardSlug + '-waNumber').value,
+    reportContactName: document.getElementById(cardSlug + '-reportContactName').value,
+    reportWaNumber: document.getElementById(cardSlug + '-reportWaNumber').value,
     bookedRanges: parseRanges(document.getElementById(cardSlug + '-ranges').value),
     icalUrl: document.getElementById(cardSlug + '-icalUrl').value.trim(),
     coverPhotoId: document.getElementById(cardSlug + '-coverPhotoId').value,
@@ -1015,6 +1052,28 @@ function resetCoverFocus(slug) {
 document.addEventListener('pointermove', e => { if (coverDrag) setCoverFocusFromEvent(coverDrag, e); });
 document.addEventListener('pointerup', () => { coverDrag = null; });
 
+// Assign (or clear) the portal owner of a Hostex catalog unit. The listing
+// shows up in that owner's portal after they sign in with the matching
+// Google account. Uses the same assign-owner action custom listings use.
+async function assignOwner(slug) {
+  const ownerEmail = document.getElementById(slug + '-ownerEmail').value.trim();
+  try {
+    const r = await fetch('/api/listings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminPw },
+      body: JSON.stringify({ action: 'assign-owner', slug, ownerEmail }),
+    });
+    if (r.status === 401) { showGate('Session expired. Please log in again.'); return; }
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + r.status);
+    }
+    showToast(ownerEmail ? `Owner set: ${ownerEmail}` : 'Owner cleared', 'success');
+  } catch (e) {
+    showToast('Assign failed: ' + e.message, 'error');
+  }
+}
+
 async function saveListing(slug) {
   const btn = document.getElementById('save-' + slug);
   btn.disabled = true;
@@ -1036,6 +1095,8 @@ async function saveListing(slug) {
     locationHighlights: lines(document.getElementById(slug + '-locationHighlights').value),
     waContactName: document.getElementById(slug + '-waContactName').value,
     waNumber: document.getElementById(slug + '-waNumber').value,
+    reportContactName: document.getElementById(slug + '-reportContactName').value,
+    reportWaNumber: document.getElementById(slug + '-reportWaNumber').value,
     unitType: document.getElementById(slug + '-unitType').value,
     tag: document.getElementById(slug + '-tag').value,
     coverPhotoId: document.getElementById(slug + '-coverPhotoId').value,

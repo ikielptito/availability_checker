@@ -45,6 +45,7 @@ const TROPICANA = {
 // inclusions…) are the portal's presentation layer and stay here.
 import { UNITS } from '../lib/catalog.js';
 import { rankStep } from '../lib/photorank.js';
+import { sanitizePublicListing } from '../lib/owner-listings.js';
 const BUILDING = {
   'haus-1': HAUS, 'haus-2': HAUS, 'haus-4': HAUS, 'haus-5': HAUS,
   'lanehaus-1': LANE, 'lanehaus-3': LANE,
@@ -206,10 +207,14 @@ export default async function handler(req, res) {
 
     // Public view: admin-curated listings, plus owner listings that have been
     // approved (billing gate is currently off — approval alone makes them live).
+    // Every row is sanitized: owner identity fields (ownerSub/ownerEmail/…)
+    // live on both custom records and Hostex overrides now, and must never be
+    // served unauthenticated. waNumber/waContactName stay — public enquiry
+    // flow reads them.
     const customListings = customAll
       .filter(c => listingVisible(c))
-      .map(c => ({ ...c, custom: true }));
-    const out = [...listings, ...customListings];
+      .map(c => sanitizePublicListing({ ...c, custom: true }));
+    const out = [...listings.map(sanitizePublicListing), ...customListings];
     await fillCovers(out);
     return res.status(200).json({ listings: out });
   }
@@ -328,6 +333,18 @@ export default async function handler(req, res) {
     // set here — it is filled in on first sign-in.
     if (req.body?.action === 'assign-owner') {
       const { slug, ownerEmail, comped } = req.body;
+      // Hostex catalog units: ownership lives in the per-slug override.
+      // `comped`/`status` are meaningless here — these units are always
+      // public and never billed, and must NOT be routed through
+      // listingVisible(). Clearing the email also clears the claimed sub.
+      if (DEFAULTS[slug]) {
+        const override = await kvGet(`listing:${slug}`) || { slug };
+        override.ownerEmail = ownerEmail ? String(ownerEmail).trim().toLowerCase() : null;
+        if (!override.ownerEmail) override.ownerSub = null;
+        override.updatedAt = Date.now();
+        await kvSet(`listing:${slug}`, override);
+        return res.status(200).json({ ok: true, slug, ownerEmail: override.ownerEmail, hostex: true });
+      }
       const all = await kvGet(CUSTOM_KEY) || {};
       if (!all[slug]) return res.status(404).json({ error: 'Not found' });
       all[slug].ownerEmail = ownerEmail ? String(ownerEmail).trim().toLowerCase() : null;
@@ -369,6 +386,10 @@ export default async function handler(req, res) {
         folder: cleanStr(data.folder),
         waNumber: cleanStr(data.waNumber).replace(/[^0-9]/g, ''),
         waContactName: cleanStr(data.waContactName),
+        // Dedicated weekly-report contact (usually the owner when waNumber is
+        // a manager). Maya's weekly report goes to BOTH numbers when they differ.
+        reportContactName: cleanStr(data.reportContactName),
+        reportWaNumber: cleanStr(data.reportWaNumber).replace(/[^0-9]/g, ''),
         bookedRanges: Array.isArray(data.bookedRanges) ? cleanRanges(data.bookedRanges) : existing.bookedRanges || [],
         hidden: !!data.hidden,
         petFriendly: !!data.petFriendly,
@@ -411,6 +432,14 @@ export default async function handler(req, res) {
       mapEmbed: typeof data.mapEmbed === 'string' ? data.mapEmbed.trim() : existing.mapEmbed || DEFAULTS[slug].mapEmbed,
       waNumber: typeof data.waNumber === 'string' ? data.waNumber.replace(/[^0-9]/g, '') : existing.waNumber || '',
       waContactName: typeof data.waContactName === 'string' ? data.waContactName.trim() : existing.waContactName || '',
+      // Dedicated weekly-report contact — see the custom branch above.
+      reportContactName: typeof data.reportContactName === 'string' ? data.reportContactName.trim() : existing.reportContactName || '',
+      reportWaNumber: typeof data.reportWaNumber === 'string' ? data.reportWaNumber.replace(/[^0-9]/g, '') : existing.reportWaNumber || '',
+      // Ownership fields are set by assign-owner + the portal claim flow —
+      // carried over verbatim so an admin content edit can never wipe them
+      // (this rebuild replaces the whole override).
+      ownerSub: existing.ownerSub || null,
+      ownerEmail: existing.ownerEmail || null,
       unitType: (typeof data.unitType === 'string' && data.unitType.trim()) || existing.unitType || DEFAULTS[slug].unitType || '',
       coverPhotoId: typeof data.coverPhotoId === 'string' && /^[A-Za-z0-9_-]{0,80}$/.test(data.coverPhotoId.trim())
         ? data.coverPhotoId.trim() : existing.coverPhotoId || '',

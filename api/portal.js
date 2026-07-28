@@ -12,6 +12,7 @@ import crypto from 'node:crypto';
 import { logError } from '../lib/errlog.js';
 import { rankStep } from '../lib/photorank.js';
 import { parseIcsBookedDates } from './ical.js';
+import { isHostexSlug, propIdFor, loadHostexOwnerMap, resolveOwnedListing } from '../lib/owner-listings.js';
 
 const SESSION_COOKIE = 'samba_session';
 const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days
@@ -522,14 +523,21 @@ async function redeemPromo(req, res, owner, { kvGet, kvSet }) {
 // ── Owner property CRUD ─────────────────────────────────────────────
 async function listProperties(res, owner, { kvGet, kvSet }) {
   const customMap = (await kvGet(CUSTOM_KEY)) || {};
+  const hostexMap = await loadHostexOwnerMap(kvGet);
   // Claim any listings an admin pre-assigned to this owner's email.
-  await claimByEmail(owner, customMap, { kvGet, kvSet });
+  await claimByEmail(owner, customMap, hostexMap, { kvGet, kvSet });
   const slugs = (await kvGet(`owner_listings:${owner.sub}`)) || [];
-  const subs = await Promise.all(slugs.map(s => kvGet(`sub:${s}`)));
+  // Hostex catalog units are never billed — skip the sub:{slug} lookup.
+  const subs = await Promise.all(slugs.map(s => isHostexSlug(s) ? null : kvGet(`sub:${s}`)));
   const properties = slugs
     .map((slug, i) => {
-      const c = customMap[slug];
+      const c = resolveOwnedListing(slug, customMap, hostexMap);
       if (!c || c.ownerSub !== owner.sub) return null;
+      if (c.hostex) {
+        // Samba-managed unit: always live, no billing, restricted editing —
+        // the `hostex` flag is what the portal UI keys those restrictions on.
+        return { ...c, status: 'live', comped: false, subscription: null };
+      }
       // Return the full record (owner's own data) so the edit form can populate.
       return {
         ...c,
@@ -543,21 +551,36 @@ async function listProperties(res, owner, { kvGet, kvSet }) {
 }
 
 // Link listings an admin pre-assigned to owner.email (via assign-owner) to this
-// signed-in owner: set ownerSub and add to the owner_listings index. Mutates
-// customMap in place and persists if anything changed.
-async function claimByEmail(owner, customMap, { kvGet, kvSet }) {
+// signed-in owner: set ownerSub and add to the owner_listings index. Covers
+// both stores — custom listings (mutates customMap in place, persists the hash)
+// and Hostex catalog units (persists each claimed per-slug override).
+async function claimByEmail(owner, customMap, hostexMap, { kvGet, kvSet }) {
   if (!owner.email) return;
   const email = owner.email.toLowerCase();
   const toClaim = Object.keys(customMap).filter(slug => {
     const c = customMap[slug];
     return c && c.ownerEmail && String(c.ownerEmail).toLowerCase() === email && c.ownerSub !== owner.sub;
   });
-  if (!toClaim.length) return;
-  for (const slug of toClaim) customMap[slug].ownerSub = owner.sub;
-  await kvSet(CUSTOM_KEY, customMap);
+  const hostexClaim = Object.keys(hostexMap || {}).filter(slug => {
+    const h = hostexMap[slug];
+    return h && h.ownerEmail && String(h.ownerEmail).toLowerCase() === email && h.ownerSub !== owner.sub;
+  });
+  if (!toClaim.length && !hostexClaim.length) return;
+  if (toClaim.length) {
+    for (const slug of toClaim) customMap[slug].ownerSub = owner.sub;
+    await kvSet(CUSTOM_KEY, customMap);
+  }
+  for (const slug of hostexClaim) {
+    hostexMap[slug].ownerSub = owner.sub;
+    // Persist only the override fields, not the merged catalog identity — read
+    // the stored override fresh so we can't bake catalog defaults into KV.
+    const override = (await kvGet(`listing:${slug}`)) || { slug };
+    override.ownerSub = owner.sub;
+    await kvSet(`listing:${slug}`, override);
+  }
   const owned = (await kvGet(`owner_listings:${owner.sub}`)) || [];
   let changed = false;
-  for (const slug of toClaim) if (!owned.includes(slug)) { owned.push(slug); changed = true; }
+  for (const slug of [...toClaim, ...hostexClaim]) if (!owned.includes(slug)) { owned.push(slug); changed = true; }
   if (changed) await kvSet(`owner_listings:${owner.sub}`, owned);
 }
 
@@ -569,10 +592,20 @@ async function ownerAnalytics(req, res, owner, { kvGet, kvPipeline }) {
   const period = ['7d', '30d', '90d', 'all'].includes(req.query.period) ? req.query.period : '30d';
   const slugs = (await kvGet(`owner_listings:${owner.sub}`)) || [];
   const customMap = (await kvGet(CUSTOM_KEY)) || {};
-  const mine = slugs.filter(s => customMap[s] && customMap[s].ownerSub === owner.sub);
+  const hostexMap = await loadHostexOwnerMap(kvGet);
+  const records = {};
+  const mine = slugs.filter(s => {
+    const rec = resolveOwnedListing(s, customMap, hostexMap);
+    if (!rec || rec.ownerSub !== owner.sub) return false;
+    records[s] = rec;
+    return true;
+  });
   if (!mine.length) return res.status(200).json({ period, properties: [], totals: zeroEvents() });
 
-  const propIds = mine.map(s => 'c_' + s);
+  // Hostex units have always been tracked under their numeric hostexId —
+  // propIdFor keeps that history; customs stay 'c_'+slug.
+  const pidOf = Object.fromEntries(mine.map(s => [s, propIdFor(records[s])]));
+  const propIds = mine.map(s => pidOf[s]);
   const num = v => parseInt(v) || 0;
   const stats = Object.fromEntries(propIds.map(id => [id, zeroEvents()]));
 
@@ -623,9 +656,9 @@ async function ownerAnalytics(req, res, owner, { kvGet, kvPipeline }) {
   });
 
   const properties = mine.map(slug => {
-    const s = stats['c_' + slug];
-    const id = 'c_' + slug;
-    return { slug, name: customMap[slug].name, ...s, engagement: s.listing_view + s.details_open,
+    const id = pidOf[slug];
+    const s = stats[id];
+    return { slug, name: records[slug].name, ...s, engagement: s.listing_view + s.details_open,
              spark: spark[id], shares7: shares7[id], wa7: wa7[id] };
   });
   const totals = zeroEvents();
@@ -646,12 +679,13 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
   const slug = normSlug(req.query.slug || '');
   if (!slug) return res.status(400).json({ error: 'Missing slug' });
   const customMap = (await kvGet(CUSTOM_KEY)) || {};
-  const prop = customMap[slug];
+  const hostexMap = await loadHostexOwnerMap(kvGet);
+  const prop = resolveOwnedListing(slug, customMap, hostexMap);
   // owner === null means the caller is service-authed (Maya server-side) and may
   // read any listing; a session caller is scoped to their own listings.
   if (!prop) return res.status(404).json({ error: 'Unknown listing' });
   if (owner && prop.ownerSub !== owner.sub) return res.status(403).json({ error: 'Not your listing' });
-  const propId = 'c_' + slug;
+  const propId = propIdFor(prop);
   const num = v => parseInt(v) || 0;
 
   // 14 days of per-property stats hashes: [0] = 13 days ago … [13] = today.
@@ -712,7 +746,9 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
   // listings that had any activity this week.
   const peerEnq = {};
   for (let i = 7; i <= 13; i++) for (const [pid, evs] of Object.entries(byDay[i])) {
-    if (!pid.startsWith('c_')) continue;
+    // Peers = every real listing: customs ('c_'+slug) AND Hostex units (bare
+    // numeric hostexId). Anything else in the stats hash isn't a listing.
+    if (!pid.startsWith('c_') && !/^\d+$/.test(pid)) continue;
     peerEnq[pid] = (peerEnq[pid] || 0) + (evs.whatsapp_click || 0);
   }
   const peers = Object.values(peerEnq);
@@ -724,10 +760,27 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
     percentile: peers.length > 1 ? Math.round((below / (peers.length - 1)) * 100) : null,
   };
 
-  // Live occupancy from the villa's own iCal (reuses the parser api/ical.js
-  // exposes). Degrades to null — the section hides — if no calendar or fetch fails.
+  // Live occupancy. Custom listings: from the villa's own iCal (parser from
+  // api/ical.js). Hostex units: from the Hostex calendar via our own
+  // /api/calendar (same self-fetch pattern api/dashboard.js uses; the dev
+  // harness mocks Hostex so this works locally too). Degrades to null — the
+  // section hides — if no calendar or fetch fails.
   let occupancy = null;
-  if (prop.icalUrl && /^https?:\/\//.test(prop.icalUrl)) {
+  if (prop.hostex && prop.hostexId) {
+    try {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const horizon = new Date(today); horizon.setDate(horizon.getDate() + 90);
+      const iso = d => d.toISOString().split('T')[0];
+      const host = req.headers.host || 'sambarentals.com';
+      const proto = req.headers['x-forwarded-proto'] || (/^localhost|^127\./.test(host) ? 'http' : 'https');
+      const calRes = await fetch(`${proto}://${host}/api/calendar?id=${prop.hostexId}&start_date=${iso(today)}&end_date=${iso(horizon)}`);
+      if (calRes.ok) {
+        const cal = await calRes.json();
+        const booked = new Set((cal?.data?.items || []).filter(i => i.status === 'booked').map(i => i.date));
+        occupancy = buildOccupancy(booked);
+      }
+    } catch { /* keep occupancy null */ }
+  } else if (prop.icalUrl && /^https?:\/\//.test(prop.icalUrl)) {
     try {
       const today = new Date().toISOString().split('T')[0];
       const horizon = new Date(); horizon.setDate(horizon.getDate() + 90);
@@ -780,6 +833,26 @@ function buildOccupancy(bookedSet) {
 
 async function saveProperty(req, res, owner, { kvGet, kvSet, kvDel }) {
   const data = req.body?.data || {};
+
+  // Hostex catalog units: the owner may only maintain the four contact
+  // fields. Identity, pricing, calendar, and photos are Samba-managed (the
+  // catalog + admin console own them), so a portal edit must never touch
+  // them — the admin write path would fight any structural change anyway.
+  const hostexSlug = cleanStr(req.body?.slug);
+  if (hostexSlug && isHostexSlug(hostexSlug)) {
+    const override = (await kvGet(`listing:${hostexSlug}`)) || { slug: hostexSlug };
+    if (override.ownerSub !== owner.sub) {
+      return res.status(403).json({ error: 'Not your listing' });
+    }
+    if (data.waNumber !== undefined) override.waNumber = cleanStr(data.waNumber).replace(/[^0-9]/g, '');
+    if (data.waContactName !== undefined) override.waContactName = cleanStr(data.waContactName);
+    if (data.reportContactName !== undefined) override.reportContactName = cleanStr(data.reportContactName);
+    if (data.reportWaNumber !== undefined) override.reportWaNumber = cleanStr(data.reportWaNumber).replace(/[^0-9]/g, '');
+    override.updatedAt = Date.now();
+    await kvSet(`listing:${hostexSlug}`, override);
+    return res.status(200).json({ ok: true, slug: hostexSlug, status: 'live', hostex: true });
+  }
+
   const name = cleanStr(data.name);
   if (!name) return res.status(400).json({ error: 'Property name is required' });
 
@@ -868,10 +941,13 @@ async function rankPhotos(req, res, owner, { kvGet, kvSet, kvDel }) {
   const slug = cleanStr(req.body?.slug);
   if (!slug) return res.status(400).json({ error: 'Missing slug' });
   const all = (await kvGet(CUSTOM_KEY)) || {};
-  if (!all[slug] || all[slug].ownerSub !== owner.sub) {
+  const hostexMap = await loadHostexOwnerMap(kvGet);
+  const rec = resolveOwnedListing(slug, all, hostexMap);
+  if (!rec || rec.ownerSub !== owner.sub) {
     return res.status(403).json({ error: 'Not your listing' });
   }
-  const folder = all[slug].folder;
+  // NOTE: Tropicana units share one Drive folder — ranking one ranks them all.
+  const folder = rec.folder;
   if (!folder) return res.status(400).json({ error: 'This listing has no photo folder yet' });
   if (!process.env.ANTHROPIC_API_KEY || !process.env.GOOGLE_API_KEY) {
     return res.status(500).json({ error: 'Photo sorting not configured' });
@@ -893,6 +969,9 @@ async function rankPhotos(req, res, owner, { kvGet, kvSet, kvDel }) {
 async function deleteProperty(req, res, owner, { kvGet, kvSet, kvDel }) {
   const slug = cleanStr(req.query.slug) || cleanStr(req.body?.slug);
   if (!slug) return res.status(400).json({ error: 'Missing slug' });
+  if (isHostexSlug(slug)) {
+    return res.status(403).json({ error: 'This listing is managed by Samba and can’t be removed from here.' });
+  }
   const all = (await kvGet(CUSTOM_KEY)) || {};
   if (!all[slug] || all[slug].ownerSub !== owner.sub) {
     return res.status(403).json({ error: 'Not your listing' });
@@ -938,6 +1017,10 @@ function buildOwnerListing(slug, data, existing, ownerSub, status) {
     folder: extractFolderId(data.photosLink || data.folder),
     waNumber: cleanStr(data.waNumber).replace(/[^0-9]/g, ''),
     waContactName: cleanStr(data.waContactName),
+    // Dedicated weekly-report contact (owner) — separate from the operational
+    // waNumber (often a manager). Both receive Maya's weekly report.
+    reportContactName: data.reportContactName !== undefined ? cleanStr(data.reportContactName) : (existing?.reportContactName || ''),
+    reportWaNumber: data.reportWaNumber !== undefined ? cleanStr(data.reportWaNumber).replace(/[^0-9]/g, '') : (existing?.reportWaNumber || ''),
     bedrooms: bed || undefined,
     bathrooms: bath || undefined,
     bookedRanges: existing?.bookedRanges || [],

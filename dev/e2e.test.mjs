@@ -4,6 +4,7 @@ process.env.KV_REST_API_TOKEN = 't';
 process.env.DASHBOARD_PASSWORD = 'pw';
 process.env.DIGEST_SHARED_SECRET = 'digest_secret';
 process.env.HOSTEX_TOKEN = 'fake';
+process.env.LISTING_SYNC_SECRET = 'sync_secret';
 
 const store = new Map(); // strings
 const sets = new Map();  // Set
@@ -35,6 +36,7 @@ function exec(cmd) {
     case 'LPUSH': { if (!lists.has(a[0])) lists.set(a[0], []); lists.get(a[0]).unshift(a[1]); return lists.get(a[0]).length; }
     case 'LTRIM': { const l = lists.get(a[0]) || []; lists.set(a[0], l.slice(parseInt(a[1]), parseInt(a[2]) + 1)); return 'OK'; }
     case 'LRANGE': { const l = lists.get(a[0]) || []; return l.slice(parseInt(a[1]), parseInt(a[2]) + 1); }
+    case 'DEL': { const had = store.delete(a[0]); return had ? 1 : 0; }
     default: throw new Error('unhandled op ' + op);
   }
 }
@@ -44,6 +46,8 @@ const trackMod = await import('/Users/ikiel/availability_checker/api/track.js');
 const dashMod = await import('/Users/ikiel/availability_checker/api/dashboard.js');
 const digestMod = await import('/Users/ikiel/availability_checker/api/digest.js');
 const icalMod = await import('/Users/ikiel/availability_checker/api/ical.js');
+const portalMod = await import('/Users/ikiel/availability_checker/api/portal.js');
+const calMod = await import('/Users/ikiel/availability_checker/api/calendar.js');
 
 // ── Hostex mock controls for digest test ─────────────────────────────
 // hostexCalendars[propertyId] = { reservations: [{check_in_date, check_out_date, status}], closedDates: [YYYY-MM-DD] }
@@ -88,6 +92,20 @@ globalThis.fetch = async (url, opts = {}) => {
   if (u.includes('/api/listings')) {
     const res = await call(listingsMod, { method: 'GET' });
     return { ok: true, json: async () => res.data };
+  }
+  // Owner-report occupancy self-fetch → run the real calendar handler
+  // (which in turn hits the Hostex mocks below).
+  if (u.includes('/api/calendar')) {
+    const q = Object.fromEntries(new URL(u).searchParams);
+    const res = await call(calMod, { method: 'GET', query: q });
+    return { ok: res.code === 200, json: async () => res.data };
+  }
+  // Upstash SCAN (owner:* enumeration in the owner_sync feed).
+  if (u.startsWith('http://kv/scan/')) {
+    const match = decodeURIComponent((u.match(/match=([^&]+)/) || [])[1] || '*');
+    const prefix = match.replace(/\*$/, '');
+    const keys = [...store.keys()].filter(k => k.startsWith(prefix));
+    return { json: async () => ({ result: ['0', keys] }) };
   }
   if (u === 'http://ics/villa-merman.ics') {
     return { ok: true, status: 200, text: async () => MOCK_ICS };
@@ -341,6 +359,76 @@ check('digest merman availableToday=true (T0 free)', merman && merman.availabili
 // Blocked: +2..+4 (ical), +10..+11 (ical), +40..+42 (manual). Runs: 0..1 (2d),
 // 5..9 (5d), 12..39 (28d — just under 30), then 43+ → first ≥30-day window at +43
 check('digest merman long window starts after manual range', merman && merman.availability.nextLongWindowFrom === isoNext(T0, 43), merman?.availability.nextLongWindowFrom);
+
+// ── Owner portal: Hostex catalog units as owned listings ─────────────
+// Covers: assign-owner on a Hostex slug, email claim on sign-in, numeric
+// propId analytics, service report + Hostex occupancy, owner write guards,
+// the admin-edit ownership-wipe regression, public field stripping, and the
+// (listing, contact)-pair owner_sync feed.
+const TD = new Date().toISOString().split('T')[0];
+store.set('session:tok1', JSON.stringify({ sub: 'sub-ikiel', exp: Date.now() + 86400000 }));
+store.set('owner:sub-ikiel', JSON.stringify({ sub: 'sub-ikiel', email: 'ikielptito@gmail.com', name: 'Ikiel' }));
+const ownerHeaders = { cookie: 'samba_session=tok1', host: 'kv-test' };
+
+r = await call(listingsMod, { method: 'POST', headers: { authorization: 'Bearer pw' },
+  body: { action: 'assign-owner', slug: 'haus-1', ownerEmail: 'IkielPtito@Gmail.com' } });
+check('assign-owner accepts Hostex slug', r.code === 200 && r.data.hostex === true && r.data.ownerEmail === 'ikielptito@gmail.com', JSON.stringify(r.data));
+
+r = await call(portalMod, { method: 'GET', query: { action: 'properties' }, headers: ownerHeaders });
+const hoProps = r.data?.properties || [];
+const haus = hoProps.find(p => p.slug === 'haus-1');
+check('portal lists claimed Hostex unit', !!haus && haus.hostex === true && haus.status === 'live' && haus.subscription === null, JSON.stringify(hoProps.map(p => p.slug)));
+const hausOv = JSON.parse(store.get('listing:haus-1'));
+check('claim stamped ownerSub into override', hausOv.ownerSub === 'sub-ikiel', store.get('listing:haus-1'));
+check('owner_listings index contains haus-1', (JSON.parse(store.get('owner_listings:sub-ikiel')) || []).includes('haus-1'));
+
+exec(['HINCRBY', `pstats:${TD}`, '11621510:details_open', '7']);
+r = await call(portalMod, { method: 'GET', query: { action: 'analytics', period: '7d' }, headers: ownerHeaders });
+const hausA = (r.data?.properties || []).find(p => p.slug === 'haus-1');
+check('analytics counts numeric-propId events', hausA && hausA.details_open === 7, JSON.stringify(r.data?.properties));
+
+hostexCalendars['11621510'] = { reservations: [], closedDates: [isoNext(TD, 1), isoNext(TD, 2)] };
+r = await call(portalMod, { method: 'GET', query: { action: 'report', slug: 'haus-1' },
+  headers: { authorization: 'Bearer sync_secret', host: 'kv-test' } });
+check('service report for Hostex slug returns metrics', r.code === 200 && r.data?.metrics && /HAUS/.test(r.data.name), r.code);
+check('report occupancy from Hostex calendar', r.data?.occupancy && r.data.occupancy.bookedNights === 2, JSON.stringify(r.data?.occupancy));
+
+r = await call(portalMod, { method: 'POST', query: { action: 'property' }, headers: ownerHeaders,
+  body: { slug: 'haus-1', data: { name: 'HACKED NAME', monthly: '1jt', waContactName: 'Manager Made', waNumber: '628111', reportContactName: 'Ikiel', reportWaNumber: '628222' } } });
+check('hostex owner edit ok (contact-only)', r.code === 200 && r.data.hostex === true, JSON.stringify(r.data));
+let ov2 = JSON.parse(store.get('listing:haus-1'));
+check('hostex owner edit cannot change name/price', ov2.name === undefined && ov2.monthly === undefined, JSON.stringify(ov2));
+check('hostex owner edit stored contacts', ov2.waNumber === '628111' && ov2.reportWaNumber === '628222' && ov2.reportContactName === 'Ikiel', JSON.stringify(ov2));
+
+r = await call(portalMod, { method: 'DELETE', query: { action: 'property', slug: 'haus-1' }, headers: ownerHeaders });
+check('hostex delete blocked 403', r.code === 403, r.code);
+
+// Admin content edit must NOT wipe ownership or report contacts (regression:
+// the Hostex write path rebuilds the whole override).
+r = await call(listingsMod, { method: 'POST', headers: { authorization: 'Bearer pw' },
+  body: { slug: 'haus-1', data: { monthly: '28jt', reportWaNumber: '628333' } } });
+const ov3 = JSON.parse(store.get('listing:haus-1'));
+check('admin edit preserves ownerSub/ownerEmail', ov3.ownerSub === 'sub-ikiel' && ov3.ownerEmail === 'ikielptito@gmail.com', JSON.stringify(ov3));
+check('admin edit updates report contact + keeps ops contact', ov3.reportWaNumber === '628333' && ov3.waNumber === '628111', JSON.stringify(ov3));
+
+r = await call(listingsMod, { method: 'GET' });
+const leakFields = ['ownerEmail', 'ownerSub', 'ownerWa', 'reportWaNumber', 'reportContactName'];
+const leaked = r.data.listings.filter(l => leakFields.some(f => f in l));
+check('public listings strip owner fields', leaked.length === 0, JSON.stringify(leaked.map(l => l.slug)));
+const h1pub = r.data.listings.find(l => l.slug === 'haus-1');
+check('public listing keeps ops waNumber', h1pub && h1pub.waNumber === '628111', JSON.stringify(h1pub?.waNumber));
+r = await call(listingsMod, { method: 'GET', query: { all: '1' }, headers: { authorization: 'Bearer pw' } });
+check('admin ?all=1 still sees ownerEmail', r.data.listings.find(l => l.slug === 'haus-1')?.ownerEmail === 'ikielptito@gmail.com');
+
+r = await call(dashMod, { method: 'GET', query: { owner_sync: '1' }, headers: { authorization: 'Bearer sync_secret' } });
+const feedRows = r.data?.owners || [];
+const h1rows = feedRows.filter(x => x.slug === 'haus-1');
+check('feed emits Hostex ops + report rows',
+  h1rows.length === 2
+  && h1rows.some(x => x.role === 'ops' && x.waNumber === '628111')
+  && h1rows.some(x => x.role === 'report' && x.waNumber === '628333'),
+  JSON.stringify(h1rows));
+check('feed Hostex rows live:true with owner identity', h1rows.every(x => x.live === true && x.ownerEmail === 'ikielptito@gmail.com'), JSON.stringify(h1rows));
 
 console.log(failures ? `\n${failures} FAILURES` : '\nALL PASS');
 process.exit(failures ? 1 : 0);
