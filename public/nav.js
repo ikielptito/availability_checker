@@ -65,14 +65,17 @@
   .snav-stab svg{width:16px;height:16px;flex-shrink:0}
   .snav-stab .snav-av{width:22px;height:22px}
   /* Tier 1 — floating glass portal bar (mobile) */
-  #snav-tabs{position:fixed;left:16px;right:16px;bottom:14px;z-index:900;display:none;background:rgba(255,255,255,.92);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(28,25,23,.09);border-radius:22px;padding:5px;gap:8px;height:62px;box-sizing:border-box;box-shadow:0 1px 2px rgba(28,25,23,.06),0 8px 22px rgba(28,25,23,.1)}
+  /* translateZ(0) + backface-visibility pin the bar to its own compositor layer
+     so iOS Safari keeps it locked to the viewport during momentum scroll
+     (fixed + backdrop-filter otherwise lags upward and snaps back). */
+  #snav-tabs{position:fixed;left:16px;right:16px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:900;display:none;background:rgba(255,255,255,.92);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(28,25,23,.09);border-radius:22px;padding:5px;gap:8px;height:62px;box-sizing:border-box;box-shadow:0 1px 2px rgba(28,25,23,.06),0 8px 22px rgba(28,25,23,.1);transform:translateZ(0);-webkit-transform:translateZ(0);backface-visibility:hidden;-webkit-backface-visibility:hidden}
   #snav-tabs .snav-ptab{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-family:'Geist',-apple-system,sans-serif;font-size:.7rem;font-weight:600;letter-spacing:.01em;color:#8a8478;text-decoration:none;padding:4px;border-radius:18px;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
   #snav-tabs .snav-ptab+.snav-ptab::before{content:'';position:absolute;left:-4.5px;top:24%;height:52%;width:1px;background:#F1ECE7}
   #snav-tabs .snav-ptab.on{color:#C46E4B;background:#F6E7DE}
   #snav-tabs .snav-ptab svg{width:18px;height:18px}
   @media(max-width:760px){
     #snav-tabs{display:flex}
-    body{padding-bottom:96px}
+    body{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
     #snav-sub{padding:8px 16px 0;gap:8px}
     #snav-sub .snav-seg{display:none}
   }
