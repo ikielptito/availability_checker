@@ -111,6 +111,21 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 .rep-fmeta{font-size:0.68rem;color:var(--muted);line-height:1.6;}
 .rep-empty{background:var(--surface);border:1px dashed var(--border);border-radius:14px;padding:40px 24px;text-align:center;color:var(--muted);max-width:820px;margin:0 auto;}
 .rep-empty h3{font-family:var(--rep-serif);color:var(--text);font-size:1.2rem;margin:0 0 7px;}
+
+/* ── Print: the report doubles as a clean one-pager owners can save as PDF.
+   White paper, no shadows, keep the serif letterhead, and never break a
+   metric card or section across pages. ── */
+@media print{
+  body{background:#fff;padding:0;}
+  .report-foot-cta{display:none;}
+  .rep-sheet{border:none;box-shadow:none;max-width:none;}
+  .rep-mast{background:#fff;}
+  .rep-pad{padding:18px 6px;break-inside:avoid;page-break-inside:avoid;}
+  .rep-kpis,.rep-card,.rep-chart,.rep-bench,.rep-rec,.rep-note{break-inside:avoid;page-break-inside:avoid;}
+  .rep-foot{background:#fff;}
+  .rep-chip.up{background:#e2ede0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .rep-ffill,.rep-kpi,.rep-bmark,.rep-bar{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
 </style>
 </head>
 <body>

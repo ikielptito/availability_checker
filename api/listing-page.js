@@ -10,10 +10,14 @@
 // returns the modified HTML. The existing client-side JS in listing.html
 // still runs after the OG tags are read by the scraper.
 
+import crypto from 'node:crypto';
+
 let _htmlCache = null;
 let _htmlCacheAt = 0;
 let _agentHtmlCache = null;
 let _agentHtmlCacheAt = 0;
+let _reportHtmlCache = null;
+let _reportHtmlCacheAt = 0;
 let _listingsCache = null;
 let _listingsCacheAt = 0;
 const TEMPLATE_TTL_MS = 5 * 60 * 1000;
@@ -43,6 +47,12 @@ async function serve(req, res) {
   const agentHandle = (req.query?.agent || '').toString();
   const shareId = (req.query?.list || '').toString();
   if (agentHandle || shareId) return serveAgent(req, res, { proto, host, agentHandle, shareId });
+
+  // /r/<slug>~<sig> — the weekly owner report. Maya sends these links on
+  // WhatsApp every Monday; branded OG tags make the unfurl show the villa
+  // instead of a generic page. The report itself still renders client-side.
+  const reportToken = (req.query?.report || '').toString();
+  if (reportToken) return serveReport(req, res, { proto, host, token: reportToken });
 
   const slug = (req.query?.slug || '').toLowerCase();
 
@@ -178,6 +188,68 @@ async function serveAgent(req, res, { proto, host, agentHandle, shareId }) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=600');
   return res.status(200).send(html);
+}
+
+// Weekly report page with villa-specific OG tags. Token = slug~hmac16 (same
+// scheme api/portal.js verifies); an invalid signature still serves the page
+// with generic branding — report-view.html shows its own error client-side.
+async function serveReport(req, res, { proto, host, token }) {
+  const i = token.lastIndexOf('~');
+  let listing = null;
+  if (i > 0) {
+    const slug = token.slice(0, i).toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const sig = token.slice(i + 1);
+    const expect = crypto.createHmac('sha256', process.env.LISTING_SYNC_SECRET || '')
+      .update(slug).digest('hex').slice(0, 16);
+    let ok = false;
+    try { ok = sig.length === expect.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expect)); } catch {}
+    if (ok) {
+      await Promise.all([ensureReportTemplate(proto, host), getListings(proto, host)]);
+      listing = (_listingsCache || []).find(l => l.slug === slug) || null;
+    }
+  }
+  if (!_reportHtmlCache) await ensureReportTemplate(proto, host);
+
+  const title = listing ? `Weekly report — ${listing.name} · Samba` : 'Your villa report — Samba';
+  const desc = listing
+    ? `Views, enquiries, agent reach and occupancy for ${listing.name} this week — from Samba Realty.`
+    : 'Your villa’s weekly performance — views, enquiries, agent reach and occupancy.';
+  const image = listing?.coverPhotoId
+    ? `https://lh3.googleusercontent.com/d/${listing.coverPhotoId}=w1200-h630-c`
+    : FALLBACK_OG;
+  const url = `${PORTAL_BASE}/r/${token}`;
+
+  const tags = `
+    <title>${esc(title)}</title>
+    <meta name="description" content="${esc(desc)}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Samba">
+    <meta property="og:title" content="${esc(title)}">
+    <meta property="og:description" content="${esc(desc)}">
+    <meta property="og:url" content="${esc(url)}">
+    <meta property="og:image" content="${esc(image)}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="${esc(title)}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${esc(title)}">
+    <meta name="twitter:description" content="${esc(desc)}">
+    <meta name="twitter:image" content="${esc(image)}">
+  `.trim();
+
+  const html = _reportHtmlCache.replace(/<title>[\s\S]*?<\/title>/, tags);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=86400');
+  return res.status(200).send(html);
+}
+
+async function ensureReportTemplate(proto, host) {
+  if (_reportHtmlCache && Date.now() - _reportHtmlCacheAt <= TEMPLATE_TTL_MS) return _reportHtmlCache;
+  const tr = await fetch(`${proto}://${host}/report-view.html`);
+  if (!tr.ok) throw new Error(`report-view.html fetch ${tr.status}`);
+  _reportHtmlCache = await tr.text();
+  _reportHtmlCacheAt = Date.now();
+  return _reportHtmlCache;
 }
 
 function fmtP(p) { return p ? p.replace(/(\d+)jt/i, 'IDR $1M') : ''; }

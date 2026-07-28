@@ -227,6 +227,11 @@ const server = http.createServer(async (req, res) => {
       const fakeReq = { method: 'GET', headers: req.headers, query: q, body: null };
       return void await handlers['listing-page'].default(fakeReq, shimRes(res));
     }
+    // /r/<token> → listing-page in report mode (matches vercel.json rewrite).
+    if (u.pathname.startsWith('/r/')) {
+      const fakeReq = { method: 'GET', headers: req.headers, query: { report: u.pathname.slice(3) }, body: null };
+      return void await handlers['listing-page'].default(fakeReq, shimRes(res));
+    }
     let file;
     const CLEAN = { '/admin':'admin.html', '/portal':'portal.html', '/home':'home.html', '/list-property':'list-property.html', '/terms':'terms.html', '/privacy':'privacy.html', '/refund':'refund.html' };
     if (CLEAN[u.pathname]) file = CLEAN[u.pathname];
