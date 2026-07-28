@@ -455,7 +455,8 @@
   }
   .avail-cal-scroll::-webkit-scrollbar { display: none; }
   .avail-cal-month { flex: 0 0 100%; min-width: 100%; scroll-snap-align: start; }
-  @media(min-width: 640px) { .avail-cal-month { flex-basis: calc((100% - 36px) / 3); min-width: 0; } }
+  @media(min-width: 640px) { .avail-cal-month { flex-basis: calc((100% - 18px) / 2); min-width: 0; } }
+  @media(min-width: 1000px) { .avail-cal-month { flex-basis: calc((100% - 54px) / 4); } }
   .avail-cal-lbl {
     font-size: 0.66rem; font-weight: 650; letter-spacing: .1em;
     text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
@@ -1333,7 +1334,7 @@ function scrollToAvailability() {
   document.getElementById('listing-avail').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
 }
 
-// ── AVAILABILITY CALENDAR (next 3 months) ──
+// ── AVAILABILITY CALENDAR (next 4 months) ──
 // Real month grids, matching the agent portal's listing cards, so a client sees
 // the same calendar the agent does. Day keys use LOCAL date parts (the booked
 // set holds plain YYYY-MM-DD calendar days), same as the portal's buildMonth.
@@ -1344,7 +1345,7 @@ function renderAvailStrip(booked, today) {
   const key = (y, m, d) => y + '-' + p2(m + 1) + '-' + p2(d);
   const todayStr = key(today.getFullYear(), today.getMonth(), today.getDate());
   let html = '';
-  for (let mi = 0; mi < 3; mi++) {
+  for (let mi = 0; mi < 4; mi++) {
     const first = new Date(today.getFullYear(), today.getMonth() + mi, 1);
     const y = first.getFullYear(), m = first.getMonth();
     const firstDow = first.getDay();
