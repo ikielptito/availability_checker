@@ -900,11 +900,8 @@ function buildMultiCal(list,cxCount,groupSingles){
 let cardMonth=null;
 function getCardMonth(){if(!cardMonth)cardMonth={y:TODAY.getFullYear(),m:TODAY.getMonth()};return cardMonth;}
 function syncCardCalScroll(smooth){
-  // Card pages are rolling 4-week windows now — land on the window that
-  // contains the 1st of the chosen month (page 0 for the current month).
   const cur=getCardMonth();
-  const first=new Date(cur.y,cur.m,1);
-  const idx=Math.max(0,Math.min(3,Math.floor((first-cardWeekStart())/(28*86400000))));
+  const idx=(cur.y-TODAY.getFullYear())*12+(cur.m-TODAY.getMonth());
   document.querySelectorAll('.prop-cal-scroll').forEach(el=>{
     const t=el.children[idx];if(!t)return;
     if(smooth)el.scrollTo({left:t.offsetLeft,behavior:'smooth'});
@@ -2579,36 +2576,15 @@ function render() {
   revealCards();
 }
 
-// Rolling 4-week windows instead of calendar months: a month grid rendered
-// on the 28th spends ~90% of its ink on dead past days and can't show next
-// month's opening at all. Each snap page is 28 live days starting from this
-// week, so "From Aug 11" is visible on the card the moment it matters.
-function cardWeekStart(){
-  const d=new Date(TODAY);d.setDate(d.getDate()-d.getDay());return d;
-}
+// Calendar-month pages (current month first, then the next three) — the
+// familiar 1st-to-end grid, swipeable per card and steered by the month chips.
 function cardCalPages(booked){
-  const w0=cardWeekStart();
   let h='<div class="prop-cal-scroll">';
   for(let i=0;i<4;i++){
-    const s=new Date(w0);s.setDate(s.getDate()+i*28);
-    const e=new Date(s);e.setDate(e.getDate()+27);
-    const lbl=s.getDate()+' '+MONTHS[s.getMonth()].slice(0,3)+' – '+e.getDate()+' '+MONTHS[e.getMonth()].slice(0,3);
-    h+='<div class="prop-cal-page"><div class="prop-cal-lbl">'+lbl+'</div>'+buildWeeks(s,booked)+'</div>';
+    const d=new Date(TODAY.getFullYear(),TODAY.getMonth()+i,1);
+    h+='<div class="prop-cal-page"><div class="prop-cal-lbl">'+MONTHS[d.getMonth()]+' '+d.getFullYear()+'</div>'+buildMonth(d.getFullYear(),d.getMonth(),booked)+'</div>';
   }
   return h+'</div>';
-}
-// 4 rows × 7 cols from `start` (a Sunday). Same cell classes as buildMonth.
-function buildWeeks(start,booked){
-  let html='<div class="cal-grid">';
-  DOWS.forEach(d=>{html+='<div class="dow">'+d+'</div>';});
-  for(let i=0;i<28;i++){
-    const dt=new Date(start);dt.setDate(dt.getDate()+i);
-    const key=ds(dt);
-    let cls=key<todayStr?'past':(booked.has(key)?'booked':'avail');
-    if(key===todayStr)cls+=' today';
-    html+='<div class="day '+cls+'" title="'+key+'">'+dt.getDate()+'</div>';
-  }
-  return html+'</div>';
 }
 
 function buildSix(booked) {
