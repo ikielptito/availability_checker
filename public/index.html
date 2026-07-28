@@ -172,22 +172,16 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
      spanning the full height of the right column. Two rows in the left column
      only — so the card keeps its original height and the photo its original
      framing. Desktop keeps the multi-column vertical grid above. */
-  .prop-grid{grid-template-columns:1fr;padding:6px 14px 150px;gap:11px}
-  .prop-card{display:grid;grid-template-columns:45% 1fr;grid-template-rows:auto 1fr}
-  .prop-card>.prop-media{grid-column:1;grid-row:1;width:100%}
+  /* Photo-first on phones: full-width hero, info row, then the compact
+     4-week strip. The old 45/55 photo-vs-calendar split buried the one
+     thing that sells the villa and gave half the card to a number grid. */
+  .prop-grid{grid-template-columns:1fr;padding:6px 14px 150px;gap:12px}
+  /* .prop-card qualifier: this block sits before the base .prop-media rule,
+     so it needs the extra specificity to win the cascade. */
+  .prop-card .prop-media{aspect-ratio:16/10}
   .top-pick,.card-badge{position:absolute;top:0;left:0;z-index:3;width:auto;border-radius:0 0 9px 0;padding:4px 9px;font-size:8.5px}
-  .card-tools{top:8px;right:8px;gap:5px}
-  .card-tool{width:28px;height:28px}
-  .prop-pill{bottom:8px;left:8px;font-size:10px;padding:4px 8px 4px 7px}
-  .prop-info{grid-column:1;grid-row:2;padding:10px 12px 12px;justify-content:center}
-  .prop-name{font-size:14.5px}
-  .prop-price{font-size:14px}
-  /* Narrow column: the area lives in the section header up top — keep just
-     the bedroom count instead of ellipsizing "Batu Bolong · Cang…". */
-  .prop-loc-tag{display:none}
-  /* Calendar column: full card height, separated by a hairline instead of
-     floating free in the white — reads as its own panel. */
-  .prop-cal{grid-column:2;grid-row:1/3;min-width:0;display:flex;flex-direction:column;justify-content:center;padding:10px 12px;border-top:none;border-left:1px solid var(--border);margin-top:0}
+  .prop-pill{bottom:10px;left:10px}
+  .prop-cal{padding:8px 12px 11px;margin-top:6px}
 }
 /* Property card — one uniform tile: full-bleed photo, gradient, overlaid info.
    Tap anywhere opens details. No expand/collapse. */
@@ -230,8 +224,15 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 /* Info panel — on white, below the photo (desktop) or beside it (mobile).
    Title → price/bedrooms, clear hierarchy on whitespace (no text over photo). */
 /* Airbnb-style stack: title → muted context line → price. One bold element
-   per row so nothing competes; the amount is the only heavy price token. */
-.prop-info{padding:12px 14px 4px;display:flex;flex-direction:column;gap:2px;min-width:0}
+   per row so nothing competes; the amount is the only heavy price token.
+   Share + enquire live here as quiet ghost buttons — the photo keeps only
+   the heart, so the image isn't buried under chrome. */
+.prop-info{padding:12px 14px 4px;display:flex;align-items:flex-start;gap:10px;min-width:0}
+.prop-info-txt{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.prop-acts{display:flex;gap:6px;flex-shrink:0;padding-top:2px}
+.prop-act{width:32px;height:32px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2);transition:background .18s var(--ease),color .18s var(--ease);padding:0}
+.prop-act:hover{background:var(--surface2);color:var(--text)}
+.prop-act svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .prop-name{font-size:15px;font-weight:650;letter-spacing:-.012em;line-height:1.25;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prop-loc{font-size:12.5px;font-weight:450;color:var(--muted);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prop-sub{display:flex;align-items:baseline;flex-wrap:wrap;gap:3px 10px;min-width:0;margin-top:3px}
@@ -246,7 +247,9 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .prop-cal{padding:9px 12px 12px;border-top:1px solid var(--border);margin-top:8px}
 .prop-cal-lbl{font-size:11px;font-weight:600;letter-spacing:.01em;color:var(--subtle);margin-bottom:5px}
 .prop-cal .dow{font-size:8.5px}
-.prop-cal .day{font-size:10.5px;border-radius:4px}
+/* Fixed-height cells: a full-width 7-col grid with square cells would tower
+   on phones; 26px rows keep the 4-week window compact everywhere. */
+.prop-cal .day{font-size:10.5px;border-radius:4px;aspect-ratio:auto;height:26px}
 .prop-cal-nc{font-size:11px;font-weight:500;color:var(--subtle);padding:8px 0 4px}
 .prop-cal-scroll{position:relative;display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .prop-cal-scroll::-webkit-scrollbar{display:none}
@@ -313,9 +316,10 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .dow{font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center;padding-bottom:4px;font-weight:600}
 .day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:.68rem;border-radius:4px;font-weight:500;color:var(--text-2)}
 .day.avail{background:var(--avail);color:var(--avail-text);font-weight:600}
-/* Booked days read as quietly unavailable — dimmed on sunken tint, no
-   strikethrough (line-through at 10px is pure noise). */
-.day.booked{background:var(--surface2);color:var(--subtle);font-weight:500;opacity:.75}
+/* Booked days read as quietly unavailable — plain dimmed numbers. With the
+   rolling window every cell is live, so green alone carries the signal;
+   giving booked days their own filled block made the grid shout. */
+.day.booked{background:transparent;color:var(--subtle);font-weight:500;opacity:.6}
 .day.past{opacity:.3}.day.empty{background:transparent}
 .day.today{outline:2px solid var(--today-ring);outline-offset:-1px;font-weight:700;color:var(--today-ring);background:var(--today-bg)}
 .prop-card.kb-focused{outline:2px solid var(--primary);outline-offset:3px}
@@ -896,8 +900,11 @@ function buildMultiCal(list,cxCount,groupSingles){
 let cardMonth=null;
 function getCardMonth(){if(!cardMonth)cardMonth={y:TODAY.getFullYear(),m:TODAY.getMonth()};return cardMonth;}
 function syncCardCalScroll(smooth){
+  // Card pages are rolling 4-week windows now — land on the window that
+  // contains the 1st of the chosen month (page 0 for the current month).
   const cur=getCardMonth();
-  const idx=(cur.y-TODAY.getFullYear())*12+(cur.m-TODAY.getMonth());
+  const first=new Date(cur.y,cur.m,1);
+  const idx=Math.max(0,Math.min(3,Math.floor((first-cardWeekStart())/(28*86400000))));
   document.querySelectorAll('.prop-cal-scroll').forEach(el=>{
     const t=el.children[idx];if(!t)return;
     if(smooth)el.scrollTo({left:t.offsetLeft,behavior:'smooth'});
@@ -2539,22 +2546,26 @@ function render() {
       +(p.badge?'<div class="card-badge">'+esc(p.badge)+'</div>':(p.id===topPickId?'<div class="top-pick">Top pick</div>':''))
       +'<div class="prop-media">'+heroInner
       +'<div class="card-tools">'
-      +'<button class="card-tool" onclick="event.stopPropagation();cardEnquire(\''+p.id+'\')" aria-label="Enquire on WhatsApp" title="Enquire"><svg viewBox="0 0 24 24"><path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.73 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.89-7.01z"/></svg></button>'
-      +'<button class="card-tool" onclick="event.stopPropagation();shareCard(\''+p.id+'\',\''+esc(p.name)+'\')" aria-label="Share villa" title="Share"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg></button>'
       +'<button class="card-tool fav'+(isFav?' on':'')+'" onclick="event.stopPropagation();toggleFav(\''+slug+'\')" aria-label="'+(isFav?'Remove from saved':'Save villa')+'" title="'+(isFav?'Saved':'Save')+'"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>'
       +'</div>'
       +'<div class="prop-pill'+dotCls+'"><span class="avail-dot"></span>'+esc(pillTxt)+'</div>'
       +'</div>'
       +'<div class="prop-info">'
+      +'<div class="prop-info-txt">'
       +'<div class="prop-name">'+esc(shortName(p.name))+'</div>'
       +((info.tag||br)?'<div class="prop-loc">'
-        +(info.tag?'<span class="prop-loc-tag">'+esc(info.tag)+(br?' · ':'')+'</span>':'')
         +(br?'<span>'+br+' BR</span>':'')
+        +(info.tag?'<span class="prop-loc-tag">'+(br?' · ':'')+esc(info.tag)+'</span>':'')
         +'</div>':'')
       +'<div class="prop-sub">'
       +(mn?'<span class="prop-price">IDR '+mn+'M<span>/ month</span></span>':'')
       +'</div>'
       +(sortMode==='duration'&&windowTxt?'<div class="prop-window">'+esc(windowTxt)+'</div>':'')
+      +'</div>'
+      +'<div class="prop-acts">'
+      +'<button class="prop-act" onclick="event.stopPropagation();cardEnquire(\''+p.id+'\')" aria-label="Enquire on WhatsApp" title="Enquire"><svg viewBox="0 0 24 24"><path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.73 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.89-7.01z"/></svg></button>'
+      +'<button class="prop-act" onclick="event.stopPropagation();shareCard(\''+p.id+'\',\''+esc(p.name)+'\')" aria-label="Share villa" title="Share"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg></button>'
+      +'</div>'
       +'</div>'
       +'<div class="prop-cal">'
       +(failedAvail.has(p.id)
@@ -2568,13 +2579,36 @@ function render() {
   revealCards();
 }
 
+// Rolling 4-week windows instead of calendar months: a month grid rendered
+// on the 28th spends ~90% of its ink on dead past days and can't show next
+// month's opening at all. Each snap page is 28 live days starting from this
+// week, so "From Aug 11" is visible on the card the moment it matters.
+function cardWeekStart(){
+  const d=new Date(TODAY);d.setDate(d.getDate()-d.getDay());return d;
+}
 function cardCalPages(booked){
+  const w0=cardWeekStart();
   let h='<div class="prop-cal-scroll">';
   for(let i=0;i<4;i++){
-    const d=new Date(TODAY.getFullYear(),TODAY.getMonth()+i,1);
-    h+='<div class="prop-cal-page"><div class="prop-cal-lbl">'+MONTHS[d.getMonth()]+' '+d.getFullYear()+'</div>'+buildMonth(d.getFullYear(),d.getMonth(),booked)+'</div>';
+    const s=new Date(w0);s.setDate(s.getDate()+i*28);
+    const e=new Date(s);e.setDate(e.getDate()+27);
+    const lbl=s.getDate()+' '+MONTHS[s.getMonth()].slice(0,3)+' – '+e.getDate()+' '+MONTHS[e.getMonth()].slice(0,3);
+    h+='<div class="prop-cal-page"><div class="prop-cal-lbl">'+lbl+'</div>'+buildWeeks(s,booked)+'</div>';
   }
   return h+'</div>';
+}
+// 4 rows × 7 cols from `start` (a Sunday). Same cell classes as buildMonth.
+function buildWeeks(start,booked){
+  let html='<div class="cal-grid">';
+  DOWS.forEach(d=>{html+='<div class="dow">'+d+'</div>';});
+  for(let i=0;i<28;i++){
+    const dt=new Date(start);dt.setDate(dt.getDate()+i);
+    const key=ds(dt);
+    let cls=key<todayStr?'past':(booked.has(key)?'booked':'avail');
+    if(key===todayStr)cls+=' today';
+    html+='<div class="day '+cls+'" title="'+key+'">'+dt.getDate()+'</div>';
+  }
+  return html+'</div>';
 }
 
 function buildSix(booked) {
