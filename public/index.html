@@ -483,6 +483,18 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .pv-close{position:absolute;top:18px;right:18px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .pv-close:hover{background:rgba(255,255,255,.22)}
 /* MODAL TABS */
+/* Identity strip under the photos: price · size · area · availability, the
+   agent's first four questions answered before any tab is touched. */
+.modal-ident{display:flex;align-items:center;gap:12px;padding:14px 22px 12px;background:var(--surface);border-bottom:1px solid var(--border)}
+.mi-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.mi-price{font-size:19px;font-weight:700;color:var(--text);letter-spacing:-.015em;font-variant-numeric:tabular-nums}
+.mi-price span{font-size:12.5px;font-weight:450;color:var(--muted);margin-left:2px}
+.mi-meta{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-pill{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;background:var(--surface2);border-radius:999px;padding:6px 12px 6px 10px;font-size:11.5px;font-weight:650;color:var(--text)}
+.mi-pill .avail-dot{width:6px;height:6px;border-radius:50%;background:#3E9E5B;flex-shrink:0;box-sizing:border-box}
+.mi-pill.full .avail-dot{background:#D96C4F}
+.mi-pill.warn .avail-dot{background:#C9A227}
+.mi-pill.soon .avail-dot{background:transparent;border:1.5px solid #3E9E5B}
 .modal-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;scrollbar-width:none;flex-shrink:0;position:sticky;top:0;z-index:5}
 .modal-tabs::-webkit-scrollbar{display:none}
 .modal-tab{padding:10px 16px;font-family:inherit;font-size:.75rem;font-weight:600;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s}
@@ -521,12 +533,13 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .loc-tag .copy-ic{width:13px;height:13px;opacity:.75;margin-left:1px;flex-shrink:0}
 .loc-tag:hover .copy-ic,.loc-tag:active .copy-ic{opacity:1}
 /* MODAL ACTIONS */
-.modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 20px calc(16px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--border);background:var(--surface);flex-shrink:0}
+/* Two rows: full-width primary, then the three secondaries side by side. */
+.modal-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 20px calc(16px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--border);background:var(--surface);flex-shrink:0}
 .modal-action-btn{min-width:0;min-height:52px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:var(--sb-font-ui,inherit);font-size:14px;font-weight:600;letter-spacing:-.005em;line-height:1;white-space:nowrap;cursor:pointer;transition:background .18s var(--ease),border-color .18s var(--ease),transform .1s var(--ease);text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px}
 .modal-action-btn svg{flex:none;width:17px;height:17px}
 .modal-action-btn:active{transform:scale(.98)}
 .modal-action-btn:hover{background:#EBE3D5;border-color:#DBD2C4}
-.modal-action-primary,#modal-story-btn{grid-column:1 / -1}
+.modal-action-primary{grid-column:1 / -1}
 .modal-action-primary{background:var(--primary);border-color:var(--primary);color:#fff;min-height:54px;font-size:15px;box-shadow:var(--sb-shadow-accent,0 6px 18px rgba(226,87,43,.28))}
 .modal-action-primary:hover{background:var(--primary-2);border-color:var(--primary-2);color:#fff}
 .modal-action-primary.shared-ok{box-shadow:none}
@@ -634,6 +647,9 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
         <button class="carousel-nav carousel-next" onclick="carNav(1)" style="display:none" id="carousel-next" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-lg"><polyline points="9 18 15 12 9 6"/></svg></button>
         <div class="carousel-counter" id="carousel-counter" style="display:none"></div>
       </div>
+      <!-- Identity strip: the facts an agent needs before anything else —
+           price, size, area, availability — visible without opening a tab. -->
+      <div class="modal-ident" id="modal-ident"></div>
       <div class="modal-note" id="modal-note-box" style="display:none">
         <div class="modal-note-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg> Private note <span style="text-transform:none;letter-spacing:0;color:var(--subtle)">— only you can see this</span></div>
         <textarea id="modal-note" placeholder="e.g. owner flexible on price · free from August…" onblur="saveNote()"></textarea>
@@ -646,12 +662,10 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
         <button class="modal-tab" data-target="map-section">Location</button>
       </div>
       <div class="modal-section" id="modal-availability-section">
-        <div class="modal-section-title">Availability</div>
         <div class="avail-prose" id="modal-avail-prose"></div>
         <div class="cal-scroll"><div class="cal-months" id="modal-calendar"></div></div>
       </div>
       <div class="modal-section" id="modal-pricing-section">
-        <div class="modal-section-title">Pricing</div>
         <div id="modal-pricing"></div>
         <div style="margin-top:12px">
           <div class="modal-section-title" style="margin-bottom:6px">Monthly inclusions</div>
@@ -663,7 +677,6 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
         </div>
       </div>
       <div class="modal-section" id="modal-overview-section">
-        <div class="modal-section-title">Overview</div>
         <div class="overview-text" id="modal-overview"></div>
         <div class="detail-cols" style="margin-top:18px" id="modal-details"></div>
       </div>
@@ -684,7 +697,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
       <button class="modal-action-btn modal-action-primary" id="modal-share-btn" onclick="shareModal()"></button>
 <a class="modal-action-btn" id="modal-drive-btn" href="#" target="_blank"></a>
 <a class="modal-action-btn modal-wa-btn" id="modal-wa-btn" href="#" target="_blank"></a>
-      <button class="modal-action-btn" id="modal-story-btn" onclick="shareStory()"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg><span>Share to Instagram</span></button>
+      <button class="modal-action-btn" id="modal-story-btn" onclick="shareStory()"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg><span>Instagram</span></button>
     </div>
   </div>
 </div>
@@ -1354,6 +1367,22 @@ function openModal(propId) {
       _avL.cls==='avail-now'?'Available now · '+_avL.window+' days open':
       'Available from '+_avL.from+' · '+_avL.window+' days open';
   }
+  // Identity strip — price · size · area · availability at a glance, without
+  // touching a tab (pricing details still live in the Pricing tab).
+  {
+    const _br=getBedrooms(propId);
+    const _ident=failedAvail.has(propId)?null:availLabel(_bookedSet);
+    const _identPill=failedAvail.has(propId)
+      ?'<span class="mi-pill warn"><span class="avail-dot"></span>No calendar</span>'
+      :!_ident?'<span class="mi-pill full"><span class="avail-dot"></span>Booked</span>'
+      :_ident.cls==='avail-now'?'<span class="mi-pill"><span class="avail-dot"></span>Available now</span>'
+      :'<span class="mi-pill soon"><span class="avail-dot"></span>From '+esc(_ident.from)+'</span>';
+    document.getElementById('modal-ident').innerHTML=
+      '<div class="mi-txt">'
+      +(info.monthly?'<div class="mi-price">'+esc(fmtPrice(info.monthly))+'<span>/ month</span></div>':'')
+      +'<div class="mi-meta">'+esc([_br?_br+' BR':'',info.tag].filter(Boolean).join(' · '))+'</div>'
+      +'</div>'+_identPill;
+  }
   let ph='';
   if(info.monthly) ph+='<div class="price-row"><span class="price-amount">'+fmtPrice(info.monthly)+'</span><span class="price-period">/ month</span></div>';
   if(info.yearly) ph+='<div class="price-row"><span class="price-amount">'+fmtPrice(info.yearly)+'</span><span class="price-period">/ year</span></div>';
@@ -1399,7 +1428,7 @@ function openModal(propId) {
   if(info.folder){
     driveBtn.style.display='';
     driveBtn.href='https://drive.google.com/drive/folders/'+info.folder;
-    driveBtn.innerHTML=icon('download','sm')+'<span>Download photos</span>';
+    driveBtn.innerHTML=icon('download','sm')+'<span>Photos</span>';
     driveBtn.onclick=()=>track('photo_download',propId,info.name);
   } else {
     driveBtn.style.display='none';
@@ -1410,7 +1439,7 @@ function openModal(propId) {
   const waMsg=encodeURIComponent('Hi '+waName+', I\'m interested in '+info.name+'. Could you tell me more?');
   const waBtn=document.getElementById('modal-wa-btn');
   waBtn.href='https://wa.me/'+waNum+'?text='+waMsg;
-  waBtn.innerHTML=icon('message','sm')+'<span>Contact owner</span>';
+  waBtn.innerHTML=icon('message','sm')+'<span>Contact</span>';
   waBtn.onclick=()=>track('whatsapp_click',propId,info.name);
   document.getElementById('modal').classList.add('open');
   document.body.style.overflow='hidden';
