@@ -922,6 +922,11 @@ function toggleMonthFilter(k){
   syncFilterURL();renderChrome();render();
 }
 function toggleBRFilter(v){const nv=String(bedroomFilter)===String(v)?'all':v;if(nv!=='all')track('filter_applied');setBedrooms(nv);}
+// "Now" match: free TODAY *and* free for at least this many consecutive nights.
+// Without the minimum, a villa booked solid from tomorrow still counted as
+// "available now" — useless on a monthly-rental portal. (The month filters
+// below use their own 14-night rule.)
+const NOW_MIN_NIGHTS=7;
 // Month-filter match: a 14+ night open run STARTS on some day of the filter
 // month — long enough to mean a real monthly-rental opening, and it catches
 // stays that begin late in the month and run into the next one.
@@ -2426,7 +2431,7 @@ function render() {
       // filter, so keep it out rather than assert an availability we don't know.
       if(failedAvail.has(p.id)) return false;
       const ad=availData(p.id);
-      if(availFilter==='now'&&ad.firstFreeIdx!==0) return false;
+      if(availFilter==='now'&&(ad.firstFreeIdx!==0||ad.window<NOW_MIN_NIGHTS)) return false;
       if(availFilter==='week'&&ad.firstFreeIdx>7) return false;
       if(availFilter.charAt(0)==='m'&&!monthHasOpening(p.id,availFilter)) return false;
       if(durationFilter==='1mo'&&ad.window<30) return false;
