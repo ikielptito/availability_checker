@@ -240,7 +240,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .calbar>*{flex:0 0 auto}
 .calbar .mc-jump{margin:0;flex-wrap:nowrap;gap:6px}
 .cal-div{width:1px;height:16px;background:rgba(28,25,23,.12);margin:0 2px}
-.mc-jump button.on{background:var(--text);border-color:var(--text);color:#fff}
+.mc-jump button.on{background:var(--primary);border-color:var(--primary);color:#fff}
 .saved-banner{grid-column:1/-1;display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:20px;padding:16px 20px;box-shadow:var(--shadow)}
 .saved-banner b{font-size:1.05rem;font-weight:650;color:var(--text)}
 .saved-banner button{margin-left:auto;background:var(--surface2);border:none;border-radius:999px;color:var(--text-2);padding:10px 16px;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer}
@@ -763,7 +763,7 @@ function bedroomCounts(){const s=new Set();properties.forEach(p=>{const b=getBed
 // One TOP PICK per portfolio: the available-now villa with the longest open run.
 function computeTopPick(){
   let best=null,bw=0;
-  properties.forEach(p=>{const ad=availData(p.id);if(ad.firstFreeIdx===0&&ad.window>bw){bw=ad.window;best=p.id;}});
+  properties.forEach(p=>{if(failedAvail.has(p.id))return;const ad=availData(p.id);if(ad.firstFreeIdx===0&&ad.window>bw){bw=ad.window;best=p.id;}});
   topPickId=bw>=30?best:null;
 }
 function renderChrome(){
@@ -2319,7 +2319,9 @@ async function fetchAvail(propId) {
   const start=ds(TODAY);
   const endD=new Date(TODAY.getFullYear(),TODAY.getMonth()+6,0);
   const r=await fetch('/api/calendar?id='+propId+'&start_date='+start+'&end_date='+ds(endD));
-  if(!r.ok) return new Set();
+  // A non-OK calendar means we have NO availability data — throw so the caller
+  // marks it failedAvail rather than treating an empty set as "free today".
+  if(!r.ok) throw new Error('calendar '+r.status);
   const d=await r.json();
   const items=d.data?.items||d.data||d.items||[];
   const booked=new Set();
@@ -2355,14 +2357,19 @@ async function loadAll() {
     }
     if(p.custom){
       const booked=rangesToSet(info.bookedRanges);
+      // A calendar source = manual booked ranges OR a live iCal that loaded.
+      // Without one we have no availability signal and must not claim "free".
+      let haveCal=Array.isArray(info.bookedRanges)&&info.bookedRanges.length>0;
       if(info.icalUrl){
         try{
           const r=await fetch('/api/ical?slug='+encodeURIComponent(SLUGS[p.id]));
           const d=await r.json();
           (d.booked||[]).forEach(x=>booked.add(x));
+          haveCal=true;
         }catch{}
       }
       avail[p.id]=booked;
+      if(!haveCal)failedAvail.add(p.id);
       return;
     }
     try{avail[p.id]=await fetchAvail(p.id);}catch{avail[p.id]=new Set();failedAvail.add(p.id);}
@@ -2412,6 +2419,9 @@ function render() {
       if(budgetFilter==='o30'&&m<=30) return false;
     }
     if(availFilter!=='all'||durationFilter!=='all'){
+      // No verified calendar → can't confirm it matches an availability/duration
+      // filter, so keep it out rather than assert an availability we don't know.
+      if(failedAvail.has(p.id)) return false;
       const ad=availData(p.id);
       if(availFilter==='now'&&ad.firstFreeIdx!==0) return false;
       if(availFilter==='week'&&ad.firstFreeIdx>7) return false;
