@@ -165,19 +165,25 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .spacer{flex:1}
 .prop-grid{padding:14px 20px 150px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;max-width:1120px;margin:0 auto}
 @media(max-width:640px){
-  /* Horizontal cards on phones: photo with overlaid name/price on the left,
-     the month calendar on the right. ~2× more villas per screen than the old
-     stacked (image-over-calendar) card, and the calendar stays full-width and
-     readable. Desktop keeps the multi-column vertical grid above. */
+  /* Horizontal cards on phones: a clean photo (left, full card height) beside a
+     white column holding the villa name, price and the month calendar. ~2× more
+     villas per screen, no wasted space, and the text sits on white rather than
+     over the photo. Desktop keeps the multi-column vertical grid above. */
   .prop-grid{grid-template-columns:1fr;padding:6px 14px 150px;gap:11px}
-  .prop-card{display:flex;flex-direction:row;align-items:stretch}
-  .prop-media{width:47%;max-width:190px;flex-shrink:0;aspect-ratio:auto;align-self:stretch}
+  .prop-card{display:flex;flex-direction:row;align-items:stretch;min-height:150px}
+  /* Higher specificity than the base .prop-media so the photo fills the full
+     card height beside the taller calendar (the base aspect-ratio:4/3 otherwise
+     capped it short and left the white gap). */
+  .prop-card>.prop-media{width:41%;max-width:166px;flex-shrink:0;aspect-ratio:auto;align-self:stretch}
   .top-pick,.card-badge{position:absolute;top:0;left:0;z-index:3;width:auto;border-radius:0 0 9px 0;padding:4px 9px;font-size:8.5px}
   .card-tools{top:8px;right:8px;gap:6px}
   .card-tool{width:29px;height:29px}
-  .prop-body{padding:0 12px 11px}
+  .prop-pill{bottom:8px;left:8px;font-size:10px;padding:4px 8px 4px 7px}
+  .prop-main{flex:1;min-width:0}
+  .prop-info{padding:10px 12px 2px}
   .prop-name{font-size:15px}
-  .prop-cal{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;padding:9px 12px}
+  .prop-price{font-size:15px}
+  .prop-cal{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;padding:5px 12px 9px}
 }
 /* Property card — one uniform tile: full-bleed photo, gradient, overlaid info.
    Tap anywhere opens details. No expand/collapse. */
@@ -190,7 +196,13 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .prop-hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease)}
 .prop-card:hover .prop-hero-img{transform:scale(1.04)}
 .prop-hero-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.25);background:#2a2622}
-.prop-gradient{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 34%,rgba(0,0,0,.5) 66%,rgba(0,0,0,.85) 100%);pointer-events:none;z-index:1}
+/* Availability chip — sits on the photo (bottom-left), the one status signal
+   that stays on the image; everything textual moved to the white info panel. */
+.prop-pill{position:absolute;bottom:10px;left:10px;z-index:2;display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:var(--ink,#1c1917);font-size:11px;font-weight:650;letter-spacing:-.01em;padding:5px 10px 5px 8px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.16)}
+.prop-pill .avail-dot{width:6px;height:6px;border-radius:50%;background:#3E9E5B;flex-shrink:0;box-sizing:border-box}
+.prop-pill.full .avail-dot{background:#D96C4F}
+.prop-pill.warn .avail-dot{background:#C9A227}
+.prop-pill.soon .avail-dot{background:transparent;border:1.5px solid #3E9E5B}
 /* Badges are full-width ribbons above the photo — the media area is too
    crowded on the 2-up mobile grid (tools top, name/price bottom) for an
    overlay chip to sit anywhere without colliding. */
@@ -207,17 +219,17 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .card-tool.fav.on svg{fill:#fff;stroke:#fff;animation:heart-pop .45s var(--ease)}
 .card-tool.shared-ok svg{stroke:#8FE39A}
 @keyframes heart-pop{0%{transform:scale(1)}30%{transform:scale(1.35)}55%{transform:scale(.88)}75%{transform:scale(1.1)}100%{transform:scale(1)}}
-/* Info block — overlaid on the gradient, fixed 3-line rhythm so every card aligns */
-.prop-body{position:absolute;bottom:0;left:0;right:0;z-index:2;padding:0 14px 14px;display:flex;flex-direction:column;gap:3px;text-shadow:0 1px 10px rgba(0,0,0,.45)}
-.prop-name{font-size:16px;font-weight:700;letter-spacing:-.015em;line-height:1.2;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prop-meta{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:rgba(255,255,255,.85);white-space:nowrap;overflow:hidden}
-.prop-meta .avail-dot{width:6px;height:6px;border-radius:50%;background:#8FE39A;box-shadow:0 0 8px rgba(143,227,154,.7);flex-shrink:0;box-sizing:border-box}
-.prop-meta.full .avail-dot{background:#F2A28E;box-shadow:0 0 8px rgba(242,162,142,.7)}
-.prop-meta.warn .avail-dot{background:#EBCE8C;box-shadow:0 0 8px rgba(235,206,140,.7)}
-.prop-meta.soon .avail-dot{background:transparent;border:1.5px solid #8FE39A;box-shadow:none}
+/* Info panel — on white, below the photo (desktop) or beside it (mobile).
+   Title → price/bedrooms, clear hierarchy on whitespace (no text over photo). */
+.prop-main{display:flex;flex-direction:column;min-width:0}
+.prop-info{padding:11px 14px 3px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.prop-name{font-size:16px;font-weight:700;letter-spacing:-.015em;line-height:1.2;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prop-sub{display:flex;align-items:baseline;flex-wrap:wrap;gap:3px 10px;min-width:0}
+.prop-price{font-size:16px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.prop-price span{font-size:11.5px;font-weight:500;color:var(--muted);margin-left:1px}
+.prop-br{font-size:12.5px;font-weight:500;color:var(--muted)}
 /* Open-window line — shown while sorting by stay duration */
-.prop-window{font-size:11.5px;font-weight:650;color:#B7E3BD;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prop-meta>span{overflow:hidden;text-overflow:ellipsis}
+.prop-window{font-size:11.5px;font-weight:650;color:#3E9E5B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prop-price{font-size:14px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;margin-top:1px}
 .prop-price span{font-size:11.5px;font-weight:500;color:rgba(255,255,255,.7)}
 /* Card calendar footer — a real mini month grid under the photo (reuses the
@@ -2494,6 +2506,8 @@ function render() {
     // Frees up later — hollow dot, so solid green stays exclusive to
     // "available now" instead of every not-fully-booked villa.
     else {avShort=av.from;avLong='Available '+av.from;dotCls=' soon';}
+    // Concise availability chip shown on the card photo (top-left).
+    const pillTxt=failedAvail.has(p.id)?'No calendar':(!av?'Booked':(av.cls==='avail-now'?'Available now':'From '+av.from));
     if(viewMode==='list'){
       const thumb=p.photo
         ?'<img class="lrow-thumb" src="'+p.photo.replace('=w1200','=w400')+'" loading="lazy" alt="">'
@@ -2509,23 +2523,27 @@ function render() {
     return _cxHdr+'<div class="prop-card pre" data-id="'+p.id+'" onclick="openModal(\''+p.id+'\')" title="View photos &amp; details">'
       +(p.badge?'<div class="card-badge">'+esc(p.badge)+'</div>':(p.id===topPickId?'<div class="top-pick">Top pick</div>':''))
       +'<div class="prop-media">'+heroInner
-      +'<div class="prop-gradient"></div>'
       +'<div class="card-tools">'
       +'<button class="card-tool" onclick="event.stopPropagation();cardEnquire(\''+p.id+'\')" aria-label="Enquire on WhatsApp" title="Enquire"><svg viewBox="0 0 24 24"><path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.73 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.89-7.01z"/></svg></button>'
       +'<button class="card-tool" onclick="event.stopPropagation();shareCard(\''+p.id+'\',\''+esc(p.name)+'\')" aria-label="Share villa" title="Share"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg></button>'
       +'<button class="card-tool fav'+(isFav?' on':'')+'" onclick="event.stopPropagation();toggleFav(\''+slug+'\')" aria-label="'+(isFav?'Remove from saved':'Save villa')+'" title="'+(isFav?'Saved':'Save')+'"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>'
       +'</div>'
-      +'<div class="prop-body">'
-      +'<div class="prop-name">'+esc(shortName(p.name))+'</div>'
-      +'<div class="prop-meta'+dotCls+'"><span class="avail-dot"></span><span>'+esc(avLong)+(br?' · '+br+' BR':'')+'</span></div>'
-      +(sortMode==='duration'&&windowTxt?'<div class="prop-window">'+esc(windowTxt)+'</div>':'')
-      +(mn?'<div class="prop-price">IDR '+mn+'M <span>/ mo</span></div>':'')
+      +'<div class="prop-pill'+dotCls+'"><span class="avail-dot"></span>'+esc(pillTxt)+'</div>'
       +'</div>'
+      +'<div class="prop-main">'
+      +'<div class="prop-info">'
+      +'<div class="prop-name">'+esc(shortName(p.name))+'</div>'
+      +'<div class="prop-sub">'
+      +(mn?'<span class="prop-price">IDR '+mn+'M<span>/mo</span></span>':'')
+      +(br?'<span class="prop-br">'+br+' BR</span>':'')
+      +'</div>'
+      +(sortMode==='duration'&&windowTxt?'<div class="prop-window">'+esc(windowTxt)+'</div>':'')
       +'</div>'
       +'<div class="prop-cal">'
       +(failedAvail.has(p.id)
         ?'<div class="prop-cal-lbl">'+MONTHS[TODAY.getMonth()]+' '+TODAY.getFullYear()+'</div><div class="prop-cal-nc">No calendar data</div>'
         :cardCalPages(booked))
+      +'</div>'
       +'</div>'
       +'</div>';
   }).join('');
