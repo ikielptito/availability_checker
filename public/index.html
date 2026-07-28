@@ -164,7 +164,21 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 @media(min-width:600px){.install-prompt{left:auto;right:24px;bottom:24px;max-width:380px}}
 .spacer{flex:1}
 .prop-grid{padding:14px 20px 150px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;max-width:1120px;margin:0 auto}
-@media(max-width:640px){.prop-grid{grid-template-columns:repeat(2,1fr);padding:6px 14px 150px;gap:11px}}
+@media(max-width:640px){
+  /* Horizontal cards on phones: photo with overlaid name/price on the left,
+     the month calendar on the right. ~2× more villas per screen than the old
+     stacked (image-over-calendar) card, and the calendar stays full-width and
+     readable. Desktop keeps the multi-column vertical grid above. */
+  .prop-grid{grid-template-columns:1fr;padding:6px 14px 150px;gap:11px}
+  .prop-card{display:flex;flex-direction:row;align-items:stretch}
+  .prop-media{width:47%;max-width:190px;flex-shrink:0;aspect-ratio:auto;align-self:stretch}
+  .top-pick,.card-badge{position:absolute;top:0;left:0;z-index:3;width:auto;border-radius:0 0 9px 0;padding:4px 9px;font-size:8.5px}
+  .card-tools{top:8px;right:8px;gap:6px}
+  .card-tool{width:29px;height:29px}
+  .prop-body{padding:0 12px 11px}
+  .prop-name{font-size:15px}
+  .prop-cal{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;padding:9px 12px}
+}
 /* Property card — one uniform tile: full-bleed photo, gradient, overlaid info.
    Tap anywhere opens details. No expand/collapse. */
 .prop-card{position:relative;width:100%;border-radius:20px;overflow:hidden;background:var(--surface);border:var(--hairline);cursor:pointer;transform:translateZ(0);box-shadow:0 1px 2px rgba(0,0,0,.05),0 6px 18px rgba(0,0,0,.08);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
