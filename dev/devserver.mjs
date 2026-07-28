@@ -3,11 +3,13 @@
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const ROOT = '/Users/ikiel/availability_checker';
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 process.env.KV_REST_API_URL = 'http://kv';
 process.env.KV_REST_API_TOKEN = 't';
-process.env.DASHBOARD_PASSWORD = 'Bissli2024';
+// Dev-only login password (never the production one — that lives in Vercel env).
+process.env.DASHBOARD_PASSWORD = process.env.DEV_DASHBOARD_PASSWORD || 'dev-password';
 process.env.HOSTEX_TOKEN = 'fake';
 process.env.GOOGLE_API_KEY = 'fake';
 process.env.GOOGLE_CLIENT_ID = 'dev-client-id';
@@ -243,7 +245,7 @@ const server = http.createServer(async (req, res) => {
 
 // Seed: one custom property + a few events
 await handlers.listings.default({
-  method: 'POST', headers: { authorization: 'Bearer Bissli2024' }, query: {},
+  method: 'POST', headers: { authorization: 'Bearer ' + process.env.DASHBOARD_PASSWORD }, query: {},
   body: { slug: 'villa-sunrise', custom: true, data: {
     name: 'Villa Sunrise', tag: 'Umalas · Canggu', location: 'https://maps.app.goo.gl/x',
     overview: 'A test custom property managed outside Hostex.',

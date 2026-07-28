@@ -1135,9 +1135,7 @@ function lines(str) {
   return str.split('\n').map(s => s.trim()).filter(Boolean);
 }
 
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 // Boot
 const saved = sessionStorage.getItem('admin_pw');

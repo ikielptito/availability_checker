@@ -41,13 +41,14 @@ function exec(cmd) {
   }
 }
 
-const listingsMod = await import('/Users/ikiel/availability_checker/api/listings.js');
-const trackMod = await import('/Users/ikiel/availability_checker/api/track.js');
-const dashMod = await import('/Users/ikiel/availability_checker/api/dashboard.js');
-const digestMod = await import('/Users/ikiel/availability_checker/api/digest.js');
-const icalMod = await import('/Users/ikiel/availability_checker/api/ical.js');
-const portalMod = await import('/Users/ikiel/availability_checker/api/portal.js');
-const calMod = await import('/Users/ikiel/availability_checker/api/calendar.js');
+const api = (f) => new URL(`../api/${f}`, import.meta.url).href;
+const listingsMod = await import(api('listings.js'));
+const trackMod = await import(api('track.js'));
+const dashMod = await import(api('dashboard.js'));
+const digestMod = await import(api('digest.js'));
+const icalMod = await import(api('ical.js'));
+const portalMod = await import(api('portal.js'));
+const calMod = await import(api('calendar.js'));
 
 // ── Hostex mock controls for digest test ─────────────────────────────
 // hostexCalendars[propertyId] = { reservations: [{check_in_date, check_out_date, status}], closedDates: [YYYY-MM-DD] }

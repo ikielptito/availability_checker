@@ -71,7 +71,7 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
   var key = path[1] || '';
   var content = document.getElementById('content');
 
-  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function fmtPrice(p){ if(!p) return ''; var m=String(p).match(/(\d+(?:\.\d+)?)\s*jt/i); if(m) return 'IDR '+m[1]+'M'; return /^\d/.test(p)?'IDR '+p:p; }
   function photoUrl(l){ return l.coverPhotoId ? 'https://lh3.googleusercontent.com/d/'+l.coverPhotoId+'=w800' : ''; }
   function initials(n){ return (n||'A').trim().split(/\s+/).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase(); }

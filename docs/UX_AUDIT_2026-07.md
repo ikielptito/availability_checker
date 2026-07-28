@@ -88,9 +88,15 @@ Still open, reprioritized:
 5. **Swipe gestures** (iOS back-swipe in PWA), bottom-chrome height tuning on the agent portal.
 6. ~~Booking-conflict tooling~~ — reconsidered and dropped: Samba takes no bookings itself; iCal + manual ranges are both "booked" sources and are already unioned, so there is no conflict surface to police.
 
-## 6. Design system reference (evolved warm brand)
+## 6. Design system reference
 
-- **Palette**: keep cream/terracotta identity — `--bg:#FAF8F5`, `--accent:#C46E4B`, ink `#1C1917`. Owner portal uses dark-warm variant (dark clay ink background, same accent). Chat PWA swaps WhatsApp green for the same family.
+> **Superseded (Jul 2026):** the shipped design system is `public/brand.css`
+> ("Samba Visual Identity Guidelines v1.0") — `--sb-bg:#F4F1ED`,
+> `--sb-accent:#E2572B` terracotta, deep-green ink `#131A17`, Satoshi + Inter.
+> The palette below was an earlier proposal and does NOT match production;
+> kept only for historical context.
+
+- **Palette (historical proposal)**: cream/terracotta identity — `--bg:#FAF8F5`, `--accent:#C46E4B`, ink `#1C1917`. Owner portal uses dark-warm variant (dark clay ink background, same accent). Chat PWA swaps WhatsApp green for the same family.
 - **Type**: Geist UI + Playfair display accents; scale 12/14/16/18/24/32; `font-variant-numeric: tabular-nums` for all money and dates.
 - **Shape/depth**: 6px radii on controls; cards `0 1px 3px rgba(0,0,0,.1)`, modals `0 10px 25px rgba(0,0,0,.15)`.
 - **Motion**: 150ms ease color, 100ms scale; button press scale .98; skeleton shimmer only after 2s.

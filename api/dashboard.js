@@ -45,9 +45,12 @@ export default async function handler(req, res) {
   // Accept ADMIN_PASSWORD too so the unified /admin console's single login
   // works for the embedded analytics tab regardless of which env var is set.
   const auth = req.headers.authorization || '';
-  const pwd = process.env.DASHBOARD_PASSWORD || 'samba2024';
+  const pwd = process.env.DASHBOARD_PASSWORD || '';
   const adminPwd = process.env.ADMIN_PASSWORD || '';
-  if (auth !== `Bearer ${pwd}` && !(adminPwd && auth === `Bearer ${adminPwd}`)) {
+  // No hardcoded fallback password: if neither env var is configured, the
+  // dashboard is simply inaccessible rather than guessably open.
+  if (!pwd && !adminPwd) return res.status(503).json({ error: 'Dashboard password not configured' });
+  if (!(pwd && auth === `Bearer ${pwd}`) && !(adminPwd && auth === `Bearer ${adminPwd}`)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

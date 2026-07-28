@@ -1,67 +1,56 @@
-# Hostex Availability Portal 
+# Samba Rentals — sambarentals.com
 
-A read-only availability dashboard for your rental agents. Shows all your Hostex properties with 6-month rolling calendars. No login required for agents — your API token stays securely on the server.
+The Samba Realty rentals platform: a public villa-listing site, an agent
+portal, an owner/property-manager portal, and an admin console — one Vercel
+project, no build step, vanilla JS + serverless functions + Upstash KV.
 
----
+It started life as a read-only "Hostex availability portal" and grew; the
+14 Hostex catalog units (identity in `lib/catalog.js`) now live alongside
+owner-submitted custom listings (KV `custom_properties`).
 
-## Deploy to Vercel (5 minutes)
+## Surfaces (`public/`, routed via `vercel.json`)
 
-### Step 1 — Create a free Vercel account
-Go to [vercel.com](https://vercel.com) and sign up (free, no credit card needed).   
+| Page | URL | What it is |
+|---|---|---|
+| `index.html` | `/` | Agent portal SPA — villa grid, live calendars, sharing, collections |
+| `home.html` | `/home` | Owner-facing marketing site |
+| `for-agents.html` | `/for-agents` | Agent-facing marketing site |
+| `listing.html` | `/l/:slug` | Public single-listing page |
+| `portal.html` | `/portal` | Owner portal (Google login: listings, analytics, weekly reports) |
+| `admin.html` | `/admin` | Admin console (listing editor, approvals, owner assignment) |
+| `dashboard.html` | `/dashboard` | Analytics dashboard (password) |
+| `report-view.html` | `/r/:token` | Tokenized no-login weekly villa report |
+| `agent.html` | `/a/:handle` | Agent public profile |
+| `list-property.html` | `/list-property` | Owner property submission |
 
-### Step 2 — Install the Vercel CLI
-Open your terminal and run:
+Design system: `public/brand.css` (`--sb-*` tokens + legacy aliases). Pages
+must NOT re-declare core colour tokens locally — brand.css is the source of
+truth; only page-specific extras (e.g. `--rep-serif`) live per page.
+
+## API (`api/`, all action-routed to stay under the 12-function cap)
+
+- `listings.js` — public + admin listing CRUD, `assign-owner`
+- `portal.js` — owner/agent portal (auth, properties, analytics, reports, billing)
+- `dashboard.js` — analytics + authed feeds for the CRM (`?owner_sync=1`, `?agent_funnel=1`, `?portal_pulse=1`)
+- `digest.js` — daily availability digest (consumed by the Maya CRM broadcast)
+- `calendar.js`, `ical.js`, `check-availability.js` — availability sources
+- `media.js`, `track.js`, `billing.js`, `listing-page.js`, `home-stats.js`
+
+Sibling repo: `~/kaya-agent-crm` (Maya WhatsApp CRM) syncs listings and
+owner contacts from here via `LISTING_SYNC_SECRET`-authed endpoints.
+
+## Env vars (Vercel)
+
+`KV_REST_API_URL` / `KV_REST_API_TOKEN` (Upstash), `HOSTEX_TOKEN`,
+`GOOGLE_API_KEY` (Drive photos), `GOOGLE_CLIENT_ID` (owner login),
+`ADMIN_PASSWORD` / `DASHBOARD_PASSWORD` (no hardcoded fallback),
+`LISTING_SYNC_SECRET` (CRM handshake), `CRM_SYNC_URL`, Paddle billing keys.
+
+## Development
+
 ```
-npm install -g vercel
-```
-
-### Step 3 — Deploy the project
-In your terminal, navigate to this folder and run:
-```
-vercel
-```
-Follow the prompts:
-- Set up and deploy? → **Y**
-- Which scope? → select your account
-- Link to existing project? → **N**
-- Project name? → `hostex-portal` (or anything you like)
-- In which directory is your code? → **.** (just press Enter)
-- Want to override settings? → **N**
-
-Vercel will give you a preview URL like `https://hostex-portal-xxx.vercel.app`
-
-### Step 4 — Add your Hostex API token
-1. Go to [vercel.com/dashboard](https://vercel.com/dashboard)
-2. Click your project → **Settings** → **Environment Variables**
-3. Add a new variable:
-   - **Name:** `HOSTEX_TOKEN`
-   - **Value:** your Hostex API token (from Hostex → Workplace → OpenAPI Settings)
-   - **Environment:** Production, Preview, Development (tick all three)
-4. Click **Save**
-
-### Step 5 — Redeploy
-Back in your terminal, run:
-```
-vercel --prod
-```
-Your portal is now live! Share the URL with your agents — they just open it and see live availability. No login, no token, nothing to manage.
-
----
-
-## File structure
-```
-hostex-portal/
-├── api/
-│   ├── properties.js   ← proxy: fetches your property list
-│   └── calendar.js     ← proxy: fetches availability per property
-├── public/
-│   └── index.html      ← the agent-facing UI
-├── vercel.json         ← routing config
-└── README.md
+node dev/devserver.mjs        # local server on :3456, mocked KV/Hostex/Drive
+node dev/e2e.test.mjs         # logic tests against the real handlers
 ```
 
-## Updating your token
-If you ever regenerate your Hostex API token, just update the `HOSTEX_TOKEN` environment variable in Vercel and redeploy.
-
-## Custom domain (optional)
-In Vercel → Settings → Domains, you can attach your own domain (e.g. `availability.yourdomain.com`) for free.
+Deploy: push to `main` → Vercel auto-deploys.
