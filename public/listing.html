@@ -444,29 +444,37 @@
   .hero-share:hover { background: #fff; transform: scale(1.05); }
   .hero-share:active { transform: scale(0.96); }
 
-  /* Availability strip — 12 weeks of day cells under the banner */
-  .avail-strip-wrap { margin: 14px 0 4px; }
-  .avail-strip-months {
-    display: flex;
-    font-size: 0.62rem;
-    color: var(--muted);
-    margin-bottom: 4px;
-    font-variant-numeric: tabular-nums;
+  /* Availability calendar — the same month-grid format as the agent portal's
+     listing cards. One month per view on phones (swipe), three across on
+     wider screens. */
+  .avail-cal-wrap { margin: 14px 0 4px; }
+  .avail-cal-scroll {
+    display: flex; gap: 18px; overflow-x: auto;
+    scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; padding-bottom: 2px;
   }
-  .avail-strip {
-    display: flex;
-    gap: 2px;
-    height: 26px;
+  .avail-cal-scroll::-webkit-scrollbar { display: none; }
+  .avail-cal-month { flex: 0 0 100%; min-width: 100%; scroll-snap-align: start; }
+  @media(min-width: 640px) { .avail-cal-month { flex-basis: calc((100% - 36px) / 3); min-width: 0; } }
+  .avail-cal-lbl {
+    font-size: 0.66rem; font-weight: 650; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
   }
-  .avail-day {
-    flex: 1;
-    border-radius: 3px;
-    background: #DCE9DF;
-    min-width: 0;
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-grid .dow {
+    font-size: .58rem; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted); text-align: center; padding-bottom: 4px; font-weight: 600;
   }
-  .avail-day.booked { background: #EDE7DF; }
-  .avail-day.today { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .avail-legend { display: flex; gap: 14px; margin-top: 8px; font-size: 0.68rem; color: var(--muted); }
+  .cal-grid .day {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; border-radius: 4px; font-weight: 500; color: #514C45;
+  }
+  .cal-grid .day.avail { background: #E4F0E2; color: #2F7A42; font-weight: 600; }
+  .cal-grid .day.booked { background: #E9E2D6; color: #b5ac9a; text-decoration: line-through; text-decoration-color: rgba(28,25,23,.3); }
+  .cal-grid .day.past { opacity: .3; }
+  .cal-grid .day.empty { background: transparent; }
+  .cal-grid .day.today { outline: 2px solid var(--accent); outline-offset: -1px; font-weight: 700; color: var(--accent); background: #F6E7DE; }
+  .avail-legend { display: flex; gap: 14px; margin-top: 10px; font-size: 0.68rem; color: var(--muted); }
   .avail-legend span { display: inline-flex; align-items: center; gap: 5px; }
   .avail-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 
@@ -747,13 +755,11 @@
       <span id="listing-avail-text"></span>
       <span class="listing-avail-window" id="listing-avail-window"></span>
     </div>
-    <div class="avail-strip-wrap" id="avail-strip-wrap" style="display:none">
-      <div class="avail-strip-months" id="avail-strip-months"></div>
-      <div class="avail-strip" id="avail-strip"></div>
+    <div class="avail-cal-wrap" id="avail-cal-wrap" style="display:none">
+      <div class="avail-cal-scroll" id="avail-cal-scroll"></div>
       <div class="avail-legend">
-        <span><i style="background:#DCE9DF"></i>Available</span>
-        <span><i style="background:#EDE7DF"></i>Booked</span>
-        <span>Next 12 weeks</span>
+        <span><i style="background:#E4F0E2"></i>Available</span>
+        <span><i style="background:#E9E2D6"></i>Booked</span>
       </div>
     </div>
     <p class="overview" id="prop-overview"></p>
@@ -1327,25 +1333,36 @@ function scrollToAvailability() {
   document.getElementById('listing-avail').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
 }
 
-// ── AVAILABILITY STRIP (next 12 weeks) ──
+// ── AVAILABILITY CALENDAR (next 3 months) ──
+// Real month grids, matching the agent portal's listing cards, so a client sees
+// the same calendar the agent does. Day keys use LOCAL date parts (the booked
+// set holds plain YYYY-MM-DD calendar days), same as the portal's buildMonth.
 function renderAvailStrip(booked, today) {
-  const DAYS = 84;
-  const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  let cells = '';
-  const monthSpans = [];
-  for (let i = 0; i < DAYS; i++) {
-    const d = new Date(today); d.setDate(d.getDate() + i);
-    const iso = d.toISOString().split('T')[0];
-    const m = MN[d.getMonth()];
-    if (!monthSpans.length || monthSpans[monthSpans.length - 1].m !== m) monthSpans.push({ m, n: 0 });
-    monthSpans[monthSpans.length - 1].n++;
-    cells += '<span class="avail-day' + (booked.has(iso) ? ' booked' : '') + (i === 0 ? ' today' : '') + '" title="' + iso + '"></span>';
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DOWS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const p2 = n => String(n).padStart(2, '0');
+  const key = (y, m, d) => y + '-' + p2(m + 1) + '-' + p2(d);
+  const todayStr = key(today.getFullYear(), today.getMonth(), today.getDate());
+  let html = '';
+  for (let mi = 0; mi < 3; mi++) {
+    const first = new Date(today.getFullYear(), today.getMonth() + mi, 1);
+    const y = first.getFullYear(), m = first.getMonth();
+    const firstDow = first.getDay();
+    const days = new Date(y, m + 1, 0).getDate();
+    let g = '<div class="cal-grid">';
+    DOWS.forEach(d => { g += '<div class="dow">' + d + '</div>'; });
+    for (let i = 0; i < firstDow; i++) g += '<div class="day empty"></div>';
+    for (let d = 1; d <= days; d++) {
+      const k = key(y, m, d);
+      let cls = k < todayStr ? 'past' : (booked.has(k) ? 'booked' : 'avail');
+      if (k === todayStr) cls += ' today';
+      g += '<div class="day ' + cls + '" title="' + k + '">' + d + '</div>';
+    }
+    g += '</div>';
+    html += '<div class="avail-cal-month"><div class="avail-cal-lbl">' + MONTHS[m] + ' ' + y + '</div>' + g + '</div>';
   }
-  document.getElementById('avail-strip-months').innerHTML = monthSpans.map(s =>
-    '<span style="width:' + (s.n / DAYS * 100) + '%;overflow:hidden">' + (s.n >= 8 ? s.m : '') + '</span>'
-  ).join('');
-  document.getElementById('avail-strip').innerHTML = cells;
-  document.getElementById('avail-strip-wrap').style.display = '';
+  document.getElementById('avail-cal-scroll').innerHTML = html;
+  document.getElementById('avail-cal-wrap').style.display = '';
 }
 
 // ── SIMILAR VILLAS ──
