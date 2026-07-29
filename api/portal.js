@@ -13,6 +13,7 @@ import { logError } from '../lib/errlog.js';
 import { rankStep } from '../lib/photorank.js';
 import { parseIcsBookedDates } from './ical.js';
 import { isHostexSlug, propIdFor, loadHostexOwnerMap, resolveOwnedListing } from '../lib/owner-listings.js';
+import { driveConfigured, createPhotoFolder, folderLink, uploadPhotoFromUrl } from '../lib/drive-photos.js';
 
 const SESSION_COOKIE = 'samba_session';
 const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days
@@ -170,6 +171,14 @@ export default async function handler(req, res) {
       const owner = await currentOwner(req, { kvGet });
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
       return importListing(req, res);
+    }
+    // Upload a chunk of extracted gallery photos into a Drive folder. The
+    // frontend loops this (a few photos per call) so one slow CDN download
+    // never times the whole import out.
+    if (action === 'import-photos' && req.method === 'POST') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      return importPhotos(req, res);
     }
 
     // ── Agent account actions (favourites, notes, shortlists, profile) ──
@@ -1082,12 +1091,75 @@ async function importListing(req, res) {
     return res.status(422).json({ error: 'The link redirected somewhere unexpected' });
   }
   if (!r.ok) return res.status(422).json({ error: 'Could not open the listing (HTTP ' + r.status + '). Make sure it is public.' });
-  const html = (await r.text()).slice(0, 2500000);
-  const fields = extractListingFields(html, new URL(r.url).hostname);
+  let html = (await r.text()).slice(0, 2500000);
+  let finalUrl = new URL(r.url);
+
+  // Airbnb geo-handoff: some regions get a tiny page that POSTs the visitor to
+  // their local domain (www.airbnb.ca etc.) instead of a redirect. Retry the
+  // same path once on the target domain.
+  const handoff = html.includes('domain_switch/handoff') && html.match(/action=["']https:\/\/(www\.airbnb\.[a-z.]{2,6})\//i);
+  if (handoff && IMPORT_HOSTS.test(handoff[1])) {
+    try {
+      const retryUrl = `https://${handoff[1]}${url.pathname}${url.search}`;
+      const r2 = await fetch(retryUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'en',
+        },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(15000),
+      });
+      if (r2.ok && IMPORT_HOSTS.test(new URL(r2.url).hostname)) {
+        html = (await r2.text()).slice(0, 2500000);
+        finalUrl = new URL(r2.url);
+      }
+    } catch { /* keep the original page */ }
+  }
+
+  const fields = extractListingFields(html, finalUrl.hostname, finalUrl.pathname);
   if (!fields.name && !fields.overview && fields.bedrooms == null) {
     return res.status(422).json({ error: 'Could not read details from that page — you can still fill the form manually' });
   }
-  return res.status(200).json({ fields });
+  // Photos import client-side in chunks via ?action=import-photos; the flag
+  // tells the form whether that pipeline is available (Drive SA configured).
+  return res.status(200).json({ fields, photosImportable: driveConfigured() && (fields.photos || []).length > 0 });
+}
+
+// Only these CDNs may be fetched by import-photos — the URL list comes from
+// the client, so without this an authed user could make the server fetch
+// arbitrary URLs (SSRF) or fill an owner's Drive with junk.
+const PHOTO_CDN = /^https:\/\/(a0\.muscache\.com\/im\/pictures\/|cf\.bstatic\.com\/xdata\/images\/hotel\/)/;
+
+async function importPhotos(req, res) {
+  if (!driveConfigured()) {
+    return res.status(503).json({ error: 'Photo import is not configured yet — add the photos with a Google Drive folder link instead' });
+  }
+  const body = req.body || {};
+  const photos = (Array.isArray(body.photos) ? body.photos : []).filter(u => PHOTO_CDN.test(String(u))).slice(0, 20);
+  if (!photos.length) return res.status(400).json({ error: 'No importable photo URLs' });
+  const startIndex = Math.max(0, parseInt(body.startIndex, 10) || 0);
+
+  let folderId = String(body.folderId || '').trim();
+  if (folderId && !/^[A-Za-z0-9_-]{10,}$/.test(folderId)) return res.status(400).json({ error: 'Invalid folder id' });
+  try {
+    if (!folderId) {
+      const name = String(body.folderName || '').replace(/[^\w\s'&.-]/g, '').trim().slice(0, 80) || 'Imported villa';
+      folderId = await createPhotoFolder(`${name} — photos`);
+    }
+  } catch (e) {
+    console.error('import-photos folder create failed:', e.message);
+    return res.status(502).json({ error: 'Could not create the Drive folder: ' + e.message });
+  }
+
+  // A few at a time, in parallel; one bad photo never fails the chunk.
+  const results = await Promise.all(photos.map((url, i) =>
+    uploadPhotoFromUrl({ url, folderId, index: startIndex + i })
+      .then(() => true)
+      .catch((e) => { console.warn('photo import failed:', e.message); return false; })
+  ));
+  const uploaded = results.filter(Boolean).length;
+  return res.status(200).json({ ok: true, folderId, folderLink: folderLink(folderId), uploaded, failed: photos.length - uploaded });
 }
 
 function decodeEntities(s) {
@@ -1105,7 +1177,49 @@ function metaContent(html, prop) {
   return m ? decodeEntities(m[1]).trim() : '';
 }
 
-function extractListingFields(html, host) {
+// ── Listing photo extraction ─────────────────────────────────────────
+// Airbnb pages carry the gallery as a0.muscache.com/im/pictures/… URLs (raw or
+// /-escaped JSON). Detail pages ALSO embed "similar listings" photos, so
+// when the /rooms/{id} id is known we keep only paths tagged with this
+// listing's id — it appears numerically ("Hosting-123…") or as base64 of
+// "StaySupplyListing:{id}" (the two encodings duplicate the same gallery, so
+// results dedupe by the photo's uuid filename). Booking.com ships
+// cf.bstatic.com/xdata/images/hotel/{size}/{id}.jpg — size segment normalized
+// to a large variant. Order = document order, which tracks gallery order.
+function extractPhotos(html, host, pathname) {
+  const photos = [];
+  const seen = new Set();
+  const push = (u) => {
+    const clean = u.split('?')[0];
+    const fname = clean.split('/').pop();
+    if (!fname || seen.has(fname)) return;
+    seen.add(fname);
+    photos.push(clean);
+  };
+  if (/airbnb/i.test(host)) {
+    const text = html.replace(/\\u002F/gi, '/');
+    const all = text.match(/https:\/\/a0\.muscache\.com\/im\/pictures\/[^"'\\\s)]+/g) || [];
+    const junk = /AirbnbPlatformAssets|\/im\/pictures\/user\/|\/user\//i;
+    const candidates = all.filter(u => !junk.test(u));
+    const id = (String(pathname || '').match(/\/rooms\/(\d+)/) || [])[1];
+    let own = candidates;
+    if (id) {
+      const b64 = Buffer.from(`StaySupplyListing:${id}`).toString('base64');
+      const mine = candidates.filter(u =>
+        u.includes(`-${id}/`) || u.includes(b64) || u.includes(encodeURIComponent(b64)));
+      // A confident id-match wins; very old listings tag photos differently,
+      // so with too few matches fall back to everything non-junk.
+      if (mine.length >= 3) own = mine;
+    }
+    own.forEach(push);
+  } else {
+    const all = html.match(/https:\/\/cf\.bstatic\.com\/xdata\/images\/hotel\/[^"'\\\s)]+/g) || [];
+    all.map(u => u.replace(/\/xdata\/images\/hotel\/[^/]+\//, '/xdata/images/hotel/max1024x768/')).forEach(push);
+  }
+  return photos.slice(0, 20);
+}
+
+function extractListingFields(html, host, pathname) {
   const out = {};
   const title = metaContent(html, 'og:title') || decodeEntities((html.match(/<title[^>]*>([^<]*)<\/title>/i) || [])[1] || '').trim();
   const desc = metaContent(html, 'og:description') || metaContent(html, 'description');
@@ -1161,6 +1275,19 @@ function extractListingFields(html, host) {
   const best = [ldDescRaw.trim(), desc].filter(s => s && !isSummaryLine(s)).sort((a, b) => b.length - a.length)[0];
   if (best) out.overview = best.slice(0, 1200);
 
+  // Gallery photos — the cover (og:image) is promoted to the front when it's
+  // one of the gallery shots.
+  const photos = extractPhotos(html, host, pathname);
+  if (photos.length) {
+    const ogF = (metaContent(html, 'og:image').split('?')[0] || '').split('/').pop();
+    const i = ogF ? photos.findIndex(p => p.split('/').pop() === ogF) : -1;
+    if (i > 0) photos.unshift(photos.splice(i, 1)[0]);
+    out.photos = photos;
+  }
+
   out.source = /airbnb/i.test(host) ? 'airbnb' : 'booking';
   return out;
 }
+
+// Exported for the dev test harness (pure function, no I/O).
+export { extractListingFields };

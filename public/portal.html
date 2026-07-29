@@ -941,9 +941,35 @@ async function importFromUrl(){
     const f=r.body?.fields||{};
     const set=(id,v)=>{const el=document.getElementById('f-'+id); if(el&&v!=null&&v!==''&&!el.value){el.value=v;return true;} return false;};
     const got=['name','area','unitType','bedrooms','bathrooms','overview'].filter(k=>set(k,f[k]));
-    hint.textContent=got.length
-      ?'Imported: '+got.join(', ')+'. Please review, then add your prices and a photos folder.'
-      :'Nothing new to fill in — the remaining fields need to be entered manually.';
+    const photos=Array.isArray(f.photos)?f.photos:[];
+    const photosField=document.getElementById('f-photosLink');
+
+    // Photos: upload the extracted gallery into a Drive folder, a few per
+    // request, then drop the folder link into the photos field. Skipped when
+    // the owner already gave a folder, or the server lacks Drive credentials.
+    if(photos.length && r.body?.photosImportable && photosField && !photosField.value){
+      let folderId='', folderLink='', uploaded=0, failed=0;
+      const CHUNK=5;
+      for(let i=0;i<photos.length;i+=CHUNK){
+        hint.textContent='Importing photos… '+Math.min(i,photos.length)+' of '+photos.length+' done';
+        const pr=await api('?action=import-photos',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({photos:photos.slice(i,i+CHUNK),startIndex:i,folderId,folderName:f.name||''})});
+        if(!pr.ok){ failed+=photos.length-i; break; }
+        folderId=pr.body.folderId; folderLink=pr.body.folderLink;
+        uploaded+=pr.body.uploaded||0; failed+=pr.body.failed||0;
+      }
+      if(uploaded && folderLink && !photosField.value){ photosField.value=folderLink; got.push(uploaded+' photos'); }
+      hint.textContent=got.length
+        ?'Imported: '+got.join(', ')+(failed?' ('+failed+' photos could not be copied)':'')+'. Please review, then add your prices.'
+        :'Nothing new to fill in — the remaining fields need to be entered manually.';
+    } else {
+      const photoNote=(photos.length && !r.body?.photosImportable)
+        ?' Found '+photos.length+' photos, but automatic photo import is not set up yet — paste a Drive folder link instead.'
+        :'';
+      hint.textContent=got.length
+        ?'Imported: '+got.join(', ')+'. Please review, then add your prices'+(photoNote?'.':' and a photos folder.')+photoNote
+        :'Nothing new to fill in — the remaining fields need to be entered manually.'+photoNote;
+    }
   }catch(e){ hint.textContent=e.message; }
   btn.disabled=false; btn.textContent='Import';
 }
