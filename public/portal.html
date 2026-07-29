@@ -350,12 +350,25 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
     <div class="modal-body">
       <input type="hidden" id="f-slug">
       <div class="fg" id="import-block" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px">
-        <label>Have an Airbnb or Booking.com listing?</label>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <label style="margin:0">Import your listing from</label>
+          <span style="font-weight:800;font-size:.95rem;color:#FF5A5F;letter-spacing:-.02em">airbnb</span>
+          <span style="color:var(--muted);font-size:.8rem">or</span>
+          <span style="font-weight:800;font-size:.9rem;letter-spacing:-.01em"><span style="color:#003B95">Booking</span><span style="color:#0096FF">.com</span></span>
+        </div>
         <div style="display:flex;gap:8px">
           <input id="f-importUrl" placeholder="Paste your listing link" style="flex:1;min-width:0">
           <button class="btn-sm primary" id="import-btn" onclick="importFromUrl()" style="flex-shrink:0">Import</button>
         </div>
-        <div class="hint" id="import-hint">We'll pre-fill the form from your public listing — review everything before submitting.</div>
+        <div class="hint" id="import-hint">We'll pre-fill the details and copy your photos over — review everything before submitting.</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div class="hint" style="margin:0">Prefer to chat? Maya can list it for you on WhatsApp.</div>
+          <a class="btn-sm" href="https://wa.me/6287841441233?text=Hi%20Maya!%20I%27d%20like%20to%20list%20my%20villa%20on%20Samba%20%F0%9F%8F%A1" target="_blank" rel="noopener"
+             style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;border:none;text-decoration:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.4 14.1c-.2.6-1.3 1.2-1.8 1.3-.5 0-1 .2-3.4-.7-2.9-1.1-4.7-4-4.9-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4l.9 2.1c0 .2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1l1-1.2c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.6.3 0 .1 0 .7-.2 1z"/></svg>
+            List with Maya
+          </a>
+        </div>
       </div>
       <div class="fg"><label>Property name *</label><input id="f-name" placeholder="e.g. Villa Sunrise"></div>
       <div class="frow">

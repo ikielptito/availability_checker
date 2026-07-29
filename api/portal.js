@@ -166,10 +166,17 @@ export default async function handler(req, res) {
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
       return rankPhotos(req, res, owner, { kvGet, kvSet, kvDel });
     }
+    // The two import actions are used by BOTH the owner portal (Google
+    // session) and the admin console (password Bearer, same check as
+    // api/listings.js) — an admin often enters a villa on the owner's behalf.
+    const isAdminReq = () => {
+      const adminPw = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSWORD;
+      return !!adminPw && (req.headers.authorization || '') === `Bearer ${adminPw}`;
+    };
     // Pre-fill the listing form from a public Airbnb / Booking.com page.
     if (action === 'import-listing' && req.method === 'POST') {
       const owner = await currentOwner(req, { kvGet });
-      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      if (!owner && !isAdminReq()) return res.status(401).json({ error: 'Not signed in' });
       return importListing(req, res);
     }
     // Upload a chunk of extracted gallery photos into a Drive folder. The
@@ -177,7 +184,7 @@ export default async function handler(req, res) {
     // never times the whole import out.
     if (action === 'import-photos' && req.method === 'POST') {
       const owner = await currentOwner(req, { kvGet });
-      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      if (!owner && !isAdminReq()) return res.status(401).json({ error: 'Not signed in' });
       return importPhotos(req, res);
     }
 
@@ -970,7 +977,7 @@ async function rankPhotos(req, res, owner, { kvGet, kvSet, kvDel }) {
     });
     return res.status(200).json(result);
   } catch (e) {
-    await logError('portal-rank', e);
+    await logError(process.env.KV_REST_API_URL, process.env.KV_REST_API_TOKEN, 'portal-rank', e);
     return res.status(502).json({ error: 'Photo sorting failed — try again' });
   }
 }

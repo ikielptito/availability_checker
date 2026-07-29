@@ -116,6 +116,15 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 .review-btn.reject{background:rgba(181,69,58,0.1);border-color:rgba(181,69,58,0.35);color:var(--red);}
 .empty-hint{padding:24px;border:1px dashed var(--border);border-radius:14px;color:var(--muted);font-size:0.8rem;text-align:center;margin-bottom:24px;}
 
+/* AIRBNB/BOOKING IMPORT (new-property card) */
+.import-block{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:18px;}
+.import-brands{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:0.78rem;}
+.brand-airbnb{font-weight:800;font-size:0.95rem;color:#FF5A5F;letter-spacing:-0.02em;}
+.brand-booking{font-weight:800;font-size:0.9rem;letter-spacing:-0.01em;}
+.brand-booking .b1{color:#003B95}.brand-booking .b2{color:#0096FF}
+.import-row{display:flex;gap:8px;}
+.import-row .field-input{flex:1;min-width:0;}
+
 /* LISTINGS INDEX (compact rows + expand-on-click) */
 .listing-toolbar{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0 12px;display:flex;flex-direction:column;gap:10px;}
 .listing-search{max-width:420px;}
@@ -713,6 +722,21 @@ function customCard(l, isNew) {
         </div>
       </div>
 
+      ${isNew ? `
+      <div class="import-block">
+        <div class="import-brands">
+          <span style="color:var(--muted)">Import the listing from</span>
+          <span class="brand-airbnb">airbnb</span>
+          <span style="color:var(--muted)">or</span>
+          <span class="brand-booking"><span class="b1">Booking</span><span class="b2">.com</span></span>
+        </div>
+        <div class="import-row">
+          <input class="field-input" id="${slug}-import-url" placeholder="https://www.airbnb.com/rooms/…" />
+          <button type="button" class="save-btn" id="${slug}-import-btn" onclick="adminImportListing('${slug}')">Import</button>
+        </div>
+        <span class="field-hint" id="${slug}-import-hint">Fills the details below and copies the photo gallery into a new Drive folder.</span>
+      </div>` : ''}
+
       <div class="field-row">
         <div class="field-group">
           <label class="field-label">Property Name *</label>
@@ -862,6 +886,62 @@ function customCard(l, isNew) {
       </div>
     </div>
   `;
+}
+
+// ── Airbnb / Booking import (new-property card) ──
+// Same backend as the owner portal's importer (api/portal.js), authed with
+// the admin password instead of a Google session. Fills only empty fields;
+// photos are copied into a fresh Drive folder and wired into the photo input.
+async function adminImportListing(slug) {
+  const url = (document.getElementById(slug + '-import-url') || {}).value?.trim();
+  const hint = document.getElementById(slug + '-import-hint');
+  const btn = document.getElementById(slug + '-import-btn');
+  if (!url) { hint.textContent = 'Paste an Airbnb or Booking.com listing link first.'; return; }
+  btn.disabled = true; btn.textContent = 'Importing…'; hint.textContent = 'Reading the listing…';
+  const call = (action, body) => fetch('/api/portal?action=' + action, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminPw },
+    body: JSON.stringify(body),
+  }).then(async r => ({ ok: r.ok, body: await r.json().catch(() => ({})) }));
+  try {
+    const r = await call('import-listing', { url });
+    if (!r.ok) throw new Error(r.body?.error || 'Import failed');
+    const f = r.body?.fields || {};
+    const set = (field, v) => { const el = document.getElementById(slug + '-' + field); if (el && v != null && v !== '' && !el.value) { el.value = v; return true; } return false; };
+    const got = [];
+    if (set('name', f.name)) got.push('name');
+    if (set('tag', f.area)) got.push('area');
+    if (set('unitType', f.unitType)) got.push('unit type');
+    if (set('overview', f.overview)) got.push('overview');
+
+    const photos = Array.isArray(f.photos) ? f.photos : [];
+    const folderInput = document.getElementById(slug + '-folder-url');
+    if (photos.length && r.body?.photosImportable && folderInput && !folderInput.value) {
+      let folderId = '', folderLink = '', uploaded = 0, failed = 0;
+      const CHUNK = 5;
+      for (let i = 0; i < photos.length; i += CHUNK) {
+        hint.textContent = 'Importing photos… ' + i + ' of ' + photos.length + ' done';
+        const pr = await call('import-photos', { photos: photos.slice(i, i + CHUNK), startIndex: i, folderId, folderName: f.name || '' });
+        if (!pr.ok) { failed += photos.length - i; break; }
+        folderId = pr.body.folderId; folderLink = pr.body.folderLink;
+        uploaded += pr.body.uploaded || 0; failed += pr.body.failed || 0;
+      }
+      if (uploaded && folderLink && !folderInput.value) {
+        folderInput.value = folderLink;
+        onFolderInput(slug, folderLink);
+        got.push(uploaded + ' photos');
+      }
+      hint.textContent = got.length
+        ? 'Imported: ' + got.join(', ') + (failed ? ' (' + failed + ' photos failed)' : '') + '. Review, add pricing, then Create.'
+        : 'Nothing new to fill in.';
+    } else {
+      const note = (photos.length && !r.body?.photosImportable) ? ' Found ' + photos.length + ' photos but Drive import is not configured.' : '';
+      hint.textContent = (got.length ? 'Imported: ' + got.join(', ') + '.' : 'Nothing new to fill in.') + note;
+    }
+  } catch (e) {
+    hint.textContent = e.message;
+  }
+  btn.disabled = false; btn.textContent = 'Import';
 }
 
 function addCustom() {
