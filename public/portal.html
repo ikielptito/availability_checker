@@ -421,7 +421,7 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
       <div class="fg">
         <label>Promo code</label>
         <input id="f-promo" placeholder="e.g. FREEMONTH" autocomplete="off" spellcheck="false" style="text-transform:uppercase">
-        <div class="hint">Activates this listing free for one month.</div>
+        <div class="hint">Activates this listing free for the code's promo period.</div>
       </div>
     </div>
     <div class="modal-err" id="checkout-err"></div>
@@ -1027,7 +1027,8 @@ function openCheckout(slug){
 }
 function closeCheckout(){ document.getElementById('checkout-modal').classList.remove('open'); }
 
-// Redeem a promo code to activate this listing for free (one month). When card
+// Redeem a promo code to activate this listing for free (the code's promo
+// period — e.g. PRELAUNCH90 = 3 months). When card
 // billing returns, goToPayment()/launchPaddle() below can be re-wired to the
 // greyed-out pay button.
 async function applyPromo(){
@@ -1040,7 +1041,7 @@ async function applyPromo(){
   btn.disabled=false; btn.textContent='Apply code & go live';
   if(r.ok && r.body && r.body.ok){
     closeCheckout();
-    showToast(r.body.alreadyActive?'This listing is already live.':'Code applied — your listing is live, free for one month.');
+    showToast(r.body.alreadyActive?'This listing is already live.':(r.body.subscription&&r.body.subscription.expiresAt?'Code applied — your listing is live, free until '+new Date(r.body.subscription.expiresAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'.':'Code applied — your listing is live.'));
     loadProperties();
   } else {
     err.textContent=(r.body && r.body.error) || 'Could not apply that code.';
