@@ -116,6 +116,27 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 .review-btn.reject{background:rgba(181,69,58,0.1);border-color:rgba(181,69,58,0.35);color:var(--red);}
 .empty-hint{padding:24px;border:1px dashed var(--border);border-radius:14px;color:var(--muted);font-size:0.8rem;text-align:center;margin-bottom:24px;}
 
+/* LISTINGS INDEX (compact rows + expand-on-click) */
+.listing-toolbar{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0 12px;display:flex;flex-direction:column;gap:10px;}
+.listing-search{max-width:420px;}
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.72rem;color:var(--muted);cursor:pointer;transition:all 0.15s;}
+.chip:hover{color:var(--text);}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+.listing-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;}
+.listing-row{display:flex;align-items:center;gap:14px;width:100%;background:none;border:none;padding:10px 14px;cursor:pointer;text-align:left;font-family:'Satoshi',-apple-system,sans-serif;color:var(--text);}
+.listing-row:hover{background:var(--surface2);}
+.row-thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--surface2);}
+.row-thumb.empty{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:0.85rem;}
+.row-main{flex:1;min-width:0;}
+.row-name{font-size:0.9rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row-meta{font-size:0.72rem;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row-chevron{color:var(--muted);font-size:0.8rem;transition:transform 0.2s;flex-shrink:0;}
+.listing-item.open .row-chevron{transform:rotate(180deg);}
+.listing-detail{display:none;}
+.listing-item.open .listing-detail{display:block;border-top:1px solid var(--border);}
+.listing-detail .listing-card{border:none;border-radius:0;margin-bottom:0;}
+
 /* TOAST */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 20px;border-radius:10px;font-size:0.78rem;letter-spacing:0.04em;transition:transform 0.25s cubic-bezier(.2,.9,.3,1.2);z-index:999;pointer-events:none;white-space:nowrap;}
 .toast.show{transform:translateX(-50%) translateY(0);}
@@ -281,7 +302,7 @@ async function loadListings() {
     const { listings } = await r.json();
     allListings = listings;
     renderApprovalsTab(listings);
-    renderListingsTab(listings);
+    renderListingsTab();
   } catch(e) {
     document.getElementById('tab-approvals').innerHTML = '<div class="loading-state">Could not load: ' + e.message + '</div>';
   }
@@ -319,7 +340,11 @@ function approvalCard(l) {
 }
 function openInListings(slug) {
   showTab('listings');
-  setTimeout(() => { const c = document.getElementById('card-' + slug); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80);
+  listingQuery = '';
+  listingChip = 'all';
+  expandedSlugs.add(slug);
+  renderListingsTab();
+  setTimeout(() => { const c = document.getElementById('item-' + slug); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
 }
 
 // ── Promo codes tab ──
@@ -402,28 +427,124 @@ function extractFolderId(url) {
   return m ? m[1] : null;
 }
 
-function renderListingsTab(listings) {
+// ── Listings tab: compact searchable index; the full edit form only renders
+// when a row is expanded (and Drive previews only load for open cards). ──
+let listingQuery = '';
+let listingChip = 'all';
+const expandedSlugs = new Set();
+
+function listingMatches(l) {
+  const q = listingQuery.trim().toLowerCase();
+  if (q && ![l.name, l.slug, l.tag, l.unitType].some(v => v && String(v).toLowerCase().includes(q))) return false;
+  switch (listingChip) {
+    case 'pending':  return l.ownerSub && l.status === 'pending_review';
+    case 'custom':   return !!l.custom;
+    case 'hostex':   return !l.custom;
+    case 'owner':    return !!(l.ownerEmail || l.ownerSub);
+    case 'nophotos': return !l.folder;
+    default:         return true;
+  }
+}
+
+function setListingChip(k) {
+  listingChip = k;
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.chip === k));
+  renderListingsBody();
+}
+
+function renderListingsTab() {
+  const pendingCount = allListings.filter(l => l.ownerSub && l.status === 'pending_review').length;
+  const chips = [
+    ['all', 'All'],
+    ['pending', 'Pending review' + (pendingCount ? ` (${pendingCount})` : '')],
+    ['custom', 'Custom'],
+    ['hostex', 'Hostex'],
+    ['owner', 'Has owner'],
+    ['nophotos', 'No photos'],
+  ];
+  document.getElementById('tab-listings').innerHTML = `
+    <div class="listing-toolbar">
+      <input class="field-input listing-search" id="listing-search" placeholder="Search name, slug, area, unit type…"
+        value="${esc(listingQuery)}" oninput="listingQuery = this.value; renderListingsBody()" />
+      <div class="filter-chips">${chips.map(([k, label]) =>
+        `<button class="chip${listingChip === k ? ' on' : ''}" data-chip="${k}" onclick="setListingChip('${k}')">${label}</button>`).join('')}
+      </div>
+    </div>
+    <div id="listings-body"></div>`;
+  renderListingsBody();
+}
+
+function renderListingsBody() {
+  const body = document.getElementById('listings-body');
+  if (!body) return;
+  const filtering = listingQuery.trim() || listingChip !== 'all';
   // Pending owner submissions float to the top so they're reviewed first.
   const rank = l => (l.ownerSub && l.status === 'pending_review') ? 0 : 1;
-  const customs = listings.filter(l => l.custom).sort((a, b) => rank(a) - rank(b));
-  const defaults = listings.filter(l => !l.custom);
-  const html =
+  const customs = allListings.filter(l => l.custom && listingMatches(l)).sort((a, b) => rank(a) - rank(b));
+  const defaults = allListings.filter(l => !l.custom && listingMatches(l));
+  body.innerHTML =
     `<div class="section-head">
       <div><h2>Custom properties</h2><div class="hint">Properties not in Hostex — fully managed here</div></div>
       <button class="add-btn" onclick="addCustom()">+ Add Property</button>
     </div>
     <div id="new-custom-slot"></div>` +
-    (customs.length ? customs.map(l => customCard(l, false)).join('') :
-      '<div class="empty-hint">No custom properties yet. Click "+ Add Property" to create one.</div>') +
+    (customs.length ? customs.map(listingItem).join('') :
+      `<div class="empty-hint">${filtering ? 'No custom properties match.' : 'No custom properties yet. Click "+ Add Property" to create one.'}</div>`) +
     `<div class="section-head" style="margin-top:36px"><div><h2>Hostex listings</h2><div class="hint">Synced from Hostex — details editable here</div></div></div>` +
-    defaults.map(l => defaultCard(l)).join('');
-  document.getElementById('tab-listings').innerHTML = html;
-
-  // Load drive previews for all listings
-  listings.forEach(l => {
-    if (l.folder) loadDrivePreview(l.slug, l.folder);
-    renderCoverFocus(l.slug);
+    (defaults.length ? defaults.map(listingItem).join('') :
+      '<div class="empty-hint">No Hostex listings match.</div>');
+  // Re-mount editors that were open before this re-render (fresh data, no stale forms)
+  expandedSlugs.forEach(slug => {
+    const l = allListings.find(x => x.slug === slug);
+    if (l && document.getElementById('detail-' + slug)) mountDetail(l);
   });
+}
+
+function listingItem(l) {
+  const open = expandedSlugs.has(l.slug);
+  const price = [l.monthly && l.monthly + '/mo', l.yearly && l.yearly + '/yr'].filter(Boolean).join(' · ');
+  const meta = [l.unitType, l.tag, price].filter(Boolean).join(' · ');
+  const thumb = l.coverPhotoId
+    ? `<img class="row-thumb" src="https://lh3.googleusercontent.com/d/${esc(l.coverPhotoId)}=w112-h112" loading="lazy" alt="" onerror="this.remove()">`
+    : `<div class="row-thumb empty">${l.folder ? '📷' : '—'}</div>`;
+  const badges = (l.custom ? '<span class="custom-badge">custom</span>' : '') + statusBadge(l)
+    + (l.hidden ? '<span class="status-badge rejected">hidden</span>' : '')
+    + (!l.folder ? '<span class="status-badge pending">no photos</span>' : '');
+  return `<div class="listing-item${open ? ' open' : ''}" id="item-${l.slug}">
+    <button type="button" class="listing-row" onclick="toggleListing('${l.slug}')">
+      ${thumb}
+      <div class="row-main">
+        <div class="row-name">${esc(l.name || l.slug)}${badges}</div>
+        <div class="row-meta">${esc(meta) || '&nbsp;'}</div>
+      </div>
+      <span class="row-chevron">▾</span>
+    </button>
+    <div class="listing-detail" id="detail-${l.slug}"></div>
+  </div>`;
+}
+
+function toggleListing(slug) {
+  const l = allListings.find(x => x.slug === slug);
+  if (!l) return;
+  if (expandedSlugs.has(slug)) {
+    expandedSlugs.delete(slug);
+    const d = document.getElementById('detail-' + slug);
+    if (d) d.innerHTML = '';
+    const item = document.getElementById('item-' + slug);
+    if (item) item.classList.remove('open');
+  } else {
+    expandedSlugs.add(slug);
+    mountDetail(l);
+  }
+}
+
+function mountDetail(l) {
+  const d = document.getElementById('detail-' + l.slug);
+  if (!d) return;
+  d.innerHTML = l.custom ? customCard(l, false) : defaultCard(l);
+  document.getElementById('item-' + l.slug).classList.add('open');
+  if (l.folder) loadDrivePreview(l.slug, l.folder);
+  renderCoverFocus(l.slug);
 }
 
 function defaultCard(l) {
@@ -487,7 +608,7 @@ function defaultCard(l) {
       <div class="field-group">
         <label class="field-label">Google Drive Folder URL</label>
         <input class="field-input" id="${l.slug}-folder-url"
-          value="${esc('https://drive.google.com/drive/folders/' + l.folder)}"
+          value="${l.folder ? esc('https://drive.google.com/drive/folders/' + l.folder) : ''}"
           placeholder="https://drive.google.com/drive/folders/…"
           oninput="onFolderInput('${l.slug}', this.value)" />
         <span class="field-hint" id="${l.slug}-folder-hint">Paste a Drive folder link to update photos</span>
