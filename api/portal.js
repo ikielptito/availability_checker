@@ -1159,14 +1159,17 @@ async function importPhotos(req, res) {
     return res.status(502).json({ error: 'Could not create the Drive folder: ' + e.message });
   }
 
-  // A few at a time, in parallel; one bad photo never fails the chunk.
+  // A few at a time, in parallel; one bad photo never fails the chunk. The
+  // first failure's message is surfaced so systemic errors (quota, auth) are
+  // diagnosable from the client instead of buried in function logs.
+  let firstError = null;
   const results = await Promise.all(photos.map((url, i) =>
     uploadPhotoFromUrl({ url, folderId, index: startIndex + i })
       .then(() => true)
-      .catch((e) => { console.warn('photo import failed:', e.message); return false; })
+      .catch((e) => { if (!firstError) firstError = e.message; console.warn('photo import failed:', e.message); return false; })
   ));
   const uploaded = results.filter(Boolean).length;
-  return res.status(200).json({ ok: true, folderId, folderLink: folderLink(folderId), uploaded, failed: photos.length - uploaded });
+  return res.status(200).json({ ok: true, folderId, folderLink: folderLink(folderId), uploaded, failed: photos.length - uploaded, ...(firstError ? { firstError } : {}) });
 }
 
 function decodeEntities(s) {
