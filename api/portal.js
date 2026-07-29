@@ -1229,6 +1229,47 @@ function extractPhotos(html, host, pathname) {
   return photos.slice(0, 20);
 }
 
+// Curated amenity extraction — Airbnb embeds structured amenity entries as
+// {"available":true,"title":"…"}. Raw titles are noisy (Shampoo, Hangers,
+// smoke alarms…), so only villa-level selling points mapped to our own
+// vocabulary survive. First matching rule wins; labels dedupe.
+const AMENITY_MAP = [
+  [/private pool/i, 'features', 'Private pool'],
+  [/shared pool/i, 'features', 'Shared pool'],
+  [/^pool$/i, 'features', 'Private pool'],
+  [/air conditioning/i, 'features', 'Air conditioning'],
+  [/kitchen(?!ette)/i, 'features', 'Full kitchen'],
+  [/kitchenette/i, 'features', 'Kitchenette'],
+  [/workspace/i, 'features', 'Dedicated workspace'],
+  [/bathtub/i, 'features', 'Bathtub'],
+  [/free parking|parking garage|carport/i, 'features', 'Free parking'],
+  [/washer/i, 'features', 'Washer'],
+  [/wifi/i, 'features', 'Fast wifi'],
+  [/backyard|garden(?! view)/i, 'features', 'Garden'],
+  [/rooftop/i, 'features', 'Rooftop'],
+  [/balcony|patio/i, 'features', 'Balcony'],
+  [/bbq|barbecue/i, 'features', 'BBQ'],
+  [/gym|exercise equipment/i, 'features', 'Gym access'],
+  [/pets allowed/i, 'features', 'Pet friendly'],
+  [/beach access|beachfront/i, 'highlights', 'Beach access'],
+  [/sea view|ocean view/i, 'highlights', 'Ocean view'],
+  [/mountain view/i, 'highlights', 'Mountain view'],
+  [/rice ?(paddy|field)/i, 'highlights', 'Rice-field views'],
+];
+function extractAmenities(html) {
+  const features = [], highlights = [], seen = new Set();
+  for (const m of html.matchAll(/"available":true,"title":"([^"]{2,60})"/g)) {
+    const title = decodeEntities(m[1]);
+    for (const [re, kind, label] of AMENITY_MAP) {
+      if (re.test(title)) {
+        if (!seen.has(label)) { seen.add(label); (kind === 'features' ? features : highlights).push(label); }
+        break;
+      }
+    }
+  }
+  return { features: features.slice(0, 8), highlights: highlights.slice(0, 3) };
+}
+
 function extractListingFields(html, host, pathname) {
   const out = {};
   const title = metaContent(html, 'og:title') || decodeEntities((html.match(/<title[^>]*>([^<]*)<\/title>/i) || [])[1] || '').trim();
@@ -1284,6 +1325,12 @@ function extractListingFields(html, host, pathname) {
   const isSummaryLine = (s) => /·\s*★|\d\s*bedroom.*·.*bed/i.test(s);
   const best = [ldDescRaw.trim(), desc].filter(s => s && !isSummaryLine(s)).sort((a, b) => b.length - a.length)[0];
   if (best) out.overview = best.slice(0, 1200);
+
+  // Curated amenities → feature/highlight suggestions (Airbnb only in
+  // practice; the patterns simply don't match on Booking pages).
+  const am = extractAmenities(html);
+  if (am.features.length) out.features = am.features;
+  if (am.highlights.length) out.locationHighlights = am.highlights;
 
   // Gallery photos — the cover (og:image) is promoted to the front when it's
   // one of the gallery shots.

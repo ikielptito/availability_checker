@@ -23,7 +23,16 @@ const airbnbHtml = `
 <meta property="og:title" content="Brand New 1BR Villa - Villas for Rent" />
 <meta property="og:description" content="Villa in Canggu · ★4.9 · 1 bedroom · 1 bed · 1 bath" />
 <meta property="og:image" content="https://a0.muscache.com/im/pictures/miso/Hosting-${ID}/original/cover-uuid-2222.jpeg?im_w=1200" />
-<script>var x = {"images":[
+<script>var a = {"amenities":[
+ {"available":true,"title":"Private pool"},
+ {"available":true,"title":"Fast wifi – 427 Mbps"},
+ {"available":true,"title":"Shampoo"},
+ {"available":true,"title":"Hangers"},
+ {"available":false,"title":"Air conditioning"},
+ {"available":true,"title":"Beach access"},
+ {"available":true,"title":"Private pool"}
+]};
+var x = {"images":[
  "https://a0.muscache.com/im/pictures/hosting/Hosting-${ID}/original/aaaa-uuid-1111.jpeg",
  "https://a0.muscache.com/im/pictures/miso/Hosting-${ID}/original/cover-uuid-2222.jpeg",
  "https:\\u002F\\u002Fa0.muscache.com\\u002Fim\\u002Fpictures\\u002Fhosting\\u002FHosting-${encodeURIComponent(B64)}\\u002Foriginal\\u002Faaaa-uuid-1111.jpeg",
@@ -39,6 +48,11 @@ t('airbnb: excludes other listings + platform assets + avatars',
   !(a.photos || []).some(p => /999999|PlatformAssets|\/user\//.test(p)));
 t('airbnb: og:image cover promoted first', (a.photos || [])[0]?.includes('cover-uuid-2222'));
 t('airbnb: bedrooms parsed alongside photos', a.bedrooms === 1);
+t('airbnb: amenities curated + deduped (pool, wifi — not shampoo/hangers)',
+  JSON.stringify(a.features) === JSON.stringify(['Private pool', 'Fast wifi']));
+t('airbnb: unavailable amenities excluded', !(a.features || []).includes('Air conditioning'));
+t('airbnb: view/beach amenities land in locationHighlights',
+  JSON.stringify(a.locationHighlights) === JSON.stringify(['Beach access']));
 
 const bookingHtml = `
 <title>The Anvaya Beach Resort - Booking.com</title>

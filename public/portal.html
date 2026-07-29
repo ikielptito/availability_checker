@@ -134,6 +134,25 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 .fg input,.fg textarea,.fg select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 13px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.85rem;color:var(--text);outline:none;}
 .fg input:focus,.fg textarea:focus{border-color:var(--accent);}
 .fg textarea{resize:vertical;min-height:64px;}
+/* iOS Safari auto-zooms (and stays zoomed) when a focused input is under
+   16px — the "form is cut off until I zoom out" bug. 16px on touch widths. */
+@media(max-width:640px){.fg input,.fg textarea,.fg select,.modal input,.modal textarea,.modal select{font-size:16px;}}
+
+/* PILL SELECTORS — tap-to-toggle presets for features / inclusions / highlights */
+.pillbox{display:flex;flex-wrap:wrap;gap:7px;}
+.pill{border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:20px;padding:7px 13px;font-size:0.8rem;cursor:pointer;user-select:none;font-family:inherit;transition:background .12s,color .12s;}
+.pill:active{transform:scale(.96);}
+.pill.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+.pill-add{display:flex;gap:7px;margin-top:8px;}
+.pill-add input{flex:1;min-width:0;}
+@media(max-width:640px){.pill{padding:9px 15px;font-size:0.85rem;}}
+
+/* ADDRESS SEARCH RESULTS (Google Maps field) */
+.map-results{display:none;border:1px solid var(--border);border-radius:9px;margin-top:6px;overflow:hidden;background:var(--surface);}
+.map-results.open{display:block;}
+.map-result{padding:10px 12px;font-size:0.8rem;cursor:pointer;border-bottom:1px solid var(--border);}
+.map-result:last-child{border-bottom:none;}
+.map-result:hover{background:var(--surface2);}
 .ical-help{margin-top:6px;font-size:.78rem;color:var(--text-2);}
 .ical-help summary{cursor:pointer;color:var(--accent);font-weight:600;list-style:none;}
 .ical-help summary::before{content:'? ';font-weight:700;}
@@ -385,13 +404,33 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
         <div class="fg"><label>Yearly price</label><input id="f-yearly" placeholder="e.g. 350jt"></div>
         <div class="fg"><label>2-year price</label><input id="f-yearly2" placeholder="optional"></div>
       </div>
-      <div class="fg"><label>Key features</label><textarea id="f-features" placeholder="One per line&#10;Private pool&#10;Fully furnished"></textarea></div>
-      <div class="fg"><label>Monthly inclusions</label><textarea id="f-inclusions" placeholder="One per line&#10;Wifi · Drinking water&#10;Housekeeping 2× weekly"></textarea></div>
-      <div class="fg"><label>Yearly inclusions</label><textarea id="f-yearlyInclusions" placeholder="One per line (leave blank if none)"></textarea></div>
-      <div class="fg"><label>Location highlights</label><textarea id="f-locationHighlights" placeholder="One per line&#10;5-min walk to the beach&#10;Cafés &amp; gym nearby"></textarea></div>
+      <div class="fg"><label>Key features</label>
+        <div class="pillbox" id="pills-features"></div>
+        <div class="pill-add"><input id="pilladd-features" placeholder="Add your own…" onkeydown="if(event.key==='Enter'){event.preventDefault();addPill('features')}"><button type="button" class="btn-sm" onclick="addPill('features')">Add</button></div>
+        <textarea id="f-features" style="display:none"></textarea>
+      </div>
+      <div class="fg"><label>Monthly inclusions</label>
+        <div class="pillbox" id="pills-inclusions"></div>
+        <div class="pill-add"><input id="pilladd-inclusions" placeholder="Add your own…" onkeydown="if(event.key==='Enter'){event.preventDefault();addPill('inclusions')}"><button type="button" class="btn-sm" onclick="addPill('inclusions')">Add</button></div>
+        <textarea id="f-inclusions" style="display:none"></textarea>
+      </div>
+      <div class="fg"><label>Yearly inclusions</label>
+        <div class="pillbox" id="pills-yearlyInclusions"></div>
+        <div class="pill-add"><input id="pilladd-yearlyInclusions" placeholder="Add your own…" onkeydown="if(event.key==='Enter'){event.preventDefault();addPill('yearlyInclusions')}"><button type="button" class="btn-sm" onclick="addPill('yearlyInclusions')">Add</button></div>
+        <textarea id="f-yearlyInclusions" style="display:none"></textarea>
+      </div>
+      <div class="fg"><label>Location highlights</label>
+        <div class="pillbox" id="pills-locationHighlights"></div>
+        <div class="pill-add"><input id="pilladd-locationHighlights" placeholder="Add your own…" onkeydown="if(event.key==='Enter'){event.preventDefault();addPill('locationHighlights')}"><button type="button" class="btn-sm" onclick="addPill('locationHighlights')">Add</button></div>
+        <textarea id="f-locationHighlights" style="display:none"></textarea>
+      </div>
       <div class="fg"><label>Photos (Google Drive folder link)</label><input id="f-photosLink" placeholder="https://drive.google.com/drive/folders/…">
         <div class="hint">Share a Drive folder of photos (link sharing on). We pull images automatically.</div></div>
-      <div class="fg"><label>Google Maps link</label><input id="f-mapLink" placeholder="https://maps.app.goo.gl/…"></div>
+      <div class="fg"><label>Google Maps link</label>
+        <input id="f-mapLink" placeholder="Paste a maps link — or type the address to search" autocomplete="off" oninput="mapSearchInput(this.value)">
+        <div class="map-results" id="map-results"></div>
+        <div class="hint" id="map-hint">Paste a Google Maps link, or just type the villa's address and pick a match.</div>
+      </div>
       <div class="fg"><label>Availability calendar (iCal link)</label><input id="f-icalUrl" placeholder="https://…/calendar.ics">
         <div class="hint">Optional — an Airbnb/Hostex calendar export link. Booked dates sync automatically.</div>
         <details class="ical-help">
@@ -935,9 +974,79 @@ function openPropModal(slug, rec){
   document.getElementById('import-block').style.display=slug?'none':'';
   document.getElementById('f-importUrl').value='';
   document.getElementById('import-hint').textContent='We\'ll pre-fill the form from your public listing — review everything before submitting.';
+  renderAllPills();
+  document.getElementById('map-results').classList.remove('open');
+  document.getElementById('map-hint').textContent='Paste a Google Maps link, or just type the villa\'s address and pick a match.';
   document.getElementById('prop-modal').classList.add('open');
 }
 function closePropModal(){ document.getElementById('prop-modal').classList.remove('open'); }
+
+// ── Pill selectors ──
+// The four list fields render as tappable pills; the hidden textareas stay
+// the single source of truth (submit/edit/import all read & write them), so
+// pills are purely a faster way to write "one per line" text.
+const PILL_PRESETS={
+  features:['Private pool','Fully furnished','Air conditioning','Full kitchen','Fast wifi','Dedicated workspace','Bathtub','Garden','Free parking','Washer','Rooftop','Pet friendly'],
+  inclusions:['Wifi','Electricity','Drinking water','Housekeeping weekly','Housekeeping 2× weekly','Pool maintenance','Garden maintenance','Linen change'],
+  yearlyInclusions:['Villa only — no services','Pool maintenance','Garden maintenance','Wifi'],
+  locationHighlights:['5-min walk to the beach','Beach access','Ocean view','Rice-field views','Cafés & gym nearby','Quiet street','Near international school'],
+};
+const PILL_FIELDS=Object.keys(PILL_PRESETS);
+function pillValues(field){ return document.getElementById('f-'+field).value.split('\n').map(s=>s.trim()).filter(Boolean); }
+function renderPills(field){
+  const sel=pillValues(field);
+  const opts=[...PILL_PRESETS[field]];
+  sel.forEach(v=>{ if(!opts.some(o=>o.toLowerCase()===v.toLowerCase())) opts.push(v); }); // customs + imported values appear as pills too
+  document.getElementById('pills-'+field).innerHTML=opts.map(o=>{
+    const on=sel.some(s=>s.toLowerCase()===o.toLowerCase());
+    return '<button type="button" class="pill'+(on?' on':'')+'" data-v="'+esc(o)+'" onclick="togglePill(\''+field+'\',this)">'+esc(o)+'</button>';
+  }).join('');
+}
+function togglePill(field,el){
+  const v=el.dataset.v;
+  let sel=pillValues(field);
+  if(sel.some(s=>s.toLowerCase()===v.toLowerCase())) sel=sel.filter(s=>s.toLowerCase()!==v.toLowerCase());
+  else sel.push(v);
+  document.getElementById('f-'+field).value=sel.join('\n');
+  renderPills(field);
+}
+function addPill(field){
+  const inp=document.getElementById('pilladd-'+field);
+  const v=(inp.value||'').trim();
+  if(!v) return;
+  inp.value='';
+  const sel=pillValues(field);
+  if(!sel.some(s=>s.toLowerCase()===v.toLowerCase())){ sel.push(v); document.getElementById('f-'+field).value=sel.join('\n'); }
+  renderPills(field);
+}
+function renderAllPills(){ PILL_FIELDS.forEach(renderPills); }
+
+// ── Address search (Google Maps field) ──
+// Dual-mode input: a pasted http(s) link is used as-is; anything else is
+// geocoded via OpenStreetMap Nominatim (free, no key) after a debounce, and
+// picking a result writes a google.com/maps URL for those coordinates.
+let mapDebounce=null;
+function mapSearchInput(v){
+  clearTimeout(mapDebounce);
+  const box=document.getElementById('map-results');
+  v=(v||'').trim();
+  if(!v||/^https?:\/\//i.test(v)||v.length<4){ box.classList.remove('open'); return; }
+  mapDebounce=setTimeout(async()=>{
+    try{
+      const q=/bali|indonesia/i.test(v)?v:v+', Bali, Indonesia';
+      const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&q='+encodeURIComponent(q));
+      const d=await r.json();
+      if(!Array.isArray(d)||!d.length){ box.classList.remove('open'); return; }
+      box.innerHTML=d.map(p=>'<div class="map-result" data-lat="'+(+p.lat).toFixed(6)+'" data-lon="'+(+p.lon).toFixed(6)+'" data-n="'+esc(p.display_name)+'" onclick="pickMapResult(this)">'+esc(p.display_name)+'</div>').join('');
+      box.classList.add('open');
+    }catch{ box.classList.remove('open'); }
+  },450);
+}
+function pickMapResult(el){
+  document.getElementById('f-mapLink').value='https://www.google.com/maps/search/?api=1&query='+el.dataset.lat+'%2C'+el.dataset.lon;
+  document.getElementById('map-results').classList.remove('open');
+  document.getElementById('map-hint').textContent='📍 '+el.dataset.n;
+}
 
 // ── Import from Airbnb / Booking.com ──
 // Fills only fields the owner hasn't typed in yet, so a re-import or a
@@ -954,6 +1063,10 @@ async function importFromUrl(){
     const f=r.body?.fields||{};
     const set=(id,v)=>{const el=document.getElementById('f-'+id); if(el&&v!=null&&v!==''&&!el.value){el.value=v;return true;} return false;};
     const got=['name','area','unitType','bedrooms','bathrooms','overview'].filter(k=>set(k,f[k]));
+    // Curated amenities → pre-selected pills (only when the field is untouched)
+    if(set('features',(f.features||[]).join('\n'))) got.push('features');
+    if(set('locationHighlights',(f.locationHighlights||[]).join('\n'))) got.push('location highlights');
+    renderAllPills();
     const photos=Array.isArray(f.photos)?f.photos:[];
     const photosField=document.getElementById('f-photosLink');
 

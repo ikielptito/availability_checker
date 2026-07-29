@@ -38,6 +38,8 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 
 .content{padding:24px 28px 80px;max-width:900px;margin:0 auto;}
 @media(max-width:640px){.content{padding:16px;}.topbar{padding:0 16px;}}
+/* iOS auto-zoom guard — sub-16px inputs zoom the page on focus */
+@media(max-width:640px){.field-input,.field-textarea,.login-input{font-size:16px;}}
 
 /* LISTING CARDS */
 .listing-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:24px;}
