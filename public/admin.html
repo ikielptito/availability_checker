@@ -507,7 +507,9 @@ function listingItem(l) {
   const thumb = l.coverPhotoId
     ? `<img class="row-thumb" src="https://lh3.googleusercontent.com/d/${esc(l.coverPhotoId)}=w112-h112" loading="lazy" alt="" onerror="this.remove()">`
     : `<div class="row-thumb empty">${l.folder ? '📷' : '—'}</div>`;
-  const badges = (l.custom ? '<span class="custom-badge">custom</span>' : '') + statusBadge(l)
+  // statusBadge only means something for custom listings — Hostex units can
+  // carry ownerSub (claimed via the owner portal) but never have a status.
+  const badges = (l.custom ? '<span class="custom-badge">custom</span>' + statusBadge(l) : '')
     + (l.hidden ? '<span class="status-badge rejected">hidden</span>' : '')
     + (!l.folder ? '<span class="status-badge pending">no photos</span>' : '');
   return `<div class="listing-item${open ? ' open' : ''}" id="item-${l.slug}">
