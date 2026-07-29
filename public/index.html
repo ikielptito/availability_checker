@@ -182,7 +182,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
   /* .prop-card qualifier: this block sits before the base .prop-media rule,
      so it needs the extra specificity to win the cascade. */
   .prop-card .prop-media{aspect-ratio:16/10}
-  .top-pick,.card-badge{position:absolute;top:0;left:0;z-index:3;width:auto;border-radius:0 0 9px 0;padding:4px 9px;font-size:8.5px}
+  .top-pick,.card-badge{top:8px;left:8px;padding:4px 8px;font-size:9px}
   .prop-pill{bottom:10px;left:10px}
   .prop-cal{padding:8px 12px 11px;margin-top:6px}
 }
@@ -208,13 +208,14 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .prop-pill.full .avail-dot{background:#D96C4F}
 .prop-pill.warn .avail-dot{background:#C9A227}
 .prop-pill.soon .avail-dot{background:transparent;border:1.5px solid #3E9E5B}
-/* Badges are full-width ribbons above the photo — the media area is too
-   crowded on the 2-up mobile grid (tools top, name/price bottom) for an
-   overlay chip to sit anywhere without colliding. */
-.top-pick{display:block;text-align:center;background:#586042;color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:6px 10px}
-/* Manual marketing badge from admin ("Price drop", "New") — takes the
-   top-pick slot when set; the owner's explicit call wins over the heuristic. */
-.card-badge{display:block;text-align:center;background:#CE4A20;color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:6px 10px}
+/* Badge chips — overlay pills top-left of the photo, same glass language as
+   .prop-pill and .card-tool (top-right is the tool cluster, bottom-left the
+   availability chip, so top-left is the free corner). Manual admin badge
+   ("Price drop", "New") wins the slot over the Top pick heuristic. */
+.top-pick,.card-badge{position:absolute;top:10px;left:10px;z-index:3;display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.16);pointer-events:none}
+.top-pick{background:rgba(28,25,23,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,.16)}
+.top-pick svg{width:11px;height:11px;fill:#F5C97B;flex-shrink:0}
+.card-badge{background:var(--primary);color:#fff}
 /* Top-right action cluster — share + heart, glass circles */
 .card-tools{position:absolute;top:10px;right:10px;z-index:3;display:flex;gap:6px}
 .card-tool{width:30px;height:30px;border-radius:50%;background:rgba(19,26,23,.30);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .18s var(--ease),background .18s var(--ease);-webkit-tap-highlight-color:transparent;padding:0}
@@ -2581,7 +2582,7 @@ function render() {
         +'</div>';
     }
     return _cxHdr+'<div class="prop-card pre" data-id="'+p.id+'" onclick="openModal(\''+p.id+'\')" title="View photos &amp; details">'
-      +(p.badge?'<div class="card-badge">'+esc(p.badge)+'</div>':(p.id===topPickId?'<div class="top-pick">Top pick</div>':''))
+      +(info.badge?'<div class="card-badge">'+esc(info.badge)+'</div>':(p.id===topPickId?'<div class="top-pick"><svg viewBox="0 0 24 24"><path d="M12 2l2.5 6.4 6.5.9-4.9 4.3 1.4 6.4-5.5-3.5-5.5 3.5 1.4-6.4L2.5 9.3l6.5-.9z"/></svg>Top pick</div>':''))
       +'<div class="prop-media">'+heroInner
       +'<div class="card-tools">'
       +'<button class="card-tool fav'+(isFav?' on':'')+'" onclick="event.stopPropagation();toggleFav(\''+slug+'\')" aria-label="'+(isFav?'Remove from saved':'Save villa')+'" title="'+(isFav?'Saved':'Save')+'"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>'
