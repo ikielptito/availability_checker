@@ -277,6 +277,10 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 .rep-fmeta{font-size:0.68rem;color:var(--muted);line-height:1.6;}
 .rep-empty{background:var(--surface);border:1px dashed var(--border);border-radius:14px;padding:40px 24px;text-align:center;color:var(--muted);}
 .rep-empty h3{font-family:var(--rep-serif);color:var(--text);font-size:1.2rem;margin-bottom:7px;}
+
+/* Toasts must beat the floating nav pill (z 900) and sit above it on mobile */
+#toast{z-index:1400 !important;}
+@media(max-width:640px){#toast{bottom:92px !important;}}
 </style>
 </head>
 <body>

@@ -85,6 +85,9 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 .dynamic-row input{flex:1}
 .remove-row{background:none;border:none;color:var(--subtle);cursor:pointer;font-size:1.1rem;padding:4px;line-height:1}
 .remove-row:hover{color:var(--primary)}
+
+/* iOS auto-zoom guard — sub-16px inputs zoom the page on focus and stay zoomed */
+@media(max-width:640px){input,textarea,select{font-size:16px !important;}}
 </style>
 </head>
 <body>

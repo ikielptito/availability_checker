@@ -296,7 +296,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .sl-btn.danger:hover{color:var(--accent);border-color:var(--accent)}
 .sl-link{flex:1;min-width:180px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:7px 11px;font-size:.74rem;color:var(--text-2);word-break:break-all}
 /* Villa picker */
-.pk-ov{position:fixed;inset:0;background:rgba(26,24,20,.5);z-index:250;display:none;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow-y:auto}
+.pk-ov{position:fixed;inset:0;background:rgba(26,24,20,.5);z-index:1050;display:none;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow-y:auto}
 .pk-ov.open{display:flex}
 .pk-box{background:var(--surface);border:var(--hairline);border-radius:20px;box-shadow:0 1px 2px rgba(28,25,23,.05),0 20px 56px rgba(28,25,23,.14);max-width:480px;width:100%;max-height:84vh;display:flex;flex-direction:column;animation:pop-in .18s var(--ease)}
 .pk-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
@@ -424,7 +424,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 #net-banner{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2000;background:#131A17;color:#fff;font-size:12px;font-weight:600;letter-spacing:.01em;padding:8px 15px;border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,.25);white-space:nowrap}
 /* Map view — inline Leaflet map with price/complex pins */
 /* isolation:isolate contains Leaflet's internal high z-index panes so they
-   don't paint above the villa modal (z-index:200) when a pin is tapped. */
+   don't paint above the villa modal (z-index:1000) when a pin is tapped. */
 #map-view{height:calc(100dvh - 210px);min-height:440px;border-radius:14px;overflow:hidden;border:var(--hairline);box-shadow:0 1px 2px rgba(0,0,0,.05);isolation:isolate}
 .map-pin-chip{display:inline-block;transform:translate(-50%,-50%);background:#131A17;color:#fff;font-family:'Satoshi',-apple-system,sans-serif;font-size:11.5px;font-weight:700;letter-spacing:.01em;padding:6px 11px;border-radius:999px;white-space:nowrap;border:2px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.3)}
 .map-pin-chip.approx{background:#8a8478}
@@ -442,7 +442,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .complex-tag{font-weight:500;letter-spacing:.08em;margin-left:6px;color:var(--subtle)}
 .complex-tag::before{content:'•  ';color:var(--subtle)}
 /* MODAL */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(40,30,20,.45);backdrop-filter:blur(3px);z-index:200;align-items:flex-end;justify-content:center}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(40,30,20,.45);backdrop-filter:blur(3px);z-index:1000;align-items:flex-end;justify-content:center}
 .modal-overlay.open{display:flex}
 @media(min-width:760px){.modal-overlay{align-items:center}}
 .modal{background:var(--surface);width:100%;max-width:780px;max-height:92vh;border-radius:28px 28px 0 0;overflow:hidden;display:flex;flex-direction:column;animation:slideUp .3s var(--ease);box-shadow:0 20px 60px rgba(0,0,0,.16)}
@@ -467,7 +467,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 .carousel-loading{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:.82rem;flex-direction:column;gap:10px}
 .carousel-spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 /* Fullscreen photo viewer (tap a carousel photo) */
-.pv-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.pv-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:1090;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 .pv-overlay.open{display:flex}
 /* Sliding track: prev/current/next full-width cells move as one strip */
 .pv-stage{width:100vw;height:76vh;overflow:hidden}
@@ -552,6 +552,9 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
   .modal-action-primary{flex:1.5}
   .modal-action-primary,#modal-story-btn{grid-column:auto}
 }
+
+/* iOS auto-zoom guard — sub-16px inputs zoom the page on focus and stay zoomed */
+@media(max-width:640px){input,textarea,select{font-size:16px !important;}}
 </style>
 </head>
 <body>

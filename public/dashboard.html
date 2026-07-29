@@ -144,6 +144,9 @@ body.embed #login{display:none!important;}
 body.embed .brand-mark{display:none;}
 body.embed .topbar{border-bottom:none;padding-top:4px;}
 body.embed .content{padding-top:8px;}
+
+/* iOS auto-zoom guard — sub-16px inputs zoom the page on focus and stay zoomed */
+@media(max-width:640px){input,textarea,select{font-size:16px !important;}}
 </style>
 </head>
 <body>
