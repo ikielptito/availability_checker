@@ -300,7 +300,7 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
   <header class="lp-hero">
     <div class="lp-eyebrow">Owner portal</div>
     <h1 class="lp-h1">Sign in to list your villa.</h1>
-    <p class="lp-sub">Add your villa, manage your listings, and track agent interest — all in one place. IDR 150k/month per villa, cancel anytime.</p>
+    <p class="lp-sub">Add your villa, manage your listings, and track agent interest — all in one place. US$9.50/month per villa (about IDR 150k), cancel anytime.</p>
     <div id="gbtn"></div>
     <div class="login-err" id="login-err"></div>
     <div class="lp-hero-note">New here? Signing in with Google creates your owner account automatically.</div>
@@ -310,7 +310,7 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
   <div class="lp-trust">
     <span><b>250+</b>rental agents</span>
     <span><b>Canggu · Pererenan · Bali</b></span>
-    <span><b>IDR 150k</b>/ month per villa</span>
+    <span><b>US$9.50</b>/ month per villa</span>
   </div>
 
   <div class="lp-newhere">
@@ -473,7 +473,7 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
       <div class="modal-title">List your villa</div>
     </div>
     <div class="modal-body">
-      <div class="checkout-price">IDR 150k <span>/ month per villa</span></div>
+      <div class="checkout-price">US$9.50 <span>/ month per villa</span></div>
       <p class="checkout-blurb">Your listing goes live to 250+ Bali rental agents as soon as it's activated. Cancel anytime.</p>
       <button class="btn-sm" disabled style="width:100%;opacity:.5;cursor:not-allowed">Pay by card — temporarily unavailable</button>
       <p class="hint" style="margin-top:2px">Card billing is being finalised. Have a promo code? Enter it below to activate your listing now.</p>
@@ -663,7 +663,7 @@ async function loadProperties(){
   const r=await api('?action=properties');
   myProps=r.body?.properties||[];
   if(!myProps.length){
-    el.innerHTML='<div class="empty-card"><h3>No properties yet</h3><p>Add your first property to get it listed and tracked. IDR 150k/month per property.</p></div>';
+    el.innerHTML='<div class="empty-card"><h3>No properties yet</h3><p>Add your first property to get it listed and tracked. US$9.50/month per property.</p></div>';
     document.getElementById('period-toggle').style.visibility='hidden';
     return;
   }
