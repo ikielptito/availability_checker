@@ -13,7 +13,7 @@ import { logError } from '../lib/errlog.js';
 import { rankStep } from '../lib/photorank.js';
 import { parseIcsBookedDates } from './ical.js';
 import { isHostexSlug, propIdFor, loadHostexOwnerMap, resolveOwnedListing } from '../lib/owner-listings.js';
-import { driveConfigured, createPhotoFolder, folderLink, uploadPhotoFromUrl } from '../lib/drive-photos.js';
+import { driveConfigured, createPhotoFolder, folderLink, uploadPhotoFromUrl, uploadBytes } from '../lib/drive-photos.js';
 
 const SESSION_COOKIE = 'samba_session';
 const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days
@@ -163,6 +163,29 @@ export default async function handler(req, res) {
       const owner = await currentOwner(req, { kvGet });
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
       return rankPhotos(req, res, owner, { kvGet, kvSet, kvDel });
+    }
+    // ── Listing-wizard support: draft autosave, native photo upload, manual order ──
+    if (action === 'draft') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      const key = `draft:${owner.sub}`;
+      if (req.method === 'GET') return res.status(200).json({ draft: (await kvGet(key)) || null });
+      if (req.method === 'POST') {
+        const draft = req.body?.draft;
+        if (draft && typeof draft === 'object') { draft.updatedAt = Date.now(); await kvSet(key, draft); }
+        return res.status(200).json({ ok: true });
+      }
+      if (req.method === 'DELETE') { await kvDel(key); return res.status(200).json({ ok: true }); }
+    }
+    if (action === 'upload-photo' && req.method === 'POST') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      return uploadPhoto(req, res);
+    }
+    if (action === 'photo-order' && req.method === 'POST') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      return setPhotoOrder(req, res, owner, { kvGet, kvSet, kvDel });
     }
     // The two import actions are used by BOTH the owner portal (Google
     // session) and the admin console (password Bearer, same check as
@@ -1051,6 +1074,61 @@ function buildOwnerListing(slug, data, existing, ownerSub, status) {
 }
 
 function cleanStr(v) { return typeof v === 'string' ? v.trim() : ''; }
+
+// ── Native photo upload (wizard) ────────────────────────────────────
+// The client resizes to ≤1600px JPEG before sending (base64 in JSON keeps
+// the default body parser), so payloads stay well under Vercel's limit.
+async function uploadPhoto(req, res) {
+  if (!driveConfigured()) {
+    return res.status(400).json({ error: 'Photo upload is not set up — paste a Drive folder link instead.' });
+  }
+  const { name, mime, data, folderId, folderName, index } = req.body || {};
+  if (!data || !/^image\//.test(String(mime || ''))) return res.status(400).json({ error: 'Invalid image' });
+  let bytes;
+  try { bytes = Buffer.from(String(data), 'base64'); } catch { return res.status(400).json({ error: 'Bad image data' }); }
+  if (bytes.length < 1000) return res.status(400).json({ error: 'Image too small' });
+  if (bytes.length > 4 * 1024 * 1024) return res.status(400).json({ error: 'Image too large — try a smaller photo' });
+  let folder = cleanStr(folderId);
+  if (folder && !/^[A-Za-z0-9_-]{10,}$/.test(folder)) return res.status(400).json({ error: 'Bad folder id' });
+  if (!folder) folder = await createPhotoFolder(`${cleanStr(folderName) || 'Villa'} — photos`);
+  const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
+  const fname = `${String((Number(index) || 0) + 1).padStart(3, '0')}-${(cleanStr(name) || 'photo').replace(/[^\w.-]+/g, '_').slice(0, 60)}.${ext}`;
+  const fileId = await uploadBytes({ name: fname, mime, bytes, folderId: folder });
+  return res.status(200).json({ ok: true, fileId, folderId: folder, folderLink: folderLink(folder) });
+}
+
+// ── Manual photo order (wizard drag-reorder / cover pick) ───────────
+// Writes the same photo_order:{folder} record the AI ranker produces, so
+// api/media.js and api/listings.js honour a manual order with no changes.
+async function setPhotoOrder(req, res, owner, { kvGet, kvSet, kvDel }) {
+  const folder = cleanStr(req.body?.folder);
+  const ids = Array.isArray(req.body?.order)
+    ? req.body.order.map(cleanStr).filter(id => /^[A-Za-z0-9_-]{5,}$/.test(id)) : [];
+  if (!/^[A-Za-z0-9_-]{10,}$/.test(folder) || !ids.length) {
+    return res.status(400).json({ error: 'Invalid folder or order' });
+  }
+  // The folder must be the owner's: attached to one of their listings, or to
+  // their in-progress draft.
+  const owned = (await kvGet(`owner_listings:${owner.sub}`)) || [];
+  const all = (await kvGet(CUSTOM_KEY)) || {};
+  const draft = await kvGet(`draft:${owner.sub}`);
+  const ok = owned.some(s => all[s]?.folder === folder) || draft?.folderId === folder;
+  if (!ok) return res.status(403).json({ error: 'Not your folder' });
+  const existing = (await kvGet(`photo_order:${folder}`)) || {};
+  // Removed photos are hidden (excluded), not deleted from Drive.
+  const removed = Array.isArray(req.body?.excluded)
+    ? req.body.excluded.map(cleanStr).filter(id => /^[A-Za-z0-9_-]{5,}$/.test(id)) : [];
+  const excluded = [...new Set([...(existing.excluded || []), ...removed])].filter(id => !ids.includes(id));
+  await kvSet(`photo_order:${folder}`, {
+    ...existing,
+    order: ids,
+    junkStart: ids.length,
+    cover: ids[0],
+    excluded,
+  });
+  await kvDel(`autocover:${folder}`);
+  return res.status(200).json({ ok: true });
+}
 function cleanLines(a) {
   if (typeof a === 'string') a = a.split('\n');
   return Array.isArray(a) ? a.map(s => String(s).trim()).filter(Boolean).slice(0, 40) : [];

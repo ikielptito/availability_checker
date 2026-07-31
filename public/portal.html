@@ -282,6 +282,52 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 /* Toasts must beat the floating nav pill (z 900) and sit above it on mobile */
 #toast{z-index:1400 !important;}
 @media(max-width:640px){#toast{bottom:92px !important;}}
+
+/* ── Listing wizard (full-screen) ── */
+.wiz{position:fixed;inset:0;z-index:300;background:var(--bg);display:none;flex-direction:column;}
+.wiz.open{display:flex;}
+.wiz-top{display:flex;align-items:center;gap:12px;padding:14px 18px;flex-shrink:0;}
+.wiz-icon{background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:34px;height:34px;font-size:.95rem;cursor:pointer;color:var(--text);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:inherit;}
+.wiz-progress{flex:1;height:4px;border-radius:2px;background:var(--surface2);overflow:hidden;}
+.wiz-bar{height:100%;width:0;background:var(--accent);border-radius:2px;transition:width .3s ease;}
+.wiz-strength{font-size:.68rem;font-weight:700;color:var(--muted);letter-spacing:.04em;flex-shrink:0;min-width:34px;text-align:center;}
+.wiz-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.wiz-body{max-width:560px;margin:0 auto;padding:8px 18px 40px;display:flex;flex-direction:column;gap:14px;}
+.wiz-head h2{font-size:1.45rem;letter-spacing:-.02em;margin:0 0 4px;font-family:'Satoshi',-apple-system,sans-serif;}
+.wiz-sub{color:var(--muted);font-size:.85rem;line-height:1.5;margin:0;}
+.wiz-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.wiz-foot{flex-shrink:0;border-top:1px solid var(--border);background:var(--surface);padding:12px 18px calc(12px + env(safe-area-inset-bottom));}
+.wiz-foot-row{display:flex;align-items:center;justify-content:space-between;max-width:560px;margin:0 auto;gap:12px;}
+.wiz-stepnum{font-size:.72rem;color:var(--muted);}
+.wiz-next{padding:12px 26px;font-size:.85rem;border-radius:9px;}
+#wizard [data-wstep]{display:none;}
+#wizard [data-wstep].on{display:block;}
+#wizard .frow[data-wstep].on{display:flex;}
+.wphoto-drop{border:2px dashed var(--border);border-radius:12px;padding:26px 14px;text-align:center;cursor:pointer;transition:border-color .15s;background:var(--surface);}
+.wphoto-drop.drag{border-color:var(--accent);background:var(--surface2);}
+.wphoto-drop-icon{font-size:1.6rem;margin-bottom:4px;}
+.wphoto-drop-title{font-weight:700;font-size:.9rem;margin-bottom:2px;}
+.wphoto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:10px;}
+.wphoto{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--surface2);}
+.wphoto img{width:100%;height:100%;object-fit:cover;display:block;}
+.wphoto.up::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.55);}
+.wphoto-cover{position:absolute;top:5px;left:5px;background:var(--accent);color:#fff;font-size:.56rem;font-weight:700;letter-spacing:.05em;padding:2px 7px;border-radius:10px;z-index:2;}
+.wphoto-x,.wphoto-l,.wphoto-r{position:absolute;bottom:4px;width:26px;height:26px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:.72rem;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+.wphoto-x{top:4px;right:4px;bottom:auto;}
+.wphoto-l{left:4px;}
+.wphoto-r{left:34px;}
+.wiz-phone{border:6px solid var(--text);border-radius:28px;max-width:320px;margin:0 auto;overflow:hidden;background:var(--surface);position:relative;box-shadow:0 18px 40px rgba(0,0,0,.18);}
+.wiz-phone-notch{height:18px;background:var(--text);border-radius:0 0 12px 12px;width:120px;margin:0 auto;}
+.wprev-img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--surface2);}
+.wprev-body{padding:12px 14px 16px;}
+.wprev-name{font-weight:700;font-size:1rem;letter-spacing:-.01em;}
+.wprev-meta{color:var(--muted);font-size:.75rem;margin:2px 0 8px;}
+.wprev-price{font-weight:700;font-size:.85rem;margin-bottom:8px;}
+.wprev-chips{display:flex;flex-wrap:wrap;gap:5px;}
+.wprev-chip{border:1px solid var(--border);border-radius:12px;font-size:.62rem;padding:3px 8px;color:var(--text-2);}
+.wiz-boost{margin-top:14px;}
+.wboost-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--surface);font-size:.8rem;cursor:pointer;}
+.wboost-row b{color:var(--accent);font-size:.7rem;margin-left:auto;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -369,27 +415,36 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 </div>
 
 <!-- ADD / EDIT PROPERTY MODAL -->
-<div class="modal-overlay" id="prop-modal">
-  <div class="modal">
-    <div class="modal-head">
-      <div class="modal-title" id="prop-modal-title">Add a property</div>
-    </div>
-    <div class="modal-body">
+<div class="wiz" id="wizard">
+  <div class="wiz-top">
+    <button class="wiz-icon" id="wiz-back" onclick="wizBack()" title="Back" aria-label="Back">←</button>
+    <div class="wiz-progress"><div class="wiz-bar" id="wiz-bar"></div></div>
+    <div class="wiz-strength" id="wiz-strength" title="Listing strength"></div>
+    <button class="wiz-icon" onclick="closeWizard()" title="Save & close" aria-label="Close">✕</button>
+  </div>
+  <div class="wiz-scroll">
+    <div class="wiz-body">
+      <div class="wiz-head">
+        <h2 id="wiz-title">List your villa</h2>
+        <p class="wiz-sub" id="wiz-subtitle"></p>
+      </div>
       <input type="hidden" id="f-slug">
-      <div class="fg" id="import-block" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px">
+      <div class="fg wiz-card" data-wstep="start" id="import-block">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-          <label style="margin:0">Import your listing from</label>
+          <label style="margin:0;font-size:.95rem">Already listed on</label>
           <span style="font-weight:800;font-size:.95rem;color:#FF5A5F;letter-spacing:-.02em">airbnb</span>
           <span style="color:var(--muted);font-size:.8rem">or</span>
-          <span style="font-weight:800;font-size:.9rem;letter-spacing:-.01em"><span style="color:#003B95">Booking</span><span style="color:#0096FF">.com</span></span>
+          <span style="font-weight:800;font-size:.9rem;letter-spacing:-.01em"><span style="color:#003B95">Booking</span><span style="color:#0096FF">.com</span></span><span style="font-size:.95rem">?</span>
         </div>
         <div style="display:flex;gap:8px">
           <input id="f-importUrl" placeholder="Paste your listing link" style="flex:1;min-width:0">
           <button class="btn-sm primary" id="import-btn" onclick="importFromUrl()" style="flex-shrink:0">Import</button>
         </div>
-        <div class="hint" id="import-hint">We'll pre-fill the details and copy your photos over — review everything before submitting.</div>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-          <div class="hint" style="margin:0">Prefer to chat? Maya can list it for you on WhatsApp.</div>
+        <div class="hint" id="import-hint">We'll copy your details and photos over — you just review and set prices.</div>
+      </div>
+      <div class="fg wiz-card" data-wstep="start">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="hint" style="margin:0;flex:1">Prefer to chat? Maya lists it for you on WhatsApp.</div>
           <a class="btn-sm" href="https://wa.me/6287841441233?text=Hi%20Maya!%20I%27d%20like%20to%20list%20my%20villa%20on%20Samba%20%F0%9F%8F%A1" target="_blank" rel="noopener"
              style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;border:none;text-decoration:none">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.4 14.1c-.2.6-1.3 1.2-1.8 1.3-.5 0-1 .2-3.4-.7-2.9-1.1-4.7-4-4.9-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4l.9 2.1c0 .2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1l1-1.2c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.6.3 0 .1 0 .7-.2 1z"/></svg>
@@ -397,49 +452,65 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
           </a>
         </div>
       </div>
-      <div class="fg"><label>Property name *</label><input id="f-name" placeholder="e.g. Villa Sunrise"></div>
-      <div class="frow">
+      <div data-wstep="start" style="text-align:center;margin-top:6px">
+        <button class="btn-sm" onclick="wizNext()" style="padding:12px 22px;font-size:.85rem">Start from scratch →</button>
+      </div>
+      <div class="fg" data-wstep="basics"><label>Property name *</label><input id="f-name" placeholder="e.g. Villa Sunrise"></div>
+      <div class="frow" data-wstep="basics">
         <div class="fg"><label>Area</label><input id="f-area" placeholder="e.g. Umalas · Canggu"></div>
         <div class="fg"><label>Unit type</label><input id="f-unitType" placeholder="e.g. 2BR Villa"></div>
       </div>
-      <div class="frow">
+      <div class="frow" data-wstep="basics">
         <div class="fg"><label>Bedrooms</label><input id="f-bedrooms" type="number" min="0" placeholder="2"></div>
         <div class="fg"><label>Bathrooms</label><input id="f-bathrooms" type="number" min="0" placeholder="2"></div>
       </div>
-      <div class="fg"><label>Overview</label><textarea id="f-overview" placeholder="A short description of the property."></textarea></div>
-      <div class="frow">
+      <div class="fg" data-wstep="story"><label>Overview</label><textarea id="f-overview" placeholder="What makes this place special? Agents read this to pitch it to their clients."></textarea></div>
+      <div class="frow" data-wstep="pricing">
         <div class="fg"><label>Monthly price</label><input id="f-monthly" placeholder="e.g. 35jt"></div>
         <div class="fg"><label>Yearly price</label><input id="f-yearly" placeholder="e.g. 350jt"></div>
         <div class="fg"><label>2-year price</label><input id="f-yearly2" placeholder="optional"></div>
       </div>
-      <div class="fg"><label>Key features</label>
+      <div class="fg" data-wstep="story"><label>Key features</label>
         <div class="pillbox" id="pills-features"></div>
         <div class="pill-add"><input id="pilladd-features" placeholder="Add your own…" onkeydown="if(event.key==='Enter'){event.preventDefault();addPill('features')}"><button type="button" class="btn-sm" onclick="addPill('features')">Add</button></div>
         <textarea id="f-features" style="display:none"></textarea>
       </div>
-      <div class="fg"><label>Monthly inclusions</label>
+      <div class="fg" data-wstep="pricing"><label>What's included in the monthly rent?</label>
         <div class="pillbox" id="pills-inclusions"></div>
         <div class="pill-add"><input id="pilladd-inclusions" placeholder="Add your own…" onkeydown="if(event.key==='Enter'){event.preventDefault();addPill('inclusions')}"><button type="button" class="btn-sm" onclick="addPill('inclusions')">Add</button></div>
         <textarea id="f-inclusions" style="display:none"></textarea>
       </div>
-      <div class="fg"><label>Yearly inclusions</label>
+      <div class="fg" data-wstep="pricing"><label>And in the yearly rent?</label>
         <div class="pillbox" id="pills-yearlyInclusions"></div>
         <div class="pill-add"><input id="pilladd-yearlyInclusions" placeholder="Add your own…" onkeydown="if(event.key==='Enter'){event.preventDefault();addPill('yearlyInclusions')}"><button type="button" class="btn-sm" onclick="addPill('yearlyInclusions')">Add</button></div>
         <textarea id="f-yearlyInclusions" style="display:none"></textarea>
       </div>
-      <div class="fg"><label>Location highlights</label>
+      <div class="fg" data-wstep="story"><label>Location highlights</label>
         <div class="pillbox" id="pills-locationHighlights"></div>
         <div class="pill-add"><input id="pilladd-locationHighlights" placeholder="Add your own…" onkeydown="if(event.key==='Enter'){event.preventDefault();addPill('locationHighlights')}"><button type="button" class="btn-sm" onclick="addPill('locationHighlights')">Add</button></div>
         <textarea id="f-locationHighlights" style="display:none"></textarea>
       </div>
-      <div class="fg"><label>Photos (Google Drive folder link)</label><input id="f-photosLink" placeholder="https://drive.google.com/drive/folders/…">
-        <div class="hint">Share a Drive folder of photos (link sharing on). We pull images automatically.</div></div>
-      <div class="fg"><label>Google Maps link</label>
+      <div class="fg" data-wstep="photos">
+        <div class="wphoto-drop" id="wphoto-drop" onclick="document.getElementById('wphoto-file').click()">
+          <input type="file" id="wphoto-file" accept="image/*" multiple style="display:none" onchange="wizAddPhotos(this.files);this.value=''">
+          <div class="wphoto-drop-icon">📷</div>
+          <div class="wphoto-drop-title">Add photos</div>
+          <div class="hint" style="margin:0">Tap to choose, or drag &amp; drop. The first photo is your cover.</div>
+        </div>
+        <div class="wphoto-grid" id="wphoto-grid"></div>
+        <div class="hint" id="wphoto-hint" style="display:none"></div>
+        <details class="ical-help" style="margin-top:10px">
+          <summary>Have photos in Google Drive already?</summary>
+          <div style="padding-top:8px"><input id="f-photosLink" placeholder="https://drive.google.com/drive/folders/…">
+          <div class="hint">Paste a folder link (sharing on) and we pull the images automatically.</div></div>
+        </details>
+      </div>
+      <div class="fg" data-wstep="basics"><label>Google Maps link</label>
         <input id="f-mapLink" placeholder="Paste a maps link — or type the address to search" autocomplete="off" oninput="mapSearchInput(this.value)">
         <div class="map-results" id="map-results"></div>
         <div class="hint" id="map-hint">Paste a Google Maps link, or just type the villa's address and pick a match.</div>
       </div>
-      <div class="fg"><label>Availability calendar (iCal link)</label><input id="f-icalUrl" placeholder="https://…/calendar.ics">
+      <div class="fg" data-wstep="contacts" data-hostex-hide><label>Availability calendar (iCal link)</label><input id="f-icalUrl" placeholder="https://…/calendar.ics">
         <div class="hint">Optional — an Airbnb/Hostex calendar export link. Booked dates sync automatically.</div>
         <details class="ical-help">
           <summary>Where do I find this?</summary>
@@ -450,20 +521,26 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
             No channel calendar? Leave this blank — you can mark booked dates manually and we'll follow up.
           </div>
         </details></div>
-      <div class="frow">
+      <div class="frow" data-wstep="contacts">
         <div class="fg"><label>WhatsApp contact name</label><input id="f-waContactName" placeholder="e.g. Ketut"></div>
         <div class="fg"><label>WhatsApp number</label><input id="f-waNumber" placeholder="62812…"></div>
       </div>
-      <div class="frow" id="report-contact-row">
+      <div class="frow" data-wstep="contacts" id="report-contact-row">
         <div class="fg"><label>Weekly report contact</label><input id="f-reportContactName" placeholder="Owner's name (optional)"></div>
         <div class="fg"><label>Report WhatsApp number</label><input id="f-reportWaNumber" placeholder="62812…"></div>
       </div>
-      <div class="hint" id="report-contact-hint" style="margin-top:-6px">The weekly performance report goes to this contact <b>and</b> the WhatsApp contact above. Useful when the main number is your villa manager — leave blank if they're the same person.</div>
+      <div class="hint" data-wstep="contacts" id="report-contact-hint" style="margin-top:-6px">The weekly performance report goes to this contact <b>and</b> the WhatsApp contact above. Useful when the main number is your villa manager — leave blank if they're the same person.</div>
+      <div data-wstep="preview">
+        <div class="wiz-phone"><div class="wiz-phone-notch"></div><div id="wiz-preview"></div></div>
+        <div class="wiz-boost" id="wiz-boost"></div>
+      </div>
     </div>
-    <div class="modal-err" id="prop-err"></div>
-    <div class="modal-actions">
-      <button class="btn-sm" onclick="closePropModal()">Cancel</button>
-      <button class="btn-sm primary" id="prop-save-btn" onclick="submitProperty()">Submit for review</button>
+  </div>
+  <div class="wiz-foot">
+    <div class="modal-err" id="prop-err" style="margin:0 0 8px"></div>
+    <div class="wiz-foot-row">
+      <div class="wiz-stepnum" id="wiz-stepnum"></div>
+      <button class="btn-sm primary wiz-next" id="wiz-next" onclick="wizNext()">Continue</button>
     </div>
   </div>
 </div>
@@ -926,30 +1003,34 @@ function statsStrip(slug){
   <div class="prop-pulse">${spark}<div class="prop-pulse-txt">${weekBits}</div></div>`;
 }
 
-// ── Add / edit modal ──
+// ── Listing wizard ──
+// One question-group per screen (Airbnb-style). All the original f-* fields
+// remain the single source of truth — the wizard only controls which
+// data-wstep group is visible, so import/pills/map/submit logic is untouched.
 let editingSlug=null;
 let editingHostex=false;
+let wizSteps=[],wizIdx=0,wizFolderId='',wizPhotos=[],wizRemoved=[];
 
-function addProperty(){ if(DEMO)return demoBlock(); openPropModal(null); }
+const WIZ_TITLES={
+  start:['List your villa',"Two minutes if it's already online — we copy everything over."],
+  basics:['The basics','Agents filter by area and size — this is how they find it.'],
+  story:['Tell its story','This is what agents read out to their clients.'],
+  photos:['Show it off','Great photos are what get a villa shared. The first one is your cover.'],
+  pricing:['Set your prices','IDR, in millions (jt). You can change these anytime.'],
+  contacts:['Who do agents contact?','WhatsApp is how agents reach out — and where your weekly report goes.'],
+  preview:['Ready to go live?','This is exactly what 250+ agents will see.'],
+  contactsOnly:['Edit contacts','Update who agents reach out to for this villa.'],
+};
 
-function editProperty(slug){
-  if(DEMO)return demoBlock();
-  openPropModal(slug, myProps.find(p=>p.slug===slug));
-}
+function addProperty(){ if(DEMO)return demoBlock(); openWizard(null,null,true); }
+function editProperty(slug){ if(DEMO)return demoBlock(); openWizard(slug,myProps.find(p=>p.slug===slug)); }
 
-function openPropModal(slug, rec){
+function openWizard(slug,rec,checkDraft){
   editingSlug=slug;
-  // Samba-managed (Hostex) units: only the contact fields are editable — the
-  // rest of the form is hidden and the server enforces the same restriction.
-  const hostexMode=!!(rec&&rec.hostex);
-  editingHostex=hostexMode;
-  document.querySelectorAll('#prop-modal .modal-body > *').forEach(el=>{
-    const keep=el.id==='report-contact-row'||el.id==='report-contact-hint'
-      ||(el.querySelector&&el.querySelector('#f-waContactName'));
-    el.style.display=(hostexMode&&!keep)?'none':'';
-  });
-  document.getElementById('prop-modal-title').textContent=hostexMode?'Edit contacts':(slug?'Edit property':'Add a property');
-  document.getElementById('prop-save-btn').textContent=hostexMode?'Save contacts':(slug?'Save changes':'Submit & subscribe');
+  editingHostex=!!(rec&&rec.hostex);
+  wizSteps=editingHostex?['contacts']
+    :slug?['basics','story','photos','pricing','contacts','preview']
+    :['start','basics','story','photos','pricing','contacts','preview'];
   document.getElementById('f-slug').value=slug||'';
   rec=rec||{};
   document.getElementById('f-name').value=rec.name||'';
@@ -974,16 +1055,241 @@ function openPropModal(slug, rec){
   document.getElementById('f-reportContactName').value=rec.reportContactName||'';
   document.getElementById('f-reportWaNumber').value=rec.reportWaNumber||'';
   document.getElementById('prop-err').textContent='';
-  // Import block only makes sense for a brand-new listing.
-  document.getElementById('import-block').style.display=slug?'none':'';
   document.getElementById('f-importUrl').value='';
-  document.getElementById('import-hint').textContent='We\'ll pre-fill the form from your public listing — review everything before submitting.';
+  document.getElementById('import-hint').textContent="We'll copy your details and photos over — you just review and set prices.";
+  document.querySelectorAll('[data-hostex-hide]').forEach(el=>{el.style.display=editingHostex?'none':'';});
   renderAllPills();
+  wizRemoved=[];
+  wizPhotosReset(rec.folder||'');
   document.getElementById('map-results').classList.remove('open');
   document.getElementById('map-hint').textContent='Paste a Google Maps link, or just type the villa\'s address and pick a match.';
-  document.getElementById('prop-modal').classList.add('open');
+  wizIdx=0; wizShow();
+  document.getElementById('wizard').classList.add('open');
+  document.body.style.overflow='hidden';
+  if(checkDraft&&!slug) wizTryRestoreDraft();
 }
-function closePropModal(){ document.getElementById('prop-modal').classList.remove('open'); }
+function closeWizard(){
+  document.getElementById('wizard').classList.remove('open');
+  document.body.style.overflow='';
+  if(!editingSlug&&!editingHostex) wizSaveDraft();
+}
+function wizShow(){
+  const step=wizSteps[wizIdx];
+  document.querySelectorAll('#wizard [data-wstep]').forEach(el=>{
+    el.classList.toggle('on',el.dataset.wstep===step&&!(editingHostex&&el.hasAttribute('data-hostex-hide')));
+  });
+  const t=WIZ_TITLES[editingHostex?'contactsOnly':step]||['',''];
+  document.getElementById('wiz-title').textContent=t[0];
+  document.getElementById('wiz-subtitle').textContent=t[1];
+  document.getElementById('wiz-bar').style.width=(((wizIdx+1)/wizSteps.length)*100)+'%';
+  document.getElementById('wiz-back').style.visibility=wizIdx===0?'hidden':'visible';
+  const next=document.getElementById('wiz-next');
+  next.style.display=step==='start'?'none':'';
+  next.disabled=false;
+  next.textContent=(wizIdx===wizSteps.length-1)
+    ?(editingHostex?'Save contacts':editingSlug?'Save changes':'Submit for review')
+    :'Continue';
+  const offset=wizSteps[0]==='start'?1:0;
+  document.getElementById('wiz-stepnum').textContent=
+    (step==='start'||editingHostex)?'':`Step ${wizIdx+1-offset} of ${wizSteps.length-offset}`;
+  if(step==='preview') renderWizPreview();
+  wizStrengthRender();
+  document.querySelector('.wiz-scroll').scrollTop=0;
+}
+function wizBack(){ if(wizIdx>0){wizIdx--;wizShow();} }
+function wizNext(){
+  const step=wizSteps[wizIdx];
+  document.getElementById('prop-err').textContent='';
+  if(step==='basics'&&!document.getElementById('f-name').value.trim()){
+    document.getElementById('prop-err').textContent='Give your villa a name first.';
+    return;
+  }
+  if(wizIdx===wizSteps.length-1){ submitProperty(); return; }
+  wizIdx++; wizShow();
+  if(!editingSlug&&!editingHostex) wizSaveDraft();
+}
+function wizJump(step){ const i=wizSteps.indexOf(step); if(i>=0){wizIdx=i;wizShow();} }
+
+// ── Draft autosave (new listings only) ──
+let wizDraftTimer=null;
+function wizCollect(){
+  const g=id=>document.getElementById('f-'+id).value;
+  const lines=id=>g(id).split('\n').map(s=>s.trim()).filter(Boolean);
+  return {
+    name:g('name'), area:g('area'), unitType:g('unitType'),
+    bedrooms:g('bedrooms'), bathrooms:g('bathrooms'), overview:g('overview'),
+    monthly:g('monthly'), yearly:g('yearly'), yearly2:g('yearly2'),
+    features:lines('features'), inclusions:lines('inclusions'),
+    yearlyInclusions:lines('yearlyInclusions'), locationHighlights:lines('locationHighlights'),
+    photosLink:g('photosLink'), mapLink:g('mapLink'), icalUrl:g('icalUrl'),
+    waContactName:g('waContactName'), waNumber:g('waNumber'),
+    reportContactName:g('reportContactName'), reportWaNumber:g('reportWaNumber'),
+  };
+}
+function wizSaveDraft(){
+  clearTimeout(wizDraftTimer);
+  wizDraftTimer=setTimeout(async()=>{
+    const data=wizCollect();
+    if(!data.name&&!wizPhotos.length) return;
+    await api('?action=draft',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({draft:{data,folderId:wizFolderId,step:wizSteps[wizIdx]}})});
+  },400);
+}
+async function wizTryRestoreDraft(){
+  const r=await api('?action=draft');
+  const d=r.ok&&r.body&&r.body.draft;
+  if(!d||!d.data||(!d.data.name&&!d.folderId)) return;
+  const set=(id,v)=>{const el=document.getElementById('f-'+id);if(el&&v!=null)el.value=v;};
+  ['name','area','unitType','bedrooms','bathrooms','overview','monthly','yearly','yearly2',
+   'mapLink','icalUrl','waContactName','waNumber','reportContactName','reportWaNumber','photosLink']
+    .forEach(k=>set(k,d.data[k]));
+  ['features','inclusions','yearlyInclusions','locationHighlights']
+    .forEach(k=>set(k,(d.data[k]||[]).join('\n')));
+  renderAllPills();
+  wizFolderId=d.folderId||'';
+  if(wizFolderId) wizPhotosLoad(wizFolderId);
+  const at=wizSteps.indexOf(d.step);
+  if(at>0){wizIdx=at;wizShow();}
+  showToast('Draft restored — pick up where you left off.');
+}
+
+// ── Native photo upload & ordering ──
+function wizPhotosReset(folderId){
+  wizPhotos=[]; wizFolderId=folderId||'';
+  renderWizPhotos();
+  if(wizFolderId) wizPhotosLoad(wizFolderId);
+}
+async function wizPhotosLoad(folder){
+  try{
+    const r=await fetch('/api/gdrive?folder='+encodeURIComponent(folder));
+    const d=await r.json();
+    if(Array.isArray(d.photos)){ wizPhotos=d.photos.map(p=>({id:p.id,thumb:p.thumb})); renderWizPhotos(); }
+  }catch{}
+}
+function renderWizPhotos(){
+  const g=document.getElementById('wphoto-grid');
+  if(!g) return;
+  g.innerHTML=wizPhotos.map((p,i)=>`<div class="wphoto${p.up?' up':''}">`
+    +(i===0?'<span class="wphoto-cover">COVER</span>':'')
+    +`<img src="${p.thumb}" alt="" loading="lazy">`
+    +(p.id?`<button type="button" class="wphoto-x" onclick="wizPhotoRemove(${i})" title="Remove">✕</button>`
+      +(i>0?`<button type="button" class="wphoto-l" onclick="wizPhotoMove(${i},-1)" title="Move earlier">←</button>`:'')
+      +(i<wizPhotos.length-1?`<button type="button" class="wphoto-r" onclick="wizPhotoMove(${i},1)" title="Move later">→</button>`:''):'')
+    +'</div>').join('');
+  wizStrengthRender();
+}
+function wizPhotoMove(i,d){
+  const j=i+d; if(j<0||j>=wizPhotos.length) return;
+  [wizPhotos[i],wizPhotos[j]]=[wizPhotos[j],wizPhotos[i]];
+  renderWizPhotos(); wizOrderSave();
+}
+function wizPhotoRemove(i){
+  const p=wizPhotos.splice(i,1)[0];
+  if(p&&p.id) wizRemoved.push(p.id);
+  renderWizPhotos(); wizOrderSave();
+}
+let wizOrderTimer=null;
+function wizOrderSave(){
+  clearTimeout(wizOrderTimer);
+  wizOrderTimer=setTimeout(async()=>{
+    const ids=wizPhotos.filter(p=>p.id).map(p=>p.id);
+    if(!wizFolderId||!ids.length) return;
+    await api('?action=photo-order',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({folder:wizFolderId,order:ids,excluded:wizRemoved})});
+  },600);
+}
+async function wizAddPhotos(fileList){
+  const files=[...fileList].filter(f=>/^image\//.test(f.type));
+  if(!files.length) return;
+  const hint=document.getElementById('wphoto-hint');
+  hint.style.display='';
+  let done=0;
+  for(const f of files){
+    const ph={id:null,thumb:URL.createObjectURL(f),up:true};
+    wizPhotos.push(ph); renderWizPhotos();
+    try{
+      hint.textContent='Uploading '+(done+1)+' of '+files.length+'…';
+      const {b64,mime}=await wizResize(f);
+      const r=await api('?action=upload-photo',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:f.name,mime,data:b64,folderId:wizFolderId,
+          folderName:document.getElementById('f-name').value.trim()||'Villa',index:wizPhotos.length-1})});
+      if(!r.ok) throw new Error(r.body?.error||'Upload failed');
+      ph.id=r.body.fileId; ph.up=false;
+      wizFolderId=r.body.folderId;
+      const pl=document.getElementById('f-photosLink');
+      if(pl&&!pl.value) pl.value=r.body.folderLink;
+      done++;
+      if(!editingSlug&&!editingHostex) wizSaveDraft(); // persists folderId → authorises order writes
+    }catch(e){
+      wizPhotos=wizPhotos.filter(x=>x!==ph);
+      hint.textContent=e.message;
+    }
+    renderWizPhotos();
+  }
+  if(done){ hint.textContent=done+' photo'+(done>1?'s':'')+' added.'; wizOrderSave(); }
+}
+async function wizResize(file){
+  const bmp=await createImageBitmap(file,{imageOrientation:'from-image'}).catch(()=>createImageBitmap(file));
+  const s=Math.min(1,1600/Math.max(bmp.width,bmp.height));
+  const c=document.createElement('canvas');
+  c.width=Math.round(bmp.width*s); c.height=Math.round(bmp.height*s);
+  c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.85));
+  const b64=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(',')[1]);fr.onerror=rej;fr.readAsDataURL(blob);});
+  return {b64,mime:'image/jpeg'};
+}
+// Drag & drop onto the photo zone.
+(function(){
+  const z=document.getElementById('wphoto-drop');
+  if(!z) return;
+  ['dragover','dragenter'].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.add('drag');}));
+  ['dragleave','drop'].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.remove('drag');}));
+  z.addEventListener('drop',e=>{ if(e.dataTransfer?.files?.length) wizAddPhotos(e.dataTransfer.files); });
+})();
+
+// ── Listing strength & live preview ──
+function wizStrengthCalc(){
+  const g=id=>document.getElementById('f-'+id).value.trim();
+  const lines=id=>g(id)?g(id).split('\n').filter(Boolean):[];
+  let s=0; const miss=[];
+  if(g('name')) s+=10; else miss.push(['basics','Name your villa']);
+  const n=wizPhotos.length;
+  s+=n>=5?25:n*5;
+  if(n<5) miss.push(['photos',n?('Add '+(5-n)+' more photos'):'Add photos']);
+  if(g('overview').length>=100) s+=15; else miss.push(['story','Write a longer overview']);
+  if(lines('features').length>=4) s+=10; else miss.push(['story','Pick at least 4 features']);
+  if(g('monthly')) s+=10; else miss.push(['pricing','Set a monthly price']);
+  if(g('yearly')) s+=5; else miss.push(['pricing','Set a yearly price']);
+  if(g('mapLink')) s+=10; else miss.push(['basics','Pin the location on the map']);
+  if(g('icalUrl')) s+=10; else miss.push(['contacts','Connect your booking calendar']);
+  if(g('waNumber')) s+=5; else miss.push(['contacts','Add a WhatsApp number']);
+  return {score:Math.min(100,s),miss};
+}
+function wizStrengthRender(){
+  const el=document.getElementById('wiz-strength');
+  if(!el) return;
+  el.textContent=editingHostex?'':wizStrengthCalc().score+'%';
+}
+function renderWizPreview(){
+  const g=id=>document.getElementById('f-'+id).value.trim();
+  const feats=g('features')?g('features').split('\n').filter(Boolean).slice(0,4):[];
+  const cover=wizPhotos[0]?wizPhotos[0].thumb:'';
+  const jt=v=>v?('IDR '+v.replace(/\s*jt\s*$/i,'')+'jt'):'';
+  document.getElementById('wiz-preview').innerHTML=
+    (cover?`<img class="wprev-img" src="${cover}" alt="">`
+      :'<div class="wprev-img" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.75rem">No photos yet</div>')
+    +'<div class="wprev-body">'
+    +`<div class="wprev-name">${esc(g('name')||'Your villa')}</div>`
+    +`<div class="wprev-meta">${esc([g('unitType'),g('area')].filter(Boolean).join(' · '))}</div>`
+    +`<div class="wprev-price">${esc(g('monthly')?jt(g('monthly'))+' / month':'Price on request')}${g('yearly')?esc(' · '+jt(g('yearly'))+' / year'):''}</div>`
+    +`<div class="wprev-chips">${feats.map(f=>'<span class="wprev-chip">'+esc(f)+'</span>').join('')}</div>`
+    +'</div>';
+  const {score,miss}=wizStrengthCalc();
+  document.getElementById('wiz-boost').innerHTML=miss.length
+    ?('<div class="hint" style="margin-bottom:8px">Listing strength <b>'+score+'%</b> — boost it before you publish:</div>'
+      +miss.slice(0,4).map(m=>`<div class="wboost-row" onclick="wizJump('${m[0]}')">${esc(m[1])}<b>Add →</b></div>`).join(''))
+    :('<div class="hint" style="text-align:center">💪 Listing strength '+score+'% — looking great.</div>');
+}
 
 // ── Pill selectors ──
 // The four list fields render as tappable pills; the hidden textareas stay
@@ -1089,6 +1395,7 @@ async function importFromUrl(){
         uploaded+=pr.body.uploaded||0; failed+=pr.body.failed||0;
       }
       if(uploaded && folderLink && !photosField.value){ photosField.value=folderLink; got.push(uploaded+' photos'); }
+      if(folderId){ wizFolderId=folderId; wizPhotosLoad(folderId); }
       hint.textContent=got.length
         ?'Imported: '+got.join(', ')+(failed?' ('+failed+' photos could not be copied)':'')+'. Please review, then add your prices.'
         :'Nothing new to fill in — the remaining fields need to be entered manually.';
@@ -1100,6 +1407,8 @@ async function importFromUrl(){
         ?'Imported: '+got.join(', ')+'. Please review, then add your prices'+(photoNote?'.':' and a photos folder.')+photoNote
         :'Nothing new to fill in — the remaining fields need to be entered manually.'+photoNote;
     }
+    // Import done → walk into the wizard with everything pre-filled.
+    if(got.length&&wizSteps[wizIdx]==='start'){ setTimeout(()=>wizNext(),900); }
   }catch(e){ hint.textContent=e.message; }
   btn.disabled=false; btn.textContent='Import';
 }
@@ -1120,13 +1429,15 @@ async function submitProperty(){
     reportContactName:g('reportContactName'), reportWaNumber:g('reportWaNumber'),
   };
   if(!data.name.trim()){document.getElementById('prop-err').textContent='Property name is required.';return;}
-  const btn=document.getElementById('prop-save-btn');btn.disabled=true;btn.textContent='Saving…';
+  const btn=document.getElementById('wiz-next');btn.disabled=true;btn.textContent='Saving…';
   const r=await api('?action=property',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:editingSlug||'',data})});
-  btn.disabled=false;btn.textContent=editingSlug?'Save changes':'Submit & subscribe';
-  if(!r.ok){document.getElementById('prop-err').textContent=r.body?.error||'Could not save.';return;}
+  btn.disabled=false;
+  if(!r.ok){document.getElementById('prop-err').textContent=r.body?.error||'Could not save.';wizShow();return;}
   const wasNew=!editingSlug;
   const newSlug=r.body?.slug||editingSlug||'';
-  closePropModal();
+  if(wasNew) api('?action=draft',{method:'DELETE'}); // draft served its purpose
+  document.getElementById('wizard').classList.remove('open');
+  document.body.style.overflow='';
   showToast(wasNew?'Submitted — almost there.':'Saved.');
   await loadProperties();
   // Kick off AI photo sorting in the background — instant no-op when the
