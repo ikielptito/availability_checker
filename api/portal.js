@@ -187,6 +187,11 @@ export default async function handler(req, res) {
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
       return setPhotoOrder(req, res, owner, { kvGet, kvSet, kvDel });
     }
+    if (action === 'place-search' && req.method === 'GET') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      return placeSearch(req, res);
+    }
     // The two import actions are used by BOTH the owner portal (Google
     // session) and the admin console (password Bearer, same check as
     // api/listings.js) — an admin often enters a villa on the owner's behalf.
@@ -1126,6 +1131,55 @@ async function uploadPhoto(req, res) {
   const fname = `${String((Number(index) || 0) + 1).padStart(3, '0')}-${(cleanStr(name) || 'photo').replace(/[^\w.-]+/g, '_').slice(0, 60)}.${ext}`;
   const fileId = await uploadBytes({ name: fname, mime, bytes, folderId: folder });
   return res.status(200).json({ ok: true, fileId, folderId: folder, folderLink: folderLink(folder) });
+}
+
+// ── Villa-name / address search (wizard location field) ─────────────
+// Google Places finds named villas ("Villa Serenity Canggu") the way owners
+// expect; OpenStreetMap only knows streets. Falls back to OSM when the
+// Places API isn't enabled on the key, so the field always works.
+async function placeSearch(req, res) {
+  const q = cleanStr(req.query.q).slice(0, 120);
+  if (q.length < 3) return res.status(200).json({ results: [] });
+  const key = process.env.GOOGLE_API_KEY;
+  if (key) {
+    try {
+      const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': key,
+          'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location',
+        },
+        body: JSON.stringify({
+          textQuery: q,
+          locationBias: { circle: { center: { latitude: -8.65, longitude: 115.13 }, radius: 50000 } },
+          pageSize: 5,
+        }),
+      });
+      const d = await r.json();
+      if (r.ok && Array.isArray(d.places) && d.places.length) {
+        return res.status(200).json({
+          results: d.places.map(p => ({
+            name: p.displayName?.text || '',
+            address: p.formattedAddress || '',
+            lat: p.location?.latitude, lon: p.location?.longitude,
+          })).filter(p => p.lat != null),
+        });
+      }
+    } catch { /* fall through to OSM */ }
+  }
+  try {
+    const qq = /bali|indonesia/i.test(q) ? q : q + ', Bali, Indonesia';
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&q=' + encodeURIComponent(qq), {
+      headers: { 'User-Agent': 'sambarentals.com listing wizard' },
+    });
+    const d = await r.json();
+    return res.status(200).json({
+      results: (Array.isArray(d) ? d : []).map(p => ({ name: p.display_name, address: '', lat: +p.lat, lon: +p.lon })),
+    });
+  } catch {
+    return res.status(200).json({ results: [] });
+  }
 }
 
 // ── Manual photo order (wizard drag-reorder / cover pick) ───────────

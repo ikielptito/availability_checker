@@ -2905,16 +2905,36 @@ async function loadListingMeta() {
   <script src="/i18n.js"></script>
 <!-- First-visit welcome: one dismissible card so a new agent instantly knows
      what this is and what to do first. localStorage-gated, never re-shown. -->
-<div id="agent-welcome" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(31,36,34,.45);align-items:flex-end;justify-content:center" data-no-i18n-skip>
-  <div style="background:var(--surface,#fff);border-radius:18px 18px 0 0;max-width:520px;width:100%;padding:26px 22px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(0,0,0,.18)">
-    <div style="font-weight:800;font-size:1.25rem;letter-spacing:-.02em;margin-bottom:6px">Welcome to Samba 👋</div>
-    <div style="color:var(--muted,#8a8f8d);font-size:.85rem;line-height:1.55;margin-bottom:16px">Bali's long-term rental inventory, built for agents. Free, always.</div>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;font-size:.86rem;line-height:1.45">
-      <div style="display:flex;gap:10px;align-items:flex-start"><span>🔍</span><span><b>Browse live availability</b> — villas update from the owners' own calendars.</span></div>
-      <div style="display:flex;gap:10px;align-items:flex-start"><span>📤</span><span><b>Share any villa with one tap</b> — a clean page for your client, your contact on it.</span></div>
-      <div style="display:flex;gap:10px;align-items:flex-start"><span>⭐</span><span><b>Save favourites &amp; shortlists</b> — build a list per client and send it as one link.</span></div>
+<style>
+#agent-welcome{display:none;position:fixed;inset:0;z-index:1200;background:rgba(28,25,23,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:flex-end;justify-content:center}
+.aw-card{background:#fff;border-radius:22px 22px 0 0;max-width:520px;width:100%;padding:28px 24px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(28,25,23,.18)}
+.aw-title{font-weight:700;font-size:1.3rem;letter-spacing:-.02em;margin-bottom:6px;color:#1C1917}
+.aw-sub{color:#8a8478;font-size:.85rem;line-height:1.55;margin-bottom:20px}
+.aw-row{display:flex;gap:13px;align-items:flex-start;margin-bottom:14px;font-size:.86rem;line-height:1.5;color:#1C1917}
+.aw-row span.awtxt b{font-weight:700}
+.aw-row span.awtxt em{font-style:normal;color:#8a8478}
+.aw-ic{width:36px;height:36px;border-radius:50%;background:rgba(226,87,43,.1);color:#E2572B;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.aw-btn{width:100%;padding:15px;border:none;border-radius:14px;background:#E2572B;color:#fff;font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer;margin-top:8px}
+.aw-btn:active{opacity:.9}
+@media(min-width:560px){#agent-welcome{align-items:center;padding:20px}.aw-card{border-radius:22px}}
+</style>
+<div id="agent-welcome">
+  <div class="aw-card">
+    <div class="aw-title">Welcome to Samba</div>
+    <div class="aw-sub">Bali's long-term rental inventory, built for agents. Free, always.</div>
+    <div class="aw-row">
+      <span class="aw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span>
+      <span class="awtxt"><b>Browse live availability</b> — <em>villas update from the owners' own calendars.</em></span>
     </div>
-    <button onclick="dismissAgentWelcome()" style="width:100%;padding:14px;border:none;border-radius:11px;background:var(--accent,#E2572B);color:#fff;font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer">Start browsing</button>
+    <div class="aw-row">
+      <span class="aw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span>
+      <span class="awtxt"><b>Share any villa with one tap</b> — <em>a clean page for your client, your contact on it.</em></span>
+    </div>
+    <div class="aw-row">
+      <span class="aw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
+      <span class="awtxt"><b>Save favourites and shortlists</b> — <em>build a list per client and send it as one link.</em></span>
+    </div>
+    <button class="aw-btn" onclick="dismissAgentWelcome()">Start browsing</button>
   </div>
 </div>
 <script>

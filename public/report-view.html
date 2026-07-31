@@ -240,7 +240,7 @@ function renderReport(d){
     ${occSection}
     ${benchSection}
     <div class="rep-pad"><div class="rep-sec-h">Suggested next steps</div><div class="rep-recs">${recs}</div></div>
-    ${d.strength&&d.strength.score<85?`<div class="rep-pad"><div class="rep-strength">💪 Listing strength <b>${d.strength.score}%</b> — to reach more agents: ${escapeHtml(d.strength.tips.join(' · '))}. <a href="https://sambarentals.com/portal">Improve it in the portal →</a></div></div>`:''}
+    ${d.strength&&d.strength.score<85?`<div class="rep-pad"><div class="rep-strength">Listing strength <b>${d.strength.score}%</b> — to reach more agents: ${escapeHtml(d.strength.tips.join(' · '))}. <a href="https://sambarentals.com/portal">Improve it in the portal →</a></div></div>`:''}
     <div class="rep-foot"><div class="rep-fmeta">Maya prepares this for you every week.<br>Numbers are live — this link always shows your latest.</div></div>
   </div>`;
 }

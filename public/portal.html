@@ -284,8 +284,11 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 @media(max-width:640px){#toast{bottom:92px !important;}}
 
 /* ── Listing wizard (full-screen) ── */
-.wiz{position:fixed;inset:0;z-index:300;background:var(--bg);display:none;flex-direction:column;}
+.wiz{position:fixed;inset:0;z-index:950;background:var(--bg);display:none;flex-direction:column;}
 .wiz.open{display:flex;}
+/* The floating bottom nav (nav.js, z-index 900) must never sit over the
+   wizard footer — hide it entirely while the wizard is open. */
+body.wiz-open #snav-tabs{display:none !important;}
 .wiz-top{display:flex;align-items:center;gap:12px;padding:14px 18px;flex-shrink:0;}
 .wiz-icon{background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:34px;height:34px;font-size:.95rem;cursor:pointer;color:var(--text);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:inherit;}
 .wiz-progress{flex:1;height:4px;border-radius:2px;background:var(--surface2);overflow:hidden;}
@@ -500,7 +503,7 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
       <div class="fg" data-wstep="photos">
         <div class="wphoto-drop" id="wphoto-drop" onclick="document.getElementById('wphoto-file').click()">
           <input type="file" id="wphoto-file" accept="image/*" multiple style="display:none" onchange="wizAddPhotos(this.files);this.value=''">
-          <div class="wphoto-drop-icon">📷</div>
+          <div class="wphoto-drop-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
           <div class="wphoto-drop-title">Add photos</div>
           <div class="hint" style="margin:0">Tap to choose, or drag &amp; drop. The first photo is your cover.</div>
         </div>
@@ -512,10 +515,10 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
           <div class="hint">Paste a folder link (sharing on) and we pull the images automatically.</div></div>
         </details>
       </div>
-      <div class="fg" data-wstep="basics"><label>Google Maps link</label>
-        <input id="f-mapLink" placeholder="Paste a maps link — or type the address to search" autocomplete="off" oninput="mapSearchInput(this.value)">
+      <div class="fg" data-wstep="basics"><label>Location</label>
+        <input id="f-mapLink" placeholder="Type your villa's name or address…" autocomplete="off" oninput="mapSearchInput(this.value)">
         <div class="map-results" id="map-results"></div>
-        <div class="hint" id="map-hint">Paste a Google Maps link, or just type the villa's address and pick a match.</div>
+        <div class="hint" id="map-hint">If your villa is on Google Maps, search its name and pick it — or paste a Google Maps link.</div>
       </div>
       <div class="fg" data-wstep="contacts" data-hostex-hide><label>Availability calendar (iCal link)</label><input id="f-icalUrl" placeholder="https://…/calendar.ics">
         <div class="hint">Optional — an Airbnb/Hostex calendar export link. Booked dates sync automatically.</div>
@@ -742,14 +745,46 @@ async function loadProperties(){
   el.innerHTML='<div class="skel-prop"></div><div class="skel-prop"></div>';
   const r=await api('?action=properties');
   myProps=r.body?.properties||[];
+  loadDraftCard(); // in parallel — prepends a "continue listing" card if a draft exists
   if(!myProps.length){
-    el.innerHTML='<div class="empty-card"><h3>No properties yet</h3><p>Add your first property to get it listed and tracked. US$9.50/month per property.</p></div>';
+    el.innerHTML='<div class="empty-card" id="props-empty"><h3>No properties yet</h3><p>Add your first property to get it listed and tracked. US$9.50/month per property.</p></div>';
     document.getElementById('period-toggle').style.visibility='hidden';
     return;
   }
   document.getElementById('period-toggle').style.visibility='visible';
   await loadAnalytics();
   render();
+}
+
+// An in-progress draft gets a persistent resume card — closing the wizard
+// mid-flow must never feel like losing work.
+async function loadDraftCard(){
+  if(DEMO) return;
+  const r=await api('?action=draft');
+  const d=r.ok&&r.body&&r.body.draft;
+  const name=d&&d.data&&(d.data.name||'').trim();
+  if(!d||(!name&&!d.folderId)) return;
+  const card=document.createElement('div');
+  card.className='prop-card'; card.id='draft-card';
+  card.innerHTML=`<div class="prop-card-top">
+      <div><div class="prop-name">${esc(name||'Untitled listing')}</div><div class="prop-meta">Draft — not submitted yet</div></div>
+      <span class="badge pending">In progress</span>
+    </div>
+    <div class="prop-status-note">Pick up where you left off — everything you entered is saved.</div>
+    <div class="prop-actions">
+      <button class="btn-sm primary" onclick="resumeDraft()">Continue listing</button>
+      <button class="btn-sm" onclick="discardDraft()">Discard draft</button>
+    </div>`;
+  const host=document.getElementById('properties');
+  const old=document.getElementById('draft-card'); if(old) old.remove();
+  host.prepend(card);
+}
+function resumeDraft(){ openWizard(null,null,true); }
+async function discardDraft(){
+  if(!confirm('Discard this draft? The photos you uploaded stay in your Drive folder.')) return;
+  await api('?action=draft',{method:'DELETE'});
+  const c=document.getElementById('draft-card'); if(c) c.remove();
+  showToast('Draft discarded.');
 }
 
 async function loadAnalytics(){
@@ -932,7 +967,7 @@ function renderReport(d){
     ${occSection}
     ${benchSection}
     <div class="rep-pad"><div class="rep-sec-h">Suggested next steps</div><div class="rep-recs">${recs}</div></div>
-    ${d.strength&&d.strength.score<85?`<div class="rep-pad"><div class="rep-strength">💪 Listing strength <b>${d.strength.score}%</b> — to reach more agents: ${esc(d.strength.tips.join(' · '))}. <a href="#" onclick="event.preventDefault();showTab('properties');editProperty('${esc(d.slug)}')">Improve it now →</a></div></div>`:''}
+    ${d.strength&&d.strength.score<85?`<div class="rep-pad"><div class="rep-strength">Listing strength <b>${d.strength.score}%</b> — to reach more agents: ${esc(d.strength.tips.join(' · '))}. <a href="#" onclick="event.preventDefault();showTab('properties');editProperty('${esc(d.slug)}')">Improve it now →</a></div></div>`:''}
     <div class="rep-foot"><div class="rep-fmeta">Maya sends this to you on WhatsApp every Monday morning.<br>Numbers update live — open any time from the Weekly reports tab.</div></div>
   </div>`;
 }
@@ -980,7 +1015,7 @@ function propCard(p){
       ${((p.status==='approved'&&active)||comped)?`<a class="btn-sm" href="/l/${esc(p.slug)}" target="_blank" rel="noopener">View listing ↗</a>`:''}
       ${(active&&!comped&&!promo)?`<button class="btn-sm" onclick="manageBilling()">Manage billing</button>`:''}
       <button class="btn-sm" onclick="editProperty('${esc(p.slug)}')">Edit</button>
-      ${p.folder?`<button class="btn-sm" id="ai-sort-${esc(p.slug)}" onclick="aiSortPhotos('${esc(p.slug)}')">✨ Sort photos with AI</button>`:''}
+      ${p.folder?`<button class="btn-sm" id="ai-sort-${esc(p.slug)}" onclick="aiSortPhotos('${esc(p.slug)}')">Sort photos with AI</button>`:''}
       <button class="btn-sm danger" onclick="removeProperty('${esc(p.slug)}')">Delete</button>
     </div>
   </div>`;
@@ -1077,13 +1112,15 @@ function openWizard(slug,rec,checkDraft){
   document.getElementById('map-hint').textContent='Paste a Google Maps link, or just type the villa\'s address and pick a match.';
   wizIdx=0; wizShow();
   document.getElementById('wizard').classList.add('open');
+  document.body.classList.add('wiz-open');
   document.body.style.overflow='hidden';
   if(checkDraft&&!slug) wizTryRestoreDraft();
 }
 function closeWizard(){
   document.getElementById('wizard').classList.remove('open');
+  document.body.classList.remove('wiz-open');
   document.body.style.overflow='';
-  if(!editingSlug&&!editingHostex) wizSaveDraft();
+  if(!editingSlug&&!editingHostex){ wizSaveDraft(); loadDraftCard(); }
 }
 function wizShow(){
   const step=wizSteps[wizIdx];
@@ -1250,6 +1287,15 @@ async function wizResize(file){
   const b64=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(',')[1]);fr.onerror=rej;fr.readAsDataURL(blob);});
   return {b64,mime:'image/jpeg'};
 }
+// Autosave the draft as the owner types — losing work is never acceptable,
+// however the wizard gets closed.
+(function(){
+  const b=document.querySelector('.wiz-body');
+  if(!b) return;
+  ['input','change'].forEach(ev=>b.addEventListener(ev,()=>{
+    if(document.getElementById('wizard').classList.contains('open')&&!editingSlug&&!editingHostex) wizSaveDraft();
+  }));
+})();
 // Drag & drop onto the photo zone.
 (function(){
   const z=document.getElementById('wphoto-drop');
@@ -1300,7 +1346,7 @@ function renderWizPreview(){
   document.getElementById('wiz-boost').innerHTML=miss.length
     ?('<div class="hint" style="margin-bottom:8px">Listing strength <b>'+score+'%</b> — boost it before you publish:</div>'
       +miss.slice(0,4).map(m=>`<div class="wboost-row" onclick="wizJump('${m[0]}')">${esc(m[1])}<b>Add →</b></div>`).join(''))
-    :('<div class="hint" style="text-align:center">💪 Listing strength '+score+'% — looking great.</div>');
+    :('<div class="hint" style="text-align:center">Listing strength '+score+'% — looking great.</div>');
 }
 
 // ── Pill selectors ──
@@ -1352,14 +1398,15 @@ function mapSearchInput(v){
   clearTimeout(mapDebounce);
   const box=document.getElementById('map-results');
   v=(v||'').trim();
-  if(!v||/^https?:\/\//i.test(v)||v.length<4){ box.classList.remove('open'); return; }
+  if(!v||/^https?:\/\//i.test(v)||v.length<3){ box.classList.remove('open'); return; }
   mapDebounce=setTimeout(async()=>{
     try{
-      const q=/bali|indonesia/i.test(v)?v:v+', Bali, Indonesia';
-      const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&q='+encodeURIComponent(q));
-      const d=await r.json();
-      if(!Array.isArray(d)||!d.length){ box.classList.remove('open'); return; }
-      box.innerHTML=d.map(p=>'<div class="map-result" data-lat="'+(+p.lat).toFixed(6)+'" data-lon="'+(+p.lon).toFixed(6)+'" data-n="'+esc(p.display_name)+'" onclick="pickMapResult(this)">'+esc(p.display_name)+'</div>').join('');
+      // Server-side proxy: Google Places (finds villas by name) with an
+      // OpenStreetMap fallback — see api/portal.js place-search.
+      const r=await api('?action=place-search&q='+encodeURIComponent(v));
+      const d=(r.ok&&r.body&&r.body.results)||[];
+      if(!d.length){ box.classList.remove('open'); return; }
+      box.innerHTML=d.map(p=>'<div class="map-result" data-lat="'+(+p.lat).toFixed(6)+'" data-lon="'+(+p.lon).toFixed(6)+'" data-n="'+esc(p.name)+'" onclick="pickMapResult(this)"><b>'+esc(p.name)+'</b>'+(p.address?'<span style="display:block;font-size:.72rem;color:var(--muted);margin-top:1px">'+esc(p.address)+'</span>':'')+'</div>').join('');
       box.classList.add('open');
     }catch{ box.classList.remove('open'); }
   },450);
@@ -1447,8 +1494,9 @@ async function submitProperty(){
   if(!r.ok){document.getElementById('prop-err').textContent=r.body?.error||'Could not save.';wizShow();return;}
   const wasNew=!editingSlug;
   const newSlug=r.body?.slug||editingSlug||'';
-  if(wasNew) api('?action=draft',{method:'DELETE'}); // draft served its purpose
+  if(wasNew){ api('?action=draft',{method:'DELETE'}); const dc=document.getElementById('draft-card'); if(dc) dc.remove(); }
   document.getElementById('wizard').classList.remove('open');
+  document.body.classList.remove('wiz-open');
   document.body.style.overflow='';
   showToast(wasNew?'Submitted — almost there.':'Saved.');
   await loadProperties();
