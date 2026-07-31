@@ -71,7 +71,7 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 /* Mobile: spacer + text "How it works" were crushing #samba-nav (flex:1,min-width:0)
    to ~18px, clipping the Dashboard/List/Account tabs. Icon-only howto + no spacer
    leaves the nav enough room. */
-@media(max-width:640px){.content{padding:16px;}.topbar{padding:8px 16px;}.owner-email{display:none;}.brand-mark img{height:44px;}.owner-chip,.logout-btn{display:none;}.spacer{display:none;}.howto-link span{display:none;}.howto-link{padding:8px;border-radius:50%;}.howto-link svg{width:17px;height:17px;}}
+@media(max-width:640px){.content{padding:16px;}.topbar{padding:8px 16px;}.owner-email{display:none;}.brand-mark img{height:44px;}.owner-chip,.logout-btn{display:none;}.spacer{display:none;}.howto-link span{display:none;}.howto-link{padding:8px;border-radius:50%;}.howto-link svg{width:17px;height:17px;}.section-head{flex-wrap:wrap;row-gap:10px;}.section-head .tabbar{flex-basis:100%;}}
 .section-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
 .section-title{font-family:'Satoshi',-apple-system,sans-serif;font-size:1.4rem;}
 .add-btn{background:var(--accent);border:1px solid var(--accent);border-radius:8px;color:#fff;padding:8px 16px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;}
@@ -104,6 +104,7 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 .dot.on{background:var(--green);} .dot.off{background:var(--subtle);}
 .prop-actions{display:flex;gap:8px;margin-top:2px;flex-wrap:wrap;}
 .btn-sm{border-radius:7px;padding:7px 13px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.74rem;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text);}
+a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .btn-sm:hover{border-color:var(--accent);}
 .btn-sm.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
 .btn-sm.danger:hover{border-color:var(--red);color:var(--red);}
@@ -863,6 +864,7 @@ function propCard(p){
       <div class="prop-status-note">Samba manages this listing's photos, pricing and calendar. You can edit its contacts and see all of its analytics and weekly reports.</div>
       ${statsStrip(p.slug)}
       <div class="prop-actions">
+        <a class="btn-sm" href="/l/${esc(p.slug)}" target="_blank" rel="noopener">View listing ↗</a>
         <button class="btn-sm" onclick="editProperty('${esc(p.slug)}')">Edit contacts</button>
       </div>
     </div>`;
@@ -889,6 +891,7 @@ function propCard(p){
     ${statsStrip(p.slug)}
     <div class="prop-actions">
       ${canSub?`<button class="btn-sm primary" onclick="openCheckout('${esc(p.slug)}')">Activate listing</button>`:''}
+      ${((p.status==='approved'&&active)||comped)?`<a class="btn-sm" href="/l/${esc(p.slug)}" target="_blank" rel="noopener">View listing ↗</a>`:''}
       ${(active&&!comped&&!promo)?`<button class="btn-sm" onclick="manageBilling()">Manage billing</button>`:''}
       <button class="btn-sm" onclick="editProperty('${esc(p.slug)}')">Edit</button>
       ${p.folder?`<button class="btn-sm" id="ai-sort-${esc(p.slug)}" onclick="aiSortPhotos('${esc(p.slug)}')">✨ Sort photos with AI</button>`:''}
