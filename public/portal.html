@@ -475,8 +475,8 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
     <div class="modal-body">
       <div class="checkout-price">US$9.50 <span>/ month per villa</span></div>
       <p class="checkout-blurb">Your listing goes live to 250+ Bali rental agents as soon as it's activated. Cancel anytime.</p>
-      <button class="btn-sm" disabled style="width:100%;opacity:.5;cursor:not-allowed">Pay by card — temporarily unavailable</button>
-      <p class="hint" style="margin-top:2px">Card billing is being finalised. Have a promo code? Enter it below to activate your listing now.</p>
+      <button class="btn-sm primary" id="checkout-pay" onclick="goToPayment()" style="width:100%">Pay by card — secure checkout</button>
+      <p class="hint" style="margin-top:2px">You'll be taken to our payment partner Creem to complete the subscription. Have a promo code? Enter it below — it's applied at checkout, or activates the listing directly if it's a free-period code.</p>
       <div class="fg">
         <label>Promo code</label>
         <input id="f-promo" placeholder="e.g. FREEMONTH" autocomplete="off" spellcheck="false" style="text-transform:uppercase">
@@ -494,25 +494,12 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 <div id="toast"></div>
 
 <script src="https://accounts.google.com/gsi/client" async></script>
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
 const API = '/api/portal';
 const isDev = ['localhost','127.0.0.1'].includes(location.hostname);
-let appConfig=null, paddleReady=false, currentOwnerData=null;
+let appConfig=null, currentOwnerData=null;
 
 async function loadConfig(){ if(appConfig) return appConfig; const r=await api('?action=config'); appConfig=r.body||{}; return appConfig; }
-function initPaddle(){
-  if(paddleReady||!appConfig?.paddleClientToken) return;
-  if(!window.Paddle){ return setTimeout(initPaddle,200); }
-  try{
-    Paddle.Environment.set(appConfig.paddleEnv==='production'?'production':'sandbox');
-    Paddle.Setup({ token: appConfig.paddleClientToken, eventCallback: onPaddleEvent });
-    paddleReady=true;
-  }catch(e){ /* misconfigured token — goToPayment() will surface it */ }
-}
-function onPaddleEvent(ev){
-  if(ev?.name==='checkout.completed'){ showToast('Payment received — activating your listing…'); pollProperties(); }
-}
 async function pollProperties(){
   for(let i=0;i<6;i++){ await new Promise(r=>setTimeout(r,2000)); await loadProperties(); if(myProps.some(p=>p.subscription&&p.subscription.status==='active')) break; }
 }
@@ -639,9 +626,16 @@ function enterApp(owner){
   const av=document.getElementById('owner-avatar');
   if (owner.picture){ av.src=owner.picture; av.style.display='block'; } else { av.style.display='none'; }
   loadProperties();
-  loadConfig().then(initPaddle);
+  loadConfig();
   // Deep-link from the "List a property" sub-tab → open the add form.
-  if (new URLSearchParams(location.search).get('view') === 'new') setTimeout(addProperty, 0);
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('view') === 'new') setTimeout(addProperty, 0);
+  // Back from Creem checkout: the webhook flips the listing live within moments.
+  if (qs.get('paid')) {
+    showToast('Payment received — activating your listing…');
+    history.replaceState(null, '', '/portal');
+    pollProperties();
+  }
 }
 
 async function logout(){
@@ -1187,9 +1181,8 @@ function openCheckout(slug){
 function closeCheckout(){ document.getElementById('checkout-modal').classList.remove('open'); }
 
 // Redeem a promo code to activate this listing for free (the code's promo
-// period — e.g. PRELAUNCH90 = 3 months). When card
-// billing returns, goToPayment()/launchPaddle() below can be re-wired to the
-// greyed-out pay button.
+// period — e.g. PRELAUNCH90 = 3 months). Card billing goes through Creem
+// hosted checkout via goToPayment() below.
 async function applyPromo(){
   const slug=checkoutSlug;
   const code=document.getElementById('f-promo').value.trim().toUpperCase();
@@ -1210,26 +1203,17 @@ async function applyPromo(){
 async function goToPayment(){
   const slug=checkoutSlug;
   const promo=document.getElementById('f-promo').value.trim().toUpperCase();
+  const err=document.getElementById('checkout-err'); err.textContent='';
   await loadConfig();
-  if(!appConfig.paddleClientToken||!appConfig.paddlePriceId){ document.getElementById('checkout-err').textContent='Billing is not set up yet — check back soon.'; return; }
-  initPaddle();
-  if(!window.Paddle||!paddleReady){ document.getElementById('checkout-err').textContent='Payment system still loading — try again in a moment.'; return; }
-  closeCheckout();
-  launchPaddle(slug, promo);
-}
-
-function launchPaddle(slug, promo){
-  const opts={
-    items:[{ priceId: appConfig.paddlePriceId, quantity:1 }],
-    customData:{ ownerSub: currentOwnerData?.sub||'', slug },
-    customer: currentOwnerData?.email ? { email: currentOwnerData.email } : undefined,
-    // Keep Paddle's own discount field available as a fallback inside the overlay.
-    settings:{ displayMode:'overlay', theme:'dark', successUrl: location.origin+'/portal', showAddDiscounts:true, allowDiscountRemoval:true }
-  };
-  // Pre-apply a promo code so the discounted price shows immediately. Paddle
-  // validates it; an invalid code surfaces in the overlay, not here.
-  if(promo) opts.discountCode=promo;
-  Paddle.Checkout.open(opts);
+  if(!appConfig.billingReady){ err.textContent='Billing is not set up yet — check back soon.'; return; }
+  const btn=document.getElementById('checkout-pay'); if(btn){ btn.disabled=true; }
+  // The server creates a Creem hosted-checkout session (it validates ownership
+  // and pre-applies the promo code); we just follow the returned URL.
+  const r=await fetch('/api/billing?action=checkout',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug,promo})});
+  let b=null; try{b=await r.json();}catch{}
+  if(btn){ btn.disabled=false; }
+  if(r.ok&&b?.url){ location.href=b.url; }
+  else { err.textContent=(b&&b.error)||'Could not start checkout — try again in a moment.'; }
 }
 
 async function manageBilling(){

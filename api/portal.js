@@ -72,9 +72,7 @@ export default async function handler(req, res) {
     if (action === 'config' && req.method === 'GET') {
       return res.status(200).json({
         googleClientId: GOOGLE_CLIENT_ID,
-        paddleClientToken: process.env.PADDLE_CLIENT_TOKEN || '',
-        paddlePriceId: process.env.PADDLE_PRICE_ID || '',
-        paddleEnv: process.env.PADDLE_ENV === 'production' ? 'production' : 'sandbox',
+        billingReady: !!(process.env.CREEM_API_KEY && process.env.CREEM_PRODUCT_ID),
       });
     }
     if (action === 'auth/google' && req.method === 'POST') {
@@ -262,7 +260,7 @@ async function authGoogle(req, res, { kvGet, kvSet, kvSetEx }) {
     name: info.name || existing?.name || info.email,
     picture: info.picture || existing?.picture || '',
     createdAt: existing?.createdAt || new Date().toISOString(),
-    paddleCustomerId: existing?.paddleCustomerId || null,
+    creemCustomerId: existing?.creemCustomerId || null,
     // Agent-account capabilities — preserved across sign-ins.
     favorites: Array.isArray(existing?.favorites) ? existing.favorites : [],
     notes: existing?.notes && typeof existing.notes === 'object' ? existing.notes : {},

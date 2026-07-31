@@ -1,24 +1,35 @@
-// Paddle billing for the owner portal. Single function, routed by ?action=:
+// Creem billing for the owner portal. Single function, routed by ?action=:
 //
-//   POST ?action=portal-session   → authenticated Paddle customer-portal link (session-gated)
-//   POST  (webhook, no action)     → Paddle notification: verify signature, update sub:{slug}
+//   POST ?action=checkout         → authenticated: create a Creem hosted-checkout
+//                                    session for one listing, returns { url }
+//   POST ?action=portal-session   → authenticated Creem customer-portal link
+//   POST  (webhook, no action)    → Creem notification: verify signature, update sub:{slug}
 //
-// No npm deps: Paddle API via fetch + Bearer key; webhook signature via node crypto.
-// Checkout itself is opened client-side with Paddle.js (see portal.html) — the webhook
-// is the source of truth that flips a listing to "Live".
+// No npm deps: Creem API via fetch + x-api-key; webhook signature via node crypto.
+// The webhook is the source of truth that flips a listing to "Live".
 import crypto from 'node:crypto';
 import { logError } from '../lib/errlog.js';
 
 // Disable Vercel's automatic body parsing so we can read the exact raw bytes the
-// Paddle signature was computed over.
+// Creem signature was computed over.
 export const config = { api: { bodyParser: false } };
 
 const SESSION_COOKIE = 'samba_session';
 
-function paddleApiBase() {
-  return process.env.PADDLE_ENV === 'production'
-    ? 'https://api.paddle.com'
-    : 'https://sandbox-api.paddle.com';
+// Test-mode keys (creem_test_…) must talk to the sandbox API host.
+function creemApiBase() {
+  const key = process.env.CREEM_API_KEY || '';
+  return key.startsWith('creem_test_') ? 'https://test-api.creem.io' : 'https://api.creem.io';
+}
+
+async function creem(path, body) {
+  const r = await fetch(`${creemApiBase()}${path}`, {
+    method: 'POST',
+    headers: { 'x-api-key': process.env.CREEM_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, data };
 }
 
 export default async function handler(req, res) {
@@ -50,10 +61,13 @@ export default async function handler(req, res) {
   const action = req.query.action || '';
 
   try {
+    if (action === 'checkout' && req.method === 'POST') {
+      return checkout(req, res, { kvGet });
+    }
     if (action === 'portal-session' && req.method === 'POST') {
       return portalSession(req, res, { kvGet });
     }
-    // Default POST with no action = Paddle webhook.
+    // Default POST with no action = Creem webhook.
     if (req.method === 'POST') {
       return webhook(req, res, { kvGet, kvSet });
     }
@@ -64,104 +78,140 @@ export default async function handler(req, res) {
   }
 }
 
+// ── Checkout session (session-gated) ────────────────────────────────
+async function checkout(req, res, { kvGet }) {
+  const owner = await currentOwner(req, kvGet);
+  if (!owner) return res.status(401).json({ error: 'Not signed in' });
+  if (!process.env.CREEM_API_KEY || !process.env.CREEM_PRODUCT_ID) {
+    return res.status(500).json({ error: 'Billing is not set up yet — check back soon.' });
+  }
+
+  const body = await readJsonBody(req);
+  const slug = String(body.slug || '').trim();
+  const promo = String(body.promo || '').trim().toUpperCase();
+  if (!slug) return res.status(400).json({ error: 'Missing slug' });
+
+  // Only the listing's owner may start a checkout for it.
+  const owned = (await kvGet(`owner_listings:${owner.sub}`)) || [];
+  if (!owned.includes(slug)) return res.status(403).json({ error: 'Not your listing' });
+
+  const payload = {
+    product_id: process.env.CREEM_PRODUCT_ID,
+    request_id: `${slug}:${Date.now()}`,
+    units: 1,
+    customer: owner.email ? { email: owner.email } : undefined,
+    success_url: `https://sambarentals.com/portal?paid=${encodeURIComponent(slug)}`,
+    metadata: { slug, ownerSub: owner.sub },
+  };
+  if (promo) payload.discount_code = promo;
+
+  const r = await creem('/v1/checkouts', payload);
+  const url = r.data?.checkout_url;
+  if (!r.ok || !url) {
+    // Surface Creem's message for recoverable cases (e.g. invalid discount code).
+    const detail = r.data?.message || r.data?.error || 'Could not start checkout';
+    return res.status(502).json({ error: Array.isArray(detail) ? detail.join(', ') : detail });
+  }
+  return res.status(200).json({ url });
+}
+
 // ── Customer portal session (session-gated) ─────────────────────────
 async function portalSession(req, res, { kvGet }) {
   const owner = await currentOwner(req, kvGet);
   if (!owner) return res.status(401).json({ error: 'Not signed in' });
-  if (!owner.paddleCustomerId) {
+  if (!owner.creemCustomerId) {
     return res.status(400).json({ error: 'No billing account yet. Subscribe to a property first.' });
   }
-  const apiKey = process.env.PADDLE_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'PADDLE_API_KEY not configured' });
-
-  const r = await fetch(`${paddleApiBase()}/customers/${owner.paddleCustomerId}/portal-sessions`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-  });
-  const data = await r.json().catch(() => ({}));
-  const url = data?.data?.urls?.general?.overview;
+  const r = await creem('/v1/customers/billing', { customer_id: owner.creemCustomerId });
+  const url = r.data?.billing_portal_url || r.data?.customer_portal_link;
   if (!r.ok || !url) return res.status(502).json({ error: 'Could not create portal session' });
   return res.status(200).json({ url });
 }
 
 // ── Webhook ─────────────────────────────────────────────────────────
 async function webhook(req, res, { kvGet, kvSet }) {
-  const secret = process.env.PADDLE_WEBHOOK_SECRET;
-  if (!secret) return res.status(500).json({ error: 'PADDLE_WEBHOOK_SECRET not configured' });
+  const secret = process.env.CREEM_WEBHOOK_SECRET;
+  if (!secret) return res.status(500).json({ error: 'CREEM_WEBHOOK_SECRET not configured' });
 
-  const sig = req.headers['paddle-signature'] || '';
+  const sig = req.headers['creem-signature'] || '';
 
-  // Collect candidate raw-body representations. Vercel's Node runtime often
-  // pre-parses the JSON body (consuming the stream), so the live-stream read
-  // can come back empty — in that case fall back to re-serializing the parsed
-  // body. Paddle sends compact JSON, which round-trips byte-for-byte through
-  // JSON.parse → JSON.stringify, so the HMAC still matches.
+  // Collect candidate raw-body representations. Vercel's Node runtime can
+  // pre-parse the JSON body (consuming the stream), so the live-stream read
+  // may come back empty — fall back to re-serializing the parsed body, which
+  // round-trips compact JSON byte-for-byte.
   const candidates = [];
   if (typeof req.rawBody === 'string') candidates.push(req.rawBody);
   try { const sb = await getRawBody(req); if (sb) candidates.push(sb); } catch { /* not a stream */ }
   if (req.body != null) candidates.push(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
 
-  const raw = candidates.find(c => verifyPaddleSignature(c, sig, secret));
+  const raw = candidates.find(c => verifyCreemSignature(c, sig, secret));
   if (!raw) return res.status(401).json({ error: 'Invalid signature' });
 
   let evt;
   try { evt = JSON.parse(raw); } catch { return res.status(400).json({ error: 'Bad JSON' }); }
 
-  const type = evt.event_type || '';
-  if (type.startsWith('subscription.')) {
-    const d = evt.data || {};
-    const slug = d.custom_data?.slug;
-    const ownerSub = d.custom_data?.ownerSub;
+  const type = evt.eventType || evt.event_type || '';
+  const obj = evt.object || {};
+
+  // Normalize: subscription.* events carry the subscription as the object;
+  // checkout.completed carries a checkout with a nested subscription.
+  let sub = null;
+  if (type.startsWith('subscription.')) sub = obj;
+  else if (type === 'checkout.completed') sub = obj.subscription || null;
+
+  if (sub) {
+    const meta = sub.metadata || obj.metadata || {};
+    const slug = meta.slug;
+    const ownerSub = meta.ownerSub;
+    const customerId = typeof sub.customer === 'string' ? sub.customer : (sub.customer?.id || null);
     if (slug) {
-      const status = mapStatus(d.status, type);
+      const status = mapStatus(sub.status, type);
       await kvSet(`sub:${slug}`, {
         status,
-        paddleSubscriptionId: d.id || null,
-        paddleCustomerId: d.customer_id || null,
+        source: 'creem',
+        creemSubscriptionId: sub.id || null,
+        creemCustomerId: customerId,
         ownerSub: ownerSub || null,
-        currentPeriodEnd: d.current_billing_period?.ends_at || null,
+        currentPeriodEnd: sub.current_period_end_date || sub.current_period_end || null,
         updatedAt: new Date().toISOString(),
       });
-      // Remember the Paddle customer on the owner record so we can open their portal.
-      if (ownerSub && d.customer_id) {
+      // Remember the Creem customer on the owner record so we can open their portal.
+      if (ownerSub && customerId) {
         const owner = await kvGet(`owner:${ownerSub}`);
-        if (owner && owner.paddleCustomerId !== d.customer_id) {
-          owner.paddleCustomerId = d.customer_id;
+        if (owner && owner.creemCustomerId !== customerId) {
+          owner.creemCustomerId = customerId;
           await kvSet(`owner:${ownerSub}`, owner);
         }
       }
     }
   }
 
-  // Always 200 quickly so Paddle doesn't retry a handled event.
+  // Always 200 quickly so Creem doesn't retry a handled event.
   return res.status(200).json({ ok: true });
 }
 
-// Paddle status → our sub status. Trialing counts as active for visibility.
-function mapStatus(paddleStatus, eventType) {
-  if (eventType === 'subscription.canceled') return 'canceled';
-  switch (paddleStatus) {
+// Creem status/event → our sub status. A scheduled cancel stays active until
+// the period actually ends (subscription.canceled / .expired arrives then).
+function mapStatus(creemStatus, eventType) {
+  if (eventType === 'subscription.canceled' || eventType === 'subscription.expired') return 'canceled';
+  switch (creemStatus) {
     case 'active':
     case 'trialing': return 'active';
     case 'past_due': return 'past_due';
     case 'canceled':
-    case 'paused': return 'canceled';
-    default: return paddleStatus || 'canceled';
+    case 'paused':
+    case 'expired': return 'canceled';
+    default: return creemStatus || 'canceled';
   }
 }
 
-// HMAC-SHA256 of `${ts}:${rawBody}`, compared to h1, timing-safe.
-function verifyPaddleSignature(rawBody, header, secret) {
-  const parts = Object.fromEntries(String(header).split(';').map(kv => {
-    const i = kv.indexOf('=');
-    return [kv.slice(0, i).trim(), kv.slice(i + 1).trim()];
-  }));
-  const ts = parts.ts, h1 = parts.h1;
-  if (!ts || !h1) return false;
-  const expected = crypto.createHmac('sha256', secret).update(`${ts}:${rawBody}`).digest('hex');
-  const a = Buffer.from(expected, 'hex');
-  const b = Buffer.from(h1, 'hex');
+// HMAC-SHA256 hex of the raw body, compared timing-safe.
+function verifyCreemSignature(rawBody, header, secret) {
+  const received = String(header).trim();
+  if (!received) return false;
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+  const a = Buffer.from(expected, 'utf8');
+  const b = Buffer.from(received, 'utf8');
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
@@ -169,6 +219,12 @@ async function getRawBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
   return Buffer.concat(chunks).toString('utf8');
+}
+
+async function readJsonBody(req) {
+  if (req.body != null && typeof req.body === 'object') return req.body;
+  const raw = typeof req.body === 'string' ? req.body : await getRawBody(req).catch(() => '');
+  try { return JSON.parse(raw || '{}'); } catch { return {}; }
 }
 
 // ── Session (mirrors api/portal.js) ─────────────────────────────────
