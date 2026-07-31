@@ -328,6 +328,13 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .wiz-boost{margin-top:14px;}
 .wboost-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--surface);font-size:.8rem;cursor:pointer;}
 .wboost-row b{color:var(--accent);font-size:.7rem;margin-left:auto;flex-shrink:0;}
+.cop{display:flex;gap:11px;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:9px;margin-bottom:12px;}
+.cop-img{width:64px;height:64px;border-radius:8px;background:var(--border) center/cover no-repeat;flex-shrink:0;}
+.cop-name{font-weight:700;font-size:.88rem;}
+.cop-meta{color:var(--muted);font-size:.72rem;margin:1px 0 3px;}
+.cop-price{font-size:.74rem;font-weight:600;}
+.rep-strength{background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:12px 14px;font-size:.8rem;margin-top:14px;line-height:1.5;}
+.rep-strength a{color:var(--accent);font-weight:600;text-decoration:none;}
 </style>
 </head>
 <body>
@@ -551,8 +558,9 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
       <div class="modal-title">List your villa</div>
     </div>
     <div class="modal-body">
+      <div id="checkout-preview"></div>
       <div class="checkout-price">US$9.50 <span>/ month per villa</span></div>
-      <p class="checkout-blurb">Your listing goes live to 250+ Bali rental agents as soon as it's activated. Cancel anytime.</p>
+      <p class="checkout-blurb">This listing goes live to 250+ Bali rental agents the moment it's activated. Cancel anytime.</p>
       <button class="btn-sm primary" id="checkout-pay" onclick="goToPayment()" style="width:100%">Pay by card — secure checkout</button>
       <p class="hint" style="margin-top:2px">You'll be taken to our payment partner Creem to complete the subscription. Have a promo code? Enter it below — it's applied at checkout, or activates the listing directly if it's a free-period code.</p>
       <div class="fg">
@@ -924,6 +932,7 @@ function renderReport(d){
     ${occSection}
     ${benchSection}
     <div class="rep-pad"><div class="rep-sec-h">Suggested next steps</div><div class="rep-recs">${recs}</div></div>
+    ${d.strength&&d.strength.score<85?`<div class="rep-pad"><div class="rep-strength">💪 Listing strength <b>${d.strength.score}%</b> — to reach more agents: ${esc(d.strength.tips.join(' · '))}. <a href="#" onclick="event.preventDefault();showTab('properties');editProperty('${esc(d.slug)}')">Improve it now →</a></div></div>`:''}
     <div class="rep-foot"><div class="rep-fmeta">Maya sends this to you on WhatsApp every Monday morning.<br>Numbers update live — open any time from the Weekly reports tab.</div></div>
   </div>`;
 }
@@ -939,7 +948,7 @@ function propCard(p){
       </div>
       <div class="prop-sub"><span class="dot on"></span>Managed by Samba</div>
       <div class="prop-status-note">Samba manages this listing's photos, pricing and calendar. You can edit its contacts and see all of its analytics and weekly reports.</div>
-      ${statsStrip(p.slug)}
+      ${statsStrip(p.slug,true)}
       <div class="prop-actions">
         <a class="btn-sm" href="/l/${esc(p.slug)}" target="_blank" rel="noopener">View listing ↗</a>
         <button class="btn-sm" onclick="editProperty('${esc(p.slug)}')">Edit contacts</button>
@@ -965,7 +974,7 @@ function propCard(p){
     </div>
     <div class="prop-sub"><span class="dot ${active?'on':'off'}"></span>${subLine}</div>
     <div class="prop-status-note">${note}</div>
-    ${statsStrip(p.slug)}
+    ${statsStrip(p.slug,(p.status==='approved'&&active)||comped)}
     <div class="prop-actions">
       ${canSub?`<button class="btn-sm primary" onclick="openCheckout('${esc(p.slug)}')">Activate listing</button>`:''}
       ${((p.status==='approved'&&active)||comped)?`<a class="btn-sm" href="/l/${esc(p.slug)}" target="_blank" rel="noopener">View listing ↗</a>`:''}
@@ -983,14 +992,17 @@ function sparkSvg(arr){
   const pts=arr.map((v,i)=>(i/(arr.length-1)*W).toFixed(1)+','+(H-3-(v/max)*(H-6)).toFixed(1)).join(' ');
   return `<svg class="pstat-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
-function statsStrip(slug){
+function statsStrip(slug,live){
   const s=statsBySlug[slug];
   if(!s) return '';
   const cell=(v,l,t)=>`<div class="pstat" title="${t}"><div class="pstat-val">${v||0}</div><div class="pstat-lbl">${l}</div></div>`;
   const spark=sparkSvg(s.spark);
   const views14=(s.spark||[]).reduce((a,b)=>a+b,0);
+  // A live listing with no views yet isn't "dead" — it's already circulating
+  // in the daily agent digest. Say that instead of showing a morgue of zeros.
+  const zeroMsg=live?'Live — featured to 250+ agents in the daily WhatsApp digest':'No views in the last 14 days';
   const weekBits=[
-    views14?`<b>${views14}</b> view${views14===1?'':'s'} · 14 days`:'No views in the last 14 days',
+    views14?`<b>${views14}</b> view${views14===1?'':'s'} · 14 days`:zeroMsg,
     s.shares7?`shared <b>${s.shares7}×</b> this week`:null,
     s.wa7?`<b>${s.wa7}</b> enquir${s.wa7===1?'y':'ies'} this week`:null,
   ].filter(Boolean).join(' · ');
@@ -1487,6 +1499,7 @@ let checkoutSlug=null;
 function openCheckout(slug){
   if(DEMO)return demoBlock();
   checkoutSlug=slug;
+  renderCheckoutPreview(slug);
   document.getElementById('f-promo').value='';
   document.getElementById('checkout-err').textContent='';
   const btn=document.getElementById('checkout-go');btn.disabled=false;btn.textContent='Apply code & go live';
@@ -1528,6 +1541,32 @@ async function goToPayment(){
   if(btn){ btn.disabled=false; }
   if(r.ok&&b?.url){ location.href=b.url; }
   else { err.textContent=(b&&b.error)||'Could not start checkout — try again in a moment.'; }
+}
+
+// The mini listing card inside the checkout modal — seeing the thing you're
+// about to publish is the strongest possible "why pay" argument.
+async function renderCheckoutPreview(slug){
+  const el=document.getElementById('checkout-preview');
+  if(!el) return;
+  const rec=myProps.find(p=>p.slug===slug)||{};
+  const jt=v=>v?String(v).replace(/\s*jt\s*$/i,'')+'jt':'';
+  el.innerHTML=`<div class="cop">
+    <div class="cop-img" id="cop-img"></div>
+    <div class="cop-body">
+      <div class="cop-name">${esc(rec.name||slug)}</div>
+      <div class="cop-meta">${esc([rec.unitType,rec.tag].filter(Boolean).join(' · '))}</div>
+      ${rec.monthly?`<div class="cop-price">IDR ${esc(jt(rec.monthly))} / month</div>`:''}
+    </div>
+  </div>`;
+  if(rec.folder){
+    try{
+      const r=await fetch('/api/gdrive?folder='+encodeURIComponent(rec.folder));
+      const d=await r.json();
+      const t=d.photos&&d.photos[0]&&d.photos[0].thumb;
+      const img=document.getElementById('cop-img');
+      if(t&&img) img.style.backgroundImage='url("'+t+'")';
+    }catch{}
+  }
 }
 
 async function manageBilling(){

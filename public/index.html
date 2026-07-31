@@ -2903,5 +2903,33 @@ async function loadListingMeta() {
 })();
 </script>
   <script src="/i18n.js"></script>
+<!-- First-visit welcome: one dismissible card so a new agent instantly knows
+     what this is and what to do first. localStorage-gated, never re-shown. -->
+<div id="agent-welcome" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(31,36,34,.45);align-items:flex-end;justify-content:center" data-no-i18n-skip>
+  <div style="background:var(--surface,#fff);border-radius:18px 18px 0 0;max-width:520px;width:100%;padding:26px 22px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(0,0,0,.18)">
+    <div style="font-weight:800;font-size:1.25rem;letter-spacing:-.02em;margin-bottom:6px">Welcome to Samba 👋</div>
+    <div style="color:var(--muted,#8a8f8d);font-size:.85rem;line-height:1.55;margin-bottom:16px">Bali's long-term rental inventory, built for agents. Free, always.</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;font-size:.86rem;line-height:1.45">
+      <div style="display:flex;gap:10px;align-items:flex-start"><span>🔍</span><span><b>Browse live availability</b> — villas update from the owners' own calendars.</span></div>
+      <div style="display:flex;gap:10px;align-items:flex-start"><span>📤</span><span><b>Share any villa with one tap</b> — a clean page for your client, your contact on it.</span></div>
+      <div style="display:flex;gap:10px;align-items:flex-start"><span>⭐</span><span><b>Save favourites &amp; shortlists</b> — build a list per client and send it as one link.</span></div>
+    </div>
+    <button onclick="dismissAgentWelcome()" style="width:100%;padding:14px;border:none;border-radius:11px;background:var(--accent,#E2572B);color:#fff;font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer">Start browsing</button>
+  </div>
+</div>
+<script>
+(function(){
+  try{
+    if(localStorage.getItem('samba_agent_welcome_v1')) return;
+    // Only greet on a fresh top-level visit, not deep links into a share view.
+    if(location.search||location.hash) return;
+    setTimeout(function(){ document.getElementById('agent-welcome').style.display='flex'; },700);
+  }catch(e){}
+})();
+function dismissAgentWelcome(){
+  try{localStorage.setItem('samba_agent_welcome_v1','1');}catch(e){}
+  document.getElementById('agent-welcome').style.display='none';
+}
+</script>
 </body>
 </html>

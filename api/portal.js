@@ -835,12 +835,43 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
     broadcastEligible: occupancy ? occupancy.openNights > 0 : null,
   };
 
+  // Listing strength → a recurring improvement nudge inside every report.
+  // Samba-managed (Hostex) listings are curated by us, so no nudge there.
+  const strength = isHostexSlug(slug) ? null : await listingStrength(prop);
+
   return res.status(200).json({
     slug, name: prop.name || slug, area: prop.tag || prop.area || '', unitType: prop.unitType || '',
     listedAt: prop.createdAt || null, ownerName: (owner && owner.name) || prop.waContactName || '',
     week: { from: days[7], to: days[13] },
-    metrics, daily, funnel, agentsReached, benchmark, occupancy, maya,
+    metrics, daily, funnel, agentsReached, benchmark, occupancy, maya, strength,
   });
+}
+
+// Mirrors the wizard's client-side scoring so the number an owner sees in the
+// wizard header and in their weekly report never disagree.
+async function listingStrength(prop) {
+  const has = v => !!(v && String(v).trim());
+  const arr = v => (Array.isArray(v) ? v.filter(Boolean) : []);
+  let photos = 0;
+  if (prop.folder && process.env.GOOGLE_API_KEY) {
+    try {
+      const u = `https://www.googleapis.com/drive/v3/files?q='${prop.folder}'+in+parents+and+mimeType+contains+'image/'&fields=files(id)&key=${process.env.GOOGLE_API_KEY}&pageSize=30`;
+      const d = await (await fetch(u)).json();
+      photos = (d.files || []).length;
+    } catch { photos = 5; }
+  } else if (prop.folder) photos = 5;
+  let s = 0; const tips = [];
+  if (has(prop.name)) s += 10;
+  s += photos >= 5 ? 25 : photos * 5;
+  if (photos < 5) tips.push(photos ? `add ${5 - photos} more photos` : 'add photos');
+  if (String(prop.overview || '').length >= 100) s += 15; else tips.push('write a longer overview');
+  if (arr(prop.features).length >= 4) s += 10; else tips.push('pick at least 4 key features');
+  if (has(prop.monthly)) s += 10; else tips.push('set a monthly price');
+  if (has(prop.yearly)) s += 5; else tips.push('set a yearly price');
+  if (has(prop.location)) s += 10; else tips.push('pin the location on the map');
+  if (has(prop.icalUrl)) s += 10; else tips.push('connect your booking calendar');
+  if (has(prop.waNumber)) s += 5; else tips.push('add a WhatsApp contact');
+  return { score: Math.min(100, s), tips: tips.slice(0, 2) };
 }
 
 // Turn a Set of booked YYYY-MM-DD into the occupancy shape the report renders:
