@@ -247,7 +247,10 @@ function renderReport(d){
       <div class="rep-bscale"><span>Lower demand</span><span>You · ${p}th percentile</span><span>Higher demand</span></div>
     </div></div>`;
   }
-  const recs=repRecs(d).map((r,i)=>`<div class="rep-rec"><span class="rn">${i+1}</span><p class="rt"><b>${escapeHtml(r[0])}.</b><span>${escapeHtml(r[1])}</span></p></div>`).join('');
+  /* Canonical recommendations come from the server (lib/next-actions.js via
+     the report payload); repRecs is only the fallback for older payloads. */
+  const recList=(Array.isArray(d.nextActions)&&d.nextActions.length)?d.nextActions.map(a=>[a.title,a.detail]):repRecs(d);
+  const recs=recList.slice(0,3).map((r,i)=>`<div class="rep-rec"><span class="rn">${i+1}</span><p class="rt"><b>${escapeHtml(r[0])}.</b><span>${escapeHtml(r[1])}</span></p></div>`).join('');
   return `<div class="rep-sheet">
     <div class="rep-mast"><span class="rl">Samba · weekly owner report</span><span class="rr">Week of<b>${fmtRange(d.week.from,d.week.to)}</b></span></div>
     <div class="rep-pad">

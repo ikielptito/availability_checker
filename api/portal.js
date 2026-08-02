@@ -13,6 +13,7 @@ import { logError } from '../lib/errlog.js';
 import { rankStep } from '../lib/photorank.js';
 import { parseIcsBookedDates } from './ical.js';
 import { isHostexSlug, propIdFor, loadHostexOwnerMap, resolveOwnedListing } from '../lib/owner-listings.js';
+import { nextActions, fieldChecklist } from '../lib/next-actions.js';
 import { driveConfigured, createPhotoFolder, folderLink, uploadPhotoFromUrl, uploadBytes } from '../lib/drive-photos.js';
 
 const SESSION_COOKIE = 'samba_session';
@@ -581,11 +582,14 @@ async function listProperties(res, owner, { kvGet, kvSet }) {
         return { ...c, status: 'live', comped: false, subscription: null };
       }
       // Return the full record (owner's own data) so the edit form can populate.
+      // `checklist` is the record-only improvement queue (lib/next-actions.js) —
+      // the My properties card surfaces its top item as the owner's next step.
       return {
         ...c,
         status: c.status || 'pending_review',
         comped: !!c.comped,
         subscription: subs[i] ? { status: subs[i].status, source: subs[i].source || null, expiresAt: subs[i].expiresAt || null } : null,
+        checklist: fieldChecklist(c),
       };
     })
     .filter(Boolean);
@@ -854,11 +858,19 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
   // Samba-managed (Hostex) listings are curated by us, so no nudge there.
   const strength = isHostexSlug(slug) ? null : await listingStrength(prop);
 
+  // Ranked next-best-actions (lib/next-actions.js) — the same engine the
+  // properties checklist uses, here fed the full stats bundle. Report pages
+  // render these instead of computing their own recommendations.
+  const actions = nextActions(prop, {
+    metrics, funnel, occupancy, benchmark, agentsReached: agentsReached.now,
+  });
+
   return res.status(200).json({
     slug, name: prop.name || slug, area: prop.tag || prop.area || '', unitType: prop.unitType || '',
     listedAt: prop.createdAt || null, ownerName: (owner && owner.name) || prop.waContactName || '',
     week: { from: days[7], to: days[13] },
     metrics, daily, funnel, agentsReached, benchmark, occupancy, bookings, maya, strength,
+    nextActions: actions,
   });
 }
 

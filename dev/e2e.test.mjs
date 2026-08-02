@@ -379,6 +379,11 @@ r = await call(portalMod, { method: 'GET', query: { action: 'properties' }, head
 const hoProps = r.data?.properties || [];
 const haus = hoProps.find(p => p.slug === 'haus-1');
 check('portal lists claimed Hostex unit', !!haus && haus.hostex === true && haus.status === 'live' && haus.subscription === null, JSON.stringify(hoProps.map(p => p.slug)));
+// Next-actions engine: custom listings carry a record-only checklist; Samba-
+// curated Hostex units never do (fields are managed by us).
+check('custom listings carry checklist, Hostex units do not',
+  hoProps.every(p => p.hostex ? !(p.checklist || []).length : Array.isArray(p.checklist)),
+  JSON.stringify(hoProps.map(p => [p.slug, p.hostex, (p.checklist || []).length])));
 const hausOv = JSON.parse(store.get('listing:haus-1'));
 check('claim stamped ownerSub into override', hausOv.ownerSub === 'sub-ikiel', store.get('listing:haus-1'));
 check('owner_listings index contains haus-1', (JSON.parse(store.get('owner_listings:sub-ikiel')) || []).includes('haus-1'));
@@ -399,6 +404,7 @@ hostexCalendars['11621510'] = { reservations: [
 r = await call(portalMod, { method: 'GET', query: { action: 'report', slug: 'haus-1' },
   headers: { authorization: 'Bearer sync_secret', host: 'kv-test' } });
 check('service report for Hostex slug returns metrics', r.code === 200 && r.data?.metrics && /HAUS/.test(r.data.name), r.code);
+check('report carries ranked nextActions', Array.isArray(r.data?.nextActions) && r.data.nextActions.length > 0 && r.data.nextActions.every(a => a.key && a.title && a.detail), JSON.stringify(r.data?.nextActions));
 check('report occupancy from Hostex calendar', r.data?.occupancy && r.data.occupancy.bookedNights === 5, JSON.stringify(r.data?.occupancy));
 const bk = r.data?.bookings;
 check('report bookings from Hostex reservations',

@@ -102,6 +102,10 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .btn-sm.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
 .btn-sm.danger:hover{border-color:var(--red);color:var(--red);}
 .prop-status-note{font-size:0.72rem;color:var(--muted);line-height:1.5;}
+.prop-next{margin-top:8px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;font-size:0.74rem;color:var(--text-2);line-height:1.5;}
+.prop-next b{color:var(--text);}
+.prop-next-tag{display:inline-block;margin-right:7px;font-size:0.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:600;}
+.prop-next-more{color:var(--muted);white-space:nowrap;}
 .prop-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;border-top:1px solid var(--border);padding-top:12px;}
 .skel-prop{height:150px;border-radius:14px;background:linear-gradient(100deg,var(--surface2) 40%,#fdfcfa 50%,var(--surface2) 60%);background-size:200% 100%;animation:skel-shimmer 1.4s linear infinite;margin-bottom:14px}
 @keyframes skel-shimmer{to{background-position:-200% 0}}
@@ -322,6 +326,14 @@ body.wiz-open #snav-tabs{display:none !important;}
 .wprev-chips{display:flex;flex-wrap:wrap;gap:5px;}
 .wprev-chip{border:1px solid var(--border);border-radius:12px;font-size:.62rem;padding:3px 8px;color:var(--text-2);}
 .wiz-boost{margin-top:14px;}
+.wiz-roadmap{margin-top:22px;display:flex;flex-direction:column;gap:10px;}
+.wiz-road{display:flex;align-items:baseline;gap:11px;font-size:.86rem;color:var(--text);padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;}
+.wiz-road .rn{width:20px;height:20px;flex-shrink:0;border-radius:50%;background:var(--accent);color:#fff;font-size:.68rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;align-self:center;}
+.wiz-road small{color:var(--muted);font-size:.72rem;margin-left:auto;text-align:right;}
+.wiz-skip{background:none;border:none;color:var(--muted);font-family:inherit;font-size:.78rem;cursor:pointer;padding:8px;text-decoration:underline;text-underline-offset:3px;}
+.wiz-skip:hover{color:var(--text);}
+.wiz-launch{margin-top:12px;padding:12px 15px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-size:.78rem;color:var(--text-2);line-height:1.55;text-align:center;}
+.wiz-saved{font-size:.7rem;color:var(--muted);margin-left:auto;margin-right:12px;white-space:nowrap;}
 .wboost-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--surface);font-size:.8rem;cursor:pointer;}
 .wboost-row b{color:var(--accent);font-size:.7rem;margin-left:auto;flex-shrink:0;}
 .cop{display:flex;gap:11px;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:9px;margin-bottom:12px;}
@@ -449,7 +461,13 @@ body.wiz-open #snav-tabs{display:none !important;}
       <div data-wstep="start" style="text-align:center;margin-top:6px">
         <button class="btn-sm" onclick="wizNext()" style="padding:12px 22px;font-size:.85rem">Start from scratch →</button>
       </div>
-      <div class="fg" data-wstep="basics"><label>Property name *</label><input id="f-name" placeholder="e.g. Villa Sunrise"></div>
+      <div class="wiz-roadmap" data-wstep="start">
+        <div class="wiz-road"><span class="rn">1</span>The basics<small>name, area, size — 1 min</small></div>
+        <div class="wiz-road"><span class="rn">2</span>Photos &amp; prices<small>5 photos is enough to start</small></div>
+        <div class="wiz-road"><span class="rn">3</span>Go live<small>seen by 250+ Bali rental agents</small></div>
+      </div>
+      <div class="fg" data-wstep="basics"><label>Property name *</label><input id="f-name" placeholder="e.g. Villa Sunrise">
+        <div class="hint">Short names travel best on WhatsApp — you can change it any time.</div></div>
       <div class="frow" data-wstep="basics">
         <div class="fg"><label>Area</label><input id="f-area" placeholder="e.g. Umalas · Canggu"></div>
         <div class="fg"><label>Unit type</label><input id="f-unitType" placeholder="e.g. 2BR Villa"></div>
@@ -484,6 +502,9 @@ body.wiz-open #snav-tabs{display:none !important;}
         <div class="pill-add"><input id="pilladd-locationHighlights" placeholder="Add your own…" onkeydown="if(event.key==='Enter'){event.preventDefault();addPill('locationHighlights')}"><button type="button" class="btn-sm" onclick="addPill('locationHighlights')">Add</button></div>
         <textarea id="f-locationHighlights" style="display:none"></textarea>
       </div>
+      <div data-wstep="story" style="text-align:center;margin-top:2px">
+        <button type="button" class="wiz-skip" onclick="wizNext()">Skip for now — you can tell the story after you're live →</button>
+      </div>
       <div class="fg" data-wstep="photos">
         <div class="wphoto-drop" id="wphoto-drop" onclick="document.getElementById('wphoto-file').click()">
           <input type="file" id="wphoto-file" accept="image/*" multiple style="display:none" onchange="wizAddPhotos(this.files);this.value=''">
@@ -492,6 +513,7 @@ body.wiz-open #snav-tabs{display:none !important;}
           <div class="hint" style="margin:0">Tap to choose, or drag &amp; drop. The first photo is your cover.</div>
         </div>
         <div class="wphoto-grid" id="wphoto-grid"></div>
+        <div class="hint">5 photos is enough to go live — you can add, remove or reorder any time.</div>
         <div class="hint" id="wphoto-hint" style="display:none"></div>
         <details class="ical-help" style="margin-top:10px">
           <summary>Have photos in Google Drive already?</summary>
@@ -502,7 +524,7 @@ body.wiz-open #snav-tabs{display:none !important;}
       <div class="fg" data-wstep="basics"><label>Location</label>
         <input id="f-mapLink" placeholder="Type your villa's name or address…" autocomplete="off" oninput="mapSearchInput(this.value)">
         <div class="map-results" id="map-results"></div>
-        <div class="hint" id="map-hint">If your villa is on Google Maps, search its name and pick it — or paste a Google Maps link.</div>
+        <div class="hint" id="map-hint">If your villa is on Google Maps, search its name and pick it — or paste a Google Maps link. Agents see the area on your listing page; it's how they match villas to a client's location.</div>
       </div>
       <div class="fg" data-wstep="contacts" data-hostex-hide><label>Availability calendar (iCal link)</label><input id="f-icalUrl" placeholder="https://…/calendar.ics">
         <div class="hint">Optional — an Airbnb/Hostex calendar export link. Booked dates sync automatically.</div>
@@ -519,6 +541,7 @@ body.wiz-open #snav-tabs{display:none !important;}
         <div class="fg"><label>WhatsApp contact name</label><input id="f-waContactName" placeholder="e.g. Ketut"></div>
         <div class="fg"><label>WhatsApp number</label><input id="f-waNumber" placeholder="62812…"></div>
       </div>
+      <div class="hint" data-wstep="contacts" style="margin-top:-6px">This is the number agents tap when they have a client ready — it appears on your listing as the booking contact.</div>
       <div class="frow" data-wstep="contacts" id="report-contact-row">
         <div class="fg"><label>Weekly report contact</label><input id="f-reportContactName" placeholder="Owner's name (optional)"></div>
         <div class="fg"><label>Report WhatsApp number</label><input id="f-reportWaNumber" placeholder="62812…"></div>
@@ -527,6 +550,7 @@ body.wiz-open #snav-tabs{display:none !important;}
       <div data-wstep="preview">
         <div class="wiz-phone"><div class="wiz-phone-notch"></div><div id="wiz-preview"></div></div>
         <div class="wiz-boost" id="wiz-boost"></div>
+        <div class="wiz-launch">Once approved, your villa joins <b>Maya's daily availability broadcast</b> to 250+ Bali rental agents — new listings get seen in their first week.</div>
       </div>
     </div>
   </div>
@@ -534,6 +558,7 @@ body.wiz-open #snav-tabs{display:none !important;}
     <div class="modal-err" id="prop-err" style="margin:0 0 8px"></div>
     <div class="wiz-foot-row">
       <div class="wiz-stepnum" id="wiz-stepnum"></div>
+      <div class="wiz-saved" id="wiz-saved"></div>
       <button class="btn-sm primary wiz-next" id="wiz-next" onclick="wizNext()">Continue</button>
     </div>
   </div>
@@ -954,7 +979,10 @@ function renderReport(d){
     </div></div>`;
   }
 
-  const recs=repRecs(d).map((r,i)=>`<div class="rep-rec"><span class="rn">${i+1}</span><p class="rt"><b>${escapeHtml(r[0])}.</b><span>${escapeHtml(r[1])}</span></p></div>`).join('');
+  /* Canonical recommendations come from the server (lib/next-actions.js via
+     the report payload); repRecs is only the fallback for older payloads. */
+  const recList=(Array.isArray(d.nextActions)&&d.nextActions.length)?d.nextActions.map(a=>[a.title,a.detail]):repRecs(d);
+  const recs=recList.slice(0,3).map((r,i)=>`<div class="rep-rec"><span class="rn">${i+1}</span><p class="rt"><b>${escapeHtml(r[0])}.</b><span>${escapeHtml(r[1])}</span></p></div>`).join('');
 
   return `<div class="rep-sheet">
     <div class="rep-mast"><span class="rl">Samba · weekly owner report</span><span class="rr">Week of<b>${fmtRange(d.week.from,d.week.to)}</b></span></div>
@@ -1015,6 +1043,7 @@ function propCard(p){
     </div>
     <div class="prop-sub"><span class="dot ${active?'on':'off'}"></span>${subLine}</div>
     <div class="prop-status-note">${note}</div>
+    ${(p.checklist&&p.checklist.length)?`<div class="prop-next"><span class="prop-next-tag">Next step</span><b>${esc(p.checklist[0].title)}</b> — ${esc(p.checklist[0].detail)}${p.checklist.length>1?` <span class="prop-next-more">+${p.checklist.length-1} more</span>`:''}</div>`:''}
     ${statsStrip(p.slug,(p.status==='approved'&&active)||comped)}
     <div class="prop-actions">
       ${canSub?`<button class="btn-sm primary" onclick="openCheckout('${esc(p.slug)}')">Activate listing</button>`:''}
@@ -1081,6 +1110,7 @@ function editProperty(slug){ if(DEMO)return demoBlock(); openWizard(slug,myProps
 function openWizard(slug,rec,checkDraft){
   editingSlug=slug;
   editingHostex=!!(rec&&rec.hostex);
+  document.getElementById('wiz-saved').textContent='';
   wizSteps=editingHostex?['contacts']
     :slug?['basics','story','photos','pricing','contacts','preview']
     :['start','basics','story','photos','pricing','contacts','preview'];
@@ -1147,6 +1177,10 @@ function wizShow(){
   const offset=wizSteps[0]==='start'?1:0;
   document.getElementById('wiz-stepnum').textContent=
     (step==='start'||editingHostex)?'':`Step ${wizIdx+1-offset} of ${wizSteps.length-offset}`;
+  // Abandoning is visibly safe: new listings show the autosave promise until
+  // the first save stamps a concrete confirmation (wizSaveDraft).
+  if(!editingSlug&&!editingHostex&&step!=='start'&&!document.getElementById('wiz-saved').textContent)
+    document.getElementById('wiz-saved').textContent='Saves automatically — exit any time';
   if(step==='preview') renderWizPreview();
   wizStrengthRender();
   document.querySelector('.wiz-scroll').scrollTop=0;
@@ -1186,8 +1220,9 @@ function wizSaveDraft(){
   wizDraftTimer=setTimeout(async()=>{
     const data=wizCollect();
     if(!data.name&&!wizPhotos.length) return;
-    await api('?action=draft',{method:'POST',headers:{'Content-Type':'application/json'},
+    const r=await api('?action=draft',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({draft:{data,folderId:wizFolderId,step:wizSteps[wizIdx]}})});
+    if(r.ok){const el=document.getElementById('wiz-saved');if(el)el.textContent='Draft saved — exit any time';}
   },400);
 }
 async function wizTryRestoreDraft(){
