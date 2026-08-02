@@ -56,22 +56,15 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 #app{display:none;}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;gap:14px;}
 .brand-mark{display:flex;align-items:center;flex-shrink:0;text-decoration:none;}
-.brand-mark img{height:80px;}
+.brand-mark img{height:40px;}
 .spacer{flex:1;}
 .howto-link{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;color:#fff;background:#E2572B;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.8rem;font-weight:600;text-decoration:none;white-space:nowrap;padding:7px 13px;border-radius:8px;}
 .howto-link:hover{background:#CE4A20;}
 .howto-link svg{width:15px;height:15px;flex-shrink:0;}
-.owner-chip{display:flex;align-items:center;gap:9px;}
-.owner-avatar{width:30px;height:30px;border-radius:50%;background:var(--surface2);object-fit:cover;border:1px solid var(--border);}
-.owner-name{font-size:0.8rem;color:var(--text);}
-.owner-email{font-size:0.68rem;color:var(--muted);}
-.logout-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:6px 13px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.72rem;cursor:pointer;}
-.logout-btn:hover{color:var(--text);}
 .content{padding:28px;max-width:1100px;margin:0 auto;}
-/* Mobile: spacer + text "How it works" were crushing #samba-nav (flex:1,min-width:0)
-   to ~18px, clipping the Dashboard/List/Account tabs. Icon-only howto + no spacer
-   leaves the nav enough room. */
-@media(max-width:640px){.content{padding:16px;}.topbar{padding:8px 16px;}.owner-email{display:none;}.brand-mark img{height:44px;}.owner-chip,.logout-btn{display:none;}.spacer{display:none;}.howto-link span{display:none;}.howto-link{padding:8px;border-radius:50%;}.howto-link svg{width:17px;height:17px;}.section-head{flex-wrap:wrap;row-gap:10px;}.section-head .tabbar{flex-basis:100%;}}
+/* Topbar is brand + howto + #samba-nav only — owner identity and sign-out live
+   in the nav's Account sheet (nav.js), so the tabs never get crushed/clipped. */
+@media(max-width:640px){.content{padding:16px;}.topbar{padding:8px 16px;}.brand-mark img{height:32px;}.spacer{display:none;}.howto-link span{display:none;}.howto-link{padding:8px;border-radius:50%;}.howto-link svg{width:17px;height:17px;}.section-head{flex-wrap:wrap;row-gap:10px;}.section-head .tabbar{flex-basis:100%;}}
 .section-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
 .section-title{font-family:'Satoshi',-apple-system,sans-serif;font-size:1.4rem;}
 .add-btn{background:var(--accent);border:1px solid var(--accent);border-radius:8px;color:#fff;padding:8px 16px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;}
@@ -387,17 +380,8 @@ body.wiz-open #snav-tabs{display:none !important;}
     <a class="brand-mark" href="/" aria-label="Samba">
       <img src="/logo-samba.png" alt="Samba">
     </a>
-    <div class="spacer"></div>
     <a class="howto-link" href="/home" title="How it works"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>How it works</span></a>
     <div id="samba-nav"></div>
-    <div class="owner-chip">
-      <img class="owner-avatar" id="owner-avatar" alt="">
-      <div>
-        <div class="owner-name" id="owner-name"></div>
-        <div class="owner-email" id="owner-email"></div>
-      </div>
-    </div>
-    <button class="logout-btn" onclick="logout()">Sign out</button>
   </div>
   <div class="content">
     <div class="section-head">
@@ -710,10 +694,6 @@ function enterApp(owner){
   currentOwnerData=owner;
   document.getElementById('login').style.display='none';
   document.getElementById('app').style.display='block';
-  document.getElementById('owner-name').textContent = owner.name || owner.email;
-  document.getElementById('owner-email').textContent = owner.email || '';
-  const av=document.getElementById('owner-avatar');
-  if (owner.picture){ av.src=owner.picture; av.style.display='block'; } else { av.style.display='none'; }
   loadProperties();
   loadConfig();
   // Deep-link from the "List a property" sub-tab → open the add form.
