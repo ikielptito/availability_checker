@@ -20,6 +20,19 @@ const PORTAL_BASE = 'https://sambarentals.com';
 const DEFAULT_WA_CONTACT = 'Era';
 const DEFAULT_WA_NUMBER = '6281246357778';
 
+// Admin-typed WhatsApp numbers arrive in every local format ("0812...",
+// "62 0899...", "+62 812-..."). Normalize to bare international digits so
+// contact cards built from this feed are always tappable — a stored
+// "6208993319020" once went out to an agent as an undialable card (Aug 2026).
+function normalizeWaNumber(raw) {
+  let d = String(raw || '').replace(/\D/g, '');
+  if (!d) return '';
+  if (d.startsWith('620')) d = '62' + d.slice(3);      // 62 + stray leading 0
+  else if (d.startsWith('0')) d = '62' + d.slice(1);   // local 08xx format
+  else if (d.startsWith('8')) d = '62' + d;            // bare local without 0
+  return d;
+}
+
 // Default catalog (Hostex IDs → slug/name/tag/pricing). Identity/price/order
 // come from the shared canonical catalog (lib/catalog.js) so they can't drift
 // from api/listings.js / api/check-availability.js. The area `tag` is kept
@@ -132,7 +145,7 @@ export default async function handler(req, res) {
         yearly2: merged.yearly2 || null,
         portalUrl: `${PORTAL_BASE}/l/${merged.slug}`,
         waContactName: merged.waContactName || DEFAULT_WA_CONTACT,
-        waNumber: merged.waNumber || DEFAULT_WA_NUMBER,
+        waNumber: normalizeWaNumber(merged.waNumber) || DEFAULT_WA_NUMBER,
         isCustom: false,
         isHidden: false,
         availability,
@@ -166,7 +179,7 @@ export default async function handler(req, res) {
       yearly2: c.yearly2 || null,
       portalUrl: `${PORTAL_BASE}/l/${c.slug}`,
       waContactName: c.waContactName || DEFAULT_WA_CONTACT,
-      waNumber: c.waNumber || DEFAULT_WA_NUMBER,
+      waNumber: normalizeWaNumber(c.waNumber) || DEFAULT_WA_NUMBER,
       isCustom: true,
       isHidden: false,
       availability,
