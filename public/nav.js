@@ -593,7 +593,7 @@
     var avPhoto = account.picture || '';
     document.getElementById('snav-owner-body').innerHTML =
       '<div class="snav-acct-top"><div class="snav-acct-av">' + (avPhoto ? '<img src="' + esc(avPhoto) + '" alt="">' : esc(initials(account.name))) + '</div><div class="snav-acct-id"><div class="snav-acct-name">' + esc(account.name || 'Owner') + '</div><div class="snav-acct-email">' + esc(account.email || '') + '</div></div></div>' +
-      '<div class="snav-sub-card"><div class="snav-sub-row"><span class="snav-sub-plan">Listing subscription</span><span class="snav-sub-status">' + esc(statusLabel) + '</span></div><div class="snav-sub-price">US$9.50 <span>/ month per villa</span></div><div class="snav-sub-note">Your villas stay live to 250+ Bali rental agents while your subscription is active. Cancel anytime.</div></div>' +
+      '<div class="snav-sub-card"><div class="snav-sub-row"><span class="snav-sub-plan">Listing subscription</span><span class="snav-sub-status">' + esc(statusLabel) + '</span></div><div class="snav-sub-price">IDR 150k <span>/ month per villa</span></div><div class="snav-sub-note">Your villas stay live to 250+ Bali rental agents while your subscription is active. Cancel anytime.</div></div>' +
       manage +
       '<div class="snav-div"></div>' +
       '<button class="snav-list-link" id="snav-owner-logout">' + I.out + ' Log out</button>';

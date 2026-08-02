@@ -350,7 +350,7 @@ body.wiz-open #snav-tabs{display:none !important;}
   <header class="lp-hero">
     <div class="lp-eyebrow">Owner portal</div>
     <h1 class="lp-h1">Sign in to list your villa.</h1>
-    <p class="lp-sub">Add your villa, manage your listings, and track agent interest — all in one place. US$9.50/month per villa (about IDR 150k), cancel anytime.</p>
+    <p class="lp-sub">Add your villa, manage your listings, and track agent interest — all in one place. IDR 150,000/month per villa (billed as US$9.50), cancel anytime.</p>
     <div id="gbtn"></div>
     <div class="login-err" id="login-err"></div>
     <div class="lp-hero-note">New here? Signing in with Google creates your owner account automatically.</div>
@@ -360,7 +360,7 @@ body.wiz-open #snav-tabs{display:none !important;}
   <div class="lp-trust">
     <span><b>250+</b>rental agents</span>
     <span><b>Canggu · Pererenan · Bali</b></span>
-    <span><b>US$9.50</b>/ month per villa</span>
+    <span><b>IDR 150k</b>/ month per villa</span>
   </div>
 
   <div class="lp-newhere">
@@ -546,7 +546,8 @@ body.wiz-open #snav-tabs{display:none !important;}
     </div>
     <div class="modal-body">
       <div id="checkout-preview"></div>
-      <div class="checkout-price">US$9.50 <span>/ month per villa</span></div>
+      <div class="checkout-price">IDR 150,000 <span>/ month per villa</span></div>
+      <p class="hint" style="margin-top:2px">Billed as US$9.50/month by our international payment partner.</p>
       <p class="checkout-blurb">This listing goes live to 250+ Bali rental agents the moment it's activated. Cancel anytime.</p>
       <button class="btn-sm primary" id="checkout-pay" onclick="goToPayment()" style="width:100%">Pay by card — secure checkout</button>
       <p class="hint" style="margin-top:2px">You'll be taken to our payment partner Creem to complete the subscription. Have a promo code? Enter it below — it's applied at checkout, or activates the listing directly if it's a free-period code.</p>
@@ -727,7 +728,7 @@ async function loadProperties(){
   myProps=r.body?.properties||[];
   loadDraftCard(); // in parallel — prepends a "continue listing" card if a draft exists
   if(!myProps.length){
-    el.innerHTML='<div class="empty-card" id="props-empty"><h3>No properties yet</h3><p>Add your first property to get it listed and tracked. US$9.50/month per property.</p></div>';
+    el.innerHTML='<div class="empty-card" id="props-empty"><h3>No properties yet</h3><p>Add your first property to get it listed and tracked. IDR 150,000/month per property.</p></div>';
     document.getElementById('period-toggle').style.visibility='hidden';
     return;
   }
