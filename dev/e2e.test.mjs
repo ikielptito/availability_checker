@@ -115,7 +115,7 @@ globalThis.fetch = async (url, opts = {}) => {
   if (u.includes('api.hostex.io/v3/reservations')) {
     const id = (u.match(/property_id=(\d+)/) || [])[1];
     const cal = hostexCalendars[id] || {};
-    return { json: async () => ({ data: { reservations: cal.reservations || [] } }) };
+    return { ok: true, status: 200, json: async () => ({ data: { reservations: cal.reservations || [] } }) };
   }
   if (u.includes('api.hostex.io/v3/availabilities')) {
     const id = (u.match(/property_ids=(\d+)/) || [])[1];
@@ -388,11 +388,23 @@ r = await call(portalMod, { method: 'GET', query: { action: 'analytics', period:
 const hausA = (r.data?.properties || []).find(p => p.slug === 'haus-1');
 check('analytics counts numeric-propId events', hausA && hausA.details_open === 7, JSON.stringify(r.data?.properties));
 
-hostexCalendars['11621510'] = { reservations: [], closedDates: [isoNext(TD, 1), isoNext(TD, 2)] };
+// One accepted reservation with the real v3 financial shape (booked yesterday,
+// 3 nights ahead) + 2 closed dates → occupancy 5 nights, bookings week/net set.
+hostexCalendars['11621510'] = { reservations: [
+  { status: 'accepted', channel_type: 'airbnb', check_in_date: isoNext(TD, 5), check_out_date: isoNext(TD, 8),
+    booked_at: `${isoNext(TD, -1)}T09:00:00+00:00`,
+    rates: { total_rate: { currency: 'IDR', amount: 3000000 }, total_commission: { currency: 'IDR', amount: 400000 } },
+    payment: { currency: 'IDR', total_amount: 2600000 } },
+], closedDates: [isoNext(TD, 1), isoNext(TD, 2)] };
 r = await call(portalMod, { method: 'GET', query: { action: 'report', slug: 'haus-1' },
   headers: { authorization: 'Bearer sync_secret', host: 'kv-test' } });
 check('service report for Hostex slug returns metrics', r.code === 200 && r.data?.metrics && /HAUS/.test(r.data.name), r.code);
-check('report occupancy from Hostex calendar', r.data?.occupancy && r.data.occupancy.bookedNights === 2, JSON.stringify(r.data?.occupancy));
+check('report occupancy from Hostex calendar', r.data?.occupancy && r.data.occupancy.bookedNights === 5, JSON.stringify(r.data?.occupancy));
+const bk = r.data?.bookings;
+check('report bookings from Hostex reservations',
+  bk && bk.week.count === 1 && bk.week.nights === 3 && bk.week.net === 2600000 && bk.week.gross === 3000000
+  && bk.week.byChannel.Airbnb === 1 && bk.upcoming.count === 1 && bk.upcoming.adr === Math.round(2600000 / 3),
+  JSON.stringify(bk));
 
 r = await call(portalMod, { method: 'POST', query: { action: 'property' }, headers: ownerHeaders,
   body: { slug: 'haus-1', data: { name: 'HACKED NAME', monthly: '1jt', waContactName: 'Manager Made', waNumber: '628111', reportContactName: 'Ikiel', reportWaNumber: '628222' } } });

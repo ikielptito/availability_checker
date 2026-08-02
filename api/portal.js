@@ -840,6 +840,16 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
     broadcastEligible: occupancy ? occupancy.openNights > 0 : null,
   };
 
+  // Bookings & revenue — Hostex-linked listings only. The Hostex reservation
+  // feed carries every channel (Airbnb, Booking.com, direct…), so this is the
+  // villa's full commercial picture, not just Samba-driven activity. Degrades
+  // to null — the section hides — if the token is missing or the fetch fails.
+  let bookings = null;
+  if (prop.hostex && prop.hostexId && process.env.HOSTEX_TOKEN) {
+    try { bookings = await buildBookings(prop.hostexId, days); }
+    catch { /* keep bookings null */ }
+  }
+
   // Listing strength → a recurring improvement nudge inside every report.
   // Samba-managed (Hostex) listings are curated by us, so no nudge there.
   const strength = isHostexSlug(slug) ? null : await listingStrength(prop);
@@ -848,8 +858,47 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
     slug, name: prop.name || slug, area: prop.tag || prop.area || '', unitType: prop.unitType || '',
     listedAt: prop.createdAt || null, ownerName: (owner && owner.name) || prop.waContactName || '',
     week: { from: days[7], to: days[13] },
-    metrics, daily, funnel, agentsReached, benchmark, occupancy, maya, strength,
+    metrics, daily, funnel, agentsReached, benchmark, occupancy, bookings, maya, strength,
   });
+}
+
+// ── Bookings & revenue from the Hostex reservation feed ─────────────
+// "Net" = payment.total_amount — gross rate minus the channel's commission,
+// i.e. what actually reaches the owner. Aggregates only: guest identity never
+// enters the report payload (the report link is public-tokenized).
+// One unfiltered page (newest-booked-first, 100 max) covers a villa's entire
+// history at current volumes; revisit pagination if a property ever exceeds it.
+const CHANNEL_LABELS = { airbnb: 'Airbnb', 'booking.com': 'Booking.com', booking: 'Booking.com', agoda: 'Agoda', direct: 'Direct', custom: 'Direct' };
+async function buildBookings(hostexId, days) {
+  const r = await fetch(`https://api.hostex.io/v3/reservations?property_id=${hostexId}&per_page=100&page=1`, {
+    headers: { 'Hostex-Access-Token': process.env.HOSTEX_TOKEN },
+  });
+  if (!r.ok) return null;
+  const all = ((await r.json())?.data?.reservations) || [];
+  const nightsOf = x => Math.max(0, Math.round((new Date(x.check_out_date) - new Date(x.check_in_date)) / 86400000));
+  const netOf = x => Number(x.payment?.total_amount ?? ((x.rates?.total_rate?.amount || 0) - (x.rates?.total_commission?.amount || 0))) || 0;
+  const grossOf = x => Number(x.rates?.total_rate?.amount) || 0;
+  const chOf = x => { const c = String(x.channel_type || '').toLowerCase(); return CHANNEL_LABELS[c] || (c ? c[0].toUpperCase() + c.slice(1) : 'Other'); };
+  const sum = (list, f) => list.reduce((a, x) => a + f(x), 0);
+
+  const active = all.filter(x => x.status !== 'cancelled');
+  const bookedWithin = (from, to) => active.filter(x => { const b = String(x.booked_at || '').slice(0, 10); return b >= from && b <= to; });
+  const wk = bookedWithin(days[7], days[13]);
+  const pv = bookedWithin(days[0], days[6]);
+  const today = new Date().toISOString().split('T')[0];
+  // Forward book = every confirmed stay still to finish, including the guest
+  // currently in-house. Full stay value, not pro-rated.
+  const upcoming = active.filter(x => String(x.check_out_date) > today);
+  const byChannel = {};
+  wk.forEach(x => { byChannel[chOf(x)] = (byChannel[chOf(x)] || 0) + 1; });
+  const upNights = sum(upcoming, nightsOf);
+  return {
+    currency: active[0]?.payment?.currency || active[0]?.rates?.total_rate?.currency || 'IDR',
+    week: { count: wk.length, nights: sum(wk, nightsOf), gross: sum(wk, grossOf), net: sum(wk, netOf), byChannel },
+    prevWeek: { count: pv.length, nights: sum(pv, nightsOf), net: sum(pv, netOf) },
+    upcoming: { count: upcoming.length, nights: upNights, net: sum(upcoming, netOf), adr: upNights ? Math.round(sum(upcoming, netOf) / upNights) : null },
+    cancelledThisWeek: all.filter(x => x.status === 'cancelled' && String(x.cancelled_at || '').slice(0, 10) >= days[7]).length,
+  };
 }
 
 // Mirrors the wizard's client-side scoring so the number an owner sees in the

@@ -86,7 +86,22 @@ globalThis.fetch = async (url, opts = {}) => {
     return { status: 200, json: async () => ({ data: { properties: HOSTEX_PROPS } }) };
   }
   if (u.includes('api.hostex.io/v3/reservations')) {
-    return { json: async () => ({ data: { reservations: [{ status: 'accepted', check_in_date: addDays(3), check_out_date: addDays(9) }] } }) };
+    // Shapes mirror the real v3 payload (financial fields included) so the
+    // report's Bookings & revenue section renders in the dev preview.
+    const resv = (checkIn, checkOut, bookedDaysAgo, gross, commission, extra = {}) => ({
+      status: 'accepted', channel_type: 'airbnb',
+      check_in_date: checkIn, check_out_date: checkOut,
+      booked_at: `${addDays(-bookedDaysAgo)}T09:00:00+00:00`,
+      rates: { total_rate: { currency: 'IDR', amount: gross }, total_commission: { currency: 'IDR', amount: commission } },
+      payment: { currency: 'IDR', total_amount: gross - commission, received_amount: gross - commission, status: 'received' },
+      ...extra,
+    });
+    return { ok: true, status: 200, json: async () => ({ data: { reservations: [
+      resv(addDays(3), addDays(9), 2, 12000000, 1860000),
+      resv(addDays(21), addDays(24), 5, 5100000, 790000, { channel_type: 'direct' }),
+      resv(addDays(-10), addDays(-4), 12, 7300000, 1130000),
+      resv(addDays(30), addDays(33), 1, 4000000, 620000, { status: 'cancelled', cancelled_at: `${addDays(-1)}T10:00:00+00:00` }),
+    ] } }) };
   }
   if (u.includes('api.hostex.io/v3/availabilities')) {
     return { json: async () => ({ data: { properties: [{ availabilities: [{ date: addDays(14), available: false }, { date: addDays(15), available: false }] }] } }) };

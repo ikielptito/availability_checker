@@ -144,6 +144,13 @@ function fmtRange(a,b){const da=new Date(a+'T00:00:00'),db=new Date(b+'T00:00:00
 function repPctDelta(now,prev){ if(!prev) return now>0?{cls:'up',txt:'▲ new'}:{cls:'flat',txt:'—'}; const d=Math.round((now-prev)/prev*100); if(d>0)return{cls:'up',txt:'▲ '+d+'%'}; if(d<0)return{cls:'down',txt:'▼ '+Math.abs(d)+'%'}; return{cls:'flat',txt:'even'};}
 function repPtsDelta(now,prev){ const d=now-prev; if(d>0)return{cls:'up',txt:'▲ '+d}; if(d<0)return{cls:'down',txt:'▼ '+Math.abs(d)}; return{cls:'flat',txt:'even'};}
 function repChip(dl){return `<span class="rep-chip ${dl.cls}">${dl.txt}</span>`;}
+function fmtMoney(v,cur){
+  const p=cur==='IDR'?'Rp ':(cur||'')+' ';
+  if(v>=1e9)return p+(v/1e9).toFixed(2).replace(/\.?0+$/,'')+'B';
+  if(v>=1e6)return p+(v/1e6).toFixed(1).replace(/\.0$/,'')+'M';
+  if(v>=1e3)return p+Math.round(v/1e3)+'K';
+  return p+Math.round(v);
+}
 function repSummary(d){
   const v=d.metrics.views,e=d.metrics.enquiries;
   const dv=v.prev?Math.round((v.now-v.prev)/v.prev*100):null;
@@ -151,7 +158,24 @@ function repSummary(d){
   s+=(dv==null)?`is building`:dv>0?`climbed ${dv}% this week`:dv<0?`eased ${Math.abs(dv)}% this week`:`held steady this week`;
   s+=` — <b>${v.now}</b> ${v.now===1?'person':'people'} opened your listing`;
   s+=e.now?` and <b>${e.now}</b> reached out to enquire.`:`, though none enquired yet.`;
+  if(d.bookings&&d.bookings.week.count){const bw=d.bookings.week;s+=` Your calendar took <b>${bw.count}</b> new booking${bw.count===1?'':'s'} worth <b>${fmtMoney(bw.net,d.bookings.currency)}</b>.`;}
   return s;
+}
+function repBookings(d){
+  if(!d.bookings)return '';
+  const bk=d.bookings,wk=bk.week,up=bk.upcoming;
+  const kpi=(l,v,u,chipHtml,ctx)=>`<div class="rep-kpi"><div class="kl">${l}</div><div class="kv">${v}${u?`<small>${u}</small>`:''}</div>${chipHtml||''}<div class="kc">${ctx}</div></div>`;
+  const chips=Object.entries(wk.byChannel||{}).map(([c,n])=>escapeHtml(c)+(n>1?' ×'+n:'')).join(' · ');
+  const cancelNote=bk.cancelledThisWeek?` One booking was cancelled this week.`:'';
+  return `<div class="rep-pad"><div class="rep-sec-h">Bookings &amp; revenue</div>
+    <div class="rep-kpis">
+      ${kpi('New bookings',wk.count,'',repChip(repPtsDelta(wk.count,bk.prevWeek.count)),chips||'none this week')}
+      ${kpi('Nights sold',wk.nights,'',repChip(repPtsDelta(wk.nights,bk.prevWeek.nights)),'from this week’s bookings')}
+      ${kpi('Booked this week',fmtMoney(wk.net,bk.currency),'','',wk.count?'net of channel fees':'no new bookings yet')}
+      ${kpi('On the books',fmtMoney(up.net,bk.currency),'','',up.count+' confirmed stay'+(up.count===1?'':'s')+' ahead')}
+    </div>
+    <p class="rep-conv">${up.adr?`Confirmed stays ahead average <b>${fmtMoney(up.adr,bk.currency)}</b> a night across <b>${up.nights}</b> nights. `:''}Figures come straight from your booking channels — Airbnb, direct and others — and show what you receive after channel fees.${cancelNote}</p>
+  </div>`;
 }
 function repChart(daily){
   const max=Math.max(...daily.map(x=>x.views),1);
@@ -234,6 +258,7 @@ function renderReport(d){
       <p class="rep-note">${repSummary(d)}</p>
     </div>
     <div class="rep-pad"><div class="rep-sec-h">This week at a glance</div>${kpis}</div>
+    ${repBookings(d)}
     <div class="rep-pad"><div class="rep-sec-h">Views, day by day</div>${repChart(d.daily)}</div>
     <div class="rep-pad"><div class="rep-sec-h">From view to enquiry</div>${funnel}</div>
     <div class="rep-pad"><div class="rep-sec-h">Your reach across the network</div>${reachCards}</div>
