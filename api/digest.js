@@ -27,9 +27,14 @@ const DEFAULT_WA_NUMBER = '6281246357778';
 function normalizeWaNumber(raw) {
   let d = String(raw || '').replace(/\D/g, '');
   if (!d) return '';
-  if (d.startsWith('620')) d = '62' + d.slice(3);      // 62 + stray leading 0
-  else if (d.startsWith('0')) d = '62' + d.slice(1);   // local 08xx format
-  else if (d.startsWith('8')) d = '62' + d;            // bare local without 0
+  if (d.startsWith('620')) return '62' + d.slice(3);   // 62 + stray leading 0
+  if (d.startsWith('0')) return '62' + d.slice(1);     // local 08xx format
+  // Bare local without the 0 ("81233293709") gets 62 prepended — but ONLY for
+  // prefixes that cannot be a foreign country code. 85x collides with Hong
+  // Kong (+852) and 86x with China (+86), both of which really occur in our
+  // contact data (Villa Solstice's manager is on a +86 number) — leave those
+  // untouched rather than corrupt a valid international number.
+  if (/^8(1|2|3|7|9)\d{8,10}$/.test(d)) return '62' + d;
   return d;
 }
 
