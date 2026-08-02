@@ -304,6 +304,14 @@ body.wiz-open #snav-tabs{display:none !important;}
 #wizard [data-wstep].on{display:block;}
 #wizard .frow[data-wstep].on{display:flex;}
 .wphoto-drop{border:2px dashed var(--border);border-radius:12px;padding:26px 14px;text-align:center;cursor:pointer;transition:border-color .15s;background:var(--surface);}
+.wphoto-drop.busy{border-color:var(--accent);animation:wphoto-pulse 1.2s ease-in-out infinite;pointer-events:none;}
+@keyframes wphoto-pulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+.checkout-success{text-align:center;}
+.cs-mark{width:52px;height:52px;margin:6px auto 14px;border-radius:50%;background:var(--green);color:#fff;font-size:1.5rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.cs-msg{font-size:.88rem;color:var(--text);line-height:1.6;margin:0 0 14px;}
+.cs-steps{text-align:left;display:flex;flex-direction:column;gap:8px;}
+.cs-step{display:flex;gap:10px;align-items:baseline;padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;font-size:.78rem;color:var(--text-2);line-height:1.5;}
+.cs-step .rn{width:18px;height:18px;flex-shrink:0;border-radius:50%;background:var(--accent);color:#fff;font-size:.62rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;align-self:center;}
 .wphoto-drop.drag{border-color:var(--accent);background:var(--surface2);}
 .wphoto-drop-icon{font-size:1.6rem;margin-bottom:4px;}
 .wphoto-drop-title{font-weight:700;font-size:.9rem;margin-bottom:2px;}
@@ -567,9 +575,14 @@ body.wiz-open #snav-tabs{display:none !important;}
 <div class="modal-overlay" id="checkout-modal">
   <div class="modal" style="max-width:400px">
     <div class="modal-head">
-      <div class="modal-title">List your villa</div>
+      <div class="modal-title" id="checkout-title">List your villa</div>
     </div>
-    <div class="modal-body">
+    <div class="modal-body checkout-success" id="checkout-done" style="display:none">
+      <div class="cs-mark">✓</div>
+      <p class="cs-msg" id="checkout-done-msg"></p>
+      <div class="cs-steps" id="checkout-done-steps"></div>
+    </div>
+    <div class="modal-body" id="checkout-form">
       <div id="checkout-preview"></div>
       <div class="checkout-price">IDR 150,000 <span>/ month per villa</span></div>
       <p class="hint" style="margin-top:2px">Billed as US$9.50/month by our international payment partner.</p>
@@ -583,9 +596,12 @@ body.wiz-open #snav-tabs{display:none !important;}
       </div>
     </div>
     <div class="modal-err" id="checkout-err"></div>
-    <div class="modal-actions">
+    <div class="modal-actions" id="checkout-actions">
       <button class="btn-sm" onclick="closeCheckout()">Cancel</button>
       <button class="btn-sm primary" id="checkout-go" onclick="applyPromo()">Apply code &amp; go live</button>
+    </div>
+    <div class="modal-actions" id="checkout-done-actions" style="display:none">
+      <button class="btn-sm primary" onclick="closeCheckout()" style="width:100%">Done</button>
     </div>
   </div>
 </div>
@@ -1290,21 +1306,25 @@ function wizOrderSave(){
 }
 async function wizAddPhotos(fileList){
   const files=[...fileList].filter(f=>/^image\//.test(f.type));
+  wizPickerDone();
   if(!files.length) return;
   const hint=document.getElementById('wphoto-hint');
   hint.style.display='';
+  // Every selected photo lands in the grid at once (object URLs are instant),
+  // so the whole selection is visible before the first upload starts —
+  // uploads then fill in the placeholders one by one.
+  const phs=files.map(f=>({id:null,thumb:URL.createObjectURL(f),up:true,file:f}));
+  wizPhotos.push(...phs); renderWizPhotos();
   let done=0;
-  for(const f of files){
-    const ph={id:null,thumb:URL.createObjectURL(f),up:true};
-    wizPhotos.push(ph); renderWizPhotos();
+  for(const ph of phs){
     try{
       hint.textContent='Uploading '+(done+1)+' of '+files.length+'…';
-      const {b64,mime}=await wizResize(f);
+      const {b64,mime}=await wizResize(ph.file);
       const r=await api('?action=upload-photo',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({name:f.name,mime,data:b64,folderId:wizFolderId,
-          folderName:document.getElementById('f-name').value.trim()||'Villa',index:wizPhotos.length-1})});
+        body:JSON.stringify({name:ph.file.name,mime,data:b64,folderId:wizFolderId,
+          folderName:document.getElementById('f-name').value.trim()||'Villa',index:wizPhotos.indexOf(ph)})});
       if(!r.ok) throw new Error(r.body?.error||'Upload failed');
-      ph.id=r.body.fileId; ph.up=false;
+      ph.id=r.body.fileId; ph.up=false; delete ph.file;
       wizFolderId=r.body.folderId;
       const pl=document.getElementById('f-photosLink');
       if(pl&&!pl.value) pl.value=r.body.folderLink;
@@ -1318,6 +1338,35 @@ async function wizAddPhotos(fileList){
   }
   if(done){ hint.textContent=done+' photo'+(done>1?'s':'')+' added.'; wizOrderSave(); }
 }
+// iOS gap-filler: after the picker's blue tick, Safari converts HEIC → JPEG
+// for seconds before `change` fires — the page hears NOTHING meanwhile, which
+// reads as "nothing happened". Focus returns to the window the moment the
+// picker closes, so use that to show a preparing state until the files land
+// (or 30s pass — covers the user cancelling, which also refocuses).
+let wizPickerTimer=null;
+function wizPickerDone(){
+  clearTimeout(wizPickerTimer);
+  document.getElementById('wphoto-drop').classList.remove('busy');
+  const hint=document.getElementById('wphoto-hint');
+  if(/Preparing/.test(hint.textContent)){ hint.textContent=''; hint.style.display='none'; }
+}
+(function(){
+  const input=document.getElementById('wphoto-file');
+  if(!input) return;
+  input.addEventListener('click',()=>{
+    const onFocus=()=>{
+      window.removeEventListener('focus',onFocus);
+      const hint=document.getElementById('wphoto-hint');
+      // If `change` already fired (desktop fast path), the hint is showing
+      // upload progress — leave it alone.
+      if(hint.textContent&&!/Preparing/.test(hint.textContent)) return;
+      hint.style.display=''; hint.textContent='Preparing your photos…';
+      document.getElementById('wphoto-drop').classList.add('busy');
+      wizPickerTimer=setTimeout(wizPickerDone,30000);
+    };
+    window.addEventListener('focus',onFocus);
+  });
+})();
 async function wizResize(file){
   const bmp=await createImageBitmap(file,{imageOrientation:'from-image'}).catch(()=>createImageBitmap(file));
   const s=Math.min(1,1600/Math.max(bmp.width,bmp.height));
@@ -1592,6 +1641,12 @@ function openCheckout(slug){
   document.getElementById('f-promo').value='';
   document.getElementById('checkout-err').textContent='';
   const btn=document.getElementById('checkout-go');btn.disabled=false;btn.textContent='Apply code & go live';
+  // Reset from a possible earlier success state back to the checkout form.
+  document.getElementById('checkout-title').textContent='List your villa';
+  document.getElementById('checkout-form').style.display='';
+  document.getElementById('checkout-actions').style.display='';
+  document.getElementById('checkout-done').style.display='none';
+  document.getElementById('checkout-done-actions').style.display='none';
   document.getElementById('checkout-modal').classList.add('open');
 }
 function closeCheckout(){ document.getElementById('checkout-modal').classList.remove('open'); }
@@ -1608,12 +1663,38 @@ async function applyPromo(){
   const r=await api('?action=redeem-promo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug,code})});
   btn.disabled=false; btn.textContent='Apply code & go live';
   if(r.ok && r.body && r.body.ok){
-    closeCheckout();
-    showToast(r.body.alreadyActive?'This listing is already live.':(r.body.subscription&&r.body.subscription.expiresAt?'Code applied — your listing is live, free until '+new Date(r.body.subscription.expiresAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'.':'Code applied — your listing is live.'));
+    showCheckoutSuccess(slug,r.body);
     loadProperties();
   } else {
     err.textContent=(r.body && r.body.error) || 'Could not apply that code.';
   }
+}
+
+// The publish moment deserves more than a toast: swap the checkout modal into
+// a congratulations state that's honest about review status — a fresh
+// submission is pending_review, not live, and saying "live" reads as broken
+// when the listing doesn't appear.
+function showCheckoutSuccess(slug,body){
+  const prop=myProps.find(p=>p.slug===slug);
+  const pending=!(prop&&(prop.status==='approved'||prop.comped));
+  const until=body.subscription&&body.subscription.expiresAt
+    ?new Date(body.subscription.expiresAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):null;
+  document.getElementById('checkout-title').textContent='Congratulations!';
+  document.getElementById('checkout-done-msg').innerHTML=
+    'Your promo code is in'+(until?' — <b>free until '+until+'</b>':'')+'. '
+    +(pending?'<b>'+esc(prop?prop.name:'Your villa')+'</b> is submitted and will go live the moment we approve it.'
+             :'<b>'+esc(prop?prop.name:'Your villa')+'</b> is live to 250+ Bali rental agents.');
+  const steps=[
+    ...(pending?[['We review your listing','Usually within a day — no action needed from you.']]:[]),
+    ['Agents start seeing it','It appears in the agent portal and joins Maya’s next daily availability broadcast.'],
+    ['Your first weekly report arrives','Every Monday on WhatsApp: views, enquiries and what to improve.'],
+  ];
+  document.getElementById('checkout-done-steps').innerHTML=
+    steps.map((s,i)=>'<div class="cs-step"><span class="rn">'+(i+1)+'</span><span><b>'+esc(s[0])+'.</b> '+esc(s[1])+'</span></div>').join('');
+  document.getElementById('checkout-form').style.display='none';
+  document.getElementById('checkout-actions').style.display='none';
+  document.getElementById('checkout-done').style.display='';
+  document.getElementById('checkout-done-actions').style.display='';
 }
 
 async function goToPayment(){

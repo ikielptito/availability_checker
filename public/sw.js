@@ -8,7 +8,7 @@
  *  - Static assets (images incl. Drive photos, fonts, icons): cache-first.
  *  - Versioned cache names; old caches are dropped on activate.
  */
-const VERSION = 'v5-next-actions';
+const VERSION = 'v7-publish-moment';
 const RUNTIME = 'samba-runtime-' + VERSION;
 
 self.addEventListener('install', () => self.skipWaiting());
