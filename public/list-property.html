@@ -48,21 +48,6 @@ h2{font-size:1.25rem;letter-spacing:-.01em;margin-bottom:6px}
 .opt-cta{margin-top:10px;color:var(--accent);font-weight:600;font-size:.85rem}
 .wa-badge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#25D366;color:#fff;flex-shrink:0}
 
-/* --- Before / after --- */
-.ba{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media(max-width:560px){.ba{grid-template-columns:1fr}}
-.ba-card{border-radius:var(--sb-r-md);padding:20px}
-.ba-before{background:var(--surface);border:1px solid var(--border)}
-.ba-after{background:var(--sb-green);color:var(--sb-on-green)}
-.ba-title{font-weight:700;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
-.ba-before .ba-title{color:var(--muted)}
-.ba-after .ba-title{color:var(--sb-sage)}
-.ba li{display:flex;gap:10px;font-size:.85rem;line-height:1.5;margin-bottom:10px;list-style:none}
-.ba-before li{color:var(--text-2)}
-.ba li::before{flex-shrink:0;font-weight:700}
-.ba-before li::before{content:"✕";color:var(--sb-error)}
-.ba-after li::before{content:"✓";color:var(--sb-sage)}
-
 /* --- Illustration cards --- */
 .figure{background:var(--surface);border:1px solid var(--border);border-radius:var(--sb-r-lg);overflow:hidden;box-shadow:var(--sb-shadow-sm)}
 .figure img{display:block;width:100%;height:auto}
@@ -158,19 +143,8 @@ h2{font-size:1.25rem;letter-spacing:-.01em;margin-bottom:6px}
   <div class="section">
     <h2>What renting out a villa actually looks like</h2>
     <p class="section-sub">Every vacant day costs money — but finding long-term tenants means juggling five channels and hoping the right person sees your listing.</p>
-    <div class="ba">
-      <ul class="ba-card ba-before">
-        <div class="ba-title">Before Samba</div>
-        <li>Update Airbnb, post in Facebook groups, message WhatsApp contacts — every time availability changes</li>
-        <li>Answer the same questions from every agent: "Still available? What's the price? Send photos?"</li>
-        <li>No idea who's seen your listing or whether agents are actually showing it</li>
-      </ul>
-      <ul class="ba-card ba-after">
-        <div class="ba-title">With Samba</div>
-        <li>Publish once — your calendar syncs automatically, agents always see current availability</li>
-        <li>Agents share a polished presentation page that answers everything</li>
-        <li>See every view, share and enquiry as it happens</li>
-      </ul>
+    <div class="figure">
+      <img src="/img-before-after.webp" alt="Before Samba: juggling Airbnb, Facebook groups and WhatsApp threads. With Samba: one listing, live availability, 300+ rental agents" width="900" height="600" loading="lazy">
     </div>
   </div>
 
