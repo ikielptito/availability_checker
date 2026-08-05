@@ -378,7 +378,7 @@ body.wiz-open #snav-tabs{display:none !important;}
   </header>
 
   <div class="lp-trust">
-    <span><b>250+</b>rental agents</span>
+    <span><b>300+</b>rental agents</span>
     <span><b>Canggu · Pererenan · Bali</b></span>
     <span><b>IDR 150k</b>/ month per villa</span>
   </div>
@@ -472,7 +472,7 @@ body.wiz-open #snav-tabs{display:none !important;}
       <div class="wiz-roadmap" data-wstep="start">
         <div class="wiz-road"><span class="rn">1</span>The basics<small>name, area, size — 1 min</small></div>
         <div class="wiz-road"><span class="rn">2</span>Photos &amp; prices<small>5 photos is enough to start</small></div>
-        <div class="wiz-road"><span class="rn">3</span>Go live<small>seen by 250+ Bali rental agents</small></div>
+        <div class="wiz-road"><span class="rn">3</span>Go live<small>seen by 300+ Bali rental agents</small></div>
       </div>
       <div class="fg" data-wstep="basics"><label>Property name *</label><input id="f-name" placeholder="e.g. Villa Sunrise">
         <div class="hint">Short names travel best on WhatsApp — you can change it any time.</div></div>
@@ -558,7 +558,7 @@ body.wiz-open #snav-tabs{display:none !important;}
       <div data-wstep="preview">
         <div class="wiz-phone"><div class="wiz-phone-notch"></div><div id="wiz-preview"></div></div>
         <div class="wiz-boost" id="wiz-boost"></div>
-        <div class="wiz-launch">Once approved, your villa joins <b>Maya's daily availability broadcast</b> to 250+ Bali rental agents — new listings get seen in their first week.</div>
+        <div class="wiz-launch">Once approved, your villa joins <b>Maya's daily availability broadcast</b> to 300+ Bali rental agents — new listings get seen in their first week.</div>
       </div>
     </div>
   </div>
@@ -586,7 +586,7 @@ body.wiz-open #snav-tabs{display:none !important;}
       <div id="checkout-preview"></div>
       <div class="checkout-price">IDR 150,000 <span>/ month per villa</span></div>
       <p class="hint" style="margin-top:2px">Billed as US$9.50/month by our international payment partner.</p>
-      <p class="checkout-blurb">This listing goes live to 250+ Bali rental agents the moment it's activated. Cancel anytime.</p>
+      <p class="checkout-blurb">This listing goes live to 300+ Bali rental agents the moment it's activated. Cancel anytime.</p>
       <button class="btn-sm primary" id="checkout-pay" onclick="goToPayment()" style="width:100%">Pay by card — secure checkout</button>
       <p class="hint" style="margin-top:2px">You'll be taken to our payment partner Creem to complete the subscription. Have a promo code? Enter it below — it's applied at checkout, or activates the listing directly if it's a free-period code.</p>
       <div class="fg">
@@ -1086,7 +1086,7 @@ function statsStrip(slug,live){
   const views14=(s.spark||[]).reduce((a,b)=>a+b,0);
   // A live listing with no views yet isn't "dead" — it's already circulating
   // in the daily agent digest. Say that instead of showing a morgue of zeros.
-  const zeroMsg=live?'Live — featured to 250+ agents in the daily WhatsApp digest':'No views in the last 14 days';
+  const zeroMsg=live?'Live — featured to 300+ agents in the daily WhatsApp digest':'No views in the last 14 days';
   const weekBits=[
     views14?`<b>${views14}</b> view${views14===1?'':'s'} · 14 days`:zeroMsg,
     s.shares7?`shared <b>${s.shares7}×</b> this week`:null,
@@ -1116,7 +1116,7 @@ const WIZ_TITLES={
   photos:['Show it off','Great photos are what get a villa shared. The first one is your cover.'],
   pricing:['Set your prices','IDR, in millions (jt). You can change these anytime.'],
   contacts:['Who do agents contact?','WhatsApp is how agents reach out — and where your weekly report goes.'],
-  preview:['Ready to go live?','This is exactly what 250+ agents will see.'],
+  preview:['Ready to go live?','This is exactly what 300+ agents will see.'],
   contactsOnly:['Edit contacts','Update who agents reach out to for this villa.'],
 };
 
@@ -1683,7 +1683,7 @@ function showCheckoutSuccess(slug,body){
   document.getElementById('checkout-done-msg').innerHTML=
     'Your promo code is in'+(until?' — <b>free until '+until+'</b>':'')+'. '
     +(pending?'<b>'+esc(prop?prop.name:'Your villa')+'</b> is submitted and will go live the moment we approve it.'
-             :'<b>'+esc(prop?prop.name:'Your villa')+'</b> is live to 250+ Bali rental agents.');
+             :'<b>'+esc(prop?prop.name:'Your villa')+'</b> is live to 300+ Bali rental agents.');
   const steps=[
     ...(pending?[['We review your listing','Usually within a day — no action needed from you.']]:[]),
     ['Agents start seeing it','It appears in the agent portal and joins Maya’s next daily availability broadcast.'],
