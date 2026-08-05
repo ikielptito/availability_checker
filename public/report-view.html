@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Your villa report — Samba</title>
+<title>Your villa report · Samba</title>
 <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -141,7 +141,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 <script>
 /* escapeHtml() comes from /shared.js */
 function fmtRange(a,b){const da=new Date(a+'T00:00:00'),db=new Date(b+'T00:00:00'),sameM=da.getMonth()===db.getMonth()&&da.getFullYear()===db.getFullYear();return da.toLocaleDateString('en-GB',sameM?{day:'numeric'}:{day:'numeric',month:'short'})+' – '+db.toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
-function repPctDelta(now,prev){ if(!prev) return now>0?{cls:'up',txt:'▲ new'}:{cls:'flat',txt:'—'}; const d=Math.round((now-prev)/prev*100); if(d>0)return{cls:'up',txt:'▲ '+d+'%'}; if(d<0)return{cls:'down',txt:'▼ '+Math.abs(d)+'%'}; return{cls:'flat',txt:'even'};}
+function repPctDelta(now,prev){ if(!prev) return now>0?{cls:'up',txt:'▲ new'}:{cls:'flat',txt:'–'}; const d=Math.round((now-prev)/prev*100); if(d>0)return{cls:'up',txt:'▲ '+d+'%'}; if(d<0)return{cls:'down',txt:'▼ '+Math.abs(d)+'%'}; return{cls:'flat',txt:'even'};}
 function repPtsDelta(now,prev){ const d=now-prev; if(d>0)return{cls:'up',txt:'▲ '+d}; if(d<0)return{cls:'down',txt:'▼ '+Math.abs(d)}; return{cls:'flat',txt:'even'};}
 function repChip(dl){return `<span class="rep-chip ${dl.cls}">${dl.txt}</span>`;}
 function fmtMoney(v,cur){
@@ -156,7 +156,7 @@ function repSummary(d){
   const dv=v.prev?Math.round((v.now-v.prev)/v.prev*100):null;
   let s=`Interest in <b>${escapeHtml(d.name)}</b> `;
   s+=(dv==null)?`is building`:dv>0?`climbed ${dv}% this week`:dv<0?`eased ${Math.abs(dv)}% this week`:`held steady this week`;
-  s+=` — <b>${v.now}</b> ${v.now===1?'person':'people'} opened your listing`;
+  s+=`: <b>${v.now}</b> ${v.now===1?'person':'people'} opened your listing`;
   s+=e.now?` and <b>${e.now}</b> reached out to enquire.`:`, though none enquired yet.`;
   if(d.bookings&&d.bookings.week.count){const bw=d.bookings.week;s+=` Your calendar took <b>${bw.count}</b> new booking${bw.count===1?'':'s'} worth <b>${fmtMoney(bw.net,d.bookings.currency)}</b>.`;}
   return s;
@@ -174,7 +174,7 @@ function repBookings(d){
       ${kpi('Booked this week',fmtMoney(wk.net,bk.currency),'','',wk.count?'net of channel fees':'no new bookings yet')}
       ${kpi('On the books',fmtMoney(up.net,bk.currency),'','',up.count+' confirmed stay'+(up.count===1?'':'s')+' ahead')}
     </div>
-    <p class="rep-conv">${up.adr?`Confirmed stays ahead average <b>${fmtMoney(up.adr,bk.currency)}</b> a night across <b>${up.nights}</b> nights. `:''}Figures come straight from your booking channels — Airbnb, direct and others — and show what you receive after channel fees.${cancelNote}</p>
+    <p class="rep-conv">${up.adr?`Confirmed stays ahead average <b>${fmtMoney(up.adr,bk.currency)}</b> a night across <b>${up.nights}</b> nights. `:''}Figures come straight from your booking channels (Airbnb, direct and others) and show what you receive after channel fees.${cancelNote}</p>
   </div>`;
 }
 function repChart(daily){
@@ -193,7 +193,7 @@ function repRecs(d){
   if(d.occupancy&&d.occupancy.openWindows.length){const w=d.occupancy.openWindows[0];recs.push([`Fill your ${fmtRange(w.from,w.to)} gap`,`A ${w.nights}-night opening between bookings. Maya can push a weekly-rate offer to the ${d.agentsReached.now} agents already following this villa.`]);}
   const conv=d.funnel.viewed?d.funnel.enquired/d.funnel.viewed:0;
   if(d.funnel.viewed>20&&conv<0.02) recs.push(['Refresh your photos','Views are healthy but few turn into enquiries. New hero and interior shots typically lift the enquiry rate.']);
-  if(d.benchmark.percentile!=null&&d.benchmark.percentile>=70) recs.push(['Hold your rate','Demand is running well above comparable villas — no need to discount this month.']);
+  if(d.benchmark.percentile!=null&&d.benchmark.percentile>=70) recs.push(['Hold your rate','Demand is running well above comparable villas. No need to discount this month.']);
   if(d.metrics.enquiries.now===0&&d.metrics.views.now>5) recs.push(['Make enquiring easy','People are looking but not messaging. Check your WhatsApp contact and pricing are clear and up front.']);
   if(!recs.length) recs.push(['Keep your calendar current','An up-to-date availability calendar keeps you in Maya\'s daily availability broadcast to agents.']);
   return recs.slice(0,3);
@@ -205,7 +205,7 @@ function renderReport(d){
     ${kpi('Listing views',m.views.now,'',repChip(repPctDelta(m.views.now,m.views.prev)),`vs ${m.views.prev} last week`)}
     ${kpi('Enquiries',m.enquiries.now,'',repChip(repPtsDelta(m.enquiries.now,m.enquiries.prev)),'agents who messaged to book')}
     ${kpi('Agents reached',ar.now,'',repChip(repPtsDelta(ar.now,ar.prev)),'unique agents this week')}
-    ${occ?kpi('Occupancy · 30d',occ.pct,'%','','of the next 30 nights'):kpi('Occupancy · 30d','—','','','add an iCal link to track')}
+    ${occ?kpi('Occupancy · 30d',occ.pct,'%','','of the next 30 nights'):kpi('Occupancy · 30d','–','','','add an iCal link to track')}
   </div>`;
   const fmax=Math.max(d.funnel.viewed,d.funnel.engaged,d.funnel.enquired,1);
   const fw=v=>Math.max(6,Math.round(v/fmax*100));
@@ -214,13 +214,13 @@ function renderReport(d){
     <div class="rep-fstep"><div class="ffl">Viewed the listing<small>opened the page</small></div><div class="rep-ftrack"><div class="rep-ffill s1" style="width:${fw(d.funnel.viewed)}%"><span class="fn">${d.funnel.viewed}</span></div></div></div>
     <div class="rep-fstep"><div class="ffl">Engaged<small>opened your photos</small></div><div class="rep-ftrack"><div class="rep-ffill s2" style="width:${fw(d.funnel.engaged)}%"><span class="fn">${d.funnel.engaged}</span></div></div></div>
     <div class="rep-fstep"><div class="ffl">Enquired<small>tapped to message</small></div><div class="rep-ftrack"><div class="rep-ffill s3" style="width:${fw(d.funnel.enquired)}%"><span class="fn">${d.funnel.enquired}</span></div></div></div>
-  </div><p class="rep-conv">A <b>${conv.toFixed(1)}%</b> view-to-enquiry rate this week. Guests who open your photos convert well — the opportunity is getting more of them past the first screen.</p>`;
+  </div><p class="rep-conv">A <b>${conv.toFixed(1)}%</b> view-to-enquiry rate this week. Guests who open your photos convert well. The opportunity is getting more of them past the first screen.</p>`;
   const reachCards=`<div class="rep-cols">
-    <div class="rep-card fill"><h4>Agent network</h4><div class="rep-big">${ar.now} <small>agents</small></div><p style="margin:9px 0 14px;color:var(--text-2);font-size:0.8rem;line-height:1.5">saw or shared this villa this week — each selling to their own guest list.</p>
+    <div class="rep-card fill"><h4>Agent network</h4><div class="rep-big">${ar.now} <small>agents</small></div><p style="margin:9px 0 14px;color:var(--text-2);font-size:0.8rem;line-height:1.5">saw or shared this villa this week, each selling to their own guest list.</p>
       <div class="rep-line"><span class="lk">Times shared onward</span><span class="lv">${m.shares.now}</span></div>
       <div class="rep-line"><span class="lk">New agents this week</span><span class="lv">${ar.now-ar.prev>=0?'+':''}${ar.now-ar.prev}</span></div>
       <div class="rep-line"><span class="lk">Maya's active network</span><span class="lv">${d.maya.networkAgents.toLocaleString()}</span></div>
-      ${d.maya.broadcastEligible!=null?`<div class="rep-line"><span class="lk">Daily availability broadcast</span><span class="lv">${d.maya.broadcastEligible?'Included':'—'}</span></div>`:''}</div>
+      ${d.maya.broadcastEligible!=null?`<div class="rep-line"><span class="lk">Daily availability broadcast</span><span class="lv">${d.maya.broadcastEligible?'Included':'–'}</span></div>`:''}</div>
     <div class="rep-card"><h4>Photo engagement</h4><div class="rep-big">${m.photoViews.now.toLocaleString()} <small>photo views</small></div><p style="margin:9px 0 14px;color:var(--text-2);font-size:0.8rem;line-height:1.5">How hard your gallery is working to sell the villa.</p>
       <div class="rep-line"><span class="lk">vs last week</span><span class="lv">${repPctDelta(m.photoViews.now,m.photoViews.prev).txt}</span></div>
       <div class="rep-line"><span class="lk">Downloaded by agents</span><span class="lv">${m.downloads.now}</span></div></div>
@@ -268,8 +268,8 @@ function renderReport(d){
     ${occSection}
     ${benchSection}
     <div class="rep-pad"><div class="rep-sec-h">Suggested next steps</div><div class="rep-recs">${recs}</div></div>
-    ${d.strength&&d.strength.score<85?`<div class="rep-pad"><div class="rep-strength">Listing strength <b>${d.strength.score}%</b> — to reach more agents: ${escapeHtml(d.strength.tips.join(' · '))}. <a href="https://sambarentals.com/portal">Improve it in the portal →</a></div></div>`:''}
-    <div class="rep-foot"><div class="rep-fmeta">Maya prepares this for you every week.<br>Numbers are live — this link always shows your latest.</div></div>
+    ${d.strength&&d.strength.score<85?`<div class="rep-pad"><div class="rep-strength">Listing strength <b>${d.strength.score}%</b>. To reach more agents: ${escapeHtml(d.strength.tips.join(' · '))}. <a href="https://sambarentals.com/portal">Improve it in the portal →</a></div></div>`:''}
+    <div class="rep-foot"><div class="rep-fmeta">Maya prepares this for you every week.<br>Numbers are live. This link always shows your latest.</div></div>
   </div>`;
 }
 function errCard(msg){ return `<div class="rep-empty"><h3>Report unavailable</h3><p>${escapeHtml(msg)}</p></div>`; }

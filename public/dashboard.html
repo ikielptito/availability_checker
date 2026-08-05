@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Analytics — Samba Rentals</title>
+<title>Analytics · Samba Rentals</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -200,14 +200,14 @@ body.embed .content{padding-top:8px;}
       <div class="mode-card selected" data-mode="autopilot" onclick="pickMode(this)">
         <div class="mode-radio"></div>
         <div class="mode-info">
-          <div class="mode-label">Autopilot — Maya engages with replies</div>
+          <div class="mode-label">Autopilot: Maya engages with replies</div>
           <div class="mode-desc">Send the broadcast and keep Maya on autopilot so she handles inbound replies automatically. Good for quiet evenings when you don't want to babysit the inbox.</div>
         </div>
       </div>
       <div class="mode-card" data-mode="silent" onclick="pickMode(this)">
         <div class="mode-radio"></div>
         <div class="mode-info">
-          <div class="mode-label">Send-only — Maya off, you reply manually</div>
+          <div class="mode-label">Send-only: Maya off, you reply manually</div>
           <div class="mode-desc">Send the broadcast and turn Maya off. Inbound replies stack in the CRM inbox for you to handle by hand. Use this when you want to control the conversation tightly.</div>
         </div>
       </div>
@@ -357,10 +357,10 @@ function render(data) {
             <tr>
               <td style="font-weight:500">${esc(a.name)}</td>
               <td><span style="color:var(--muted)">${esc(a.email)}</span></td>
-              <td>${a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '—'}</td>
+              <td>${a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '–'}</td>
               <td>${fmt(a.favorites)}</td>
               <td>${fmt(a.lists)}</td>
-              <td>${a.handle ? `<a href="/${esc(a.handle)}" target="_blank" style="color:var(--accent)">@${esc(a.handle)}</a>` : '<span style="color:var(--subtle)">—</span>'}</td>
+              <td>${a.handle ? `<a href="/${esc(a.handle)}" target="_blank" style="color:var(--accent)">@${esc(a.handle)}</a>` : '<span style="color:var(--subtle)">–</span>'}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -379,7 +379,7 @@ function render(data) {
         { label: 'Engaged', hint: 'sessions that opened a property', value: totals.eng_sessions || 0, color: 'var(--green)', stepText: 'of sessions engaged' },
         { label: 'Enquired', hint: 'sessions that tapped WhatsApp', value: totals.wa_sessions || 0, color: 'var(--orange)', stepText: 'of engaged sessions enquired' },
       ])}
-      <div class="funnel-note">Each stage counts unique sessions, not events. Stage tracking began 2 Jul 2026 — periods before that under-report the lower stages. Raw event volume (${fmt(engagement)} property opens, ${fmt(totals.whatsapp_click)} WhatsApp clicks) is in the cards above.</div>
+      <div class="funnel-note">Each stage counts unique sessions, not events. Stage tracking began 2 Jul 2026; periods before that under-report the lower stages. Raw event volume (${fmt(engagement)} property opens, ${fmt(totals.whatsapp_click)} WhatsApp clicks) is in the cards above.</div>
     </div>
 
     <!-- ACTIVITY CHART -->
@@ -469,7 +469,7 @@ function render(data) {
                 <td><span style="color:var(--orange)">${fmt(r.wMo)}</span></td>
                 <td>${fmt(r.vAll)}</td>
                 <td><span style="color:var(--orange)">${fmt(r.wAll)}</span></td>
-                <td>${r.vAll>0?Math.round((r.wAll/r.vAll)*100)+'%':'—'}</td>
+                <td>${r.vAll>0?Math.round((r.wAll/r.vAll)*100)+'%':'–'}</td>
               </tr>`).join('')}
           </tbody>
         </table>
@@ -637,14 +637,14 @@ function resetNotifyModalChrome() {
     <div class="mode-card ${notifyMode==='autopilot'?'selected':''}" data-mode="autopilot" onclick="pickMode(this)">
       <div class="mode-radio"></div>
       <div class="mode-info">
-        <div class="mode-label">Autopilot — Maya engages with replies</div>
+        <div class="mode-label">Autopilot: Maya engages with replies</div>
         <div class="mode-desc">Send the broadcast and keep Maya on autopilot so she handles inbound replies automatically. Good for quiet evenings when you don't want to babysit the inbox.</div>
       </div>
     </div>
     <div class="mode-card ${notifyMode==='silent'?'selected':''}" data-mode="silent" onclick="pickMode(this)">
       <div class="mode-radio"></div>
       <div class="mode-info">
-        <div class="mode-label">Send-only — Maya off, you reply manually</div>
+        <div class="mode-label">Send-only: Maya off, you reply manually</div>
         <div class="mode-desc">Send the broadcast and turn Maya off. Inbound replies stack in the CRM inbox for you to handle by hand. Use this when you want to control the conversation tightly.</div>
       </div>
     </div>
@@ -679,7 +679,7 @@ async function previewNotify() {
     const recipients = data.recipients || 0;
     const tpl = p.template_name || '(template not chosen)';
     const ver = data.template_version || '?';
-    const rendered = p.rendered_body || '(no body — likely no changes vs the saved snapshot, nothing would fire on a non-Monday)';
+    const rendered = p.rendered_body || '(no body; likely no changes vs the saved snapshot, nothing would fire on a non-Monday)';
     const sampleName = p.sample_first_name || 'Era';
     const availNow = p.available_now_count != null ? p.available_now_count : '?';
 

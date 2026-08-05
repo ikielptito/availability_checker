@@ -83,7 +83,7 @@ async function checkout(req, res, { kvGet }) {
   const owner = await currentOwner(req, kvGet);
   if (!owner) return res.status(401).json({ error: 'Not signed in' });
   if (!process.env.CREEM_API_KEY || !process.env.CREEM_PRODUCT_ID) {
-    return res.status(500).json({ error: 'Billing is not set up yet — check back soon.' });
+    return res.status(500).json({ error: 'Billing is not set up yet. Check back soon.' });
   }
 
   const body = await readJsonBody(req);

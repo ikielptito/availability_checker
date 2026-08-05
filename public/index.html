@@ -3,20 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Samba Rentals — Agent portal</title>
-<meta name="description" content="Live availability across our Bali long-term rental portfolio. Photos, calendars, and instant share links — 10% commission on every booking.">
+<title>Samba Rentals · Agent portal</title>
+<meta name="description" content="Live availability across our Bali long-term rental portfolio. Photos, calendars, and instant share links. 10% commission on every booking.">
 <!-- Open Graph: rich preview when an agent shares the portal link on WhatsApp / iMessage / Slack -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Samba">
-<meta property="og:title" content="Samba — Agent portal">
+<meta property="og:title" content="Samba · Agent portal">
 <meta property="og:description" content="Bali's rental agent network. List your villa. Reach 250+ agents.">
 <meta property="og:url" content="https://sambarentals.com">
 <meta property="og:image" content="https://sambarentals.com/og-image.jpg">
 <meta property="og:image:width" content="1536">
 <meta property="og:image:height" content="1024">
-<meta property="og:image:alt" content="Samba — Bali's rental agent network">
+<meta property="og:image:alt" content="Samba · Bali's rental agent network">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Samba — Agent portal">
+<meta name="twitter:title" content="Samba · Agent portal">
 <meta name="twitter:description" content="Bali's rental agent network. List your villa. Reach 250+ agents.">
 <meta name="twitter:image" content="https://sambarentals.com/og-image.jpg">
 <!-- Favicon + installable PWA metadata -->
@@ -655,7 +655,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
            price, size, area, availability — visible without opening a tab. -->
       <div class="modal-ident" id="modal-ident"></div>
       <div class="modal-note" id="modal-note-box" style="display:none">
-        <div class="modal-note-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg> Private note <span style="text-transform:none;letter-spacing:0;color:var(--subtle)">— only you can see this</span></div>
+        <div class="modal-note-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg> Private note <span style="text-transform:none;letter-spacing:0;color:var(--subtle)">only you can see this</span></div>
         <textarea id="modal-note" placeholder="e.g. owner flexible on price · free from August…" onblur="saveNote()"></textarea>
         <div class="modal-note-hint">Saves automatically when you click away.</div>
       </div>
@@ -869,7 +869,7 @@ function mcRow(p,colCls,days){
     }
     cells+='<div class="mc-day'+c+colCls[i]+'" data-i="'+i+'"></div>';
   }
-  return '<div class="mc-row" data-n="'+esc(shortName(p.name))+'" onclick="track(\'calendar_row_click\',\''+p.id+'\');openModal(\''+p.id+'\')" title="'+esc(shortName(p.name))+' — tap for details">'
+  return '<div class="mc-row" data-n="'+esc(shortName(p.name))+'" onclick="track(\'calendar_row_click\',\''+p.id+'\');openModal(\''+p.id+'\')" title="'+esc(shortName(p.name))+' · tap for details">'
     +'<div class="mc-label">'+thumb+'<div class="mc-name"><b>'+esc(shortName(p.name))+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</div></div>'
     +cells+'</div>';
 }
@@ -1034,7 +1034,7 @@ function openPop(kind,ev){
     :kind==='bed'?[{k:'all',l:'Any bedrooms'}].concat(bedroomCounts().map(n=>({k:String(n),l:n+' bedroom'+(n>1?'s':'')})))
     :kind==='budget'?BUDGET_OPTS
     :kind==='dur'?DUR_OPTS
-    :kind==='view'?[{k:'bento',l:'Cards'},{k:'list',l:'List'},{k:'map',l:'Map — all villa locations'}]
+    :kind==='view'?[{k:'bento',l:'Cards'},{k:'list',l:'List'},{k:'map',l:'Map: all villa locations'}]
     :SORT_OPTIONS.map(o=>({k:o.key,l:o.label}));
   const cur=kind==='avail'?availFilter:kind==='bed'?bedroomFilter:kind==='budget'?budgetFilter:kind==='dur'?durationFilter:kind==='view'?viewMode:sortMode;
   pop.innerHTML=opts.map(o=>'<button class="pop-item'+(o.k===cur?' on':'')+'" onclick="popPick(\''+kind+'\',\''+o.k+'\')">'+esc(o.l)+'<svg class="pop-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>').join('');
@@ -1164,7 +1164,7 @@ async function buildMapInto(canvasEl,props){
   if(_map){_map.remove();_map=null;}
   canvasEl.innerHTML='';
   try{await loadLeaflet();}catch(e){
-    canvasEl.innerHTML='<div style="padding:36px 20px;text-align:center;color:var(--muted);font-size:.85rem">Map could not load — check your connection and try again.</div>';
+    canvasEl.innerHTML='<div style="padding:36px 20px;text-align:center;color:var(--muted);font-size:.85rem">Map could not load. Check your connection and try again.</div>';
     return;
   }
   const groups=new Map();
@@ -1234,7 +1234,7 @@ function updateNetBanner(){
   if(navigator.onLine){if(b)b.remove();return;}
   if(!b){
     b=document.createElement('div');b.id='net-banner';
-    b.textContent='Offline — showing last known availability';
+    b.textContent='Offline: showing last known availability';
     document.body.appendChild(b);
   }
 }
@@ -1819,7 +1819,7 @@ function doShare(propId, btn){
   const mn=monthlyNum(info); if(mn)facts.push('IDR '+mn+'M / month');
   const av=availLabel(avail[propId]||new Set());
   const availTxt=failedAvail.has(propId)?null:(!av?'Fully booked next 6 months':(av.cls==='avail-now'?'Available now':'Available from '+av.from));
-  const text=info.name+(info.tag?' — '+info.tag:'')
+  const text=info.name+(info.tag?' · '+info.tag:'')
     +(facts.length?'\n'+facts.join(' · '):'')
     +(availTxt?'\n'+availTxt:'');
   const flash=(txt)=>{
@@ -2032,7 +2032,7 @@ async function makeStoryImage(propId){
   });
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
   // Price — a strong focal point, generous air above it
-  const priceBase=1406,priceMain='IDR '+(f.mn?f.mn:'—')+'M';
+  const priceBase=1406,priceMain='IDR '+(f.mn?f.mn:'–')+'M';
   ctx.font='800 88px '+FF;ctx.fillStyle='#fff';ctx.fillText(priceMain,PX,priceBase);
   const pmw=ctx.measureText(priceMain).width;
   ctx.font='500 40px '+FF;ctx.fillStyle='rgba(255,255,255,.6)';ctx.fillText('/ month',PX+pmw+22,priceBase);
@@ -2123,7 +2123,7 @@ async function shareStory(){
     track('share',modalPropId,(PROPS[modalPropId]||{}).name);
     if(btn)btn.textContent='Done ✓';
   }catch(e){
-    if(btn)btn.textContent='Failed — try again';
+    if(btn)btn.textContent='Failed. Try again';
   }
   setTimeout(()=>{if(btn)btn.innerHTML=orig;},2000);
 }
@@ -2525,7 +2525,7 @@ function render() {
     }else rl.style.display='none';
   }
   if(!filtered2.length){
-    const _msg=savedView?'No saved villas yet — tap the ♥ on any villa to save it'
+    const _msg=savedView?'No saved villas yet. Tap the ♥ on any villa to save it'
       :(query?'No properties match <strong>'+esc(query)+'</strong>':'No properties in this filter');
     const _btn=savedView?'<button class="btn-quiet" onclick="setSavedView(false)">Browse all villas</button>'
       :'<button class="btn-quiet" onclick="clearSearch()">Clear filters</button>';
@@ -2840,7 +2840,7 @@ function renderShortlists(){
       :'<button class="sl-btn" onclick="shareList(\''+l.id+'\')">Create share link</button>';
     html+='<div class="sl-card">'
       +'<div class="sl-card-head"><input class="sl-name" value="'+esc(l.name||'')+'" onchange="renameList(\''+l.id+'\',this)"><span class="sl-count">'+(l.slugs||[]).length+' villa'+((l.slugs||[]).length===1?'':'s')+'</span></div>'
-      +(chips?'<div class="sl-chips">'+chips+'</div>':'<div class="sl-empty">No villas yet — add some below.</div>')
+      +(chips?'<div class="sl-chips">'+chips+'</div>':'<div class="sl-empty">No villas yet. Add some below.</div>')
       +'<div class="sl-actions"><button class="sl-btn" onclick="openPicker(\''+l.id+'\')">+ Add villas</button>'+shareRow+'<button class="sl-btn danger" onclick="deleteList(\''+l.id+'\')">Delete</button></div>'
       +'</div>';
   });
@@ -2924,19 +2924,19 @@ async function loadListingMeta() {
     <div class="aw-sub">Bali's long-term rental inventory, built for agents. Free, always.</div>
     <div class="aw-row">
       <span class="aw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span>
-      <span class="awtxt"><b>Browse live availability</b> — <em>villas update from the owners' own calendars.</em></span>
+      <span class="awtxt"><b>Browse live availability</b>: <em>villas update from the owners' own calendars.</em></span>
     </div>
     <div class="aw-row">
       <span class="aw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span>
-      <span class="awtxt"><b>Share any villa with one tap</b> — <em>a clean page for your client, your contact on it.</em></span>
+      <span class="awtxt"><b>Share any villa with one tap</b>: <em>a clean page for your client, your contact on it.</em></span>
     </div>
     <div class="aw-row">
       <span class="aw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></span>
-      <span class="awtxt"><b>Post any villa to Instagram</b> — <em>one tap builds a ready-made story image with the villa's photo, price and key facts.</em></span>
+      <span class="awtxt"><b>Post any villa to Instagram</b>: <em>one tap builds a ready-made story image with the villa's photo, price and key facts.</em></span>
     </div>
     <div class="aw-row">
       <span class="aw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
-      <span class="awtxt"><b>Save favourites and shortlists</b> — <em>build a list per client and send it as one link.</em></span>
+      <span class="awtxt"><b>Save favourites and shortlists</b>: <em>build a list per client and send it as one link.</em></span>
     </div>
     <button class="aw-btn" onclick="dismissAgentWelcome()">Start browsing</button>
   </div>
