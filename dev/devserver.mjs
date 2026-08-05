@@ -197,7 +197,7 @@ function shimRes(nodeRes) {
   };
 }
 
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ico': 'image/x-icon' };
 
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://localhost');
@@ -248,7 +248,7 @@ const server = http.createServer(async (req, res) => {
       return void await handlers['listing-page'].default(fakeReq, shimRes(res));
     }
     let file;
-    const CLEAN = { '/admin':'admin.html', '/portal':'portal.html', '/home':'home.html', '/list-property':'list-property.html', '/terms':'terms.html', '/privacy':'privacy.html', '/refund':'refund.html' };
+    const CLEAN = { '/admin':'admin.html', '/portal':'portal.html', '/home':'list-property.html', '/list-property':'list-property.html', '/terms':'terms.html', '/privacy':'privacy.html', '/refund':'refund.html' };
     if (CLEAN[u.pathname]) file = CLEAN[u.pathname];
     else {
       const candidate = u.pathname.replace(/^\//, '');

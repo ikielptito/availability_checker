@@ -6,7 +6,7 @@
     { "source": "/api/translate", "destination": "/api/track?action=translate" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/admin", "destination": "/admin.html" },
-    { "source": "/home", "destination": "/home.html" },
+    { "source": "/home", "destination": "/list-property.html" },
     { "source": "/for-agents", "destination": "/for-agents.html" },
     { "source": "/list-property", "destination": "/list-property.html" },
     { "source": "/portal", "destination": "/portal.html" },

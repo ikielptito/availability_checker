@@ -871,7 +871,7 @@ function renderAgentBar() {
       var num = p.waNumber.replace(/[^0-9]/g, '');
       document.getElementById('agent-bar-name').textContent = p.displayName || 'Your agent';
       document.getElementById('agent-bar-sub').textContent = (p.agency || 'Your Samba agent') + ' · +' + num;
-      var msg = 'Hi ' + (p.displayName || '') + ', I’m interested in ' + (LISTING ? LISTING.name : 'this villa') + ' — ' + location.href;
+      var msg = 'Hi ' + (p.displayName || '') + ', I’m interested in ' + (LISTING ? LISTING.name : 'this villa') + ': ' + location.href;
       document.getElementById('agent-bar-wa').href = 'https://wa.me/' + num + '?text=' + encodeURIComponent(msg);
       document.getElementById('agent-bar').style.display = 'flex';
       document.body.style.paddingBottom = '84px';

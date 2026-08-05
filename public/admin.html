@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin — Samba Rentals</title>
+<title>Admin · Samba Rentals</title>
 <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -283,7 +283,7 @@ async function loadErrors() {
   pane.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>';
   try {
     const r = await fetch('/api/dashboard?errors=1', { headers: { 'Authorization': 'Bearer ' + adminPw } });
-    if (r.status === 401) return showGate('Session expired — sign in again.');
+    if (r.status === 401) return showGate('Session expired. Sign in again.');
     const { errors } = await r.json();
     document.getElementById('errors-count').textContent = errors && errors.length ? errors.length : '';
     if (!errors || !errors.length) {
@@ -338,7 +338,7 @@ function approvalCard(l) {
       <div>
         <div class="card-title">${esc(l.name || l.slug)}${statusBadge(l)}</div>
         <div class="card-slug">${esc(l.slug)}</div>
-        <div class="owner-note">Owner: ${esc(l.ownerEmail || l.ownerSub || '—')}</div>
+        <div class="owner-note">Owner: ${esc(l.ownerEmail || l.ownerSub || '–')}</div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
         <button class="review-btn approve" onclick="setListingStatus('${l.slug}','approved')">Approve</button>
@@ -495,13 +495,13 @@ function renderListingsBody() {
   const defaults = allListings.filter(l => !l.custom && listingMatches(l));
   body.innerHTML =
     `<div class="section-head">
-      <div><h2>Custom properties</h2><div class="hint">Properties not in Hostex — fully managed here</div></div>
+      <div><h2>Custom properties</h2><div class="hint">Properties not in Hostex, fully managed here</div></div>
       <button class="add-btn" onclick="addCustom()">+ Add Property</button>
     </div>
     <div id="new-custom-slot"></div>` +
     (customs.length ? customs.map(listingItem).join('') :
       `<div class="empty-hint">${filtering ? 'No custom properties match.' : 'No custom properties yet. Click "+ Add Property" to create one.'}</div>`) +
-    `<div class="section-head" style="margin-top:36px"><div><h2>Hostex listings</h2><div class="hint">Synced from Hostex — details editable here</div></div></div>` +
+    `<div class="section-head" style="margin-top:36px"><div><h2>Hostex listings</h2><div class="hint">Synced from Hostex, details editable here</div></div></div>` +
     (defaults.length ? defaults.map(listingItem).join('') :
       '<div class="empty-hint">No Hostex listings match.</div>');
   // Re-mount editors that were open before this re-render (fresh data, no stale forms)
@@ -517,7 +517,7 @@ function listingItem(l) {
   const meta = [l.unitType, l.tag, price].filter(Boolean).join(' · ');
   const thumb = l.coverPhotoId
     ? `<img class="row-thumb" src="https://lh3.googleusercontent.com/d/${esc(l.coverPhotoId)}=w112-h112" loading="lazy" alt="" onerror="this.remove()">`
-    : `<div class="row-thumb empty">${l.folder ? '📷' : '—'}</div>`;
+    : `<div class="row-thumb empty">${l.folder ? '📷' : '–'}</div>`;
   // statusBadge only means something for custom listings — Hostex units can
   // carry ownerSub (claimed via the owner portal) but never have a status.
   const badges = (l.custom ? '<span class="custom-badge">custom</span>' + statusBadge(l) : '')
@@ -594,7 +594,7 @@ function defaultCard(l) {
         </div>
       </div>
 
-      <div class="section-label">Weekly report contact <span class="field-hint">(owner — gets Maya's weekly report in addition to the contact above; leave blank if same)</span></div>
+      <div class="section-label">Weekly report contact <span class="field-hint">(owner; gets Maya's weekly report in addition to the contact above; leave blank if same)</span></div>
       <div class="field-row">
         <div class="field-group">
           <label class="field-label">Report contact name</label>
@@ -686,7 +686,7 @@ function defaultCard(l) {
       </div>
       <div class="field-row full">
         <div class="field-group">
-          <label class="field-label">Yearly inclusions <span class="field-hint">(one per line — what's covered for a yearly lease)</span></label>
+          <label class="field-label">Yearly inclusions <span class="field-hint">(one per line; what's covered for a yearly lease)</span></label>
           <textarea class="field-textarea" id="${l.slug}-yearlyInclusions" rows="3">${esc((l.yearlyInclusions || []).join('\n'))}</textarea>
         </div>
       </div>
@@ -762,7 +762,7 @@ function customCard(l, isNew) {
       <div class="section-label">Availability</div>
       <div class="field-row full">
         <div class="field-group">
-          <label class="field-label">iCal Calendar URL <span class="field-hint">(Hostex/Airbnb export link — booked dates sync automatically, ~30 min delay)</span></label>
+          <label class="field-label">iCal Calendar URL <span class="field-hint">(Hostex/Airbnb export link; booked dates sync automatically, ~30 min delay)</span></label>
           <input class="field-input" id="${slug}-icalUrl" value="${esc(l.icalUrl || '')}" placeholder="https://…/calendar.ics" />
         </div>
       </div>
@@ -785,7 +785,7 @@ function customCard(l, isNew) {
         </div>
       </div>
 
-      <div class="section-label">Weekly report contact <span class="field-hint">(owner — gets Maya's weekly report in addition to the contact above; leave blank if same)</span></div>
+      <div class="section-label">Weekly report contact <span class="field-hint">(owner; gets Maya's weekly report in addition to the contact above; leave blank if same)</span></div>
       <div class="field-row">
         <div class="field-group">
           <label class="field-label">Report contact name</label>
@@ -866,7 +866,7 @@ function customCard(l, isNew) {
       </div>
       <div class="field-row full">
         <div class="field-group">
-          <label class="field-label">Yearly inclusions <span class="field-hint">(one per line — what's covered for a yearly lease)</span></label>
+          <label class="field-label">Yearly inclusions <span class="field-hint">(one per line; what's covered for a yearly lease)</span></label>
           <textarea class="field-textarea" id="${slug}-yearlyInclusions" rows="3">${esc((l.yearlyInclusions || ['Villa only, no services included.']).join('\n'))}</textarea>
         </div>
       </div>
@@ -1125,7 +1125,7 @@ function renderHiddenPhotos(slug, folderId, hidden) {
   const wrap = document.getElementById(slug + '-drive-hidden');
   if (!wrap) return;
   if (!hidden.length) { wrap.innerHTML = ''; return; }
-  wrap.innerHTML = `<div class="drive-hidden-label">Hidden by AI — ${hidden.length} duplicate/similar shot${hidden.length === 1 ? '' : 's'} (click to restore)</div>
+  wrap.innerHTML = `<div class="drive-hidden-label">Hidden by AI: ${hidden.length} duplicate/similar shot${hidden.length === 1 ? '' : 's'} (click to restore)</div>
     <div class="drive-hidden-grid">` + hidden.map(p =>
       `<div class="drive-hidden-item">
          <img src="${p.thumb}" onerror="this.parentElement.remove()">
@@ -1179,8 +1179,8 @@ async function aiSortPhotos(slug) {
         const bits = [];
         if (d.removed) bits.push(`${d.removed} duplicate/similar hidden`);
         if (d.junk) bits.push(`${d.junk} weak shot${d.junk === 1 ? '' : 's'} moved to the end`);
-        status.textContent = `Sorted ${d.total} photos ✓${bits.length ? ' — ' + bits.join(', ') : ''}`;
-        showToast('Photos sorted — galleries update within the hour', 'success');
+        status.textContent = `Sorted ${d.total} photos ✓${bits.length ? ' · ' + bits.join(', ') : ''}`;
+        showToast('Photos sorted. Galleries update within the hour', 'success');
         loadDrivePreview(slug, folderId);
         return;
       }
@@ -1190,7 +1190,7 @@ async function aiSortPhotos(slug) {
         status.textContent = `Scoring photos… ${d.scored} of ${d.total}`;
       }
     }
-    throw new Error('Took too long — click again to continue');
+    throw new Error('Took too long. Click again to continue');
   } catch (e) {
     status.textContent = e.message;
     showToast(e.message);
@@ -1206,13 +1206,13 @@ function pickCover(slug, id, el) {
     input.value = '';
     el.classList.remove('selected');
     renderCoverFocus(slug);
-    showToast('Cover cleared — first photo will be used. Remember to Save.');
+    showToast('Cover cleared. First photo will be used. Remember to Save.');
     return;
   }
   input.value = id;
   grid.querySelectorAll('.drive-thumb').forEach(t => t.classList.toggle('selected', t.dataset.id === id));
   renderCoverFocus(slug);
-  showToast('Cover photo picked — remember to Save', 'success');
+  showToast('Cover photo picked. Remember to Save', 'success');
 }
 
 // ── COVER FOCAL-POINT PICKER ──

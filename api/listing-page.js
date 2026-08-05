@@ -70,10 +70,10 @@ async function serve(req, res) {
   // Compose tags. When the listing isn't found (404 case), the generic
   // portal OG card + brand wording still renders, so the link is never
   // ugly even on stale or invalid URLs.
-  const title = listing ? `${listing.name} — Samba Rentals` : 'Samba Rentals — Listing';
+  const title = listing ? `${listing.name} · Samba Rentals` : 'Samba Rentals · Listing';
   const desc = listing
     ? composeDescription(listing)
-    : 'Bali long-term rental — full details, photos, and live availability.';
+    : 'Bali long-term rental: full details, photos, and live availability.';
   const url = listing ? `${PORTAL_BASE}/l/${listing.slug}` : `${PORTAL_BASE}${req.url}`;
   const image = listing?.coverPhotoId
     ? `https://lh3.googleusercontent.com/d/${listing.coverPhotoId}=w1200-h630-c`
@@ -160,9 +160,9 @@ async function serveAgent(req, res, { proto, host, agentHandle, shareId }) {
 
   const who = (prof && prof.displayName) || 'An agent';
   const n = slugs.length;
-  const title = listName ? `${listName} — Samba Rentals` : `${who}'s villa picks — Samba Rentals`;
+  const title = listName ? `${listName} · Samba Rentals` : `${who}'s villa picks · Samba Rentals`;
   const desc = prof
-    ? `${n} hand-picked Bali villa${n === 1 ? '' : 's'}${prof.agency ? ' · ' + prof.agency : ''} — view details, photos, and live availability.`
+    ? `${n} hand-picked Bali villa${n === 1 ? '' : 's'}${prof.agency ? ' · ' + prof.agency : ''}: view details, photos, and live availability.`
     : 'Hand-picked Bali villas on Samba Rentals.';
   const url = `${PORTAL_BASE}${shareId ? '/s/' + shareId : '/a/' + agentHandle}`;
 
@@ -210,10 +210,10 @@ async function serveReport(req, res, { proto, host, token }) {
   }
   if (!_reportHtmlCache) await ensureReportTemplate(proto, host);
 
-  const title = listing ? `Weekly report — ${listing.name} · Samba` : 'Your villa report — Samba';
+  const title = listing ? `Weekly report · ${listing.name} · Samba` : 'Your villa report · Samba';
   const desc = listing
-    ? `Views, enquiries, agent reach and occupancy for ${listing.name} this week — from Samba Realty.`
-    : 'Your villa’s weekly performance — views, enquiries, agent reach and occupancy.';
+    ? `Views, enquiries, agent reach and occupancy for ${listing.name} this week, from Samba Realty.`
+    : 'Your villa’s weekly performance: views, enquiries, agent reach and occupancy.';
   const image = listing?.coverPhotoId
     ? `https://lh3.googleusercontent.com/d/${listing.coverPhotoId}=w1200-h630-c`
     : FALLBACK_OG;
@@ -268,11 +268,11 @@ function fallbackPage(req) {
   return `<!doctype html><html><head>
 <meta charset="utf-8">
 <title>Samba Rentals</title>
-<meta name="description" content="Bali long-term rental — full details, photos, and live availability.">
+<meta name="description" content="Bali long-term rental: full details, photos, and live availability.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Samba Rentals">
 <meta property="og:title" content="Samba Rentals">
-<meta property="og:description" content="Bali long-term rental — full details, photos, and live availability.">
+<meta property="og:description" content="Bali long-term rental: full details, photos, and live availability.">
 <meta property="og:url" content="${esc(url)}">
 <meta property="og:image" content="${FALLBACK_OG}">
 <meta property="og:image:width" content="1200">
