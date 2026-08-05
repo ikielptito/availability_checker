@@ -63,13 +63,14 @@ h2{font-size:1.4rem;letter-spacing:-.015em;margin-bottom:8px}
 .proof-link:hover{text-decoration:underline}
 
 /* --- Steps --- */
-.steps{list-style:none;counter-reset:step}
-.step{display:flex;gap:16px;padding:14px 0;border-bottom:1px solid var(--hairline)}
-.step:last-child{border-bottom:none}
-.step-num{counter-increment:step;flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--sb-sand);color:var(--sb-green);font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center}
+.steps{list-style:none;counter-reset:step;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:560px){.steps{grid-template-columns:1fr}}
+.step{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--sb-r-md);padding:18px 16px;box-shadow:var(--sb-shadow-xs)}
+.step-num{counter-increment:step;flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--sb-terracotta-050);color:var(--sb-terracotta-700);font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center}
 .step-num::before{content:counter(step)}
-.step-title{font-weight:700;font-size:.95rem;margin-bottom:3px}
-.step-desc{color:var(--muted);font-size:.85rem;line-height:1.55}
+.step-title{font-weight:700;font-size:.92rem}
+.step-desc{color:var(--muted);font-size:.8rem;line-height:1.55;flex:1}
+.step-time{align-self:flex-start;background:var(--sb-sand);color:var(--sb-green);font-size:.7rem;font-weight:700;letter-spacing:.04em;padding:4px 10px;border-radius:var(--sb-r-pill)}
 
 /* --- Trust strip --- */
 .trust{display:flex;justify-content:space-between;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--sb-r-md);padding:18px 22px}
@@ -194,18 +195,21 @@ h2{font-size:1.4rem;letter-spacing:-.015em;margin-bottom:8px}
     <ol class="steps">
       <li class="step">
         <span class="step-num" aria-hidden="true"></span>
-        <div><div class="step-title">Submit your villa</div>
-        <div class="step-desc">Photos, pricing and availability — through the portal or over WhatsApp. Takes about five minutes.</div></div>
+        <div class="step-title">Submit your villa</div>
+        <div class="step-desc">Photos, pricing and availability — through the portal or over WhatsApp.</div>
+        <span class="step-time">≈ 5 minutes</span>
       </li>
       <li class="step">
         <span class="step-num" aria-hidden="true"></span>
-        <div><div class="step-title">We set you up</div>
-        <div class="step-desc">We create your listing, sync your calendar with Airbnb and Hostex, and make sure the presentation looks premium.</div></div>
+        <div class="step-title">We set you up</div>
+        <div class="step-desc">We create your listing, sync your calendar with Airbnb and Hostex, and make sure the presentation looks premium.</div>
+        <span class="step-time">We handle it</span>
       </li>
       <li class="step">
         <span class="step-num" aria-hidden="true"></span>
-        <div><div class="step-title">Agents start sharing</div>
-        <div class="step-desc">Your villa appears in the agent portal with live availability. Agents share it with their clients immediately.</div></div>
+        <div class="step-title">Agents start sharing</div>
+        <div class="step-desc">Your villa appears in the agent portal with live availability. Agents share it with their clients immediately.</div>
+        <span class="step-time">Live in 24 hours</span>
       </li>
     </ol>
   </div>
