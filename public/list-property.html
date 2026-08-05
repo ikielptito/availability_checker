@@ -34,9 +34,16 @@ h1 .accent{color:var(--accent)}
 .founding-sub{color:var(--sb-gray-700);font-size:.85rem;line-height:1.55}
 
 /* --- Section scaffolding --- */
-.section{margin-bottom:44px}
-h2{font-size:1.25rem;letter-spacing:-.01em;margin-bottom:6px}
-.section-sub{color:var(--muted);font-size:.9rem;line-height:1.6;margin-bottom:18px}
+.section{margin-bottom:60px}
+.section .sb-eyebrow{display:block;margin-bottom:10px}
+h2{font-size:1.4rem;letter-spacing:-.015em;margin-bottom:8px}
+.section-sub{color:var(--muted);font-size:.92rem;line-height:1.6;margin-bottom:20px;max-width:54ch}
+.hero-ctas{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+
+/* --- Platform chips --- */
+.plat{display:flex;align-items:center;gap:16px;margin-top:12px}
+.plat-chip{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:600;color:var(--muted)}
+.plat-chip img{height:15px;width:15px}
 
 /* --- Chooser cards (unchanged behaviour) --- */
 .opt{display:block;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px;text-decoration:none;color:var(--text);transition:border-color .15s,transform .1s;position:relative}
@@ -106,6 +113,10 @@ h2{font-size:1.25rem;letter-spacing:-.01em;margin-bottom:6px}
     <span class="sb-eyebrow">For Bali villa owners</span>
     <h1>One listing. <span class="accent">300+ rental agents.</span></h1>
     <p class="sub">Samba is where Bali's rental agents find long-term villas for their clients. List once — every agent sees your live availability and shares your villa directly with tenants.</p>
+    <div class="hero-ctas">
+      <a class="sb-btn" href="#start">List your villa — free</a>
+      <a class="sb-btn sb-btn--ghost" href="#how">See how it works</a>
+    </div>
     <div class="figure hero-figure">
       <img src="/img-network.webp" alt="One villa reaching many rental agents, each sharing it with their clients" width="900" height="507">
     </div>
@@ -120,27 +131,9 @@ h2{font-size:1.25rem;letter-spacing:-.01em;margin-bottom:6px}
     <div class="founding-sub">Samba's standard price is IDR 150,000/month per villa (billed as US$9.50) — never a commission, never a booking fee. Founding villas skip it entirely.</div>
   </div>
 
-  <!-- Chooser -->
-  <div class="section" id="start">
-    <h2>Pick how you'd like to start</h2>
-    <p class="section-sub">Both take about five minutes. Both end with your villa in front of every agent on Samba.</p>
-
-    <a class="opt" href="/portal?view=new">
-      <span class="opt-tag">FASTEST</span>
-      <div class="opt-title">List it yourself in the owner portal</div>
-      <div class="opt-desc">Already on Airbnb or Booking.com? Paste the link and we copy everything over — photos included. Otherwise a short guided flow walks you through it, with photos straight from your phone.</div>
-      <div class="opt-cta">Open the owner portal →</div>
-    </a>
-
-    <a class="opt" href="https://wa.me/6287841441233?text=Hi%20Maya!%20I%27d%20like%20to%20list%20my%20villa%20on%20Samba%20%F0%9F%8F%A1" target="_blank" rel="noopener">
-      <div class="opt-title"><img class="maya-avatar" src="/maya-avatar.webp" alt="Maya" width="34" height="34"> Chat with Maya on WhatsApp</div>
-      <div class="opt-desc">Send Maya your villa details and photos in a normal WhatsApp chat — she prepares the listing for you and it appears in your portal, ready to review.</div>
-      <div class="opt-cta">Start the chat →</div>
-    </a>
-  </div>
-
   <!-- Problem -->
-  <div class="section">
+  <div class="section" id="how">
+    <span class="sb-eyebrow">The problem</span>
     <h2>What renting out a villa actually looks like</h2>
     <p class="section-sub">Every vacant day costs money — but finding long-term tenants means juggling five channels and hoping the right person sees your listing.</p>
     <div class="figure">
@@ -150,6 +143,7 @@ h2{font-size:1.25rem;letter-spacing:-.01em;margin-bottom:6px}
 
   <!-- Product proof -->
   <div class="section">
+    <span class="sb-eyebrow">The presentation</span>
     <h2>What agents share with their tenants</h2>
     <p class="section-sub">Every villa gets a polished presentation page with live availability, pricing and inclusions.</p>
     <div class="figure">
@@ -160,6 +154,7 @@ h2{font-size:1.25rem;letter-spacing:-.01em;margin-bottom:6px}
 
   <!-- Maya broadcast -->
   <div class="section">
+    <span class="sb-eyebrow">The network</span>
     <h2>Maya works the network for you</h2>
     <p class="section-sub">When your availability changes, Maya broadcasts it to every agent on WhatsApp — daily. New listings get seen in their first week, without you lifting a finger.</p>
     <div class="figure">
@@ -167,8 +162,33 @@ h2{font-size:1.25rem;letter-spacing:-.01em;margin-bottom:6px}
     </div>
   </div>
 
+  <!-- Chooser -->
+  <div class="section" id="start">
+    <span class="sb-eyebrow">Get started</span>
+    <h2>Pick how you'd like to start</h2>
+    <p class="section-sub">Both take about five minutes. Both end with your villa in front of every agent on Samba.</p>
+
+    <a class="opt" href="/portal?view=new">
+      <span class="opt-tag">FASTEST</span>
+      <div class="opt-title">List it yourself in the owner portal</div>
+      <div class="opt-desc">Already on Airbnb or Booking.com? Paste the link and we copy everything over — photos included. Otherwise a short guided flow walks you through it, with photos straight from your phone.</div>
+      <div class="plat">
+        <span class="plat-chip"><img src="/logo-airbnb.svg" alt="" width="15" height="15"> Airbnb</span>
+        <span class="plat-chip"><img src="/logo-booking.svg" alt="" width="15" height="15"> Booking.com</span>
+      </div>
+      <div class="opt-cta">Open the owner portal →</div>
+    </a>
+
+    <a class="opt" href="https://wa.me/6287841441233?text=Hi%20Maya!%20I%27d%20like%20to%20list%20my%20villa%20on%20Samba%20%F0%9F%8F%A1" target="_blank" rel="noopener">
+      <div class="opt-title"><img class="maya-avatar" src="/maya-avatar.webp" alt="Maya" width="34" height="34"> List with Maya on WhatsApp</div>
+      <div class="opt-desc">Send Maya your villa details and photos in a normal WhatsApp chat — she prepares the listing for you and it appears in your portal, ready to review.</div>
+      <div class="opt-cta">Start the chat →</div>
+    </a>
+  </div>
+
   <!-- Steps -->
   <div class="section">
+    <span class="sb-eyebrow">What happens next</span>
     <h2>Live in under 24 hours</h2>
     <p class="section-sub">No account setup. No software to learn. Submit your details and we handle the rest.</p>
     <ol class="steps">
@@ -192,12 +212,20 @@ h2{font-size:1.25rem;letter-spacing:-.01em;margin-bottom:6px}
 
   <!-- Performance -->
   <div class="section">
+    <span class="sb-eyebrow">Visibility</span>
     <h2>Know exactly how your villa performs</h2>
-    <p class="section-sub">Your owner dashboard shows agent views, client shares and enquiries — plus a weekly report. No guesswork about whether agents are actually showing your villa.</p>
+    <p class="section-sub">Your owner dashboard shows agent views, client shares and enquiries. No guesswork about whether agents are actually showing your villa.</p>
     <div class="figure">
       <img src="/img-pillar-visibility.webp" alt="The Samba owner dashboard with agent views, shares and enquiries for a villa" width="900" height="507" loading="lazy">
     </div>
-    <div class="figure" style="margin-top:14px">
+  </div>
+
+  <!-- Weekly report -->
+  <div class="section">
+    <span class="sb-eyebrow">Every Monday</span>
+    <h2>No login. No spreadsheet. Just WhatsApp.</h2>
+    <p class="section-sub">Maya sends your villa's weekly report straight to your chat — views, shares, and enquiries, every Monday morning.</p>
+    <div class="figure">
       <img src="/img-weekly-report.webp" alt="Maya's weekly villa performance report delivered on WhatsApp every Monday" width="900" height="600" loading="lazy">
     </div>
   </div>
@@ -211,6 +239,7 @@ h2{font-size:1.25rem;letter-spacing:-.01em;margin-bottom:6px}
 
   <!-- FAQ -->
   <div class="section faq">
+    <span class="sb-eyebrow">FAQ</span>
     <h2>Common questions</h2>
     <details>
       <summary>What does it cost?</summary>
