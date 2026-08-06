@@ -33,7 +33,7 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 .lp-cta{background:var(--accent);border:none;border-radius:8px;color:#fff;padding:9px 17px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.8rem;font-weight:500;cursor:pointer;transition:opacity .2s;white-space:nowrap;}
 .lp-cta:hover{opacity:.9;}
 .lp-hero{text-align:center;padding:104px 24px 58px;max-width:680px;margin:0 auto;background:radial-gradient(ellipse 75% 55% at 50% 0%,rgba(226,87,43,0.08) 0%,transparent 70%);}
-.lp-eyebrow{font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--yellow);margin-bottom:18px;}
+.lp-eyebrow{font-size:0.72rem;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--accent);margin-bottom:18px;}
 .lp-h1{font-family:'Satoshi',-apple-system,sans-serif;font-size:2.8rem;line-height:1.08;margin-bottom:20px;}
 .lp-sub{font-size:1.04rem;color:var(--muted);line-height:1.6;max-width:600px;margin:0 auto 30px;}
 #gbtn{display:flex;justify-content:center;min-height:44px;}
@@ -160,6 +160,10 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .ical-help[open] summary{margin-bottom:6px;}
 .ical-help div{background:var(--surface2);border-radius:8px;padding:10px 12px;line-height:1.7;}
 .lp-demo{display:block;margin:14px auto 0;background:none;border:none;color:var(--accent);font-family:inherit;font-size:.86rem;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
+.lp-founding{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;background:var(--surface);border:1px solid var(--sb-terracotta-100);border-radius:999px;padding:7px 14px 7px 8px;margin:0 auto 28px;font-size:.85rem;color:var(--sb-gray-700);box-shadow:var(--sb-shadow-xs)}
+.lp-code{font-weight:900;letter-spacing:.06em;color:var(--sb-terracotta-700);background:var(--sb-terracotta-050);border:1.5px dashed var(--sb-terracotta);border-radius:8px;padding:3px 10px;font-size:.8rem}
+.lp-peek{max-width:660px;margin:36px auto 0;padding:0 24px}
+.lp-peek img{display:block;width:100%;height:auto;border-radius:20px;border:1px solid var(--border);box-shadow:var(--sb-shadow-sm)}
 .demo-banner{display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:.86rem;color:var(--text-2);}
 .demo-banner button{margin-left:auto;flex-shrink:0;background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:.8rem;font-weight:600;padding:8px 14px;cursor:pointer;}
 .fg .hint{font-size:0.66rem;color:var(--muted);text-transform:none;letter-spacing:0;margin-top:5px;}
@@ -371,6 +375,7 @@ body.wiz-open #snav-tabs{display:none !important;}
     <div class="lp-eyebrow">Owner portal</div>
     <h1 class="lp-h1">Sign in to list your villa.</h1>
     <p class="lp-sub">Add your villa, manage your listings, and track agent interest, all in one place. IDR 150,000/month per villa (billed as US$9.50), cancel anytime.</p>
+    <div class="lp-founding"><span class="sb-pill sb-pill--accent">FOUNDING 25</span> The first 25 villas list free <span class="lp-code">FOUNDING25</span></div>
     <div id="gbtn"></div>
     <div class="login-err" id="login-err"></div>
     <div class="lp-hero-note">New here? Signing in with Google creates your owner account automatically.</div>
@@ -378,9 +383,13 @@ body.wiz-open #snav-tabs{display:none !important;}
   </header>
 
   <div class="lp-trust">
-    <span><b>250+</b>rental agents</span>
+    <span><b>300+</b>rental agents</span>
     <span><b>Canggu · Pererenan · Bali</b></span>
     <span><b>IDR 150k</b>/ month per villa</span>
+  </div>
+
+  <div class="lp-peek">
+    <img src="/img-pillar-visibility.webp" alt="The Samba owner dashboard showing agent views, shares and enquiries" width="900" height="507" loading="lazy">
   </div>
 
   <div class="lp-newhere">
@@ -388,7 +397,7 @@ body.wiz-open #snav-tabs{display:none !important;}
   </div>
 
   <footer class="lp-footer">
-    <div>Not ready to sign up? <a href="/list-property">Submit a property via WhatsApp →</a></div>
+    <div>Prefer WhatsApp? <a href="/list-property">List with Maya →</a></div>
     <div><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refund">Refunds</a></div>
     <div>© 2026 Samba Rentals · Bali, Indonesia</div>
   </footer>
