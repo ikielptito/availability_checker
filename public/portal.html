@@ -762,6 +762,16 @@ function enterDemo(){
     b.innerHTML='<span>You’re browsing <b>demo data</b>. This is what your dashboard looks like once your villa is live.</span><button onclick="exitDemo()">Sign in to add your villa</button>';
     content.prepend(b);
   }
+  // Demo is a dead end without an exit: back arrow in the topbar returns to
+  // the signed-out gate (exitDemo reloads /portal).
+  const tb=document.querySelector('#app .topbar');
+  if(tb&&!document.getElementById('demo-back')){
+    const bk=document.createElement('button');
+    bk.id='demo-back';bk.className='wiz-icon';bk.title='Exit demo';
+    bk.setAttribute('aria-label','Exit demo');bk.textContent='←';
+    bk.onclick=exitDemo;
+    tb.insertBefore(bk,tb.firstChild);
+  }
 }
 function exitDemo(){location.reload();}
 function demoBlock(){
