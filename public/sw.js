@@ -8,7 +8,10 @@
  *  - Static assets (images incl. Drive photos, fonts, icons): cache-first.
  *  - Versioned cache names; old caches are dropped on activate.
  */
-const VERSION = 'v7-publish-moment';
+/* NOTE: images are cached cache-first, so replacing an image's content under
+ * the SAME filename requires bumping VERSION or returning visitors keep the
+ * old pixels forever (bit us with the 2026-08 retina re-exports). */
+const VERSION = 'v8-retina-graphics';
 const RUNTIME = 'samba-runtime-' + VERSION;
 
 self.addEventListener('install', () => self.skipWaiting());
