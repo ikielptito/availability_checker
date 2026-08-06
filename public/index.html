@@ -556,6 +556,13 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 
 /* iOS auto-zoom guard — sub-16px inputs zoom the page on focus and stay zoomed */
 @media(max-width:640px){input,textarea,select{font-size:16px !important;}}
+
+/* Owner-preview banner (?from=owner) — owners peeking at the product get a way back */
+#owner-peek{display:none;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;background:var(--sb-terracotta-050);border-bottom:1px solid var(--sb-terracotta-100);padding:9px 40px 9px 14px;font-size:.84rem;color:var(--sb-terracotta-700);position:relative;text-align:center}
+#owner-peek.show{display:flex}
+#owner-peek a{color:var(--sb-terracotta-700);font-weight:700;text-decoration:none;white-space:nowrap}
+#owner-peek a:hover{text-decoration:underline}
+#owner-peek button{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--sb-terracotta-600);font-size:1rem;cursor:pointer;padding:6px;line-height:1}
 </style>
 </head>
 <body>
@@ -579,6 +586,11 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
       <span class="hiw-label">How it works</span>
     </a>
     <div id="samba-nav"></div>
+  </div>
+  <div id="owner-peek">
+    <span>You're previewing the agent portal — this is where your villa gets seen.</span>
+    <a href="/home">Back to listing your villa →</a>
+    <button onclick="dismissOwnerPeek()" aria-label="Dismiss">✕</button>
   </div>
   <div id="browse-chrome">
     <div class="search-section">
@@ -738,6 +750,18 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 
 <script src="/nav.js"></script>
 <script>
+// Owner peek: /?from=owner shows a return banner so owners previewing the
+// product can get back to the listing flow. Dismiss sticks for the session.
+(function(){
+  try{
+    if(new URLSearchParams(location.search).get('from')==='owner' && !sessionStorage.getItem('samba_owner_peek_off'))
+      document.getElementById('owner-peek').classList.add('show');
+  }catch{}
+})();
+function dismissOwnerPeek(){
+  document.getElementById('owner-peek').classList.remove('show');
+  try{sessionStorage.setItem('samba_owner_peek_off','1');}catch{}
+}
 let properties=[], avail={}, failedAvail=new Set(), query='', bedroomFilter='all', sortMode='default';
 let availFilter='all', budgetFilter='all', durationFilter='all', pillWs=false, topPickId=null;
 let viewMode=localStorage.getItem('samba_view')||'bento'; // 'bento' | 'list' | 'map'

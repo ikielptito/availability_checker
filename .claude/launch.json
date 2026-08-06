@@ -3,12 +3,16 @@
   "configurations": [
     {
       "name": "samba-dev",
-      "runtimeExecutable": "/opt/homebrew/bin/node",
-      "runtimeArgs": [
-        "dev/devserver.mjs"
-      ],
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["dev/devserver.mjs"],
       "port": 3456,
       "autoPort": true
+    },
+    {
+      "name": "kaya-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "3499", "--directory", "/Users/ikiel/kaya-agent-crm"],
+      "port": 3499
     }
   ]
 }

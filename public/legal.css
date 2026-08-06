@@ -22,3 +22,9 @@ body{font-family:'Sora',system-ui,sans-serif;background:var(--bg);color:var(--te
 .legal-wrap strong{color:var(--text);}
 .legal-foot{border-top:1px solid var(--border);margin-top:40px;padding-top:22px;font-size:.8rem;color:var(--muted);}
 .legal-foot a{color:var(--accent);text-decoration:none;}
+
+/* Site-wide portal switcher pill (matches nav.js #snav-tabs / .lp-switch) */
+body{padding-bottom:calc(90px + env(safe-area-inset-bottom,0px));}
+.lp-switch{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:110;display:flex;width:min(440px,calc(100% - 24px));background:rgba(255,255,255,.95);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(28,25,23,.12);border-radius:999px;padding:5px;box-shadow:0 2px 4px rgba(0,0,0,.2),0 10px 24px rgba(0,0,0,.25);}
+.lp-switch a{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 10px;border-radius:999px;text-decoration:none;font-family:'Sora',system-ui,sans-serif;font-size:.88rem;font-weight:600;color:#4A4F4D;}
+.lp-switch a:hover{background:#F5F1EB;}
