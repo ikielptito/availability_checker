@@ -768,7 +768,9 @@ function enterDemo(){
   if(tb&&!document.getElementById('demo-back')){
     const bk=document.createElement('button');
     bk.id='demo-back';bk.className='wiz-icon';bk.title='Exit demo';
-    bk.setAttribute('aria-label','Exit demo');bk.textContent='←';
+    bk.setAttribute('aria-label','Exit demo');
+    // Same arrow SVG as back.js — the raw "←" glyph rendered thin and off-center.
+    bk.innerHTML='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>';
     bk.onclick=exitDemo;
     tb.insertBefore(bk,tb.firstChild);
   }

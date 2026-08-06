@@ -211,6 +211,10 @@
   }
 
   // ── Render ──
+  // innerWidth reads 0 in hidden/background contexts (prerender, hidden
+  // webview panes) — fall back to screen width so the mount choice stays sane.
+  function viewportW() { return window.innerWidth || (window.screen && screen.width) || 1024; }
+
   function renderNav() {
     var portal = curPortal(), sub = curSub();
     // Tier 1 — bottom portal bar (mobile)
@@ -223,14 +227,19 @@
       return '<a class="snav-ptab' + (p.key === portal ? ' on' : '') + '" href="' + href + '">' + p.icon + '<span>' + esc(p.label) + '</span></a>';
     }).join('');
     // Tier 2 — sub-tab strip. Preferred mount is INSIDE the topbar row (via
-    // the #samba-nav slot) so the logo and tabs share one line; falls back to
-    // a full-width strip below the topbar on pages without the slot.
+    // the #samba-nav slot) so the logo and tabs share one line — but only when
+    // the row has room. On phones the topbar (logo, help, language toggle)
+    // leaves too little width, and the flex-end + overflow combination clipped
+    // the leading tab to a half-visible sliver — so ≤640px the strip mounts as
+    // its own full-width row below the topbar instead (labels included).
     var strip = document.getElementById('snav-sub');
+    var host = document.getElementById('samba-nav');
+    var wantInline = !!host && viewportW() > 640;
+    if (strip && strip.classList.contains('inline') !== wantInline) { strip.remove(); strip = null; }
     if (!strip) {
       strip = document.createElement('div'); strip.id = 'snav-sub';
-      var host = document.getElementById('samba-nav');
       var tb = document.querySelector('.topbar');
-      if (host) { strip.className = 'inline'; host.appendChild(strip); }
+      if (wantInline) { strip.className = 'inline'; host.appendChild(strip); }
       else if (tb && tb.parentNode) tb.parentNode.insertBefore(strip, tb.nextSibling);
       else document.body.insertBefore(strip, document.body.firstChild);
     }
@@ -622,6 +631,19 @@
     refresh: loadMe,
   };
 
-  function init() { renderNav(); loadMe(); }
+  function init() {
+    renderNav(); loadMe();
+    // Re-mount the sub-tab strip when the viewport crosses the inline/below
+    // breakpoint (rotation, window resize).
+    var rzTimer = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(rzTimer);
+      rzTimer = setTimeout(function () {
+        var strip = document.getElementById('snav-sub');
+        var wantInline = !!document.getElementById('samba-nav') && viewportW() > 640;
+        if (strip && strip.classList.contains('inline') !== wantInline) renderNav();
+      }, 150);
+    });
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
