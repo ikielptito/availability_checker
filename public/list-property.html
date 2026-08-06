@@ -9,15 +9,20 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#F4F1ED">
+<link rel="canonical" href="https://sambarentals.com/home">
 <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
 <link rel="stylesheet" href="/brand.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--sb-font-display);background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;-webkit-font-smoothing:antialiased}
-.topbar{position:sticky;top:0;z-index:100;background:rgba(244,241,237,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:14px}
-.brand-mark{display:flex;align-items:center;flex-shrink:0;text-decoration:none}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(244,241,237,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:8px}
+.brand-mark{display:flex;align-items:center;flex-shrink:0;text-decoration:none;margin-right:auto}
 .brand-mark img{height:64px}
-@media(max-width:600px){.topbar{padding:8px 16px}.brand-mark img{height:56px}}
+.tb-link{font-size:.88rem;font-weight:500;color:var(--text);text-decoration:none;padding:8px 12px;border-radius:8px;white-space:nowrap}
+.tb-link:hover{background:var(--surface2)}
+.tb-cta{padding:10px 16px;font-size:.84rem;white-space:nowrap}
+@media(max-width:600px){.topbar{padding:8px 12px;gap:4px}.brand-mark img{height:44px}.tb-link{font-size:.78rem;padding:6px 8px}.tb-cta{padding:9px 12px;font-size:.76rem}.hide-m{display:none}}
+@media(max-width:480px){.brand-mark img{height:34px}.tb-link{font-size:.74rem;padding:6px 5px}.tb-cta{padding:8px 9px;font-size:.7rem}}
 .page{max-width:620px;margin:0 auto;padding:48px 20px 80px}
 
 /* --- Hero --- */
@@ -101,6 +106,52 @@ h2{font-size:1.4rem;letter-spacing:-.015em;margin-bottom:8px}
 .closer-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .foot-link{text-align:center;margin-top:30px;font-size:.84rem;color:var(--muted)}
 .foot-link a{color:var(--accent);font-weight:600;text-decoration:none}
+
+/* --- Agent-portal peek --- */
+.peek{background:var(--sb-terracotta-050);border:1px solid var(--sb-terracotta-100);border-radius:var(--sb-r-lg);padding:26px 22px;display:flex;flex-direction:column;gap:16px;align-items:flex-start}
+.peek .section-sub{margin-bottom:0}
+.peek h2{color:var(--sb-terracotta-700)}
+
+/* --- Site footer --- */
+.site-foot{text-align:center;padding:28px 20px calc(96px + env(safe-area-inset-bottom,0px));color:var(--muted);font-size:.82rem;line-height:2.1;border-top:1px solid var(--border)}
+.site-foot a{color:var(--accent);text-decoration:none;font-weight:500}
+.site-foot a:hover{text-decoration:underline}
+.site-foot .sf-links a{margin:0 7px}
+
+/* --- Fixed portal switcher (matches /portal gate) --- */
+.lp-switch{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:110;display:flex;width:min(440px,calc(100% - 24px));background:rgba(255,255,255,.93);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:999px;padding:5px;box-shadow:var(--sb-shadow-md)}
+.lp-switch a{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 10px;border-radius:999px;text-decoration:none;font-family:var(--sb-font-display);font-size:.9rem;font-weight:600;color:var(--sb-gray-700)}
+.lp-switch a:not(.on):hover{background:var(--surface2)}
+.lp-switch a.on{background:var(--sb-terracotta-050);color:var(--sb-terracotta-700)}
+
+/* --- Desktop: real two-column compositions instead of a stretched phone column --- */
+@media(min-width:900px){
+  .page{max-width:1100px;padding:64px 40px 80px}
+  .hero-wrap{display:grid;grid-template-columns:1.15fr 1fr;gap:56px;align-items:center;margin-bottom:34px}
+  .hero{margin-bottom:0}
+  h1{font-size:clamp(2.6rem,3.8vw,3.4rem)}
+  .sub{font-size:1.12rem}
+  .hero-figure{margin:0}
+  .founding{margin:0 0 72px}
+  .section{margin-bottom:84px}
+  h2{font-size:1.8rem}
+  .section-sub{font-size:1rem}
+  .split{display:grid;grid-template-columns:5fr 6fr;gap:56px;align-items:center}
+  .split .sec-copy{max-width:44ch}
+  .split.flip .sec-copy{order:2}
+  .split.flip .figure{order:1}
+  .peek{flex-direction:row;align-items:center;gap:40px;padding:36px 40px}
+  .peek-copy{flex:1}
+  .peek .sb-btn{flex-shrink:0}
+  #start{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  #start>.sb-eyebrow,#start>h2,#start>.section-sub{grid-column:1/-1;margin-bottom:0}
+  #start>.section-sub{margin-bottom:8px}
+  #start .opt{margin-bottom:0;display:flex;flex-direction:column}
+  #start .opt .opt-desc{flex:1}
+  .faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 48px;align-items:start}
+  .closer{padding-top:24px}
+  .closer-tag{font-size:1.8rem}
+}
 </style>
 </head>
 <body>
@@ -109,17 +160,27 @@ h2{font-size:1.4rem;letter-spacing:-.015em;margin-bottom:8px}
   <a class="brand-mark" href="/home">
     <img src="/logo-samba.png" alt="Samba">
   </a>
+  <a class="tb-link hide-m" href="/?from=owner">See the agent portal</a>
+  <a class="tb-link" href="/portal">Sign in</a>
+  <a class="sb-btn tb-cta" href="#start">List your villa</a>
+  <!-- EN/ID pill auto-mounts here (i18n.js) -->
 </div>
 
 <div class="page">
 
   <!-- Hero -->
-  <div class="hero">
-    <span class="sb-eyebrow">For Bali villa owners</span>
-    <h1>One listing. <span class="accent">300+ rental agents.</span></h1>
-    <p class="sub">Samba is where Bali's rental agents find long-term villas for their clients. List once. Every agent sees your live availability and shares your villa directly with tenants.</p>
-    <div class="hero-ctas">
-      <a class="sb-btn" href="#start">List your villa</a>
+  <div class="hero-wrap">
+    <div class="hero">
+      <span class="sb-eyebrow">For Bali villa owners</span>
+      <h1>One listing. <span class="accent">300+ rental agents.</span></h1>
+      <p class="sub">Samba is where Bali's rental agents find long-term villas for their clients. List once. Every agent sees your live availability and shares your villa directly with tenants.</p>
+      <div class="hero-ctas">
+        <a class="sb-btn" href="#start">List your villa</a>
+        <a class="sb-btn sb-btn--secondary" href="/?from=owner">See the agent portal →</a>
+      </div>
+    </div>
+    <div class="figure hero-figure">
+      <img src="/img-hero-phone.webp" alt="The Samba agent portal on a phone, held beside a Canggu villa pool" width="800" height="1000" fetchpriority="high">
     </div>
   </div>
 
@@ -138,39 +199,51 @@ h2{font-size:1.4rem;letter-spacing:-.015em;margin-bottom:8px}
     </div>
   </div>
 
-  <div class="figure hero-figure">
-    <img src="/img-hero-phone.webp" alt="The Samba agent portal on a phone, held beside a Canggu villa pool" width="800" height="1000" fetchpriority="high">
-  </div>
-
   <!-- Problem -->
-  <div class="section" id="how">
-    <span class="sb-eyebrow">The problem</span>
-    <h2>What renting out a villa actually looks like</h2>
-    <p class="section-sub">Every vacant day costs money, but finding long-term tenants means juggling five channels and hoping the right person sees your listing.</p>
+  <div class="section split" id="how">
+    <div class="sec-copy">
+      <span class="sb-eyebrow">The problem</span>
+      <h2>What renting out a villa actually looks like</h2>
+      <p class="section-sub">Every vacant day costs money, but finding long-term tenants means juggling five channels and hoping the right person sees your listing.</p>
+    </div>
     <div class="figure">
       <img src="/img-before-after.webp" alt="Before Samba: juggling Airbnb, Facebook groups and WhatsApp threads. With Samba: one listing, live availability, 300+ rental agents" width="900" height="600" loading="lazy">
     </div>
   </div>
 
   <!-- Product proof -->
-  <div class="section">
-    <span class="sb-eyebrow">The presentation</span>
-    <h2>What agents share with their tenants</h2>
-    <p class="section-sub">Every villa gets a polished presentation page with live availability, pricing and inclusions.</p>
+  <div class="section split flip">
+    <div class="sec-copy">
+      <span class="sb-eyebrow">The presentation</span>
+      <h2>What agents share with their tenants</h2>
+      <p class="section-sub">Every villa gets a polished presentation page with live availability, pricing and inclusions.</p>
+      <a class="proof-link" href="/l/haus-4" target="_blank" rel="noopener">See a live example →</a>
+    </div>
     <div class="figure">
       <img src="/img-owner-share.webp" alt="An agent shares a Samba villa page over WhatsApp and the tenant views it on their phone" width="900" height="506" loading="lazy">
     </div>
-    <a class="proof-link" href="/l/haus-4" target="_blank" rel="noopener">See a live example →</a>
   </div>
 
   <!-- Maya broadcast -->
-  <div class="section">
-    <span class="sb-eyebrow">The network</span>
-    <h2>Maya works the network for you</h2>
-    <p class="section-sub">When your availability changes, Maya broadcasts it to every agent on WhatsApp, daily. New listings get seen in their first week, without you lifting a finger.</p>
+  <div class="section split">
+    <div class="sec-copy">
+      <span class="sb-eyebrow">The network</span>
+      <h2>Maya works the network for you</h2>
+      <p class="section-sub">When your availability changes, Maya broadcasts it to every agent on WhatsApp, daily. New listings get seen in their first week, without you lifting a finger.</p>
+    </div>
     <div class="figure">
       <img src="/img-maya-broadcast.webp" alt="Maya's daily availability broadcast fanning out to Bali rental agents on WhatsApp" width="900" height="600" loading="lazy">
     </div>
+  </div>
+
+  <!-- See the product -->
+  <div class="section peek">
+    <div class="peek-copy">
+      <span class="sb-eyebrow">See it live</span>
+      <h2>Browse the portal agents actually use</h2>
+      <p class="section-sub">The agent portal is public. Open it and see exactly where your villa appears, how availability shows, and what 300+ agents scroll through every day.</p>
+    </div>
+    <a class="sb-btn" href="/?from=owner">Open the agent portal →</a>
   </div>
 
   <!-- Chooser -->
@@ -225,20 +298,24 @@ h2{font-size:1.4rem;letter-spacing:-.015em;margin-bottom:8px}
   </div>
 
   <!-- Performance -->
-  <div class="section">
-    <span class="sb-eyebrow">Visibility</span>
-    <h2>Know exactly how your villa performs</h2>
-    <p class="section-sub">Your owner dashboard shows agent views, client shares and enquiries. No guesswork about whether agents are actually showing your villa.</p>
+  <div class="section split flip">
+    <div class="sec-copy">
+      <span class="sb-eyebrow">Visibility</span>
+      <h2>Know exactly how your villa performs</h2>
+      <p class="section-sub">Your owner dashboard shows agent views, client shares and enquiries. No guesswork about whether agents are actually showing your villa.</p>
+    </div>
     <div class="figure">
       <img src="/img-pillar-visibility.webp" alt="The Samba owner dashboard with agent views, shares and enquiries for a villa" width="900" height="507" loading="lazy">
     </div>
   </div>
 
   <!-- Weekly report -->
-  <div class="section">
-    <span class="sb-eyebrow">Every Monday</span>
-    <h2>The week's results come to you</h2>
-    <p class="section-sub">Maya sends your villa's report straight to your WhatsApp: views, shares and enquiries at a glance, with the full breakdown waiting in your owner dashboard.</p>
+  <div class="section split">
+    <div class="sec-copy">
+      <span class="sb-eyebrow">Every Monday</span>
+      <h2>The week's results come to you</h2>
+      <p class="section-sub">Maya sends your villa's report straight to your WhatsApp: views, shares and enquiries at a glance, with the full breakdown waiting in your owner dashboard.</p>
+    </div>
     <div class="figure">
       <img src="/img-weekly-report.webp" alt="Maya's weekly villa performance report delivered on WhatsApp every Monday" width="900" height="600" loading="lazy">
     </div>
@@ -255,6 +332,7 @@ h2{font-size:1.4rem;letter-spacing:-.015em;margin-bottom:8px}
   <div class="section faq">
     <span class="sb-eyebrow">FAQ</span>
     <h2>Common questions</h2>
+    <div class="faq-grid">
     <details>
       <summary>What does it cost?</summary>
       <div class="faq-a">Nothing for the founding 25 villas. Use code <b>FOUNDING25</b> when you list and it's free. Samba's standard price is IDR 150,000/month per villa (billed as US$9.50). There are no commissions or booking fees, ever. You keep what you earn.</div>
@@ -279,6 +357,7 @@ h2{font-size:1.4rem;letter-spacing:-.015em;margin-bottom:8px}
       <summary>Can I remove my listing later?</summary>
       <div class="faq-a">Anytime. It's your villa and your listing. Unpublish it from the owner portal whenever you like, no questions asked.</div>
     </details>
+    </div>
   </div>
 
   <!-- Closer -->
@@ -295,6 +374,27 @@ h2{font-size:1.4rem;letter-spacing:-.015em;margin-bottom:8px}
 </div>
 
 <img class="closer-art" src="/img-footer.webp" alt="" width="1500" height="500" loading="lazy">
+
+<footer class="site-foot">
+  <div class="sf-links">
+    <a href="/?from=owner">Agent portal</a> · <a href="/for-agents">For agents</a> · <a href="/portal">Sign in</a>
+  </div>
+  <div class="sf-links">
+    <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refund">Refunds</a>
+  </div>
+  <div>© 2026 Samba Rentals · Bali, Indonesia</div>
+</footer>
+
+<div class="lp-switch">
+  <a href="/?from=owner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Agent portal
+  </a>
+  <a href="/portal" class="on">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Owner portal
+  </a>
+</div>
 
 <script>
 (async function loadStats() {

@@ -55,29 +55,26 @@
   /* Tier 2 — sub-tab strip (below the page topbar), quiet pills on the page bg */
   #snav-sub{display:flex;align-items:center;gap:12px;padding:10px 20px 0;background:transparent;border:none;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:960px;margin:0 auto;box-sizing:border-box}
   #snav-sub::-webkit-scrollbar{display:none}
-  .snav-seg{display:inline-flex;background:#fff;border:1px solid rgba(28,25,23,.09);border-radius:999px;padding:3px;gap:2px;flex-shrink:0;box-shadow:0 1px 2px rgba(28,25,23,.07),0 2px 5px rgba(28,25,23,.05)}
-  .snav-seg-btn{display:inline-flex;align-items:center;gap:6px;border:none;background:none;font-family:'Geist',-apple-system,sans-serif;font-size:.76rem;font-weight:600;letter-spacing:.01em;color:#8a8478;padding:7px 14px;border-radius:999px;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
-  .snav-seg-btn.on{background:#F6E7DE;color:#C46E4B}
   .snav-subtabs{display:inline-flex;align-items:center;gap:2px;flex-shrink:0}
   .snav-stab{display:inline-flex;align-items:center;gap:6px;border:none;background:none;font-family:'Geist',-apple-system,sans-serif;font-size:.78rem;font-weight:500;letter-spacing:.01em;color:#6b6557;padding:8px 12px;border-radius:999px;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
   .snav-stab:hover{background:#F5F1EB;color:#1C1917}
   .snav-stab.on{color:#C46E4B;background:#F6E7DE}
   .snav-stab svg{width:16px;height:16px;flex-shrink:0}
   .snav-stab .snav-av{width:22px;height:22px}
-  /* Tier 1 — floating glass portal bar (mobile) */
+  /* Tier 1 — floating glass portal bar. Always visible, every viewport: the
+     one site-wide gesture for switching between the two portals. Matches the
+     static .lp-switch pill on the marketing/legal pages. */
   /* translateZ(0) + backface-visibility pin the bar to its own compositor layer
      so iOS Safari keeps it locked to the viewport during momentum scroll
      (fixed + backdrop-filter otherwise lags upward and snaps back). */
-  #snav-tabs{position:fixed;left:16px;right:16px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:900;display:none;background:rgba(255,255,255,.92);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(28,25,23,.09);border-radius:22px;padding:5px;gap:8px;height:62px;box-sizing:border-box;box-shadow:0 1px 2px rgba(28,25,23,.06),0 8px 22px rgba(28,25,23,.1);transform:translateZ(0);-webkit-transform:translateZ(0);backface-visibility:hidden;-webkit-backface-visibility:hidden}
-  #snav-tabs .snav-ptab{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-family:'Geist',-apple-system,sans-serif;font-size:.7rem;font-weight:600;letter-spacing:.01em;color:#8a8478;text-decoration:none;padding:4px;border-radius:18px;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
-  #snav-tabs .snav-ptab+.snav-ptab::before{content:'';position:absolute;left:-4.5px;top:24%;height:52%;width:1px;background:#F1ECE7}
-  #snav-tabs .snav-ptab.on{color:#C46E4B;background:#F6E7DE}
-  #snav-tabs .snav-ptab svg{width:18px;height:18px}
+  #snav-tabs{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));z-index:900;display:flex;width:min(440px,calc(100% - 24px));background:rgba(255,255,255,.93);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(28,25,23,.09);border-radius:999px;padding:5px;box-sizing:border-box;box-shadow:0 1px 2px rgba(28,25,23,.06),0 8px 22px rgba(28,25,23,.1);transform:translateX(-50%) translateZ(0);-webkit-transform:translateX(-50%) translateZ(0);backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  #snav-tabs .snav-ptab{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Geist',-apple-system,sans-serif;font-size:.9rem;font-weight:600;letter-spacing:.01em;color:#8a8478;text-decoration:none;padding:13px 10px;border-radius:999px;transition:background .18s cubic-bezier(.2,.8,.2,1),color .18s cubic-bezier(.2,.8,.2,1)}
+  #snav-tabs .snav-ptab:not(.on):hover{background:#F5F1EB}
+  #snav-tabs .snav-ptab.on{color:#B23E19;background:#FBEDE7}
+  #snav-tabs .snav-ptab svg{width:18px;height:18px;flex-shrink:0}
+  body{padding-bottom:calc(90px + env(safe-area-inset-bottom))}
   @media(max-width:760px){
-    #snav-tabs{display:flex}
-    body{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
     #snav-sub{padding:8px 16px 0;gap:8px}
-    #snav-sub .snav-seg{display:none}
   }
   /* Overlays (sign-in + account sheets) — animated in/out, blurred scrim */
   .snav-ov{position:fixed;inset:0;background:rgba(28,25,23,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:1100;display:flex;align-items:flex-start;justify-content:center;padding:7vh 16px;overflow-y:auto;opacity:0;visibility:hidden;transition:opacity .22s ease,visibility 0s linear .22s}
@@ -174,6 +171,7 @@
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
     out: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
     person: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+    house: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
   };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function initials(n) { return (n || 'A').trim().split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join('').toUpperCase(); }
@@ -181,7 +179,7 @@
   // ── Portal + sub-tab model ──
   var PORTALS = [
     { key: 'agent', label: 'Agent portal', href: '/', icon: I.person },
-    { key: 'owner', label: 'Owner portal', href: '/portal', icon: I.dashboard },
+    { key: 'owner', label: 'Owner portal', href: '/portal', icon: I.house },
   ];
   function curPortal() { return /^\/portal/.test(location.pathname) ? 'owner' : 'agent'; }
   function curSub() {
@@ -219,7 +217,10 @@
     var bottom = document.getElementById('snav-tabs');
     if (!bottom) { bottom = document.createElement('div'); bottom.id = 'snav-tabs'; document.body.appendChild(bottom); }
     bottom.innerHTML = PORTALS.map(function (p) {
-      return '<a class="snav-ptab' + (p.key === portal ? ' on' : '') + '" href="' + p.href + '">' + p.icon + '<span>' + esc(p.label) + '</span></a>';
+      // Signed-out owners hopping to the agent portal get the owner-preview
+      // banner (?from=owner) so there's always a way back to the listing flow.
+      var href = (p.key === 'agent' && portal === 'owner' && !account) ? '/?from=owner' : p.href;
+      return '<a class="snav-ptab' + (p.key === portal ? ' on' : '') + '" href="' + href + '">' + p.icon + '<span>' + esc(p.label) + '</span></a>';
     }).join('');
     // Tier 2 — sub-tab strip. Preferred mount is INSIDE the topbar row (via
     // the #samba-nav slot) so the logo and tabs share one line; falls back to
@@ -233,16 +234,15 @@
       else if (tb && tb.parentNode) tb.parentNode.insertBefore(strip, tb.nextSibling);
       else document.body.insertBefore(strip, document.body.firstChild);
     }
-    var seg = '<div class="snav-seg">' + PORTALS.map(function (p) {
-      return '<a class="snav-seg-btn' + (p.key === portal ? ' on' : '') + '" href="' + p.href + '">' + esc(p.label) + '</a>';
-    }).join('') + '</div>';
+    // No desktop segmented portal control — the always-visible bottom pill is
+    // the single portal-switching gesture at every width.
     var tabs = '<div class="snav-subtabs">' + subTabs().map(function (t) {
       var inner = t.icon + '<span>' + esc(t.label) + '</span>';
       var on = t.key === sub ? ' on' : '';
       return t.act ? '<button class="snav-stab' + on + '" data-act="' + t.act + '">' + inner + '</button>'
                    : '<a class="snav-stab' + on + '" href="' + t.href + '">' + inner + '</a>';
     }).join('') + '</div>';
-    strip.innerHTML = seg + tabs;
+    strip.innerHTML = tabs;
     wire(strip); wire(bottom);
   }
   function wire(root) {
