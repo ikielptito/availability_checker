@@ -21,7 +21,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<meta name="theme-color" content="#F4F1ED">
+<meta name="theme-color" content="#FAF0E6">
 <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="/brand.css">
@@ -30,6 +30,9 @@
 :root {
   --green: var(--sb-success-fg);
   --green-soft: var(--sb-success-bg);
+  /* This page sits on the warm cream of its marketing graphics, not the
+     site-wide #F4F1ED — the graphics' baked backdrops are retinted to match. */
+  --bg: #FAF0E6;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -46,7 +49,7 @@ body {
   position: sticky; top: 0; z-index: 100;
   display: flex; align-items: center; gap: 14px;
   padding: 10px 32px;
-  background: rgba(244,241,237,.92);
+  background: rgba(250,240,230,.92);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
 }
