@@ -168,8 +168,8 @@ body {
    as a shrinkable flex/grid item it got squished on one axis. flex:1 on the
    shot + margin:auto centers shorter images in the row height set by the
    tallest, keeping text bottom-aligned across the row. */
-.step-shot { flex: 1; display: flex; margin-bottom: 22px; }
-.step-shot img { flex: none; margin: auto; width: auto; height: auto; max-width: 100%; max-height: 420px; border-radius: 10px; }
+.step-shot { flex: 1; display: flex; margin-top: 22px; }
+.step-shot img { flex: none; margin: 0 auto auto; width: auto; height: auto; max-width: 100%; max-height: 420px; border-radius: 10px; }
 .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 .step-title { font-size: 1rem; font-weight: 700; letter-spacing: -.01em; }
 .step-text { font-size: .87rem; color: var(--muted); line-height: 1.65; }
@@ -320,28 +320,28 @@ body {
   <h2 class="section-title">How agents close deals with Samba</h2>
   <div class="steps">
     <div class="step">
-      <div class="step-shot"><img src="/img-agent-calendar.webp" width="1440" height="960" loading="lazy" alt="Live availability calendar with available and booked dates"></div>
       <div class="step-head">
         <div class="step-num">1</div>
         <div class="step-title">See what's actually available</div>
       </div>
       <div class="step-text">Live calendars synced with owners. No more double-checking, no more guesswork.</div>
+      <div class="step-shot"><img src="/img-agent-calendar.webp" width="1440" height="960" loading="lazy" alt="Live availability calendar with available and booked dates"></div>
     </div>
     <div class="step">
-      <div class="step-shot"><img src="/img-agent-listing.webp" width="1600" height="2400" loading="lazy" alt="Ready-to-send Samba listing page for Villa Amara"></div>
       <div class="step-head">
         <div class="step-num">2</div>
         <div class="step-title">Send a ready-to-book listing</div>
       </div>
       <div class="step-text">Photos, pricing, and details, beautifully packaged in one link.</div>
+      <div class="step-shot"><img src="/img-agent-listing.webp" width="1600" height="2400" loading="lazy" alt="Ready-to-send Samba listing page for Villa Amara"></div>
     </div>
     <div class="step">
-      <div class="step-shot"><img src="/img-agent-whatsapp-ui.webp" width="870" height="1923" loading="lazy" alt="WhatsApp chat where a client receives a villa listing"></div>
       <div class="step-head">
         <div class="step-num">3</div>
         <div class="step-title">Owners respond directly</div>
       </div>
       <div class="step-text">Clients reach you or the owner instantly. No waiting, no middlemen.</div>
+      <div class="step-shot"><img src="/img-agent-whatsapp-ui.webp" width="870" height="1923" loading="lazy" alt="WhatsApp chat where a client receives a villa listing"></div>
     </div>
   </div>
 </section>
