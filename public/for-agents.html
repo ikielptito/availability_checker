@@ -21,7 +21,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<meta name="theme-color" content="#FAF0E6">
+<meta name="theme-color" content="#FFFFFF">
 <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="/brand.css">
@@ -30,9 +30,9 @@
 :root {
   --green: var(--sb-success-fg);
   --green-soft: var(--sb-success-bg);
-  /* This page sits on the warm cream of its marketing graphics, not the
-     site-wide #F4F1ED — the graphics' baked backdrops are retinted to match. */
-  --bg: #FAF0E6;
+  /* White ground for this page: the marketing graphics carry their own baked
+     cream panels, which need a lighter surface to read as panels at all. */
+  --bg: #FFFFFF;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -49,7 +49,7 @@ body {
   position: sticky; top: 0; z-index: 100;
   display: flex; align-items: center; gap: 14px;
   padding: 10px 32px;
-  background: rgba(250,240,230,.92);
+  background: rgba(255,255,255,.92);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
 }
@@ -170,6 +170,12 @@ body {
    tallest, keeping text bottom-aligned across the row. */
 .step-shot { flex: 1; display: flex; margin-top: 22px; }
 .step-shot img { flex: none; margin: 0 auto auto; width: auto; height: auto; max-width: 100%; max-height: 420px; border-radius: 10px; }
+/* Dense full-page shots get a fixed window with a fade-out instead of being
+   scaled to confetti: shows the legible top, implies the rest continues. */
+.step-shot.fade-window { flex: none; max-height: 420px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 72%, transparent 100%); }
+.step-shot.fade-window img { width: 100%; max-height: none; }
 .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 .step-title { font-size: 1rem; font-weight: 700; letter-spacing: -.01em; }
 .step-text { font-size: .87rem; color: var(--muted); line-height: 1.65; }
@@ -333,7 +339,7 @@ body {
         <div class="step-title">Send a ready-to-book listing</div>
       </div>
       <div class="step-text">Photos, pricing, and details, beautifully packaged in one link.</div>
-      <div class="step-shot"><img src="/img-agent-listing.webp" width="1600" height="2400" loading="lazy" alt="Ready-to-send Samba listing page for Villa Amara"></div>
+      <div class="step-shot fade-window"><img src="/img-agent-listing.webp" width="1600" height="2400" loading="lazy" alt="Ready-to-send Samba listing page for Villa Amara"></div>
     </div>
     <div class="step">
       <div class="step-head">
