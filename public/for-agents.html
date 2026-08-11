@@ -318,7 +318,7 @@ body {
     <div class="hero-note">Free for agents · No card required · You keep the full 10% commission</div>
   </div>
   <div class="hero-art">
-    <img src="/img-agent-hero.webp" width="2400" height="1600"
+    <img src="/img-agent-hero.webp" data-id-src="/img-agent-hero-id.webp" width="2400" height="1600"
          alt="Samba listing page for a Bali villa, with live availability calendar and a WhatsApp chat sharing the listing"
          fetchpriority="high">
   </div>
@@ -335,7 +335,7 @@ body {
         <div class="step-title">See what's actually available</div>
       </div>
       <div class="step-text">Live calendars synced with owners. No more double-checking, no more guesswork.</div>
-      <div class="step-shot"><img src="/img-agent-calendar.webp" width="1440" height="960" loading="lazy" alt="Live availability calendar with available and booked dates"></div>
+      <div class="step-shot"><img src="/img-agent-calendar.webp" data-id-src="/img-agent-calendar-id.webp" width="1440" height="960" loading="lazy" alt="Live availability calendar with available and booked dates"></div>
     </div>
     <div class="step">
       <div class="step-head">
@@ -343,7 +343,7 @@ body {
         <div class="step-title">Send a ready-to-book listing</div>
       </div>
       <div class="step-text">Photos, pricing, and details, beautifully packaged in one link.</div>
-      <div class="step-shot fade-window"><img src="/img-agent-listing.webp" width="1600" height="2400" loading="lazy" alt="Ready-to-send Samba listing page for Villa Amara"></div>
+      <div class="step-shot fade-window"><img src="/img-agent-listing.webp" data-id-src="/img-agent-listing-id.webp" width="1600" height="2400" loading="lazy" alt="Ready-to-send Samba listing page for Villa Amara"></div>
     </div>
     <div class="step">
       <div class="step-head">
@@ -351,7 +351,7 @@ body {
         <div class="step-title">Owners respond directly</div>
       </div>
       <div class="step-text">Clients reach you or the owner instantly. No waiting, no middlemen.</div>
-      <div class="step-shot"><img src="/img-agent-whatsapp-ui.webp" width="870" height="1923" loading="lazy" alt="WhatsApp chat where a client receives a villa listing"></div>
+      <div class="step-shot"><img src="/img-agent-whatsapp-ui.webp" data-id-src="/img-agent-whatsapp-ui-id.webp" width="870" height="1923" loading="lazy" alt="WhatsApp chat where a client receives a villa listing"></div>
     </div>
   </div>
 </section>
@@ -361,7 +361,7 @@ body {
   <h2 class="section-title">Everything that slows you down, removed</h2>
   <div class="pains">
     <div class="pain">
-      <div class="pain-art"><img src="/img-pain-availability.webp" width="1254" height="1254" loading="lazy" alt=""></div>
+      <div class="pain-art"><img src="/img-pain-availability.webp" data-id-src="/img-pain-availability-id.webp" width="1254" height="1254" loading="lazy" alt=""></div>
       <div class="pain-title">"Is this still available?"</div>
       <div class="pain-fix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Always up to date</div>
     </div>
@@ -413,7 +413,7 @@ body {
       <div class="maya-stats"><span id="stat-villas">24</span> villas · 300+ rental agents · Updated daily</div>
     </div>
     <div class="maya-art">
-      <img src="/img-maya-broadcast-w.webp" width="1440" height="960" loading="lazy" alt="Maya's daily availability broadcast fanning out to Bali rental agents on WhatsApp">
+      <img src="/img-maya-broadcast-w.webp" data-id-src="/img-maya-broadcast-w-id.webp" width="1440" height="960" loading="lazy" alt="Maya's daily availability broadcast fanning out to Bali rental agents on WhatsApp">
     </div>
   </div>
 </section>
@@ -422,7 +422,7 @@ body {
 <section class="section">
   <h2 class="section-title">Everything you need. Nothing you don't.</h2>
   <div class="trio-wide">
-    <img src="/img-agent-portal-grid.webp" width="1440" height="821" loading="lazy" alt="Samba agent portal with villa cards, prices and live availability calendars">
+    <img src="/img-agent-portal-grid.webp" data-id-src="/img-agent-portal-grid-id.webp" width="1440" height="821" loading="lazy" alt="Samba agent portal with villa cards, prices and live availability calendars">
     <div class="trio-caption">Your whole portfolio, live at a glance</div>
   </div>
   <div class="trio-pair">
@@ -431,7 +431,7 @@ body {
       <div class="trio-caption">Instagram-ready in one tap</div>
     </div>
     <div>
-      <div class="trio-shot"><img src="/img-agent-mobile.webp" width="1200" height="2533" loading="lazy" alt="Samba villa listing page on a phone"></div>
+      <div class="trio-shot"><img src="/img-agent-mobile.webp" data-id-src="/img-agent-mobile-id.webp" width="1200" height="2533" loading="lazy" alt="Samba villa listing page on a phone"></div>
       <div class="trio-caption">Mobile-ready, client-friendly</div>
     </div>
   </div>
@@ -494,6 +494,22 @@ body {
     const d = await r.json();
     if (d.properties) document.getElementById('stat-villas').textContent = d.properties;
   } catch {}
+})();
+</script>
+<script>
+/* Swap marketing graphics to their Indonesian variants alongside i18n.js:
+   img[data-id-src] gets that source when the language is ID. */
+(function () {
+  function apply(lang) {
+    document.querySelectorAll('img[data-id-src]').forEach(function (img) {
+      if (!img.dataset.enSrc) img.dataset.enSrc = img.getAttribute('src');
+      var want = lang === 'id' ? img.dataset.idSrc : img.dataset.enSrc;
+      if (img.getAttribute('src') !== want) img.setAttribute('src', want);
+    });
+  }
+  try { apply(localStorage.getItem('samba_lang') || 'en'); } catch (e) {}
+  new MutationObserver(function () { apply(document.documentElement.lang); })
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
 })();
 </script>
 <script src="/i18n.js"></script>
