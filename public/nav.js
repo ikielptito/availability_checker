@@ -86,23 +86,44 @@
   .snav-x{background:none;border:none;font-size:1.5rem;line-height:1;color:#8a8478;cursor:pointer;padding:0 4px}
   .snav-box-body{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
   .snav-lede{color:#8a8478;font-size:.88rem;line-height:1.6;text-align:center}
-  .snav-benefits{list-style:none;margin:2px 0 6px;padding:0;display:flex;flex-direction:column;gap:11px}
-  .snav-benefits li{display:flex;gap:12px;align-items:flex-start;font-size:.84rem;line-height:1.5;color:#514C45}
-  .snav-benefits li b{color:#1C1917}
-  .snav-benefits .snav-bicon{flex-shrink:0;width:28px;height:28px;border-radius:9px;background:#F6E7DE;color:#B8613F;display:flex;align-items:center;justify-content:center}
-  .snav-benefits .snav-bicon svg{width:14px;height:14px}
+  .snav-benefits{list-style:none;margin:2px 0;padding:0;display:flex;flex-direction:column;gap:9px}
+  .snav-benefits li{display:flex;gap:9px;align-items:flex-start;font-size:.84rem;line-height:1.5;color:var(--sb-text-2,#514C45)}
+  .snav-benefits li b{color:var(--sb-text,#1C1917);font-weight:650}
+  /* Quiet terracotta ticks, not filled chips: the product mockup carries the visual weight now */
+  .snav-benefits .snav-bcheck{flex-shrink:0;width:16px;height:16px;color:var(--sb-terracotta,#C46E4B);margin-top:1px}
   .snav-gbtn{display:flex;justify-content:center;min-height:44px}
   .snav-guest{display:block;width:100%;text-align:center;background:none;border:none;color:#8a8478;font-family:'Geist',-apple-system,sans-serif;font-size:.8rem;font-weight:500;cursor:pointer;padding:8px 4px;transition:color .18s ease}
   .snav-guest:hover{color:#514C45}
-  /* Sign-in modal — hero layout */
-  .snav-si-box{position:relative}
+  /* Sign-in modal — product-led split: villa-share mockup beside the welcome.
+     The mockup does the selling, so the copy side stays quiet and typographic. */
+  .snav-si-box{position:relative;max-width:720px;display:grid;grid-template-columns:minmax(0,43%) 1fr;overflow:hidden}
+  /* Image is absolutely filled so the copy panel dictates the modal height
+     (the mockup is very tall; left to flow it would stretch the whole sheet). */
+  .snav-si-media{position:relative;background:var(--sb-terracotta-050,#FBEDE7);overflow:hidden}
+  .snav-si-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+  /* Soft inner edge so the mockup melts into the copy panel instead of a hard seam */
+  .snav-si-media::after{content:"";position:absolute;inset:0;box-shadow:inset -22px 0 26px -22px rgba(28,25,23,.14);pointer-events:none}
+  .snav-si-panel{display:flex;flex-direction:column;min-width:0}
   .snav-x-float{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:#F5F1EB;border:none;color:#8a8478;font-size:1.25rem;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;z-index:2;transition:color .18s ease,background .18s ease}
   .snav-x-float:hover{color:#1C1917;background:#F1ECE7}
-  .snav-si-hero{padding:32px 26px 0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px}
-  .snav-si-mark{width:52px;height:52px;border-radius:15px;overflow:hidden;box-shadow:0 1px 2px rgba(28,25,23,.08),0 6px 16px rgba(28,25,23,.12)}
+  .snav-si-hero{padding:34px 30px 0;display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:11px}
+  .snav-si-mark{width:42px;height:42px;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(28,25,23,.08),0 6px 16px rgba(28,25,23,.12)}
   .snav-si-mark img{width:100%;height:100%;display:block}
-  .snav-si-title{font-family:'Geist',-apple-system,sans-serif;font-weight:650;font-size:1.3rem;color:#1C1917;letter-spacing:-.02em}
-  .snav-si-lede{color:#8a8478;font-size:.86rem;line-height:1.6;margin:-4px 0 0;max-width:300px}
+  .snav-si-title{font-family:var(--sb-font-display,'Satoshi'),'Geist',-apple-system,sans-serif;font-weight:700;font-size:1.5rem;line-height:1.12;color:var(--sb-text,#1C1917);letter-spacing:-.02em}
+  .snav-si-lede{color:var(--sb-muted,#8a8478);font-size:.86rem;line-height:1.55;margin:-3px 0 0;max-width:330px}
+  .snav-si-box .snav-box-body{padding:16px 30px 26px;gap:13px}
+  @media(max-width:640px){
+    /* Stack: the mockup becomes a top band cropped to the villa card, CTA stays reachable */
+    .snav-si-box{grid-template-columns:1fr;max-width:420px}
+    /* Anchor to the image top: the phone's head (logo, search, villa photo) is
+       fully in frame and the device bleeds off the band's bottom edge — an
+       intentional hero crop, not a slice through the middle of the screen. */
+    .snav-si-media{height:212px}
+    .snav-si-media img{object-position:center top}
+    .snav-si-media::after{box-shadow:inset 0 -20px 24px -20px rgba(28,25,23,.14)}
+    .snav-si-hero{align-items:center;text-align:center;padding:24px 24px 0}
+    .snav-si-box .snav-box-body{padding:14px 24px 22px}
+  }
   .snav-wait{display:flex;align-items:center;justify-content:center;gap:9px;min-height:44px;font-size:.84rem;color:#514C45}
   .snav-spin{width:16px;height:16px;border:2px solid rgba(196,110,75,.22);border-top-color:#C46E4B;border-radius:50%;animation:snavspin .7s linear infinite;flex-shrink:0}
   @keyframes snavspin{to{transform:rotate(360deg)}}
@@ -172,6 +193,7 @@
     out: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
     person: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
     house: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+    check: '<svg class="snav-bcheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
   };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function initials(n) { return (n || 'A').trim().split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join('').toUpperCase(); }
@@ -313,20 +335,22 @@
     var ov = document.getElementById('snav-signin'); if (ov) return ov;
     ov = document.createElement('div'); ov.className = 'snav-ov'; ov.id = 'snav-signin';
     ov.innerHTML = '<div class="snav-box snav-si-box"><button class="snav-x-float" data-close aria-label="Close">&times;</button>' +
+      '<div class="snav-si-media"><img id="snav-si-shot" src="/img-hero-phone.webp" alt=""></div>' +
+      '<div class="snav-si-panel">' +
       '<div class="snav-si-hero"><div class="snav-si-mark"><img src="/icon-192.png" alt=""></div>' +
       '<div class="snav-si-title" id="snav-si-title">Welcome to Samba</div>' +
       '<p class="snav-si-lede" id="snav-si-lede">One account for favourites, shortlists and your public agent profile.</p></div>' +
       '<div class="snav-box-body">' +
       '<ul class="snav-benefits">' +
-      '<li><span class="snav-bicon">' + I.person + '</span><span><b>Clients enquire with you</b> — every villa you share carries your name, photo and WhatsApp</span></li>' +
-      '<li><span class="snav-bicon">' + I.saved + '</span><span><b>Favourites &amp; private notes</b> — synced on every device</span></li>' +
-      '<li><span class="snav-bicon">' + I.list + '</span><span><b>Client shortlists</b> — pick villas, send one link</span></li>' +
+      '<li>' + I.check + '<span><b>Clients enquire with you.</b> Your name, photo and WhatsApp on every villa you share</span></li>' +
+      '<li>' + I.check + '<span><b>Favourites &amp; shortlists,</b> synced and ready to send as one link</span></li>' +
       '</ul>' +
       '<div class="snav-gbtn" id="snav-gbtn"></div>' +
       '<div class="snav-wait" id="snav-signin-wait" style="display:none"><span class="snav-spin"></span> Signing you in…</div>' +
       '<div class="snav-err" id="snav-signin-err"></div>' +
       '<div class="snav-fineprint">Free for agents · no card required</div>' +
-      '<button class="snav-guest" data-close>Continue as guest</button></div></div>';
+      '<button class="snav-guest" data-close>Continue as guest</button></div>' +
+      '</div></div>';
     document.body.appendChild(ov);
     ov.addEventListener('click', function (e) {
       if (e.target === ov || e.target.hasAttribute('data-close')) {
@@ -354,7 +378,7 @@
       var gLogo = '<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
       slot.innerHTML = '<div class="snav-handoff">' +
         '<button class="snav-gsi-like" id="snav-inapp-open">' + gLogo + 'Continue with Google</button>' +
-        '<div class="snav-fineprint">Opens in your phone\'s browser — you\'ll land right back here.</div>' +
+        '<div class="snav-fineprint">Opens in your phone\'s browser. You\'ll land right back here.</div>' +
         '<div class="snav-inapp" id="snav-inapp-help" style="display:none">Nothing opened? Tap the <b>⋮</b> or share menu and choose <b>Open in browser</b>, then sign in there.<br><br><button class="snav-btn block" id="snav-copylink">Copy page link</button></div></div>';
       document.getElementById('snav-inapp-open').onclick = escapeInApp;
       document.getElementById('snav-copylink').onclick = function () {
@@ -513,7 +537,7 @@
       (onboarding
         ? '<div class="snav-welcome"><div class="snav-acct-av" id="snav-av-preview">' + avInner + '</div>' +
           '<div><div class="snav-step">Step 2 of 2</div><div class="snav-welcome-title">Welcome' + (firstName() ? ', ' + esc(firstName()) : '') + '</div></div>' +
-          '<div class="snav-welcome-sub">You\'re in — this is your agent card. Add your WhatsApp number so clients can reach you about villas you share.</div></div>'
+          '<div class="snav-welcome-sub">You\'re in: this is your agent card. Add your WhatsApp number so clients can reach you about villas you share.</div></div>'
         : '<div class="snav-acct-top"><div class="snav-acct-av" id="snav-av-preview">' + avInner + '</div><div class="snav-acct-id"><div class="snav-acct-name">' + esc(p.displayName || account.name || '') + '</div><div class="snav-acct-email">' + esc(account.email || '') + '</div></div></div>') +
       '<input type="file" id="snav-photo-input" accept="image/*" style="display:none">' +
       '<div class="snav-fg"><label>Display name</label><input id="snav-pf-name" value="' + esc(p.displayName || account.name || '') + '" placeholder="Your name"></div>' +
