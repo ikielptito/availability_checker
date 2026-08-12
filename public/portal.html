@@ -31,12 +31,6 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 .lp-cta{background:var(--accent);border:none;border-radius:10px;color:#fff;padding:10px 17px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.84rem;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap;}
 .lp-cta:hover{background:var(--sb-terracotta-600);}
 
-/* Hero visual — banner artwork. Desktop banner bakes in the headline, trust
-   chips and feature cards, so the HTML duplicates below are hidden ≥760px;
-   mobile serves a device-only crop and keeps the HTML text. */
-.lp-visual{max-width:1240px;margin:0 auto;}
-.lp-visual-img{display:block;width:100%;height:auto;}
-
 .lp-hero{text-align:center;padding:52px 24px 30px;max-width:660px;margin:0 auto;}
 .lp-eyebrow{font-size:0.78rem;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;}
 .lp-h1{font-family:'Satoshi',-apple-system,sans-serif;font-weight:700;font-size:clamp(2.5rem,6.4vw,3.5rem);line-height:1.05;letter-spacing:-.02em;margin-bottom:18px;}
@@ -47,37 +41,6 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 .login-err{margin-top:12px;color:var(--red);font-size:0.78rem;min-height:1em;}
 .lp-hero-note{margin-top:14px;font-size:0.8rem;color:var(--muted);}
 .lp-hero-note b{color:var(--sb-terracotta-700);letter-spacing:.05em;}
-
-.lp-trust{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:10px 0;padding:4px 14px 30px;color:var(--sb-gray-700);font-size:.84rem;}
-.lp-trust span{display:inline-flex;align-items:center;gap:7px;padding:0 15px;border-left:1px solid var(--border);white-space:nowrap;}
-.lp-trust span:first-child{border-left:none;}
-.lp-trust svg{color:var(--muted);flex-shrink:0;}
-@media(max-width:480px){.lp-trust{font-size:.72rem;}.lp-trust span{padding:0 7px;gap:4px;}.lp-trust svg{width:13px;height:13px;}}
-/* ≥760px the banner artwork already carries the headline + trust chips */
-@media(min-width:760px){
-  .lp-eyebrow,.lp-h1,.lp-sub,.lp-trust{display:none;}
-  .lp-hero{padding-top:20px;}
-}
-
-.lp-features{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:880px;margin:0 auto;padding:0 14px 12px;}
-.lp-feature{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 16px;display:flex;flex-direction:column;gap:9px;}
-.lp-fe-ic{width:40px;height:40px;border-radius:50%;background:#ECEFE0;color:var(--sb-olive);display:grid;place-items:center;flex-shrink:0;}
-.lp-feature b{font-family:'Satoshi',-apple-system,sans-serif;font-size:.98rem;line-height:1.3;color:var(--text);}
-.lp-feature p{font-size:.79rem;color:var(--muted);line-height:1.55;}
-@media(max-width:560px){.lp-features{gap:7px;}.lp-feature{padding:13px 11px;gap:7px;}.lp-feature b{font-size:.8rem;}.lp-feature p{font-size:.66rem;}.lp-fe-ic{width:32px;height:32px;}.lp-fe-ic svg{width:15px;height:15px;}}
-
-.lp-duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;max-width:880px;margin:0 auto;padding:0 14px;}
-.lp-duo-card{border-radius:18px;padding:22px 18px;display:flex;align-items:center;gap:15px;text-decoration:none;}
-.lp-duo-card.blush{background:var(--sb-terracotta-050);}
-.lp-duo-card.sage{background:#ECEFE0;}
-.lp-duo-ava{width:84px;height:84px;border-radius:50%;overflow:hidden;background:var(--sb-terracotta-100);flex-shrink:0;}
-.lp-duo-ava img{width:100%;height:100%;object-fit:cover;display:block;}
-.lp-duo-ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;color:var(--sb-green-700);border:2px solid var(--sb-green-700);background:rgba(255,255,255,.4);}
-.lp-duo-card b{display:block;font-family:'Satoshi',-apple-system,sans-serif;font-size:1rem;line-height:1.3;color:var(--text);margin-bottom:4px;}
-.lp-duo-link{font-size:.92rem;font-weight:700;line-height:1.35;}
-.lp-duo-card.blush .lp-duo-link{color:var(--sb-terracotta-600);}
-.lp-duo-card.sage .lp-duo-link{color:var(--sb-green-700);}
-@media(max-width:560px){.lp-duo-card{flex-direction:column;align-items:flex-start;gap:10px;padding:16px 14px;}.lp-duo-ava{width:64px;height:64px;}.lp-duo-ic{width:44px;height:44px;}.lp-duo-card b{font-size:.88rem;}.lp-duo-link{font-size:.8rem;}}
 
 .lp-footer{padding:30px 24px 8px;text-align:center;color:var(--muted);font-size:0.82rem;line-height:2.1;}
 .lp-footer a{color:var(--accent);text-decoration:none;font-weight:500;}.lp-footer a:hover{text-decoration:underline;}
@@ -408,59 +371,16 @@ body.wiz-open #snav-tabs{display:none !important;}
     <!-- EN/ID pill auto-mounts here (i18n.js) -->
   </nav>
 
-  <div class="lp-visual">
-    <picture>
-      <source media="(max-width:759px)" srcset="/img-portal-hero-m.webp" width="900" height="718">
-      <img class="lp-visual-img" src="/img-portal-hero.webp" width="1600" height="914"
-           alt="Owner portal — manage your villa from anywhere. The Samba dashboard on a laptop and phone: live availability synced with Airbnb & Hostex, weekly reports every Monday on WhatsApp. No commissions, live in under 24 hours, cancel anytime.">
-    </picture>
-  </div>
-
   <header class="lp-hero">
     <div class="lp-eyebrow">Owner portal</div>
-    <h1 class="lp-h1">Manage your villa from&nbsp;anywhere.</h1>
-    <p class="lp-sub">List your villa, track enquiries, and manage availability from one simple dashboard.</p>
+    <h1 class="lp-h1">One listing. 300+&nbsp;rental&nbsp;agents.</h1>
+    <p class="lp-sub">Sign in to list your villa. Every rental agent on Samba sees your live availability and shares it with their clients.</p>
     <div id="gbtn"></div>
     <div class="login-err" id="login-err"></div>
     <div class="lp-hero-note">The first 25 villas list free with code <b>FOUNDING25</b>. New here? Google sign-in creates your account.</div>
     <button class="lp-demo" onclick="enterDemo()">Just looking? Explore the dashboard with demo data →</button>
-    <a class="lp-demo" style="display:inline-block;text-decoration:underline;text-underline-offset:3px" href="/?from=owner">Or browse the live agent portal, where your villa gets seen →</a>
+    <a class="lp-demo" style="display:inline-block;text-decoration:underline;text-underline-offset:3px" href="/home">New to Samba? See how it works →</a>
   </header>
-
-  <div class="lp-trust">
-    <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15.5" y1="8.5" x2="8.5" y2="15.5"/><circle cx="9" cy="9" r=".5" fill="currentColor"/><circle cx="15" cy="15" r=".5" fill="currentColor"/></svg>No commissions</span>
-    <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Live in under 24 hours</span>
-    <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Cancel anytime</span>
-  </div>
-
-  <div class="lp-features">
-    <div class="lp-feature">
-      <span class="lp-fe-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-      <b>Reach 300+ rental agents</b>
-      <p>Your villa is seen by Bali's largest agent network.</p>
-    </div>
-    <div class="lp-feature">
-      <span class="lp-fe-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
-      <b>Live availability sync</b>
-      <p>We sync with Airbnb &amp; Hostex automatically.</p>
-    </div>
-    <div class="lp-feature">
-      <span class="lp-fe-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.4 14.1c-.2.6-1.3 1.2-1.8 1.3-.5 0-1 .2-3.4-.7-2.9-1.1-4.7-4-4.9-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4l.9 2.1c0 .2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1l1-1.2c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.6.3 0 .1 0 .7-.2 1z"/></svg></span>
-      <b>Weekly owner reports</b>
-      <p>Get your villa's performance every Monday on WhatsApp.</p>
-    </div>
-  </div>
-
-  <div class="lp-duo">
-    <a class="lp-duo-card blush" href="/home">
-      <span class="lp-duo-ava"><img src="/img-portal-greeter.webp" onerror="this.onerror=null;this.src='/maya-avatar.webp'" alt="" loading="lazy"></span>
-      <span><b>New to Samba?</b><span class="lp-duo-link">See how it works →</span></span>
-    </a>
-    <a class="lp-duo-card sage" href="/list-property">
-      <span class="lp-duo-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.4 14.1c-.2.6-1.3 1.2-1.8 1.3-.5 0-1 .2-3.4-.7-2.9-1.1-4.7-4-4.9-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4l.9 2.1c0 .2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1l1-1.2c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.6.3 0 .1 0 .7-.2 1z"/></svg></span>
-      <span><b>Not ready to sign up?</b><span class="lp-duo-link">Submit a property via WhatsApp →</span></span>
-    </a>
-  </div>
 
   <footer class="lp-footer">
     <div class="lp-flinks"><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refund">Refunds</a></div>
