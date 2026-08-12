@@ -13,6 +13,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "3499", "--directory", "/Users/ikiel/kaya-agent-crm"],
       "port": 3499
+    },
+    {
+      "name": "static-site",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8734", "--directory", "public"],
+      "port": 8734
     }
   ]
 }
