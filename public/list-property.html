@@ -206,7 +206,6 @@ body {
 .maya-point svg { width: 20px; height: 20px; color: var(--accent); flex-shrink: 0; margin-top: 2px; }
 .maya-point-title { font-size: .95rem; font-weight: 700; letter-spacing: -.01em; }
 .maya-point-text { font-size: .85rem; color: var(--muted); line-height: 1.6; margin-top: 2px; }
-.maya-stats { margin-top: 26px; font-size: .8rem; color: var(--subtle); font-weight: 500; }
 .maya-art img { width: 100%; height: auto; display: block; border-radius: 14px; }
 @media (max-width: 860px) {
   .maya-inner { grid-template-columns: 1fr; gap: 36px; padding: 52px 16px; }
@@ -447,7 +446,6 @@ body {
           <div class="maya-point-text">Every Monday, Maya sends your villa's week to your WhatsApp: agent views, client shares and enquiries at a glance.</div>
         </div>
       </div>
-      <div class="maya-stats"><span id="stat-agents">300+</span> rental agents · <span id="stat-shares">85</span> client shares last month · 0% commission</div>
     </div>
     <div class="maya-art">
       <img src="/img-maya-broadcast-w.webp" data-id-src="/img-maya-broadcast-w-id.webp" width="1440" height="960" loading="lazy" alt="Maya's daily availability broadcast fanning out to Bali rental agents on WhatsApp">
@@ -596,9 +594,8 @@ body {
     const r = await fetch('/api/home-stats');
     if (!r.ok) return;
     const d = await r.json();
-    if (d.properties) document.getElementById('stat-villas').textContent = d.properties;
-    if (d.agents) document.getElementById('stat-agents').textContent = d.agents;
-    if (d.shares) document.getElementById('stat-shares').textContent = d.shares;
+    const villas = document.getElementById('stat-villas');
+    if (d.properties && villas) villas.textContent = d.properties;
   } catch {}
 })();
 
