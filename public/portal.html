@@ -626,11 +626,18 @@ function demoBlock(){
   return true;
 }
 
-// ── Boot: existing session → the real app; signed out → demo dashboard as
-// the backdrop, and nav.js opens the site-wide sign-in sheet over it.
+// ── Boot: existing session → the real app. Signed out, /home is the owner
+// intro page and the sign-in popup lives there, so bounce there — carrying
+// view=new so that popup returns straight to the wizard. Only ?demo boots the
+// demo dashboard (reached from the "Explore the demo first" link on /home).
 (async function boot(){
   const me = await api('?action=auth/me');
   if (me.ok && me.body?.owner) return enterApp(me.body.owner);
+  const qs = new URLSearchParams(location.search);
+  if (!qs.has('demo')) {
+    location.replace(qs.get('view') === 'new' ? '/home?signin=1' : '/home');
+    return;
+  }
   enterDemo();
 })();
 
@@ -659,7 +666,7 @@ function enterApp(owner){
 }
 
 async function logout(){
-  if(DEMO)return location.reload();   // reload lands back in demo + sign-in sheet
+  if(DEMO)return location.assign('/home');   // leaving the demo → back to the intro page
   await api('?action=auth/logout', {method:'POST'});
   location.reload();
 }

@@ -298,20 +298,16 @@
   function setAccount(a) { account = a; renderNav(); listeners.forEach(function (fn) { try { fn(account); } catch (e) {} }); }
   function loadMe() { return api('?action=auth/me').then(function (r) { setAccount(r.ok && r.body && r.body.owner ? r.body.owner : null); if (!account && !maybeHandoff() && !maybeLandingPrompt()) maybeOneTap(); return account; }); }
 
-  // Landing signed out: open the full sign-in sheet once the portal has
-  // painted behind it — a richer welcome than One Tap. Agent portal: shown once
+  // Landing on the agent portal signed out: open the full sign-in sheet once
+  // the grid has painted behind it — a richer welcome than One Tap. Shown once
   // per session; within the session One Tap, the contextual gates and the
-  // engagement-cadence prompt take over. Owner portal: the sheet IS the auth
-  // gate (the page boots into demo data behind it), so it opens on every
-  // signed-out load. Returns true when it claims this page load (so One Tap
-  // stays quiet).
+  // engagement-cadence prompt take over. The owner portal has its own flow (the
+  // /home intro page owns sign-in), so it is left to One Tap here. Returns true
+  // when it claims this page load (so One Tap stays quiet).
   function maybeLandingPrompt() {
+    if (curPortal() !== 'agent') return false;   // owner portal: /home + demo handle sign-in
     // In-app browsers (most WhatsApp arrivals) get the sheet too — its CTA
     // there is the browser-escape hop rather than the Google button.
-    if (curPortal() === 'owner') {
-      setTimeout(function () { if (!account) openSignIn('landing'); }, 900);
-      return true;
-    }
     try {
       if (sessionStorage.getItem('samba_landing_prompted')) return false;
       sessionStorage.setItem('samba_landing_prompted', '1');
