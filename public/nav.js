@@ -107,8 +107,6 @@
   .snav-x-float{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:#F5F1EB;border:none;color:#8a8478;font-size:1.25rem;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;z-index:2;transition:color .18s ease,background .18s ease}
   .snav-x-float:hover{color:#1C1917;background:#F1ECE7}
   .snav-si-hero{padding:34px 30px 0;display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:11px}
-  .snav-si-mark{width:42px;height:42px;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(28,25,23,.08),0 6px 16px rgba(28,25,23,.12)}
-  .snav-si-mark img{width:100%;height:100%;display:block}
   .snav-si-logo{display:block;height:46px;width:auto}
   .snav-si-title{font-family:var(--sb-font-display,'Satoshi'),'Geist',-apple-system,sans-serif;font-weight:700;font-size:1.5rem;line-height:1.12;color:var(--sb-text,#1C1917);letter-spacing:-.02em}
   .snav-si-lede{color:var(--sb-muted,#8a8478);font-size:.86rem;line-height:1.55;margin:-3px 0 0;max-width:330px}
@@ -116,13 +114,10 @@
   @media(max-width:640px){
     /* Stack: the mockup becomes a top band cropped to the villa card, CTA stays reachable */
     .snav-si-box{grid-template-columns:1fr;max-width:420px}
-    /* Anchor to the image top: the phone's head (logo, search, villa photo) is
-       fully in frame and the device bleeds off the band's bottom edge — an
-       intentional hero crop, not a slice through the middle of the screen. */
-    .snav-si-media{height:212px}
-    .snav-si-media.owner{height:auto;aspect-ratio:3/2}
-    .snav-si-media img{object-position:center top}
-    .snav-si-media.owner img{object-position:center}
+    /* The 3:2 band matches the graphic's aspect ratio, so both devices sit fully
+       in frame — never cover-cropped through the middle of a screen. */
+    .snav-si-media{height:auto;aspect-ratio:3/2}
+    .snav-si-media img{object-position:center}
     .snav-si-media::after{box-shadow:inset 0 -20px 24px -20px rgba(28,25,23,.14)}
     .snav-si-hero{align-items:center;text-align:center;padding:24px 24px 0}
     .snav-si-box .snav-box-body{padding:14px 24px 22px}
@@ -352,18 +347,16 @@
         '<li>' + I.check + '<span><b>Favourites &amp; shortlists,</b> synced and ready to send as one link</span></li>';
     ov = document.createElement('div'); ov.className = 'snav-ov'; ov.id = 'snav-signin';
     ov.innerHTML = '<div class="snav-box snav-si-box"><button class="snav-x-float" data-close aria-label="Close">&times;</button>' +
-      // Owner variant, stacked layout only: a purpose-made 3:2 laptop+phone graphic
-      // shown in a matching 3:2 band, so the devices are never cover-cropped.
-      // Desktop (and the agent sheet everywhere) keeps the hand-held phone photo.
-      '<div class="snav-si-media' + (owner ? ' owner' : '') + '"><picture>' +
-      (owner ? '<source media="(max-width:640px)" srcset="/img-owner-signin.webp">' : '') +
+      // Stacked (mobile) layout uses a purpose-made 3:2 laptop+phone graphic in a
+      // matching 3:2 band, so the devices are never cover-cropped. The side-by-side
+      // (desktop) layout keeps the tall hand-held phone photo that fits its column.
+      '<div class="snav-si-media"><picture>' +
+      '<source media="(max-width:640px)" srcset="/img-signin-devices.webp">' +
       '<img id="snav-si-shot" src="/img-hero-phone.webp" alt=""></picture></div>' +
       '<div class="snav-si-panel">' +
-      // Owner sheet shows the full Samba lockup instead of the square app icon —
-      // it is the whole signed-out experience there, so the brand must read.
+      // Both sheets show the full Samba lockup, not the square app icon.
       '<div class="snav-si-hero">' +
-      (owner ? '<img class="snav-si-logo" src="/logo-samba.png" alt="Samba — connecting owners & agents">'
-             : '<div class="snav-si-mark"><img src="/icon-192.png" alt=""></div>') +
+      '<img class="snav-si-logo" src="/logo-samba.png" alt="Samba — connecting owners & agents">' +
       '<div class="snav-si-title" id="snav-si-title">Welcome to Samba</div>' +
       '<p class="snav-si-lede" id="snav-si-lede">One account for favourites, shortlists and your public agent profile.</p></div>' +
       '<div class="snav-box-body">' +
