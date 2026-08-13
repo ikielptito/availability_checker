@@ -20,39 +20,9 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14.5px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
 
-/* LANDING (signed-out) */
-#login{min-height:100vh;}
-.lp-nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:10px;padding:12px 22px;background:rgba(244,241,237,0.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);}
-.lp-nav .brand-mark{display:flex;align-items:center;text-decoration:none;cursor:pointer;}
-.lp-nav .brand-mark img{height:38px;}
-.lp-nav .spacer{flex:1;}
-.lp-navlink{font-size:0.88rem;font-weight:500;color:var(--text);text-decoration:none;padding:8px 13px;border-radius:8px;transition:background .15s;}
-.lp-navlink:hover{background:var(--surface2);}
-.lp-cta{background:var(--accent);border:none;border-radius:10px;color:#fff;padding:10px 17px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.84rem;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap;}
-.lp-cta:hover{background:var(--sb-terracotta-600);}
-
-.lp-hero{text-align:center;padding:52px 24px 30px;max-width:660px;margin:0 auto;}
-.lp-eyebrow{font-size:0.78rem;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;}
-.lp-h1{font-family:'Satoshi',-apple-system,sans-serif;font-weight:700;font-size:clamp(2.5rem,6.4vw,3.5rem);line-height:1.05;letter-spacing:-.02em;margin-bottom:18px;}
-.lp-sub{font-size:1.08rem;color:var(--muted);line-height:1.6;max-width:520px;margin:0 auto 28px;}
-#gbtn{display:flex;justify-content:center;min-height:44px;}
-.dev-btn{padding:13px 22px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:999px;font-family:'Satoshi',-apple-system,sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;box-shadow:var(--sb-shadow-sm);}
-.dev-btn:hover{border-color:var(--accent);}
-.login-err{margin-top:12px;color:var(--red);font-size:0.78rem;min-height:1em;}
-.lp-hero-note{margin-top:14px;font-size:0.8rem;color:var(--muted);}
-.lp-hero-note b{color:var(--sb-terracotta-700);letter-spacing:.05em;}
-
-.lp-footer{padding:30px 24px 8px;text-align:center;color:var(--muted);font-size:0.82rem;line-height:2.1;}
-.lp-footer a{color:var(--accent);text-decoration:none;font-weight:500;}.lp-footer a:hover{text-decoration:underline;}
-.lp-footer .lp-flinks a{margin:0 10px;}
-
-@media(max-width:760px){.lp-nav{padding:11px 14px;}.hide-mobile{display:none;}}
-@media(max-width:480px){
-  .lp-nav{gap:5px;padding:10px 10px;}
-  .lp-nav .brand-mark img{height:28px;}
-  .lp-navlink{font-size:.78rem;padding:6px 7px;}
-  .lp-cta{font-size:.75rem;padding:9px 11px;border-radius:9px;}
-}
+/* Signed-out, the page boots straight into the demo dashboard and nav.js's
+   site-wide sign-in sheet opens over it — /home is the only marketing page. */
+@media(max-width:760px){.hide-mobile{display:none;}}
 .portal-foot{margin-top:44px;padding-top:20px;border-top:1px solid var(--border);font-size:0.74rem;color:var(--muted);text-align:center;}
 .portal-foot a{color:var(--muted);text-decoration:none;}.portal-foot a:hover{color:var(--text);}
 
@@ -163,7 +133,6 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .ical-help summary::before{content:'? ';font-weight:700;}
 .ical-help[open] summary{margin-bottom:6px;}
 .ical-help div{background:var(--surface2);border-radius:8px;padding:10px 12px;line-height:1.7;}
-.lp-demo{display:block;margin:14px auto 0;background:none;border:none;color:var(--accent);font-family:inherit;font-size:.86rem;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
 .demo-banner{display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:.86rem;color:var(--text-2);}
 .demo-banner button{margin-left:auto;flex-shrink:0;background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:.8rem;font-weight:600;padding:8px 14px;cursor:pointer;}
 .fg .hint{font-size:0.66rem;color:var(--muted);text-transform:none;letter-spacing:0;margin-top:5px;}
@@ -359,38 +328,9 @@ body.wiz-open #snav-tabs{display:none !important;}
 </head>
 <body>
 
-<!-- LANDING (signed-out) -->
-<div id="login">
-  <nav class="lp-nav">
-    <a class="brand-mark" href="/home" aria-label="Samba home">
-      <img src="/logo-samba.png" alt="Samba">
-    </a>
-    <div class="spacer"></div>
-    <a class="lp-navlink" href="/home">Home</a>
-    <button class="lp-cta" onclick="scrollToSignIn()">List your villa</button>
-    <!-- EN/ID pill auto-mounts here (i18n.js) -->
-  </nav>
+<!-- APP — also the signed-out backdrop (demo data + nav.js sign-in sheet).
+     Portal switcher pill comes from nav.js (#snav-tabs) — site-wide component -->
 
-  <header class="lp-hero">
-    <div class="lp-eyebrow">Owner portal</div>
-    <h1 class="lp-h1">One listing. 300+&nbsp;rental&nbsp;agents.</h1>
-    <p class="lp-sub">Sign in to list your villa. Every rental agent on Samba sees your live availability and shares it with their clients.</p>
-    <div id="gbtn"></div>
-    <div class="login-err" id="login-err"></div>
-    <div class="lp-hero-note">The first 25 villas list free with code <b>FOUNDING25</b>. New here? Google sign-in creates your account.</div>
-    <button class="lp-demo" onclick="enterDemo()">Just looking? Explore the dashboard with demo data →</button>
-    <a class="lp-demo" style="display:inline-block;text-decoration:underline;text-underline-offset:3px" href="/home">New to Samba? See how it works →</a>
-  </header>
-
-  <footer class="lp-footer">
-    <div class="lp-flinks"><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refund">Refunds</a></div>
-    <div>© 2026 Samba Rentals · Bali, Indonesia</div>
-  </footer>
-
-  <!-- Portal switcher pill comes from nav.js (#snav-tabs) — site-wide component -->
-</div>
-
-<!-- APP -->
 <div id="app">
   <div class="topbar">
     <a class="brand-mark" href="/" aria-label="Samba">
@@ -604,10 +544,8 @@ body.wiz-open #snav-tabs{display:none !important;}
 
 <div id="toast"></div>
 
-<script src="https://accounts.google.com/gsi/client" async></script>
 <script>
 const API = '/api/portal';
-const isDev = ['localhost','127.0.0.1'].includes(location.hostname);
 let appConfig=null, currentOwnerData=null;
 
 async function loadConfig(){ if(appConfig) return appConfig; const r=await api('?action=config'); appConfig=r.body||{}; return appConfig; }
@@ -616,8 +554,6 @@ async function pollProperties(){
 }
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600);}
-function scrollToSignIn(){const g=document.getElementById('gbtn');if(g)g.scrollIntoView({behavior:'smooth',block:'center'});}
-function loginErr(msg){document.getElementById('login-err').textContent=msg||'';}
 
 async function api(path, opts={}){
   if(DEMO){const d=demoApi(path);if(d)return d;}
@@ -679,76 +615,41 @@ function enterDemo(){
   if(content&&!document.getElementById('demo-banner')){
     const b=document.createElement('div');
     b.className='demo-banner';b.id='demo-banner';
-    b.innerHTML='<span>You’re browsing <b>demo data</b>. This is what your dashboard looks like once your villa is live.</span><button onclick="exitDemo()">Sign in to add your villa</button>';
+    b.innerHTML='<span>You’re browsing <b>demo data</b>. This is what your dashboard looks like once your villa is live.</span><button onclick="openSignIn(\'banner\')">Sign in to add your villa</button>';
     content.prepend(b);
   }
-  // Demo is a dead end without an exit: back arrow in the topbar returns to
-  // the signed-out gate (exitDemo reloads /portal).
-  const tb=document.querySelector('#app .topbar');
-  if(tb&&!document.getElementById('demo-back')){
-    const bk=document.createElement('button');
-    bk.id='demo-back';bk.className='wiz-icon';bk.title='Exit demo';
-    bk.setAttribute('aria-label','Exit demo');
-    // Same arrow SVG as back.js — the raw "←" glyph rendered thin and off-center.
-    bk.innerHTML='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>';
-    bk.onclick=exitDemo;
-    tb.insertBefore(bk,tb.firstChild);
-  }
 }
-function exitDemo(){location.reload();}
+function openSignIn(src){ if(window.SambaNav) SambaNav.openSignIn(src||'gate'); }
 function demoBlock(){
-  if(confirm('This is the demo. Sign in with Google to manage a real villa. Go to sign-in now?')) exitDemo();
+  // Real actions in the demo route to the sign-in sheet instead of a confirm().
+  openSignIn('demo-gate');
   return true;
 }
 
-// ── Boot: check for an existing session, else render sign-in ──
+// ── Boot: existing session → the real app; signed out → demo dashboard as
+// the backdrop, and nav.js opens the site-wide sign-in sheet over it.
 (async function boot(){
   const me = await api('?action=auth/me');
   if (me.ok && me.body?.owner) return enterApp(me.body.owner);
-  renderSignIn();
+  enterDemo();
 })();
 
-async function renderSignIn(){
-  if (isDev){
-    const btn=document.createElement('button');
-    btn.className='dev-btn';
-    btn.textContent='Dev sign-in (local only)';
-    btn.onclick=()=>signIn('dev-credential');
-    document.getElementById('gbtn').appendChild(btn);
-    return;
-  }
-  // Production: Google Identity Services
-  const cfg = await api('?action=config');
-  const clientId = cfg.body?.googleClientId;
-  if (!clientId){ loginErr('Sign-in is not configured yet.'); return; }
-  const start=()=>{
-    if (!window.google?.accounts?.id){ return setTimeout(start,150); }
-    google.accounts.id.initialize({ client_id: clientId, callback:(resp)=>signIn(resp.credential) });
-    google.accounts.id.renderButton(document.getElementById('gbtn'),
-      { theme:'outline', size:'large', shape:'pill', text:'continue_with', width:320 });
-  };
-  start();
-}
-
-async function signIn(credential){
-  loginErr('');
-  const r = await api('?action=auth/google', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ credential })
-  });
-  if (r.ok && r.body?.owner) return enterApp(r.body.owner);
-  loginErr(r.body?.error || 'Sign-in failed.');
+// Sign-in completes inside nav.js's sheet — swap the demo for the real account.
+function leaveDemoFor(owner){
+  DEMO=false;
+  const b=document.getElementById('demo-banner'); if(b) b.remove();
+  enterApp(owner);
 }
 
 function enterApp(owner){
   currentOwnerData=owner;
-  document.getElementById('login').style.display='none';
   document.getElementById('app').style.display='block';
   loadProperties();
   loadConfig();
   // Deep-link from the "List a property" sub-tab → open the add form.
+  // Skipped in the demo: it fires for real once the owner signs in.
   const qs = new URLSearchParams(location.search);
-  if (qs.get('view') === 'new') setTimeout(addProperty, 0);
+  if (qs.get('view') === 'new' && !DEMO) setTimeout(addProperty, 0);
   // Back from Creem checkout: the webhook flips the listing live within moments.
   if (qs.get('paid')) {
     showToast('Payment received. Activating your listing…');
@@ -758,7 +659,7 @@ function enterApp(owner){
 }
 
 async function logout(){
-  if(DEMO)return exitDemo();
+  if(DEMO)return location.reload();   // reload lands back in demo + sign-in sheet
   await api('?action=auth/logout', {method:'POST'});
   location.reload();
 }
@@ -1756,6 +1657,11 @@ async function manageBilling(){
 }
 </script>
 <script src="/nav.js"></script>
+<script>
+// Bridge: when nav.js's sign-in sheet authenticates an owner while the page
+// is showing demo data, swap the demo for their real dashboard in place.
+if (window.SambaNav) SambaNav.onChange(function(acct){ if (acct && DEMO) leaveDemoFor(acct); });
+</script>
   <script src="/i18n.js"></script>
 </body>
 </html>
