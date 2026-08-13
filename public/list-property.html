@@ -588,6 +588,46 @@ body {
   </a>
 </aside>
 
+<!-- ── SIGN-IN POPUP ── The owner sign-in lives here, over the intro page. -->
+<style>
+.si-ov { position: fixed; inset: 0; z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(28,25,23,.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.si-ov.open { display: flex; }
+.si-card { position: relative; background: #fff; border-radius: 24px; max-width: 400px; width: 100%; padding: 34px 30px 24px; box-shadow: 0 20px 60px rgba(0,0,0,.18); text-align: center; animation: si-pop .28s cubic-bezier(.2,.8,.2,1); }
+@keyframes si-pop { from { transform: translateY(12px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
+.si-x { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border: none; background: var(--surface2, #F5F1EB); color: var(--text-2); border-radius: 50%; font-size: 1.1rem; line-height: 1; cursor: pointer; transition: background .15s; }
+.si-x:hover { background: var(--border); }
+.si-logo { height: 46px; width: auto; display: block; margin: 0 auto 16px; }
+.si-title { font-family: var(--sb-font-display); font-size: 1.5rem; font-weight: 700; letter-spacing: -.02em; color: var(--text); margin-bottom: 8px; }
+.si-sub { color: var(--muted); font-size: .9rem; line-height: 1.5; margin-bottom: 18px; }
+.si-benefits { list-style: none; text-align: left; margin: 0 0 18px; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.si-benefits li { display: flex; gap: 9px; align-items: flex-start; font-size: .86rem; line-height: 1.45; color: var(--text-2); }
+.si-benefits li b { color: var(--text); font-weight: 650; }
+.si-benefits svg { flex: none; width: 16px; height: 16px; color: var(--primary); margin-top: 1px; }
+#si-gbtn { display: flex; justify-content: center; min-height: 44px; }
+.si-dev { padding: 12px 22px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); font-family: inherit; font-size: .85rem; font-weight: 600; color: var(--text); cursor: pointer; }
+.si-dev:hover { border-color: var(--primary); }
+.si-err { color: var(--sb-error-fg, #C0392B); font-size: .78rem; min-height: 1em; margin-top: 8px; }
+.si-fine { color: var(--muted); font-size: .78rem; margin-top: 14px; }
+.si-fine b { color: var(--sb-terracotta-700); letter-spacing: .04em; }
+.si-demo { display: inline-block; margin-top: 12px; color: var(--primary); font-size: .84rem; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+</style>
+<div class="si-ov" id="si-ov" role="dialog" aria-modal="true" aria-labelledby="si-title">
+  <div class="si-card">
+    <button class="si-x" id="si-x" aria-label="Close">&times;</button>
+    <img class="si-logo" src="/logo-samba.png" alt="Samba — connecting owners &amp; agents">
+    <div class="si-title" id="si-title">List your villa</div>
+    <p class="si-sub">Sign in to list your villa and manage availability, photos and pricing. New here? Google sign-in creates your account.</p>
+    <ul class="si-benefits">
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><b>One listing, 300+ rental agents.</b> Every agent on Samba sees your live availability</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span><b>Weekly reports on WhatsApp.</b> Views, shares and client enquiries for your villa</span></li>
+    </ul>
+    <div id="si-gbtn"></div>
+    <div class="si-err" id="si-err"></div>
+    <div class="si-fine">The first 25 villas list free with code <b>FOUNDING25</b></div>
+    <a class="si-demo" href="/portal?demo">Explore the demo first →</a>
+  </div>
+</div>
+
 <script>
 (async function loadStats() {
   try {
@@ -626,6 +666,71 @@ body {
   try { apply(localStorage.getItem('samba_lang') || 'en'); } catch (e) {}
   new MutationObserver(function () { apply(document.documentElement.lang); })
     .observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+})();
+</script>
+<script>
+/* Owner sign-in popup. The listing CTAs on this page open it when signed out
+   and go straight to the wizard when signed in; sign-in completes here and
+   lands in /portal. This page IS the owner intro — /portal bounces here. */
+(function () {
+  var API = '/api/portal';
+  var isDev = ['localhost', '127.0.0.1'].includes(location.hostname);
+  var signedIn = false, btnRendered = false;
+  var ov = document.getElementById('si-ov');
+  function openPopup() { ov.classList.add('open'); renderButton(); }
+  function closePopup() { ov.classList.remove('open'); }
+  document.getElementById('si-x').onclick = closePopup;
+  ov.addEventListener('click', function (e) { if (e.target === ov) closePopup(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePopup(); });
+
+  function err(m) { document.getElementById('si-err').textContent = m || ''; }
+  function loadGsi(cb) {
+    if (window.google && google.accounts && google.accounts.id) return cb();
+    var s = document.getElementById('gsi-lib');
+    if (!s) { s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true; s.id = 'gsi-lib'; document.head.appendChild(s); }
+    var t = setInterval(function () { if (window.google && google.accounts && google.accounts.id) { clearInterval(t); cb(); } }, 100);
+  }
+  function renderButton() {
+    if (btnRendered) return; btnRendered = true;
+    var slot = document.getElementById('si-gbtn');
+    if (isDev) { var b = document.createElement('button'); b.className = 'si-dev'; b.textContent = 'Dev sign-in (local only)'; b.onclick = function () { signIn('dev-credential'); }; slot.appendChild(b); return; }
+    fetch(API + '?action=config').then(function (r) { return r.json(); }).then(function (cfg) {
+      var cid = cfg && cfg.googleClientId;
+      if (!cid) { err('Sign-in is not configured yet.'); return; }
+      loadGsi(function () {
+        google.accounts.id.initialize({ client_id: cid, callback: function (resp) { signIn(resp.credential); } });
+        var w = Math.max(240, Math.min(360, slot.clientWidth || 300));
+        google.accounts.id.renderButton(slot, { theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'center', width: w });
+      });
+    }).catch(function () { err('Sign-in is not configured yet.'); });
+  }
+  function signIn(cred) {
+    err('');
+    fetch(API + '?action=auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ credential: cred }) })
+      .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, b: b }; }); })
+      .then(function (res) {
+        if (res.ok && res.b && res.b.owner) { location.href = '/portal?view=new'; return; }
+        err((res.b && res.b.error) || 'Sign-in failed.');
+      }).catch(function () { err('Sign-in failed.'); });
+  }
+
+  // Listing CTAs that need an account: popup when signed out, straight through
+  // to the wizard when signed in. (WhatsApp/Maya and demo links are untouched.)
+  function wireCtas() {
+    document.querySelectorAll('a[href="/portal?view=new"], a[href="/portal"]').forEach(function (a) {
+      a.addEventListener('click', function (e) { if (!signedIn) { e.preventDefault(); openPopup(); } });
+    });
+  }
+
+  fetch(API + '?action=auth/me', { credentials: 'include' })
+    .then(function (r) { return r.json(); })
+    .then(function (b) { signedIn = !!(b && b.owner); })
+    .catch(function () {})
+    .finally(function () {
+      wireCtas();
+      var qs = new URLSearchParams(location.search);
+      if (qs.get('signin') === '1' && !signedIn) { openPopup(); history.replaceState(null, '', '/home'); }
+    });
 })();
 </script>
 <script src="/i18n.js"></script>
