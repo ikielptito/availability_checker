@@ -92,7 +92,7 @@
   /* Quiet terracotta ticks, not filled chips: the product mockup carries the visual weight now */
   .snav-benefits .snav-bcheck{flex-shrink:0;width:16px;height:16px;color:var(--sb-terracotta,#C46E4B);margin-top:1px}
   .snav-gbtn{display:flex;justify-content:center;min-height:44px}
-  .snav-guest{display:block;width:100%;text-align:center;background:none;border:none;color:#8a8478;font-family:'Geist',-apple-system,sans-serif;font-size:.8rem;font-weight:500;cursor:pointer;padding:8px 4px;transition:color .18s ease}
+  .snav-guest{display:block;width:100%;text-align:center;background:none;border:none;color:#8a8478;font-family:'Geist',-apple-system,sans-serif;font-size:.8rem;font-weight:500;cursor:pointer;padding:8px 4px;transition:color .18s ease;text-decoration:none;box-sizing:border-box}
   .snav-guest:hover{color:#514C45}
   /* Sign-in modal — product-led split: villa-share mockup beside the welcome.
      The mockup does the selling, so the copy side stays quiet and typographic. */
@@ -109,6 +109,7 @@
   .snav-si-hero{padding:34px 30px 0;display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:11px}
   .snav-si-mark{width:42px;height:42px;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(28,25,23,.08),0 6px 16px rgba(28,25,23,.12)}
   .snav-si-mark img{width:100%;height:100%;display:block}
+  .snav-si-logo{display:block;height:46px;width:auto}
   .snav-si-title{font-family:var(--sb-font-display,'Satoshi'),'Geist',-apple-system,sans-serif;font-weight:700;font-size:1.5rem;line-height:1.12;color:var(--sb-text,#1C1917);letter-spacing:-.02em}
   .snav-si-lede{color:var(--sb-muted,#8a8478);font-size:.86rem;line-height:1.55;margin:-3px 0 0;max-width:330px}
   .snav-si-box .snav-box-body{padding:16px 30px 26px;gap:13px}
@@ -119,7 +120,9 @@
        fully in frame and the device bleeds off the band's bottom edge — an
        intentional hero crop, not a slice through the middle of the screen. */
     .snav-si-media{height:212px}
+    .snav-si-media.owner{height:auto;aspect-ratio:3/2}
     .snav-si-media img{object-position:center top}
+    .snav-si-media.owner img{object-position:center}
     .snav-si-media::after{box-shadow:inset 0 -20px 24px -20px rgba(28,25,23,.14)}
     .snav-si-hero{align-items:center;text-align:center;padding:24px 24px 0}
     .snav-si-box .snav-box-body{padding:14px 24px 22px}
@@ -300,15 +303,20 @@
   function setAccount(a) { account = a; renderNav(); listeners.forEach(function (fn) { try { fn(account); } catch (e) {} }); }
   function loadMe() { return api('?action=auth/me').then(function (r) { setAccount(r.ok && r.body && r.body.owner ? r.body.owner : null); if (!account && !maybeHandoff() && !maybeLandingPrompt()) maybeOneTap(); return account; }); }
 
-  // Landing on the agent portal signed out: open the full sign-in sheet once
-  // the grid has painted behind it — a richer welcome than One Tap. Shown once
+  // Landing signed out: open the full sign-in sheet once the portal has
+  // painted behind it — a richer welcome than One Tap. Agent portal: shown once
   // per session; within the session One Tap, the contextual gates and the
-  // engagement-cadence prompt take over. Returns true when it claims this page
-  // load (so One Tap stays quiet).
+  // engagement-cadence prompt take over. Owner portal: the sheet IS the auth
+  // gate (the page boots into demo data behind it), so it opens on every
+  // signed-out load. Returns true when it claims this page load (so One Tap
+  // stays quiet).
   function maybeLandingPrompt() {
-    if (curPortal() !== 'agent') return false;   // owner portal has its own flow
     // In-app browsers (most WhatsApp arrivals) get the sheet too — its CTA
     // there is the browser-escape hop rather than the Google button.
+    if (curPortal() === 'owner') {
+      setTimeout(function () { if (!account) openSignIn('landing'); }, 900);
+      return true;
+    }
     try {
       if (sessionStorage.getItem('samba_landing_prompted')) return false;
       sessionStorage.setItem('samba_landing_prompted', '1');
@@ -325,32 +333,51 @@
     var t = setInterval(function () { if (window.google && google.accounts && google.accounts.id) { clearInterval(t); cb(); } }, 100);
   }
   // Contextual headlines: the gate that opened the modal names the value the
-  // agent was reaching for, instead of a generic welcome pitch.
+  // user was reaching for, instead of a generic welcome pitch. The 'owner'
+  // entry is the owner portal's default (its sheet is the auth gate over the
+  // demo dashboard — the pitch itself lives on /home).
   var SIGNIN_COPY = {
     favorite:  { title: 'Save this villa',          lede: 'Sign in to keep favourites and private notes on every device.' },
     shortlist: { title: 'Build a client shortlist', lede: 'Sign in to pick villas and send your client one polished link.' },
+    owner:     { title: 'Your owner portal',        lede: 'Sign in to list your villa and manage availability, photos and pricing. New here? Google sign-in creates your account.' },
     'default': { title: 'Welcome to Samba',         lede: 'One account for favourites, shortlists and your public agent profile.' }
   };
   function ensureSignIn() {
     var ov = document.getElementById('snav-signin'); if (ov) return ov;
+    var owner = curPortal() === 'owner';
+    var benefits = owner
+      ? '<li>' + I.check + '<span><b>One listing, 300+ rental agents.</b> Every agent on Samba sees your live availability</span></li>' +
+        '<li>' + I.check + '<span><b>Weekly reports on WhatsApp.</b> Views, shares and client enquiries for your villa</span></li>'
+      : '<li>' + I.check + '<span><b>Clients enquire with you.</b> Your name, photo and WhatsApp on every villa you share</span></li>' +
+        '<li>' + I.check + '<span><b>Favourites &amp; shortlists,</b> synced and ready to send as one link</span></li>';
     ov = document.createElement('div'); ov.className = 'snav-ov'; ov.id = 'snav-signin';
     ov.innerHTML = '<div class="snav-box snav-si-box"><button class="snav-x-float" data-close aria-label="Close">&times;</button>' +
-      '<div class="snav-si-media"><img id="snav-si-shot" src="/img-hero-phone.webp" alt=""></div>' +
+      // Owner variant, stacked layout only: a purpose-made 3:2 laptop+phone graphic
+      // shown in a matching 3:2 band, so the devices are never cover-cropped.
+      // Desktop (and the agent sheet everywhere) keeps the hand-held phone photo.
+      '<div class="snav-si-media' + (owner ? ' owner' : '') + '"><picture>' +
+      (owner ? '<source media="(max-width:640px)" srcset="/img-owner-signin.webp">' : '') +
+      '<img id="snav-si-shot" src="/img-hero-phone.webp" alt=""></picture></div>' +
       '<div class="snav-si-panel">' +
-      '<div class="snav-si-hero"><div class="snav-si-mark"><img src="/icon-192.png" alt=""></div>' +
+      // Owner sheet shows the full Samba lockup instead of the square app icon —
+      // it is the whole signed-out experience there, so the brand must read.
+      '<div class="snav-si-hero">' +
+      (owner ? '<img class="snav-si-logo" src="/logo-samba.png" alt="Samba — connecting owners & agents">'
+             : '<div class="snav-si-mark"><img src="/icon-192.png" alt=""></div>') +
       '<div class="snav-si-title" id="snav-si-title">Welcome to Samba</div>' +
       '<p class="snav-si-lede" id="snav-si-lede">One account for favourites, shortlists and your public agent profile.</p></div>' +
       '<div class="snav-box-body">' +
-      '<ul class="snav-benefits">' +
-      '<li>' + I.check + '<span><b>Clients enquire with you.</b> Your name, photo and WhatsApp on every villa you share</span></li>' +
-      '<li>' + I.check + '<span><b>Favourites &amp; shortlists,</b> synced and ready to send as one link</span></li>' +
-      '</ul>' +
+      '<ul class="snav-benefits">' + benefits + '</ul>' +
       '<div class="snav-gbtn" id="snav-gbtn"></div>' +
       '<div class="snav-wait" id="snav-signin-wait" style="display:none"><span class="snav-spin"></span> Signing you in…</div>' +
       '<div class="snav-err" id="snav-signin-err"></div>' +
-      '<div class="snav-fineprint">Free for agents · no card required</div>' +
-      '<button class="snav-guest" data-close>Continue as guest</button></div>' +
-      '</div></div>';
+      (owner
+        ? '<div class="snav-fineprint">The first 25 villas list free with code FOUNDING25</div>' +
+          '<button class="snav-guest" data-close>Explore the demo first</button>' +
+          '<a class="snav-guest" href="/home">New to Samba? See how it works &rarr;</a>'
+        : '<div class="snav-fineprint">Free for agents · no card required</div>' +
+          '<button class="snav-guest" data-close>Continue as guest</button>') +
+      '</div></div></div>';
     document.body.appendChild(ov);
     ov.addEventListener('click', function (e) {
       if (e.target === ov || e.target.hasAttribute('data-close')) {
@@ -363,7 +390,7 @@
   function openSignIn(src, ctx) {
     sigSource = src || 'nav';
     var ov = ensureSignIn(); ov.classList.add('open');
-    var copy = SIGNIN_COPY[ctx] || SIGNIN_COPY['default'];
+    var copy = SIGNIN_COPY[ctx] || SIGNIN_COPY[curPortal() === 'owner' ? 'owner' : 'default'];
     document.getElementById('snav-si-title').textContent = copy.title;
     document.getElementById('snav-si-lede').textContent = copy.lede;
     var slot = document.getElementById('snav-gbtn'); slot.innerHTML = ''; slot.style.display = '';
@@ -490,8 +517,9 @@
         snTrack(r.body.isNew ? 'signup_done_' + sigSource : 'signin_done');
         if (ov) ov.classList.remove('open');
         var cb = pendingAfterSignIn; pendingAfterSignIn = null;
-        // WhatsApp-required onboarding for new/incomplete agents.
-        if (!(account.profile && account.profile.waNumber)) { hideToast(); openAccount(true); }
+        // WhatsApp-required onboarding for new/incomplete agents — agent portal
+        // only: owners signing in on /portal go straight to their dashboard.
+        if (curPortal() === 'agent' && !(account.profile && account.profile.waNumber)) { hideToast(); openAccount(true); }
         else {
           var f = firstName();
           snToast('Welcome back' + (f ? ', ' + esc(f) : ''));
