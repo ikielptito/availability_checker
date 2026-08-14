@@ -53,9 +53,6 @@ body {
 .nav-brand { display: flex; align-items: center; text-decoration: none; }
 .nav-brand img { height: 80px; }
 .nav-spacer { flex: 1; }
-.nav-ghost { display: inline-flex; align-items: center; gap: 7px; color: var(--text-2); font-family: var(--sb-font-display); font-size: .82rem; font-weight: 600; text-decoration: none; padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); transition: color .15s, border-color .15s; white-space: nowrap; margin-right: 4px; }
-.nav-ghost:hover { color: var(--primary); border-color: var(--primary); }
-.nav-ghost svg { width: 15px; height: 15px; flex-shrink: 0; }
 .nav-cta { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-family: var(--sb-font-display); font-size: .82rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: background .15s; white-space: nowrap; }
 .nav-cta:hover { background: var(--primary-2); }
 .nav-login { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; color: var(--text-2); font-family: var(--sb-font-display); font-size: .82rem; font-weight: 600; cursor: pointer; padding: 8px 10px; border-radius: 8px; white-space: nowrap; transition: color .15s; }
@@ -70,9 +67,6 @@ body {
   .nav { gap: 8px; }
   .nav-brand img { height: 44px; }
   .nav-cta { padding: 9px 12px; }
-  /* Owner page: drop the Agent-portal link up top (it stays in the footer) so
-     the requested Log in button and the language pill both fit. */
-  .nav-ghost { display: none; }
   .nav-login { padding: 8px 6px; }
 }
 
@@ -310,31 +304,11 @@ body {
 .footer-landscape { max-width: 100%; height: 70px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .footer-landscape img { width: 100%; height: 100%; object-fit: contain; display: block; opacity: .28; }
 
-/* ── FLOATING LISTING DOCK (replaces the lp-switch pill on this page) ── */
-.dock {
-  position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 110;
-  display: flex; flex-direction: column; gap: 8px;
-  background: rgba(255,255,255,.95); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--border); border-radius: 16px; padding: 10px;
-  box-shadow: var(--sb-shadow-md);
-  opacity: 0; transform: translateY(12px); pointer-events: none;
-  transition: opacity .25s, transform .25s;
-}
-.dock.show { opacity: 1; transform: none; pointer-events: auto; }
-.dock a {
-  display: flex; align-items: center; gap: 10px; text-decoration: none;
-  font-family: var(--sb-font-display); font-size: .84rem; font-weight: 600;
-  border-radius: 10px; padding: 10px 14px; white-space: nowrap;
-}
-.dock a.dock-portal { background: var(--primary); color: #fff; }
-.dock a.dock-portal:hover { background: var(--primary-2); }
-.dock a.dock-wa { border: 1.5px solid var(--border); color: var(--text-2); background: var(--surface); }
-.dock a.dock-wa:hover { border-color: var(--subtle); background: var(--surface2); }
-.dock a svg, .dock a img { width: 17px; height: 17px; flex-shrink: 0; }
-@media (max-width: 700px) {
-  .dock { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); flex-direction: row; padding: 8px; border-radius: 999px; }
-  .dock a { flex: 1; justify-content: center; padding: 12px 10px; border-radius: 999px; font-size: .82rem; }
-}
+/* ── Fixed portal switcher (site-wide pattern, matches /for-agents) ── */
+.lp-switch{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:110;display:flex;width:min(440px,calc(100% - 24px));background:rgba(255,255,255,.93);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:999px;padding:5px;box-shadow:var(--sb-shadow-md)}
+.lp-switch a{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 10px;border-radius:999px;text-decoration:none;font-family:var(--sb-font-display);font-size:.9rem;font-weight:600;color:var(--sb-gray-700)}
+.lp-switch a:not(.on):hover{background:var(--surface2)}
+.lp-switch a.on{background:var(--sb-terracotta-050);color:var(--sb-terracotta-700)}
 </style>
 </head>
 <body>
@@ -345,10 +319,6 @@ body {
     <img src="/logo-samba.png" alt="Samba">
   </a>
   <div class="nav-spacer"></div>
-  <a class="nav-ghost" href="/?from=owner">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg>
-    <span class="nav-ghost-label">Agent portal</span>
-  </a>
   <button class="nav-login" id="nav-login" type="button">Log in</button>
   <a class="nav-cta" href="#start">List your villa</a>
 </nav>
@@ -578,17 +548,17 @@ body {
   <div class="footer-copy">&copy; 2026 Samba &middot; Bali, Indonesia</div>
 </footer>
 
-<!-- ── FLOATING LISTING DOCK ── -->
-<aside class="dock" id="dock" aria-label="List your villa">
-  <a class="dock-portal" href="/portal?view=new">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    List in the owner portal
+<!-- ── PORTAL SWITCHER (site-wide, persistent) ── -->
+<div class="lp-switch">
+  <a href="/">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Agent portal
   </a>
-  <a class="dock-wa" href="https://wa.me/6287841441233?text=Hi%20Maya!%20I%27d%20like%20to%20list%20my%20villa%20on%20Samba%20%F0%9F%8F%A1" target="_blank" rel="noopener">
-    <img src="/maya-avatar.webp" alt="" width="17" height="17" style="border-radius:50%">
-    List with Maya
+  <a href="/home" class="on">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Owner portal
   </a>
-</aside>
+</div>
 
 <!-- ── SIGN-IN POPUP ── The owner sign-in lives here, over the intro page. -->
 <style>
@@ -639,20 +609,6 @@ body {
     const villas = document.getElementById('stat-villas');
     if (d.properties && villas) villas.textContent = d.properties;
   } catch {}
-})();
-
-/* Floating dock: appears once the hero scrolls away, hides while the
-   get-started options (which it duplicates) are on screen. */
-(function () {
-  var dock = document.getElementById('dock');
-  var pastHero = false, startVisible = false;
-  function update() { dock.classList.toggle('show', pastHero && !startVisible); }
-  new IntersectionObserver(function (entries) {
-    pastHero = !entries[0].isIntersecting; update();
-  }, { threshold: 0.15 }).observe(document.getElementById('top'));
-  new IntersectionObserver(function (entries) {
-    startVisible = entries[0].isIntersecting; update();
-  }, { threshold: 0.1 }).observe(document.getElementById('start'));
 })();
 
 /* Swap marketing graphics to their Indonesian variants alongside i18n.js:
