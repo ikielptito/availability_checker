@@ -449,5 +449,40 @@ check('feed emits Hostex ops + report rows',
   JSON.stringify(h1rows));
 check('feed Hostex rows live:true with owner identity', h1rows.every(x => x.live === true && x.ownerEmail === 'ikielptito@gmail.com'), JSON.stringify(h1rows));
 
+// ── Maya intake (action=intake) ─────────────────────────────────────
+// Regression cover for 16 Aug 2026: a burst of concurrent intakes for ONE
+// villa created casa-suhana … casa-suhana-15 because every submission arrived
+// without a slug and the old code appended -N whenever the slug was taken.
+const intake = (body) => call(portalMod, {
+  method: 'POST', query: { action: 'intake' },
+  headers: { authorization: 'Bearer sync_secret' }, body,
+});
+const customCount = (pred) => Object.values(JSON.parse(store.get('custom_properties') || '{}')).filter(pred).length;
+
+r = await intake({ waNumber: '447378973820', data: { name: 'Casa Suhana', area: 'Cemagi', bedrooms: 3, monthly: 'IDR 40.000.000/month' } });
+check('intake creates the listing', r.code === 200 && r.data.slug === 'casa-suhana', JSON.stringify(r.data));
+
+// Same owner, same villa, no slug → must UPDATE, not spawn casa-suhana-2.
+r = await intake({ waNumber: '447378973820', data: { name: 'Casa Suhana', area: 'Cemagi', bedrooms: 3, bathrooms: 3, monthly: 'IDR 40.000.000/month' } });
+check('intake without a slug updates the owner\'s existing villa', r.code === 200 && r.data.slug === 'casa-suhana', JSON.stringify(r.data));
+check('intake did not create a duplicate', customCount(v => v.name === 'Casa Suhana') === 1, String(customCount(v => v.name === 'Casa Suhana')));
+
+// Concurrent submissions (the actual failure mode) must converge on one slug
+// and must not drop each other from the shared custom_properties blob.
+const before = Object.keys(JSON.parse(store.get('custom_properties') || '{}')).length;
+const burst = await Promise.all([1, 2, 3, 4, 5].map(i =>
+  intake({ waNumber: '447378973820', data: { name: 'Casa Suhana', area: 'Cemagi', bedrooms: 3, bathrooms: 3, monthly: 'IDR 40.000.000/month', overview: `take ${i}` } })));
+check('concurrent intakes all resolve to one slug', burst.every(x => x.code === 200 && x.data.slug === 'casa-suhana'), JSON.stringify(burst.map(x => x.data?.slug)));
+check('concurrent intakes create no duplicates', customCount(v => v.name === 'Casa Suhana') === 1, String(customCount(v => v.name === 'Casa Suhana')));
+check('concurrent intakes drop no other listings', Object.keys(JSON.parse(store.get('custom_properties'))).length === before, String(Object.keys(JSON.parse(store.get('custom_properties'))).length) + ' vs ' + before);
+
+// A different owner submitting the same villa name still gets their own slug.
+r = await intake({ waNumber: '628999000111', data: { name: 'Casa Suhana', area: 'Ubud' } });
+check('a different owner gets a separate slug', r.code === 200 && r.data.slug === 'casa-suhana-2', JSON.stringify(r.data));
+
+// Ownership gate still holds when a slug IS supplied.
+r = await intake({ slug: 'casa-suhana', waNumber: '628999000111', data: { name: 'Casa Suhana' } });
+check('intake with a slug rejects a foreign owner', r.code === 403, JSON.stringify(r.data));
+
 console.log(failures ? `\n${failures} FAILURES` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

@@ -28,7 +28,12 @@ function exec(cmd) {
   const [op, ...a] = cmd;
   switch (op) {
     case 'GET': return store.has(a[0]) ? store.get(a[0]) : null;
-    case 'SET': store.set(a[0], a[1]); return 'OK'; // ignores EX/extra args (no TTL in mock)
+    // Honours NX (needed by kvWithLock); still ignores EX — no TTL in the mock.
+    case 'SET': {
+      if (a.includes('NX') && store.has(a[0])) return null;
+      store.set(a[0], a[1]);
+      return 'OK';
+    }
     case 'DEL': { let n = 0; for (const k of a) { if (store.delete(k)) n++; sets.delete(k); hashes.delete(k); lists.delete(k); } return n; }
     case 'INCR': { const v = (parseInt(store.get(a[0])) || 0) + 1; store.set(a[0], String(v)); return v; }
     case 'HINCRBY': { if (!hashes.has(a[0])) hashes.set(a[0], new Map()); const h = hashes.get(a[0]); const v = (parseInt(h.get(a[1])) || 0) + parseInt(a[2]); h.set(a[1], String(v)); return v; }

@@ -67,6 +67,34 @@ export default async function handler(req, res) {
   const kvSetEx = (key, value, ttl) => kvCmd(['SET', key, JSON.stringify(value), 'EX', String(ttl)]);
   const kvDel = (key) => kvCmd(['DEL', key]);
 
+  // Mutual exclusion for read-modify-write on a whole-blob key. Every listing
+  // lives inside the single `custom_properties` value, so two concurrent
+  // writers each read the map, edit their own entry and write the map back —
+  // and the slower write silently discards the faster one, including OTHER
+  // owners' listings. Maya's intake can fire many times in one second, which
+  // is exactly how that window gets hit (16 Aug 2026).
+  //
+  // SET NX EX is atomic in Redis, so the first caller wins the lock and the
+  // rest spin briefly. The TTL means a crashed holder can never wedge the key.
+  async function kvWithLock(key, fn, { attempts = 25, waitMs = 200, ttl = 15 } = {}) {
+    const lock = `lock:${key}`;
+    const token = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    let held = false;
+    for (let i = 0; i < attempts; i++) {
+      if (await kvCmd(['SET', lock, token, 'NX', 'EX', String(ttl)])) { held = true; break; }
+      await new Promise(r => setTimeout(r, waitMs));
+    }
+    // Proceeding un-held after ~5s is still better than failing the write; the
+    // lock is an optimisation against a narrow window, not a correctness gate.
+    try {
+      return await fn();
+    } finally {
+      // Only release a lock we still own — never one a later caller took over
+      // after our TTL expired.
+      if (held && await kvCmd(['GET', lock]) === token) await kvCmd(['DEL', lock]).catch(() => {});
+    }
+  }
+
   const action = req.query.action || '';
 
   try {
@@ -136,7 +164,7 @@ export default async function handler(req, res) {
       if (!svcSecret || (req.headers.authorization || '') !== `Bearer ${svcSecret}`) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
-      return intakeListing(req, res, { kvGet, kvSet, kvDel });
+      return intakeListing(req, res, { kvGet, kvSet, kvDel, kvWithLock });
     }
     // Public tokenized report (no login) — powers the "View report" link Maya
     // sends owners on WhatsApp, so an owner without a Google account can still
@@ -1029,7 +1057,7 @@ async function saveProperty(req, res, owner, { kvGet, kvSet, kvDel }) {
 // (so the listing auto-claims when they later sign in with Google). Always
 // pending_review — never auto-live — and ownerWa keeps it out of the public
 // feed until you approve it (see listingVisible).
-async function intakeListing(req, res, { kvGet, kvSet, kvDel }) {
+async function intakeListing(req, res, { kvGet, kvSet, kvDel, kvWithLock }) {
   const body = req.body || {};
   const data = { ...(body.data || {}) };
   const waNumber = cleanStr(body.waNumber || data.waNumber).replace(/[^0-9]/g, '');
@@ -1041,34 +1069,53 @@ async function intakeListing(req, res, { kvGet, kvSet, kvDel }) {
   if (!name) return res.status(400).json({ error: 'Property name is required' });
   if (!waNumber && !ownerEmail) return res.status(400).json({ error: 'An owner WhatsApp number or email is required' });
 
-  const all = (await kvGet(CUSTOM_KEY)) || {};
-  let slug = normSlug(body.slug || '');
+  // The whole read-modify-write runs under the lock: without it two intakes
+  // seconds apart can each write the full map and drop the other's listing.
+  const out = await kvWithLock(CUSTOM_KEY, async () => {
+    const all = (await kvGet(CUSTOM_KEY)) || {};
+    let slug = normSlug(body.slug || '');
 
-  if (slug) {
-    const ex = all[slug];
-    if (!ex) return res.status(404).json({ error: 'Unknown listing' });
-    // Maya may only edit the listing that belongs to the owner she's talking to.
-    const okOwner = (waNumber && String(ex.waNumber || '').replace(/[^0-9]/g, '') === waNumber)
-                 || (waNumber && String(ex.ownerWa || '') === waNumber)
-                 || (ownerEmail && String(ex.ownerEmail || '').toLowerCase() === ownerEmail);
-    if (!okOwner) return res.status(403).json({ error: 'Listing belongs to a different owner' });
-  } else {
-    const base = slugify(name);
-    slug = base; let n = 2;
-    while (all[slug]) slug = `${base}-${n++}`;
-  }
+    // Does this owner already have a listing under this name? Maya submits
+    // without a slug whenever she hasn't been told one, so "same owner, same
+    // villa name" has to mean UPDATE — otherwise a re-submission silently
+    // becomes casa-suhana-2. One burst produced 15 of them (16 Aug 2026).
+    const ownedByCaller = (v) =>
+      (waNumber && (String(v.waNumber || '').replace(/[^0-9]/g, '') === waNumber
+                 || String(v.ownerWa || '').replace(/[^0-9]/g, '') === waNumber))
+      || (ownerEmail && String(v.ownerEmail || '').toLowerCase() === ownerEmail);
 
-  const existing = all[slug];
-  const listing = buildOwnerListing(slug, data, existing, existing?.ownerSub || null, 'pending_review');
-  listing.ownerEmail = ownerEmail || existing?.ownerEmail || null;
-  listing.ownerWa = waNumber || existing?.ownerWa || '';   // owner-identity signal → stays gated
-  listing.source = existing?.source || 'maya-intake';
-  all[slug] = listing;
-  await kvSet(CUSTOM_KEY, all);
+    if (slug) {
+      const ex = all[slug];
+      if (!ex) return { code: 404, payload: { error: 'Unknown listing' } };
+      // Maya may only edit the listing that belongs to the owner she's talking to.
+      if (!ownedByCaller(ex)) return { code: 403, payload: { error: 'Listing belongs to a different owner' } };
+    } else {
+      const match = Object.keys(all).find(k =>
+        ownedByCaller(all[k]) && slugify(cleanStr(all[k].name || '')) === slugify(name));
+      if (match) {
+        slug = match;
+      } else {
+        const base = slugify(name);
+        slug = base; let n = 2;
+        while (all[slug]) slug = `${base}-${n++}`;
+      }
+    }
 
-  if (listing.folder) await kvDel(`autocover:${listing.folder}`);
+    const existing = all[slug];
+    // Every Maya-driven change still goes back to review — that is exactly what
+    // she promises the owner ("it'll go live once Ikiel approves").
+    const listing = buildOwnerListing(slug, data, existing, existing?.ownerSub || null, 'pending_review');
+    listing.ownerEmail = ownerEmail || existing?.ownerEmail || null;
+    listing.ownerWa = waNumber || existing?.ownerWa || '';   // owner-identity signal → stays gated
+    listing.source = existing?.source || 'maya-intake';
+    all[slug] = listing;
+    await kvSet(CUSTOM_KEY, all);
 
-  return res.status(200).json({ ok: true, slug, status: listing.status, name: listing.name });
+    if (listing.folder) await kvDel(`autocover:${listing.folder}`);
+    return { code: 200, payload: { ok: true, slug, status: listing.status, name: listing.name } };
+  });
+
+  return res.status(out.code).json(out.payload);
 }
 
 async function rankPhotos(req, res, owner, { kvGet, kvSet, kvDel }) {
