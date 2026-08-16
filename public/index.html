@@ -1099,11 +1099,13 @@ function openViewPop(ev){openPop('view',ev);}
 function cardEnquire(propId){
   const info=PROPS[propId]||{};
   const name=info.name||(properties.find(p=>p.id===propId)||{}).name||'this villa';
-  const waNum=info.waNumber||'6281246357778';
-  const waName=info.waContactName||'Era';
+  // Same rule as the modal CTA: the ops-line name only travels with the ops
+  // line, never onto a villa's own contact number.
+  const waNum=info.waNumber||SAMBA_OPS_WA;
+  const waName=info.waContactName||(waNum===SAMBA_OPS_WA?'Era':'');
   track('enquiry_from_card',propId,name);
   track('whatsapp_click',propId,name);
-  window.open('https://wa.me/'+waNum+'?text='+encodeURIComponent('Hi '+waName+', I\'m interested in '+name+'. Could you tell me more?'),'_blank');
+  window.open('https://wa.me/'+waNum+'?text='+encodeURIComponent('Hi'+(waName?' '+waName:'')+', I\'m interested in '+name+'. Could you tell me more?'),'_blank');
 }
 // One-time coachmark pointing at the view toggle — the Map view is worth
 // surfacing and a single icon button doesn't sell it by itself.
@@ -1278,6 +1280,11 @@ const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'
 const todayStr=ds(TODAY);
 
 const _SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ICONCLS">';
+
+// Samba's own WhatsApp ops line — the enquiry fallback for listings that carry
+// no contact of their own. Era is the person on it, so her name is only ever
+// used together with this number (see cardEnquire / the modal CTA).
+const SAMBA_OPS_WA='6281246357778';
 const ICONS={
   info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
   share:'<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>',
@@ -1471,9 +1478,12 @@ function openModal(propId) {
     driveBtn.style.display='none';
   }
   document.getElementById('modal-share-btn').innerHTML=icon('share','sm')+'<span>Share with client</span>';
-  const waNum=info.waNumber||'6281246357778';
-  const waName=info.waContactName||'Era';
-  const waMsg=encodeURIComponent('Hi '+waName+', I\'m interested in '+info.name+'. Could you tell me more?');
+  const waNum=info.waNumber||SAMBA_OPS_WA;
+  // "Era" is the name on the ops line, so it may only be used WITH that line.
+  // A listing with its own contact number and no name was greeting a villa's
+  // owner as "Hi Era" — the fallback name was leaking onto a stranger's chat.
+  const waName=info.waContactName||(waNum===SAMBA_OPS_WA?'Era':'');
+  const waMsg=encodeURIComponent('Hi'+(waName?' '+waName:'')+', I\'m interested in '+info.name+'. Could you tell me more?');
   const waBtn=document.getElementById('modal-wa-btn');
   waBtn.href='https://wa.me/'+waNum+'?text='+waMsg;
   // The shared icon() template is stroke-only (fill:none), which renders the
