@@ -484,24 +484,24 @@ check('a different owner gets a separate slug', r.code === 200 && r.data.slug ==
 r = await intake({ slug: 'casa-suhana', waNumber: '628999000111', data: { name: 'Casa Suhana' } });
 check('intake with a slug rejects a foreign owner', r.code === 403, JSON.stringify(r.data));
 
-// The owner's WhatsApp number is private by default. `waNumber` is served over
-// the unauthenticated listings endpoint, so an intake that quietly copied the
-// owner's personal mobile into it published a private number and let agents
-// route around Samba (found 16 Aug 2026).
+// The enquiry contact is what an agent taps "Visit" to reach, so an intake has
+// to carry it — and carry a NAME with it. Casa Suhana went live as a bare
+// number because Maya never collected one (16 Aug 2026).
 const custom = () => JSON.parse(store.get('custom_properties') || '{}');
-check('intake does not publish the owner\'s number by default',
-  custom()['casa-suhana'].waNumber === '' && custom()['casa-suhana'].ownerWa === '447378973820',
-  `waNumber=${JSON.stringify(custom()['casa-suhana'].waNumber)} ownerWa=${JSON.stringify(custom()['casa-suhana'].ownerWa)}`);
-
-r = await intake({ waNumber: '447378973820', publicContact: true, data: { name: 'Casa Suhana', area: 'Cemagi' } });
-check('intake publishes the number only on explicit opt-in',
+check('intake carries the enquiry number',
   custom()['casa-suhana'].waNumber === '447378973820', JSON.stringify(custom()['casa-suhana'].waNumber));
 
-// …and a later intake that omits the flag must not silently un-publish it.
-r = await intake({ waNumber: '447378973820', data: { name: 'Casa Suhana', area: 'Cemagi', monthly: '41jt' } });
-check('a later intake preserves an opted-in public contact',
-  custom()['casa-suhana'].waNumber === '447378973820' && custom()['casa-suhana'].monthly === '41jt',
-  JSON.stringify({ wa: custom()['casa-suhana'].waNumber, monthly: custom()['casa-suhana'].monthly }));
+r = await intake({ waNumber: '447378973820', waContactName: 'Suhana Owner',
+  data: { name: 'Casa Suhana', area: 'Cemagi', monthly: '41jt' } });
+check('intake stores the contact name alongside the number',
+  custom()['casa-suhana'].waContactName === 'Suhana Owner' && custom()['casa-suhana'].monthly === '41jt',
+  JSON.stringify({ n: custom()['casa-suhana'].waContactName, m: custom()['casa-suhana'].monthly }));
+
+// An update that omits waNumber must not wipe the contact off the listing.
+r = await intake({ slug: 'casa-suhana', waNumber: '447378973820', data: { name: 'Casa Suhana', monthly: '42jt' } });
+check('an update never wipes the enquiry contact',
+  custom()['casa-suhana'].waNumber === '447378973820' && custom()['casa-suhana'].monthly === '42jt',
+  JSON.stringify({ wa: custom()['casa-suhana'].waNumber, m: custom()['casa-suhana'].monthly }));
 
 // A Maya intake lands as pending_review, so it must not be public until it is
 // approved — and once it is, the payload must carry no owner-identity fields.

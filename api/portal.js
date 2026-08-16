@@ -1067,14 +1067,18 @@ async function intakeListing(req, res, { kvGet, kvSet, kvDel, kvWithLock }) {
   const data = { ...(body.data || {}) };
   const waNumber = cleanStr(body.waNumber || data.waNumber).replace(/[^0-9]/g, '');
   const ownerEmail = cleanStr(body.ownerEmail || data.ownerEmail).toLowerCase();
-  // `waNumber` is the listing's PUBLIC enquiry contact — it is served over the
-  // unauthenticated listings endpoint by design. The owner's own number is not
-  // that by default: they gave it to Maya to have a conversation, not to be
-  // published on the open web, and publishing it also lets agents route around
-  // Samba entirely. It is kept privately as `ownerWa` below either way; it only
-  // becomes the public contact when the owner has explicitly agreed to be it.
-  if (waNumber && body.publicContact === true) data.waNumber = waNumber;
-  else delete data.waNumber;
+  // `waNumber` is the listing's enquiry contact and it is meant to be reachable:
+  // agents tap "Visit" on a villa to arrange a viewing with whoever runs it, so
+  // an owner-managed listing without a number is a listing agents cannot act on.
+  // It is carried by default, as every admin-entered listing already does.
+  //
+  // The exposure that DOES matter is that it ships in the unauthenticated
+  // /api/listings payload, so it is readable by anyone, not just signed-in
+  // agents — and the public /l/:slug page deliberately renders no WhatsApp link
+  // precisely so a client forwarded the page can't bypass their agent. Closing
+  // that gap means gating the listings feed behind the agent session; it is not
+  // something to paper over by withholding the contact from agents.
+  if (waNumber) data.waNumber = waNumber;
   if (body.waContactName && !data.waContactName) data.waContactName = body.waContactName;
 
   const name = cleanStr(data.name);
