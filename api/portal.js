@@ -230,8 +230,13 @@ export default async function handler(req, res) {
     };
     // Pre-fill the listing form from a public Airbnb / Booking.com page.
     if (action === 'import-listing' && req.method === 'POST') {
-      const owner = await currentOwner(req, { kvGet });
-      if (!owner && !isAdminReq()) return res.status(401).json({ error: 'Not signed in' });
+      // Maya calls this too, with the shared service secret, when an owner
+      // sends her their Airbnb/Booking link on WhatsApp — same scraper the
+      // portal wizard uses, so there is one extraction path, not two.
+      const svc = process.env.LISTING_SYNC_SECRET;
+      const isService = !!svc && (req.headers.authorization || '') === `Bearer ${svc}`;
+      const owner = isService ? null : await currentOwner(req, { kvGet });
+      if (!owner && !isService && !isAdminReq()) return res.status(401).json({ error: 'Not signed in' });
       return importListing(req, res);
     }
     // Upload a chunk of extracted gallery photos into a Drive folder. The
