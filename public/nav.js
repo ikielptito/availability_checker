@@ -313,7 +313,15 @@
       sessionStorage.setItem('samba_landing_prompted', '1');
       sessionStorage.setItem('samba_sp_sess', '1');  // villa-close prompt stays quiet this session
     } catch (e) { return false; }
-    setTimeout(function () { if (!account) openSignIn('landing'); }, 1400);
+    setTimeout(function () {
+      // Don't stack on the agent portal's first-run welcome card. That card
+      // opens at 700ms and this at 1400ms, so a brand-new agent got two
+      // full-screen sheets at once, both headed "Welcome to Samba". Once the
+      // welcome has been dismissed the flag is set and this prompt resumes.
+      var greeted = true;
+      try { greeted = !!localStorage.getItem('samba_agent_welcome_v1'); } catch (e) {}
+      if (greeted && !account) openSignIn('landing');
+    }, 1400);
     return true;
   }
 
