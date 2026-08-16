@@ -10,6 +10,26 @@ window.esc = function esc(s) {
 };
 window.escapeHtml = window.esc;
 
+// Monthly/yearly rent → display string. Prices are stored in millions with a
+// "jt" suffix ("30jt"), but the admin field is free text and villa-bula was
+// saved as a bare "30". The old per-page formatters only handled the suffixed
+// form and passed anything else through, so that listing rendered as
+// "IDR 30 / mo" — thirty rupiah — on the shortlist page agents send clients.
+// A bare number means millions here too; a full rupiah figure is scaled down.
+// Non-numeric text ("negotiable", "on request") passes through untouched.
+window.sbFmtPrice = function sbFmtPrice(p) {
+  if (!p) return '';
+  var s = String(p).trim();
+  var m = s.match(/(\d+(?:[.,]\d+)?)\s*(?:jt|juta)/i);
+  if (m) return 'IDR ' + m[1].replace(',', '.') + 'M';
+  var bare = s.match(/^(?:idr|rp)?\s*(\d+(?:[.,]\d+)?)$/i);
+  if (bare) {
+    var n = parseFloat(bare[1].replace(',', '.'));
+    return 'IDR ' + (n >= 1e6 ? n / 1e6 : n) + 'M';
+  }
+  return s;
+};
+
 // Copy to clipboard, honestly. Resolves true on success, false on failure —
 // never rejects, so a caller can always tell the user what happened.
 //

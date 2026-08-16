@@ -1142,7 +1142,7 @@ function getSlug() {
 }
 
 /* esc() comes from /shared.js */
-function fmtPrice(p) { return p ? p.replace(/(\d+)jt/i, 'IDR $1M') : ''; }
+function fmtPrice(p) { return sbFmtPrice(p); }   // shared.js — handles bare "30" too
 
 async function boot() {
   const slug = getSlug();
