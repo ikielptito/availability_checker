@@ -63,6 +63,15 @@
   .nav-back:hover { color: var(--text); }
 
   /* LOADING / ERROR */
+  .err-hint { margin: 0; color: var(--muted); font-size: .92rem; text-align: center; }
+  .err-cta {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 11px 22px; border-radius: 999px; text-decoration: none;
+    background: var(--primary, #C46E4B); color: #fff;
+    font-weight: 600; font-size: .92rem;
+  }
+  .err-cta:hover { filter: brightness(.94); }
+  .err-cta:focus-visible { outline: 2px solid var(--primary, #C46E4B); outline-offset: 3px; }
   .state-screen {
     min-height: 80vh;
     display: flex;
@@ -725,6 +734,11 @@
 <div class="state-screen" id="error" style="display:none">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:40px;height:40px;color:var(--muted)"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
   <span id="error-msg">Listing not found.</span>
+  <!-- Agents share these links and villas get renamed or taken down, so the
+       people who land here are clients who were interested enough to click.
+       Sending them to the villa grid instead of a full stop. -->
+  <p class="err-hint">It may have been renamed or is no longer available.</p>
+  <a class="err-cta" href="/">Browse available villas</a>
 </div>
 
 <!-- LISTING -->
@@ -1273,14 +1287,16 @@ async function boot() {
   window.copyMapPin = function() {
     if (!listing.location) return;
     const btn = document.getElementById('map-copy');
-    navigator.clipboard.writeText(listing.location).then(() => {
+    sbCopy(listing.location).then((ok) => {
       const orig = btn.textContent;
-      btn.textContent = '✓ Copied';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1800);
-    }).catch(() => {
-      btn.textContent = 'Copy failed';
-      setTimeout(() => { btn.textContent = '⧉ Copy pin'; }, 1500);
+      if (ok) {
+        btn.textContent = '✓ Copied';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1800);
+      } else {
+        btn.textContent = 'Copy failed';
+        setTimeout(() => { btn.textContent = '⧉ Copy pin'; }, 1500);
+      }
     });
   };
 
@@ -1388,13 +1404,15 @@ async function sharePage() {
     try { await navigator.share({ title: document.title, url: location.href }); } catch {}
     return;
   }
-  try {
-    await navigator.clipboard.writeText(location.href);
-    const b = document.getElementById('hero-share');
-    const orig = b.innerHTML;
-    b.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-    setTimeout(() => { b.innerHTML = orig; }, 1600);
-  } catch {}
+  // An empty catch here meant a refused clipboard write left the share button
+  // completely unchanged — indistinguishable from a successful copy.
+  const ok = await sbCopy(location.href);
+  const b = document.getElementById('hero-share');
+  const orig = b.innerHTML;
+  b.innerHTML = ok
+    ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+    : '<span style="font-size:12px">Couldn’t copy</span>';
+  setTimeout(() => { b.innerHTML = orig; }, ok ? 1600 : 2200);
 }
 
 // ── AMENITY ICONS ──

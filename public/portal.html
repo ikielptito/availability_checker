@@ -635,7 +635,11 @@ function demoBlock(){
   if (me.ok && me.body?.owner) return enterApp(me.body.owner);
   const qs = new URLSearchParams(location.search);
   if (!qs.has('demo')) {
-    location.replace(qs.get('view') === 'new' ? '/home?signin=1' : '/home');
+    // Always carry signin=1: someone who opened /portal signed out came here to
+    // sign in, and bouncing them onto the marketing page with no prompt left
+    // them hunting for "Log in" in the header. view=new additionally returns
+    // them straight to the wizard once they're through.
+    location.replace(qs.get('view') === 'new' ? '/home?signin=1&view=new' : '/home?signin=1');
     return;
   }
   enterDemo();

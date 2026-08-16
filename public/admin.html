@@ -198,9 +198,15 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
     <div class="login-brand">Admin</div>
     <img src="/logo-samba.png" alt="Samba" style="height:100px;margin-bottom:8px">
     <div class="login-sub">Listings admin</div>
-    <label class="login-label">Password</label>
-    <input class="login-input" id="pwd" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" />
-    <button class="login-btn" onclick="doLogin()">Enter</button>
+    <!-- Wrapped in a real form with a named field: without one, password
+         managers won't reliably offer to save or fill this, which pushes
+         whoever uses the console toward a weaker, memorable password. -->
+    <form onsubmit="event.preventDefault();doLogin()">
+      <label class="login-label" for="pwd">Password</label>
+      <input class="login-input" id="pwd" name="password" type="password"
+             autocomplete="current-password" placeholder="Enter password" />
+      <button class="login-btn" type="submit">Enter</button>
+    </form>
     <div class="login-err" id="login-err"></div>
   </div>
 </div>

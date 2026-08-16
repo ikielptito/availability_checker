@@ -1067,7 +1067,14 @@ async function intakeListing(req, res, { kvGet, kvSet, kvDel, kvWithLock }) {
   const data = { ...(body.data || {}) };
   const waNumber = cleanStr(body.waNumber || data.waNumber).replace(/[^0-9]/g, '');
   const ownerEmail = cleanStr(body.ownerEmail || data.ownerEmail).toLowerCase();
-  if (waNumber) data.waNumber = waNumber;                 // carry the contact into the listing
+  // `waNumber` is the listing's PUBLIC enquiry contact — it is served over the
+  // unauthenticated listings endpoint by design. The owner's own number is not
+  // that by default: they gave it to Maya to have a conversation, not to be
+  // published on the open web, and publishing it also lets agents route around
+  // Samba entirely. It is kept privately as `ownerWa` below either way; it only
+  // becomes the public contact when the owner has explicitly agreed to be it.
+  if (waNumber && body.publicContact === true) data.waNumber = waNumber;
+  else delete data.waNumber;
   if (body.waContactName && !data.waContactName) data.waContactName = body.waContactName;
 
   const name = cleanStr(data.name);
@@ -1201,7 +1208,12 @@ function buildOwnerListing(slug, data, existing, ownerSub, status) {
     yearly: cleanStr(data.yearly),
     yearly2: data.yearly2 !== undefined ? cleanStr(data.yearly2) : (existing?.yearly2 || ''),
     folder: extractFolderId(data.photosLink || data.folder),
-    waNumber: cleanStr(data.waNumber).replace(/[^0-9]/g, ''),
+    // Omitted (not empty) means "leave as-is", matching the other optional
+    // fields below — so a Maya intake that declines to publish a contact can
+    // never silently wipe one an owner or admin had already set.
+    waNumber: data.waNumber !== undefined
+      ? cleanStr(data.waNumber).replace(/[^0-9]/g, '')
+      : (existing?.waNumber || ''),
     waContactName: cleanStr(data.waContactName),
     // Dedicated weekly-report contact (owner) — separate from the operational
     // waNumber (often a manager). Both receive Maya's weekly report.

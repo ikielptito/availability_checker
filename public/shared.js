@@ -9,3 +9,38 @@ window.esc = function esc(s) {
   ));
 };
 window.escapeHtml = window.esc;
+
+// Copy to clipboard, honestly. Resolves true on success, false on failure —
+// never rejects, so a caller can always tell the user what happened.
+//
+// Two things went wrong with the old `navigator.clipboard.writeText(x).then(ok)`
+// call sites: there was no .catch(), so a refused write rejected into the void
+// and an agent who pressed "Share with client" saw nothing at all and assumed
+// it had worked; and there was no fallback, so any context where the async
+// clipboard is unavailable (older Safari, an insecure origin, a denied
+// permission) simply could not copy. The execCommand path still works in most
+// of those, so it is tried before giving up.
+window.sbCopy = async function sbCopy(text) {
+  const s = String(text == null ? '' : text);
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(s);
+      return true;
+    }
+  } catch (_) { /* fall through to the legacy path */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = s;
+    ta.setAttribute('readonly', '');
+    // Off-screen but still selectable; position:fixed avoids scrolling the page.
+    ta.style.cssText = 'position:fixed;top:0;left:-9999px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, s.length);
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return !!ok;
+  } catch (_) {
+    return false;
+  }
+};

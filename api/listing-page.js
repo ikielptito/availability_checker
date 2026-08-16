@@ -102,8 +102,15 @@ async function serve(req, res) {
   const html = _htmlCache.replace(/<title>[\s\S]*?<\/title>/, tags);
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=86400');
-  return res.status(200).send(html);
+  // A slug we can't resolve answers 404, not 200. The body is unchanged —
+  // scrapers still get an OG card and the visitor still gets a rendered page —
+  // but a soft 200 let search engines index "not found" pages and made uptime
+  // checks report dead share links as healthy.
+  const missing = !!slug && !listing;
+  res.setHeader('Cache-Control', missing
+    ? 'no-store'
+    : 's-maxage=300, stale-while-revalidate=86400');
+  return res.status(missing ? 404 : 200).send(html);
 }
 
 // Lazy-load + cache listing.html (5-min per-Lambda TTL). Served statically

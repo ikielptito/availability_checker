@@ -749,6 +749,7 @@ button:focus-visible,[href]:focus-visible,input:focus-visible,textarea:focus-vis
 <!-- MAP / AREAS SHEET -->
 
 <script src="/nav.js"></script>
+<script src="/shared.js"></script>
 <script>
 // Owner peek: /?from=owner shows a return banner so owners previewing the
 // product can get back to the listing flow. Dismiss sticks for the session.
@@ -1526,7 +1527,14 @@ function maybeSignupPrompt(){
   const coolDays=[1,3,7,14][Math.min(st.shows||0,3)];
   st.shows=(st.shows||0)+1;st.next=now+coolDays*864e5;save();
   try{sessionStorage.setItem('samba_sp_sess','1');}catch(e){}
-  setTimeout(()=>{if(window.SambaNav&&!SambaNav.isSignedIn())SambaNav.openSignIn('auto');},600);
+  // Never stack on the first-run welcome. That card opens at 700ms and this
+  // prompt at 600ms, so a brand-new agent got two full-screen sheets at once —
+  // both headed "Welcome to Samba", the second visible through the first.
+  // The welcome already carries the pitch; this prompt waits for a later visit.
+  setTimeout(()=>{
+    let greeted=false; try{greeted=!!localStorage.getItem('samba_agent_welcome_v1');}catch(e){greeted=true;}
+    if(greeted&&window.SambaNav&&!SambaNav.isSignedIn())SambaNav.openSignIn('auto');
+  },600);
 }
 
 async function loadCarousel(propId,folderId) {
@@ -1860,7 +1868,7 @@ function doShare(propId, btn){
   if(navigator.share){
     navigator.share({title,text,url}).then(()=>flash('Shared')).catch(()=>{});
   } else {
-    navigator.clipboard.writeText(text+'\n'+url).then(()=>flash('Copied'));
+    sbCopy(text+'\n'+url).then(ok=>flash(ok?'Copied':'Couldn’t copy — select the link and copy it manually'));
   }
 }
 function shareModal(){ doShare(modalPropId, document.getElementById('modal-share-btn')); }
@@ -2168,12 +2176,13 @@ function copyMapsLink(e, propId) {
   const info = PROPS[id]; if (!info || !info.location) return;
   const trigger = e.currentTarget;
   track('location_copy', id, info.name);
-  navigator.clipboard.writeText(info.location).then(()=>{
+  sbCopy(info.location).then(ok=>{
     const orig = trigger.innerHTML;
+    const label = ok ? 'Copied!' : 'Couldn’t copy';
     if (trigger.id === 'map-copy-btn') {
-      trigger.innerHTML = icon('check','sm')+'<span>Copied!</span>';
+      trigger.innerHTML = icon(ok?'check':'alert','sm')+'<span>'+label+'</span>';
     } else {
-      trigger.innerHTML = icon('check')+'<span>Copied!</span>';
+      trigger.innerHTML = icon(ok?'check':'alert')+'<span>'+label+'</span>';
     }
     setTimeout(()=>{trigger.innerHTML = orig;}, 1800);
   });
@@ -2843,7 +2852,7 @@ function renameList(id,el){ const name=el.value.trim(); listApi({op:'rename',id:
 function deleteList(id){ if(!confirm('Delete this shortlist? The share link will stop working.')) return; listApi({op:'delete',id:id}); }
 function removeFromList(id,slug){ listApi({op:'remove',id:id,slug:slug}); }
 function shareList(id){ listApi({op:'share',id:id}); }
-function copyShare(url,btn){ navigator.clipboard.writeText(url).then(function(){ const t=btn.textContent; btn.textContent='Copied!'; setTimeout(function(){btn.textContent=t;},1400); }); }
+function copyShare(url,btn){ sbCopy(url).then(function(ok){ const t=btn.textContent; btn.textContent=ok?'Copied!':'Couldn’t copy'; setTimeout(function(){btn.textContent=t;},1400); }); }
 
 function nameForSlug(slug){
   const hostexId=Object.keys(SLUGS).find(function(id){return SLUGS[id]===slug;});

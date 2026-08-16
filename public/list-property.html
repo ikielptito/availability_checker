@@ -69,6 +69,21 @@ body {
   .nav-cta { padding: 9px 12px; }
   .nav-login { padding: 8px 6px; }
 }
+/* Under ~430px the row still could not fit brand + Log in + CTA + the EN/ID
+   pill: the pill ran past the right edge and the ID half sat entirely
+   off-screen, so Indonesian readers on a phone could not switch language on
+   the one page written for them. The header CTA is the thing to drop — the
+   hero repeats it immediately below, and the persistent bottom dock also
+   links the owner portal. Language and sign-in cannot be reached any other
+   way, so they stay. */
+@media (max-width: 430px) {
+  .nav { gap: 6px; padding: 8px 12px; }
+  .nav-brand { min-width: 0; }
+  .nav-brand img { height: 40px; max-width: 100%; }
+  .nav-cta { display: none; }
+  .nav-login { padding: 8px 4px; }
+  .nav .sb-i18n, .nav [class*="i18n"] { flex-shrink: 0; }
+}
 
 /* ── BUTTONS ── */
 .btn-primary {
@@ -336,7 +351,10 @@ body {
       <a class="btn-primary" href="#start">List your villa</a>
       <a class="btn-secondary" href="#how">See how it works</a>
     </div>
-    <div class="hero-note">Free to list · Live in under 24 hours · No commissions</div>
+    <!-- "5 minutes" (the §start heading) is how long listing takes; this is how
+         long review takes. Said as two bare numbers a scroll apart they read as
+         a contradiction, so each now names what it measures. -->
+    <div class="hero-note">Free to list · Five minutes to submit, live within a day · No commissions</div>
   </div>
   <div class="hero-art">
     <img src="/img-owner-hero.webp" data-id-src="/img-owner-hero-id.webp" width="1735" height="1377"
