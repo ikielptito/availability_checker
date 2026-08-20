@@ -46,6 +46,7 @@ function normalizeWaNumber(raw) {
 // portal's "Buduk · Near Canggu"). All fields stay overridable per-listing via
 // /admin (KV). `unitType` feeds the WhatsApp line format ("1BR Apartment").
 import { UNITS } from '../lib/catalog.js';
+import { listingVisible } from './listings.js';
 const DIGEST_TAG = {
   haus: 'Batu Bolong, Canggu', lanehaus: 'Pererenan',
   'villa-saturno': 'Padang Linjong, Canggu', tropicana: 'Tumbak Bayuh, Pererenan',
@@ -160,7 +161,9 @@ export default async function handler(req, res) {
   hostexResults.sort((a, b) => a.order - b.order);
 
   // ── Custom properties ──────────────────────────────────────────────
-  const customResults = await Promise.all(Object.values(customMap || {}).filter(c => !c.hidden).map(async c => {
+  // Same visibility rule as the public feed: pending_review owner intakes
+  // must not reach Maya/agent broadcasts before approval.
+  const customResults = await Promise.all(Object.values(customMap || {}).filter(c => listingVisible(c)).map(async c => {
     const bookedSet = rangesToSet(c.bookedRanges, todayStr, horizonEndStr);
     // Union in iCal bookings (e.g. a friend's Hostex/Airbnb calendar export)
     if (c.icalUrl) {

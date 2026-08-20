@@ -66,7 +66,9 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 // Card billing is offline, so approval alone makes an owner listing live — the
 // subscription paywall is intentionally NOT enforced here for now. (comped is
 // still honoured so pre-comped listings behave the same.)
-function listingVisible(c) {
+// Exported: api/digest.js applies the same rule so Maya/CRM consumers never
+// see a listing the public feed would hide (e.g. pending_review intakes).
+export function listingVisible(c) {
   if (c.hidden) return false;
   // Pure admin-curated listing with no owner assigned: always public. A listing
   // linked to an owner by Google sub, email, OR WhatsApp number (Maya intake)

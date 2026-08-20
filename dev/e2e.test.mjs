@@ -240,6 +240,18 @@ await call(listingsMod, {
   } },
 });
 
+// Owner-linked intake still pending review — must NOT reach the digest
+// (digest applies the public feed's listingVisible rule).
+{
+  const customs = JSON.parse(store.get('custom_properties'));
+  customs['pending-villa'] = {
+    slug: 'pending-villa', name: 'Pending Villa', tag: 'Cemagi',
+    status: 'pending_review', hidden: false, ownerWa: '628123456789',
+    bookedRanges: [],
+  };
+  store.set('custom_properties', JSON.stringify(customs));
+}
+
 // Hostex: HAUS-1 fully booked next 60 days (reservation), then opens up
 hostexCalendars['11621510'] = {
   reservations: [{ check_in_date: T0, check_out_date: isoNext(T0, 60), status: 'accepted' }],
@@ -263,6 +275,7 @@ const dg = r.data;
 check('digest has asOf + properties', !!dg.asOf && Array.isArray(dg.properties));
 check('digest includes 14 hostex + 2 visible custom (16)', dg.properties.length === 16, dg.properties.length);
 check('hidden custom excluded', !dg.properties.find(p => p.id === 'c_hidden-villa'));
+check('pending_review owner intake excluded', !dg.properties.find(p => p.id === 'c_pending-villa'));
 
 // 8b. Fully-booked custom property
 const fb = dg.properties.find(p => p.id === 'c_fully-booked');
