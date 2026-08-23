@@ -487,7 +487,7 @@ async function saveProfile(req, res, owner, { kvGet, kvSet }) {
   if (p.waNumber && !p.crmAgentId) {
     try {
       const crmBase = process.env.CRM_BASE_URL || 'https://kaya-agent-crm.vercel.app';
-      const r = await fetch(`${crmBase}/api/supabase`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'get_agents' }) });
+      const r = await fetch(`${crmBase}/api/supabase`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(process.env.LISTING_SYNC_SECRET ? { Authorization: `Bearer ${process.env.LISTING_SYNC_SECRET}` } : {}) }, body: JSON.stringify({ action: 'get_agents' }) });
       const agents = await r.json();
       if (Array.isArray(agents)) {
         const tail = p.waNumber.slice(-8);

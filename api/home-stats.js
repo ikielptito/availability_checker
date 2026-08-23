@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   try {
     const r = await fetch(`${crmBase}/api/supabase`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(process.env.LISTING_SYNC_SECRET ? { Authorization: `Bearer ${process.env.LISTING_SYNC_SECRET}` } : {}) },
       body: JSON.stringify({ action: 'get_agents' }),
     });
     const agents = await r.json();

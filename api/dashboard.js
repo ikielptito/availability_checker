@@ -325,7 +325,7 @@ async function handleNotifyAgents(req, res) {
   async function crmSet(key, value) {
     const r = await fetch(`${crmBase}/api/supabase`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(process.env.LISTING_SYNC_SECRET ? { Authorization: `Bearer ${process.env.LISTING_SYNC_SECRET}` } : {}) },
       body: JSON.stringify({ action: 'set_settings', payload: { key, value } }),
     });
     return r.ok;
