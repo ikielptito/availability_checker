@@ -1,4 +1,5 @@
 import { UNITS } from '../lib/catalog.js';
+import { normalizeWaNumber } from '../lib/owner-listings.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -524,8 +525,8 @@ async function handleOwnerSync(req, res) {
     // number become separate owner records both carrying the slug — which is
     // exactly the "weekly report goes to both" behaviour. `role` is advisory.
     const pushRows = (slug, c, live) => {
-      const waNumber = String(c.waNumber || '').replace(/[^0-9]/g, '');
-      const reportWa = String(c.reportWaNumber || '').replace(/[^0-9]/g, '');
+      const waNumber = normalizeWaNumber(c.waNumber);
+      const reportWa = normalizeWaNumber(c.reportWaNumber);
       const acct = c.ownerSub ? ownerAccounts[c.ownerSub] : null;
       const base = {
         slug,
