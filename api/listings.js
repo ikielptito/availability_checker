@@ -395,6 +395,14 @@ export default async function handler(req, res) {
         bookedRanges: Array.isArray(data.bookedRanges) ? cleanRanges(data.bookedRanges) : existing.bookedRanges || [],
         hidden: !!data.hidden,
         petFriendly: !!data.petFriendly,
+        // Key facts agents ask for most (deposit, electricity terms, wifi,
+        // pool type, minimum stay). Free text, short; Maya quotes them
+        // verbatim and chases the listed contact for the empty ones.
+        deposit: cleanStr(data.deposit),
+        electricity: cleanStr(data.electricity),
+        wifi: cleanStr(data.wifi),
+        pool: cleanStr(data.pool),
+        minStay: cleanStr(data.minStay),
         // Ownership/review fields are owned by the portal + review flow; never
         // clobbered by an admin content edit.
         ownerSub: existing.ownerSub || null,
@@ -447,6 +455,11 @@ export default async function handler(req, res) {
         ? data.coverPhotoId.trim() : existing.coverPhotoId || '',
       coverPosition: data.coverPosition !== undefined ? cleanPos(data.coverPosition) : (existing.coverPosition || '50% 50%'),
       petFriendly: typeof data.petFriendly === 'boolean' ? data.petFriendly : (existing.petFriendly ?? false),
+      deposit: typeof data.deposit === 'string' ? data.deposit.trim() : existing.deposit || '',
+      electricity: typeof data.electricity === 'string' ? data.electricity.trim() : existing.electricity || '',
+      wifi: typeof data.wifi === 'string' ? data.wifi.trim() : existing.wifi || '',
+      pool: typeof data.pool === 'string' ? data.pool.trim() : existing.pool || '',
+      minStay: typeof data.minStay === 'string' ? data.minStay.trim() : existing.minStay || '',
     };
 
     await kvSet(`listing:${slug}`, safe);

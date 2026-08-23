@@ -703,6 +703,18 @@ function defaultCard(l) {
         </div>
       </div>
       <div class="field-row full">
+        <label class="field-label">Key facts <span class="field-hint">(what agents ask most — leave blank if unknown; Maya will chase the listed contact)</span></label>
+        <div class="field-row">
+          <input class="field-input" id="${l.slug}-deposit" value="${esc(l.deposit || '')}" placeholder="Deposit (e.g. 1 month, refundable)" />
+          <input class="field-input" id="${l.slug}-electricity" value="${esc(l.electricity || '')}" placeholder="Electricity (e.g. included monthly / excluded yearly)" />
+        </div>
+        <div class="field-row">
+          <input class="field-input" id="${l.slug}-wifi" value="${esc(l.wifi || '')}" placeholder="Wifi (e.g. 300 Mbps fibre)" />
+          <input class="field-input" id="${l.slug}-pool" value="${esc(l.pool || '')}" placeholder="Pool (private / shared / none)" />
+          <input class="field-input" id="${l.slug}-minStay" value="${esc(l.minStay || '')}" placeholder="Minimum stay (e.g. 30 nights)" />
+        </div>
+      </div>
+      <div class="field-row full">
         <label class="check-row">
           <input type="checkbox" id="${l.slug}-petfriendly" ${l.petFriendly ? 'checked' : ''} />
           Pet friendly
@@ -882,7 +894,19 @@ function customCard(l, isNew) {
           <textarea class="field-textarea" id="${slug}-locationHighlights" rows="5">${esc((l.locationHighlights || []).join('\n'))}</textarea>
         </div>
       </div>
-      <div class="field-row full">
+            <div class="field-row full">
+        <label class="field-label">Key facts <span class="field-hint">(what agents ask most — leave blank if unknown; Maya will chase the listed contact)</span></label>
+        <div class="field-row">
+          <input class="field-input" id="${slug}-deposit" value="${esc(l.deposit || '')}" placeholder="Deposit (e.g. 1 month, refundable)" />
+          <input class="field-input" id="${slug}-electricity" value="${esc(l.electricity || '')}" placeholder="Electricity (e.g. included monthly / excluded yearly)" />
+        </div>
+        <div class="field-row">
+          <input class="field-input" id="${slug}-wifi" value="${esc(l.wifi || '')}" placeholder="Wifi (e.g. 300 Mbps fibre)" />
+          <input class="field-input" id="${slug}-pool" value="${esc(l.pool || '')}" placeholder="Pool (private / shared / none)" />
+          <input class="field-input" id="${slug}-minStay" value="${esc(l.minStay || '')}" placeholder="Minimum stay (e.g. 30 nights)" />
+        </div>
+      </div>
+<div class="field-row full">
         <label class="check-row">
           <input type="checkbox" id="${slug}-hidden" ${l.hidden ? 'checked' : ''} />
           Hide from agent portal
@@ -1009,6 +1033,11 @@ async function saveCustom(cardSlug, isNew) {
     coverPhotoId: document.getElementById(cardSlug + '-coverPhotoId').value,
     coverPosition: document.getElementById(cardSlug + '-coverPosition').value,
     hidden: document.getElementById(cardSlug + '-hidden').checked,
+    deposit: document.getElementById(cardSlug + '-deposit').value,
+    electricity: document.getElementById(cardSlug + '-electricity').value,
+    wifi: document.getElementById(cardSlug + '-wifi').value,
+    pool: document.getElementById(cardSlug + '-pool').value,
+    minStay: document.getElementById(cardSlug + '-minStay').value,
     petFriendly: document.getElementById(cardSlug + '-petfriendly').checked,
   };
 
@@ -1317,6 +1346,11 @@ async function saveListing(slug) {
     tag: document.getElementById(slug + '-tag').value,
     coverPhotoId: document.getElementById(slug + '-coverPhotoId').value,
     coverPosition: document.getElementById(slug + '-coverPosition').value,
+    deposit: document.getElementById(slug + '-deposit').value,
+    electricity: document.getElementById(slug + '-electricity').value,
+    wifi: document.getElementById(slug + '-wifi').value,
+    pool: document.getElementById(slug + '-pool').value,
+    minStay: document.getElementById(slug + '-minStay').value,
     petFriendly: document.getElementById(slug + '-petfriendly').checked,
   };
 

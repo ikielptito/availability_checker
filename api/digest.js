@@ -20,6 +20,19 @@ const PORTAL_BASE = 'https://sambarentals.com';
 const DEFAULT_WA_CONTACT = 'Era';
 const DEFAULT_WA_NUMBER = '6281246357778';
 
+// Resolve the "enquire with" pair for a listing. A listing with no contact at
+// all falls back to Era (our manager). A listing that HAS a number but no name
+// keeps that number and gets a neutral label — it must never be labelled "Era":
+// Maya reads "Era" as "our team manages this", so an owner-listed villa with a
+// bare number (Casa Suhana, 16 Aug 2026) was treated as Samba-managed and
+// Era was told to arrange its viewings.
+function resolveContact(name, number) {
+  const num = normalizeWaNumber(number);
+  if (!num) return { waContactName: DEFAULT_WA_CONTACT, waNumber: DEFAULT_WA_NUMBER };
+  if (name) return { waContactName: name, waNumber: num };
+  return { waContactName: num === DEFAULT_WA_NUMBER ? DEFAULT_WA_CONTACT : 'the villa contact', waNumber: num };
+}
+
 // Admin-typed WhatsApp numbers arrive in every local format ("0812...",
 // "62 0899...", "+62 812-..."). Normalize to bare international digits so
 // contact cards built from this feed are always tappable — a stored
@@ -150,8 +163,7 @@ export default async function handler(req, res) {
         yearly: merged.yearly || null,
         yearly2: merged.yearly2 || null,
         portalUrl: `${PORTAL_BASE}/l/${merged.slug}`,
-        waContactName: merged.waContactName || DEFAULT_WA_CONTACT,
-        waNumber: normalizeWaNumber(merged.waNumber) || DEFAULT_WA_NUMBER,
+        ...resolveContact(merged.waContactName, merged.waNumber),
         isCustom: false,
         isHidden: false,
         availability,
@@ -186,8 +198,7 @@ export default async function handler(req, res) {
       yearly: c.yearly || null,
       yearly2: c.yearly2 || null,
       portalUrl: `${PORTAL_BASE}/l/${c.slug}`,
-      waContactName: c.waContactName || DEFAULT_WA_CONTACT,
-      waNumber: normalizeWaNumber(c.waNumber) || DEFAULT_WA_NUMBER,
+      ...resolveContact(c.waContactName, c.waNumber),
       isCustom: true,
       isHidden: false,
       availability,
