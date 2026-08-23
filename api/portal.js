@@ -1196,39 +1196,42 @@ function buildOwnerListing(slug, data, existing, ownerSub, status) {
   const location = cleanStr(data.mapLink || data.location);
   return {
     slug, custom: true,
-    name: cleanStr(data.name),
-    tag: cleanStr(data.tag || data.area),
-    unitType: cleanStr(data.unitType),
+    // Empty submitted value → keep what the listing already has. Maya's
+    // intake is told it "fills gaps"; a re-submit with only photosLink must
+    // not wipe the name, price or description (Vila Lestari, 23 Aug 2026).
+    name: cleanStr(data.name) || existing?.name || '',
+    tag: cleanStr(data.tag || data.area) || existing?.tag || '',
+    unitType: cleanStr(data.unitType) || existing?.unitType || '',
     location: /^https?:\/\//.test(location) ? location : '',
     icalUrl: /^https?:\/\//.test(cleanStr(data.icalUrl)) ? cleanStr(data.icalUrl) : (existing?.icalUrl || ''),
     coverPhotoId: existing?.coverPhotoId || '',
     coverPosition: existing?.coverPosition || '50% 50%',
     mapEmbed: existing?.mapEmbed || '',
-    overview: cleanStr(data.overview),
-    features: [...bbFeature, ...cleanLines(data.features)],
+    overview: cleanStr(data.overview) || existing?.overview || '',
+    features: cleanLines(data.features).length ? [...bbFeature, ...cleanLines(data.features)] : (existing?.features || bbFeature),
     // Fields below: take the submitted value when the form provided one,
     // otherwise keep whatever the listing already had (so editing through a
     // form that omits a field never silently wipes it).
     inclusions: data.inclusions !== undefined ? cleanLines(data.inclusions) : (existing?.inclusions || []),
     yearlyInclusions: data.yearlyInclusions !== undefined ? cleanLines(data.yearlyInclusions) : (existing?.yearlyInclusions || []),
     locationHighlights: data.locationHighlights !== undefined ? cleanLines(data.locationHighlights) : (existing?.locationHighlights || []),
-    monthly: cleanStr(data.monthly),
-    yearly: cleanStr(data.yearly),
+    monthly: cleanStr(data.monthly) || existing?.monthly || '',
+    yearly: cleanStr(data.yearly) || existing?.yearly || '',
     yearly2: data.yearly2 !== undefined ? cleanStr(data.yearly2) : (existing?.yearly2 || ''),
-    folder: extractFolderId(data.photosLink || data.folder),
+    folder: extractFolderId(data.photosLink || data.folder) || existing?.folder || '',
     // Omitted (not empty) means "leave as-is", matching the other optional
     // fields below — so a Maya intake that declines to publish a contact can
     // never silently wipe one an owner or admin had already set.
     waNumber: data.waNumber !== undefined
       ? cleanStr(data.waNumber).replace(/[^0-9]/g, '')
       : (existing?.waNumber || ''),
-    waContactName: cleanStr(data.waContactName),
+    waContactName: cleanStr(data.waContactName) || existing?.waContactName || '',
     // Dedicated weekly-report contact (owner) — separate from the operational
     // waNumber (often a manager). Both receive Maya's weekly report.
     reportContactName: data.reportContactName !== undefined ? cleanStr(data.reportContactName) : (existing?.reportContactName || ''),
     reportWaNumber: data.reportWaNumber !== undefined ? cleanStr(data.reportWaNumber).replace(/[^0-9]/g, '') : (existing?.reportWaNumber || ''),
-    bedrooms: bed || undefined,
-    bathrooms: bath || undefined,
+    bedrooms: bed || existing?.bedrooms || undefined,
+    bathrooms: bath || existing?.bathrooms || undefined,
     bookedRanges: existing?.bookedRanges || [],
     hidden: false,
     // Ownership + complimentary flags are never set from the edit form — always
