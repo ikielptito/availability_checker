@@ -326,8 +326,12 @@ async function loadListings() {
 }
 
 // ── Approvals tab: owner submissions awaiting review ──
+  // A listing awaits review whether it came from the owner portal (has a
+  // Google login) or from Maya's in-chat intake (no login yet — the owner
+  // gave an email; Dony's Vila Lestari, 23 Aug 2026, was invisible here).
+  function isPendingReview(l) { return l.status === 'pending_review' && (l.ownerSub || l.source === 'maya-intake' || l.custom); }
 function renderApprovalsTab(listings) {
-  const pending = listings.filter(l => l.ownerSub && l.status === 'pending_review');
+  const pending = listings.filter(l => isPendingReview(l));
   const countEl = document.getElementById('approvals-count');
   if (countEl) countEl.textContent = pending.length ? String(pending.length) : '';
   const head = `<div class="section-head"><div><h2>Pending approvals</h2><div class="hint">Owner-submitted listings awaiting review</div></div></div>`;
@@ -454,7 +458,7 @@ function listingMatches(l) {
   const q = listingQuery.trim().toLowerCase();
   if (q && ![l.name, l.slug, l.tag, l.unitType].some(v => v && String(v).toLowerCase().includes(q))) return false;
   switch (listingChip) {
-    case 'pending':  return l.ownerSub && l.status === 'pending_review';
+    case 'pending':  return isPendingReview(l);
     case 'custom':   return !!l.custom;
     case 'hostex':   return !l.custom;
     case 'owner':    return !!(l.ownerEmail || l.ownerSub);
@@ -470,7 +474,7 @@ function setListingChip(k) {
 }
 
 function renderListingsTab() {
-  const pendingCount = allListings.filter(l => l.ownerSub && l.status === 'pending_review').length;
+  const pendingCount = allListings.filter(l => isPendingReview(l)).length;
   const chips = [
     ['all', 'All'],
     ['pending', 'Pending review' + (pendingCount ? ` (${pendingCount})` : '')],
@@ -496,7 +500,7 @@ function renderListingsBody() {
   if (!body) return;
   const filtering = listingQuery.trim() || listingChip !== 'all';
   // Pending owner submissions float to the top so they're reviewed first.
-  const rank = l => (l.ownerSub && l.status === 'pending_review') ? 0 : 1;
+  const rank = l => (isPendingReview(l)) ? 0 : 1;
   const customs = allListings.filter(l => l.custom && listingMatches(l)).sort((a, b) => rank(a) - rank(b));
   const defaults = allListings.filter(l => !l.custom && listingMatches(l));
   body.innerHTML =
