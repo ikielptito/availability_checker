@@ -15,9 +15,43 @@ export default async function handler(req, res) {
 
   const source = req.query.source;
   if (source === 'drive') return driveFolder(req, res);
+  if (source === 'img') return driveImage(req, res);
   if (source === 'hostex-properties') return hostexProperties(req, res);
   if (source === 'hostex-photos') return hostexPhotos(req, res);
   return res.status(400).json({ error: 'Unknown or missing source' });
+}
+
+
+// ── Single Drive image, served from our own domain ──────────────────
+//   ?source=img&id=<driveFileId>[&w=1600]
+// WhatsApp (Meta) fetches card/carousel images by URL at send time. Pointed
+// straight at lh3.googleusercontent.com those fetches failed intermittently
+// with "131053 media upload error … http code 500" (11 of the last 28 failed
+// sends, 22 Aug 2026). This route fetches the same image with retries and
+// lets Vercel's edge cache it for a day, so Meta gets a stable host.
+async function driveImage(req, res) {
+  const id = String(req.query.id || '').trim();
+  if (!/^[A-Za-z0-9_-]{10,}$/.test(id)) return res.status(400).json({ error: 'bad id' });
+  const w = Math.min(Math.max(parseInt(req.query.w, 10) || 1600, 200), 2048);
+  const url = `https://lh3.googleusercontent.com/d/${id}=w${w}`;
+  let last = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const r = await fetch(url, { redirect: 'follow' });
+      if (r.ok) {
+        const type = r.headers.get('content-type') || 'image/jpeg';
+        if (!type.startsWith('image/')) { last = `unexpected ${type}`; break; }
+        const buf = Buffer.from(await r.arrayBuffer());
+        res.setHeader('Content-Type', type);
+        res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800');
+        return res.status(200).send(buf);
+      }
+      last = `upstream ${r.status}`;
+      if (r.status < 500) break;
+    } catch (e) { last = e.message; }
+    await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
+  }
+  return res.status(502).json({ error: `image fetch failed: ${last}` });
 }
 
 // ── Google Drive folder photos (was gdrive.js) ──────────────────────
