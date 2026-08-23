@@ -1086,7 +1086,9 @@ async function intakeListing(req, res, { kvGet, kvSet, kvDel, kvWithLock }) {
   if (body.waContactName && !data.waContactName) data.waContactName = body.waContactName;
 
   const name = cleanStr(data.name);
-  if (!name) return res.status(400).json({ error: 'Property name is required' });
+  // A name is required to CREATE; an update to an existing slug may omit it
+  // (e.g. attaching photos only) — buildOwnerListing keeps the stored name.
+  if (!name && !normSlug(body.slug || '')) return res.status(400).json({ error: 'Property name is required' });
   if (!waNumber && !ownerEmail) return res.status(400).json({ error: 'An owner WhatsApp number or email is required' });
 
   // The whole read-modify-write runs under the lock: without it two intakes
