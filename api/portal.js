@@ -550,6 +550,10 @@ const CUSTOM_KEY = 'custom_properties';
 // cap maxRedemptions). `type:'free_month'` ⇒ activates a listing for
 // durationDays at no charge.
 const DEFAULT_PROMOS = {
+  // The one live offer (Ikiel, 23 Aug 2026): the first 25 villas list free,
+  // for good. Modelled as a ten-year free period capped at 25 redemptions.
+  FOUNDING25: { type: 'free_month', durationDays: 3650, active: true, maxRedemptions: 25, redemptions: 0 },
+  // Legacy 30-day code — kept redeemable for anyone who already has it.
   FREEMONTH: { type: 'free_month', durationDays: 30, active: true, maxRedemptions: null, redemptions: 0 },
 };
 

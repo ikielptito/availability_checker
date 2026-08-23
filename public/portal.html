@@ -527,7 +527,7 @@ body.wiz-open #snav-tabs{display:none !important;}
       <p class="hint" style="margin-top:2px">You'll be taken to our payment partner Creem to complete the subscription. Have a promo code? Enter it below. It's applied at checkout, or activates the listing directly if it's a free-period code.</p>
       <div class="fg">
         <label>Promo code</label>
-        <input id="f-promo" placeholder="e.g. FREEMONTH" autocomplete="off" spellcheck="false" style="text-transform:uppercase">
+        <input id="f-promo" placeholder="e.g. FOUNDING25" autocomplete="off" spellcheck="false" style="text-transform:uppercase">
         <div class="hint">Activates this listing free for the code's promo period.</div>
       </div>
     </div>
@@ -1572,7 +1572,7 @@ function openCheckout(slug){
 function closeCheckout(){ document.getElementById('checkout-modal').classList.remove('open'); }
 
 // Redeem a promo code to activate this listing for free (the code's promo
-// period — e.g. PRELAUNCH90 = 3 months). Card billing goes through Creem
+// period — e.g. FOUNDING25 = the founding offer). Card billing goes through Creem
 // hosted checkout via goToPayment() below.
 async function applyPromo(){
   const slug=checkoutSlug;
