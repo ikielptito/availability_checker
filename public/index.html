@@ -2778,6 +2778,8 @@ function availData(propId){
 
 const SORT_OPTIONS=[
   {key:'default',label:'Default'},
+  {key:'price_asc',label:'Price: low to high'},
+  {key:'price_desc',label:'Price: high to low'},
   {key:'checkin',label:'Check-in date'},
   {key:'duration',label:'Stay duration'},
 ];
@@ -2789,6 +2791,19 @@ function setSort(key){
 
 function sortedFiltered(list){
   if(sortMode==='default') return list;
+  // Price sorts use the monthly rate (the portal's headline number); a
+  // listing without a price sinks to the end either way. Ties keep the
+  // default order so units of one complex stay together.
+  if(sortMode==='price_asc'||sortMode==='price_desc'){
+    const dir=sortMode==='price_asc'?1:-1;
+    return list.map((p,i)=>({p,i,v:monthlyNum(PROPS[p.id])}))
+      .sort((a,b)=>{
+        if(a.v==null&&b.v==null) return a.i-b.i;
+        if(a.v==null) return 1;
+        if(b.v==null) return -1;
+        return (a.v-b.v)*dir||a.i-b.i;
+      }).map(s=>s.p);
+  }
   const scored=list.map(p=>{
     const ad=availData(p.id);
     return {p,firstFreeIdx:ad.firstFreeIdx,window:ad.window};
