@@ -1126,7 +1126,23 @@ async function intakeListing(req, res, { kvGet, kvSet, kvDel, kvWithLock }) {
     const existing = all[slug];
     // Every Maya-driven change still goes back to review — that is exactly what
     // she promises the owner ("it'll go live once Ikiel approves").
-    const listing = buildOwnerListing(slug, data, existing, existing?.ownerSub || null, 'pending_review');
+    // A listing that is ALREADY LIVE must not be knocked offline by a routine
+    // factual update. It used to drop back to pending_review on every intake,
+    // so an owner telling Maya "wifi is 300 Mbps" pulled his villa off the
+    // site, out of Maya's recommendations, and broke links agents had already
+    // been sent (Vila Lestari, 24 Aug 2026). Low-risk detail edits keep the
+    // listing live; anything COMMERCIAL — the name or a rate — still goes back
+    // to review, which is the gate that actually matters.
+    let nextStatus = 'pending_review';
+    if (existing?.status === 'approved') {
+      const changed = (key, val) => val !== undefined
+        && cleanStr(val) !== '' && cleanStr(val) !== cleanStr(existing[key] || '');
+      const commercial = changed('name', data.name)
+        || changed('monthly', data.monthly)
+        || changed('yearly', data.yearly);
+      if (!commercial) nextStatus = 'approved';
+    }
+    const listing = buildOwnerListing(slug, data, existing, existing?.ownerSub || null, nextStatus);
     listing.ownerEmail = ownerEmail || existing?.ownerEmail || null;
     listing.ownerWa = waNumber || existing?.ownerWa || '';   // owner-identity signal → stays gated
     listing.source = existing?.source || 'maya-intake';
