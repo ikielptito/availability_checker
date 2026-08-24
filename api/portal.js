@@ -1220,7 +1220,11 @@ function buildOwnerListing(slug, data, existing, ownerSub, status) {
     name: cleanStr(data.name) || existing?.name || '',
     tag: cleanStr(data.tag || data.area) || existing?.tag || '',
     unitType: cleanStr(data.unitType) || existing?.unitType || '',
-    location: /^https?:\/\//.test(location) ? location : '',
+    // Falls back to the stored pin like every other optional field. It used to
+    // reset to '' whenever an update didn't resend it, so any partial intake
+    // (an owner reporting his wifi speed) silently wiped the listing's map
+    // pin — and agents can't arrange a viewing for a villa with no location.
+    location: /^https?:\/\//.test(location) ? location : (existing?.location || ''),
     icalUrl: /^https?:\/\//.test(cleanStr(data.icalUrl)) ? cleanStr(data.icalUrl) : (existing?.icalUrl || ''),
     // Provided → use it; omitted → keep what's stored. Lets a bad auto-picked
     // cover be corrected without the admin UI (Vila Lestari's cover was one of
