@@ -146,7 +146,11 @@ export default async function handler(req, res) {
     try {
       const url = `https://www.googleapis.com/drive/v3/files?q='${folder}'+in+parents+and+mimeType+contains+'image/'&fields=files(id,name)&key=${GOOGLE_API_KEY}&pageSize=150`;
       const data = await (await fetch(url)).json();
-      const files = (data.files || []).slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+      // A hidden photo must never come back as the cover — hiding the ROI chart
+      // only to have the filename sort re-pick it would undo the whole point.
+      const skip = new Set(ranked?.excluded || []);
+      const files = (data.files || []).filter(f => !skip.has(f.id))
+        .slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
       const id = files.length ? files[0].id : '';
       await kvSet(`autocover:${folder}`, id);
       return id;
@@ -290,8 +294,15 @@ export default async function handler(req, res) {
       if (!/^[A-Za-z0-9_-]{10,}$/.test(folder) || !/^[A-Za-z0-9_-]{5,}$/.test(photoId)) {
         return res.status(400).json({ error: 'Invalid folder or photo id' });
       }
-      const order = await kvGet(`photo_order:${folder}`);
-      if (!order) return res.status(404).json({ error: 'No AI photo order for this folder yet' });
+      // Hiding must work on ANY folder, not only one the AI has already ranked.
+      // Otherwise a stray shot in an otherwise good folder (the ROI chart in
+      // Palem Kembar's renderings) can only be removed by deleting it from
+      // Google Drive, which is exactly what we don't want. With no ranked order
+      // yet, start an empty record: `excluded` alone is enough for
+      // api/media.js to drop the photo, and an empty `order` leaves every other
+      // photo in its natural Drive order. Ikiel, 24 Aug 2026.
+      const order = (await kvGet(`photo_order:${folder}`))
+        || { order: [], excluded: [], cover: '', junkStart: 0 };
       const excluded = new Set(order.excluded || []);
       if (hidden) excluded.add(photoId); else excluded.delete(photoId);
       order.excluded = [...excluded];

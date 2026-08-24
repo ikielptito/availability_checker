@@ -87,6 +87,14 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 .drive-hidden-item img{width:56px;height:56px;border-radius:6px;object-fit:cover;opacity:0.4;filter:grayscale(0.4);}
 .drive-restore-btn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);color:#fff;border:none;border-radius:6px;font-size:0.6rem;font-weight:600;cursor:pointer;opacity:0;transition:opacity 0.15s;}
 .drive-hidden-item:hover .drive-restore-btn{opacity:1;}
+/* Visible thumbs: click the photo to make it the cover, click the corner x to
+   hide it from the gallery. Hiding never touches Google Drive. */
+.drive-thumb-wrap{position:relative;width:56px;height:56px;}
+.drive-hide-btn{position:absolute;top:-5px;right:-5px;width:17px;height:17px;padding:0;line-height:15px;text-align:center;
+  border-radius:50%;border:1px solid #fff;background:rgba(20,20,20,0.82);color:#fff;font-size:0.7rem;font-weight:700;
+  cursor:pointer;opacity:0;transition:opacity 0.15s;z-index:2;}
+.drive-thumb-wrap:hover .drive-hide-btn{opacity:1;}
+.drive-hide-btn:hover{background:#c5221f;}
 .cover-focus-reset:hover{border-color:var(--muted);}
 
 /* PRICING ROW */
@@ -1148,8 +1156,12 @@ async function loadDrivePreview(slug, folderId) {
     const visible = d.photos.filter(p => !p.hidden);
     const hidden = d.photos.filter(p => p.hidden);
     grid.innerHTML = visible.slice(0, 18).map(p =>
-      `<img class="drive-thumb${p.id === selected ? ' selected' : ''}" src="${p.thumb}" data-id="${p.id}"
-        onclick="pickCover('${slug}', '${p.id}', this)" onerror="this.remove()">`
+      `<div class="drive-thumb-wrap">
+         <img class="drive-thumb${p.id === selected ? ' selected' : ''}" src="${p.thumb}" data-id="${p.id}"
+           onclick="pickCover('${slug}', '${p.id}', this)" onerror="this.parentElement.remove()">
+         <button type="button" class="drive-hide-btn" title="Hide from the gallery (stays in Google Drive)"
+           onclick="event.stopPropagation();hidePhoto('${slug}','${folderId}','${p.id}')">&times;</button>
+       </div>`
     ).join('');
     renderHiddenPhotos(slug, folderId, hidden);
     renderCoverFocus(slug);
@@ -1164,13 +1176,31 @@ function renderHiddenPhotos(slug, folderId, hidden) {
   const wrap = document.getElementById(slug + '-drive-hidden');
   if (!wrap) return;
   if (!hidden.length) { wrap.innerHTML = ''; return; }
-  wrap.innerHTML = `<div class="drive-hidden-label">Hidden by AI: ${hidden.length} duplicate/similar shot${hidden.length === 1 ? '' : 's'} (click to restore)</div>
+  wrap.innerHTML = `<div class="drive-hidden-label">Hidden from the gallery: ${hidden.length} photo${hidden.length === 1 ? '' : 's'} (still in Google Drive — click to restore)</div>
     <div class="drive-hidden-grid">` + hidden.map(p =>
       `<div class="drive-hidden-item">
          <img src="${p.thumb}" onerror="this.parentElement.remove()">
          <button type="button" class="drive-restore-btn" onclick="restorePhoto('${slug}','${folderId}','${p.id}')">Restore</button>
        </div>`
     ).join('') + '</div>';
+}
+
+// Hide one photo from the live gallery. It stays in Google Drive — this only
+// adds it to the listing's excluded list, and it can be restored below.
+async function hidePhoto(slug, folderId, photoId) {
+  try {
+    const r = await fetch('/api/listings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminPw },
+      body: JSON.stringify({ action: 'set-photo-hidden', folder: folderId, photoId, hidden: true }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Could not hide');
+    showToast('Photo hidden from the gallery (still in Drive)', 'success');
+    loadDrivePreview(slug, folderId);
+  } catch (e) {
+    showToast(e.message);
+  }
 }
 
 async function restorePhoto(slug, folderId, photoId) {
