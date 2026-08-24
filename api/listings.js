@@ -285,6 +285,30 @@ export default async function handler(req, res) {
       }
     }
 
+    // Save a manual photo order for a folder. Writes the same
+    // photo_order:{folder} record the AI ranker and the owner wizard produce,
+    // so api/media.js and deriveCover honour it with no changes. `excluded`
+    // is carried over untouched — reordering must never un-hide a photo.
+    if (req.body?.action === 'set-photo-order') {
+      const folder = cleanStr(req.body.folder);
+      const ids = Array.isArray(req.body.order)
+        ? req.body.order.map(cleanStr).filter(id => /^[A-Za-z0-9_-]{5,}$/.test(id)) : [];
+      if (!/^[A-Za-z0-9_-]{10,}$/.test(folder)) return res.status(400).json({ error: 'Invalid folder id' });
+      if (!ids.length) return res.status(400).json({ error: 'No photo order given' });
+      const existing = (await kvGet(`photo_order:${folder}`)) || {};
+      const excluded = (existing.excluded || []).filter(id => !ids.includes(id));
+      await kvSet(`photo_order:${folder}`, {
+        ...existing,
+        order: ids,
+        junkStart: ids.length,     // a hand-picked order has no junk tail
+        cover: existing.cover && ids.includes(existing.cover) ? existing.cover : ids[0],
+        excluded,
+        manual: true,
+      });
+      await kvDel(`autocover:${folder}`);
+      return res.status(200).json({ ok: true, count: ids.length });
+    }
+
     // Upload one photo straight into a listing's Drive folder, so photos can be
     // added from the admin page instead of going to Drive to do it. One photo
     // per request: the serverless body cap is ~4.5MB and base64 inflates by a

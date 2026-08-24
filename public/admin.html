@@ -101,6 +101,14 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 .photo-drop:hover{border-color:var(--accent);color:var(--ink,#333);}
 .photo-drop.over{border-color:var(--accent);background:rgba(226,87,43,0.07);color:var(--ink,#333);}
 .photo-drop.busy{cursor:progress;border-style:solid;}
+/* Manual photo sorting: drag a thumb to move it. The number is its position
+   in the gallery, so the effect of a drag is visible without saving first. */
+.drive-thumb-wrap{cursor:grab;}
+.drive-thumb-wrap.dragging{opacity:0.35;cursor:grabbing;}
+.drive-thumb-wrap.drop-target{outline:2px solid var(--accent);outline-offset:2px;border-radius:7px;}
+.drive-pos{position:absolute;left:-4px;bottom:-4px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;
+  background:rgba(20,20,20,0.78);color:#fff;font-size:0.55rem;line-height:15px;text-align:center;pointer-events:none;}
+.drive-thumb-wrap:first-child .drive-pos{background:var(--accent);}
 .cover-focus-reset:hover{border-color:var(--muted);}
 
 /* PRICING ROW */
@@ -843,7 +851,7 @@ function customCard(l, isNew) {
         <span class="field-hint" id="${slug}-folder-hint">Paste a Drive folder link for photos</span>
       </div>
       <div class="field-group" style="margin-top:12px">
-        <label class="field-label">Card preview photo <span class="field-hint">(click to choose · click again to clear)</span></label>
+        <label class="field-label">Photos <span class="field-hint" id="${slug}-photo-count">(click to choose the card photo · click again to clear)</span></label>
         <div class="drive-grid" id="${slug}-drive-grid"><div class="drive-preview-placeholder">${l.folder ? 'Loading photos…' : 'Add a Drive folder first'}</div></div>
         <input type="hidden" id="${slug}-coverPhotoId" value="${esc(l.coverPhotoId || '')}" />
         <div class="photo-drop" id="${slug}-photo-drop"
@@ -1170,14 +1178,20 @@ async function loadDrivePreview(slug, folderId) {
     const selected = (document.getElementById(slug + '-coverPhotoId') || {}).value || '';
     const visible = d.photos.filter(p => !p.hidden);
     const hidden = d.photos.filter(p => p.hidden);
-    grid.innerHTML = visible.slice(0, 18).map(p =>
-      `<div class="drive-thumb-wrap">
+    // Every photo, not just the first 18 — you can't sort what you can't see.
+    grid.innerHTML = visible.map((p, i) =>
+      `<div class="drive-thumb-wrap" draggable="true" data-id="${p.id}"
+            ondragstart="photoDragStart(event,'${slug}')" ondragover="photoDragOver(event)"
+            ondrop="photoDrop(event,'${slug}','${folderId}')" ondragend="photoDragEnd(event)">
          <img class="drive-thumb${p.id === selected ? ' selected' : ''}" src="${p.thumb}" data-id="${p.id}"
            onclick="pickCover('${slug}', '${p.id}', this)" onerror="this.parentElement.remove()">
+         <span class="drive-pos">${i + 1}</span>
          <button type="button" class="drive-hide-btn" title="Hide from the gallery (stays in Google Drive)"
            onclick="event.stopPropagation();hidePhoto('${slug}','${folderId}','${p.id}')">&times;</button>
        </div>`
     ).join('');
+    const cnt = document.getElementById(slug + '-photo-count');
+    if (cnt) cnt.textContent = `${visible.length} photo${visible.length === 1 ? '' : 's'} · drag to reorder · click one to make it the card photo`;
     renderHiddenPhotos(slug, folderId, hidden);
     renderCoverFocus(slug);
   } catch {
@@ -1198,6 +1212,69 @@ function renderHiddenPhotos(slug, folderId, hidden) {
          <button type="button" class="drive-restore-btn" onclick="restorePhoto('${slug}','${folderId}','${p.id}')">Restore</button>
        </div>`
     ).join('') + '</div>';
+}
+
+// ── MANUAL PHOTO SORT ──
+// Drag a thumb onto another to drop it in that position. The gallery, the
+// share pages and Maya's cards all read the saved order. Hidden photos are
+// untouched — reordering never un-hides anything.
+let photoDragId = null;
+function photoDragStart(ev, slug) {
+  const wrap = ev.currentTarget;
+  photoDragId = wrap.dataset.id;
+  wrap.classList.add('dragging');
+  ev.dataTransfer.effectAllowed = 'move';
+  // Firefox needs data set for a drag to start at all.
+  try { ev.dataTransfer.setData('text/plain', photoDragId); } catch (_) {}
+}
+function photoDragOver(ev) {
+  if (!photoDragId) return;
+  ev.preventDefault();
+  ev.dataTransfer.dropEffect = 'move';
+  const wrap = ev.currentTarget;
+  if (wrap.dataset.id !== photoDragId) wrap.classList.add('drop-target');
+}
+function photoDragEnd(ev) {
+  photoDragId = null;
+  const grid = ev.currentTarget.parentElement;
+  if (grid) grid.querySelectorAll('.drive-thumb-wrap').forEach(w => w.classList.remove('dragging', 'drop-target'));
+}
+function photoDrop(ev, slug, folderId) {
+  ev.preventDefault();
+  const target = ev.currentTarget;
+  target.classList.remove('drop-target');
+  const grid = target.parentElement;
+  if (!photoDragId || !grid) return;
+  const moving = grid.querySelector(`.drive-thumb-wrap[data-id="${photoDragId}"]`);
+  if (!moving || moving === target) return;
+  // Dropping on a thumb that sits later in the list puts the dragged photo
+  // after it; earlier, before it — which is what a drag visually implies.
+  const wraps = [...grid.querySelectorAll('.drive-thumb-wrap')];
+  const from = wraps.indexOf(moving), to = wraps.indexOf(target);
+  target.insertAdjacentElement(from < to ? 'afterend' : 'beforebegin', moving);
+  grid.querySelectorAll('.drive-thumb-wrap').forEach((w, i) => {
+    const n = w.querySelector('.drive-pos'); if (n) n.textContent = i + 1;
+  });
+  savePhotoOrder(slug, folderId);
+}
+async function savePhotoOrder(slug, folderId) {
+  const grid = document.getElementById(slug + '-drive-grid');
+  if (!grid) return;
+  const order = [...grid.querySelectorAll('.drive-thumb-wrap')].map(w => w.dataset.id).filter(Boolean);
+  if (!order.length) return;
+  try {
+    const r = await fetch('/api/listings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminPw },
+      body: JSON.stringify({ action: 'set-photo-order', folder: folderId, order }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Could not save the order');
+    showToast('Photo order saved', 'success');
+  } catch (e) {
+    showToast(e.message);
+    loadDrivePreview(slug, folderId);   // put the grid back the way it was
+  }
 }
 
 // ── ADD PHOTOS ──
