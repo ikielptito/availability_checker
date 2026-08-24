@@ -46,6 +46,7 @@ const TROPICANA = {
 import { UNITS } from '../lib/catalog.js';
 import { rankStep } from '../lib/photorank.js';
 import { sanitizePublicListing } from '../lib/owner-listings.js';
+import { driveConfigured, uploadBytes } from '../lib/drive-photos.js';
 const BUILDING = {
   'haus-1': HAUS, 'haus-2': HAUS, 'haus-4': HAUS, 'haus-5': HAUS,
   'lanehaus-1': LANE, 'lanehaus-3': LANE,
@@ -281,6 +282,34 @@ export default async function handler(req, res) {
         return res.status(200).json(result);
       } catch (e) {
         return res.status(502).json({ error: e.message });
+      }
+    }
+
+    // Upload one photo straight into a listing's Drive folder, so photos can be
+    // added from the admin page instead of going to Drive to do it. One photo
+    // per request: the serverless body cap is ~4.5MB and base64 inflates by a
+    // third, so the client downscales and posts them one at a time.
+    if (req.body?.action === 'upload-photo') {
+      const folder = cleanStr(req.body.folder);
+      const name = cleanStr(req.body.name).replace(/[^\w.\- ]+/g, '_').slice(0, 120) || 'photo.jpg';
+      const mime = cleanStr(req.body.mime) || 'image/jpeg';
+      const b64 = typeof req.body.data === 'string' ? req.body.data : '';
+      if (!/^[A-Za-z0-9_-]{10,}$/.test(folder)) return res.status(400).json({ error: 'Invalid folder id' });
+      if (!/^image\/(jpeg|jpg|png|webp|gif|heic|heif)$/i.test(mime)) return res.status(400).json({ error: 'Only image files can be uploaded' });
+      if (!b64) return res.status(400).json({ error: 'No image data' });
+      if (!driveConfigured()) return res.status(500).json({ error: 'Google Drive is not configured on the server' });
+      let bytes;
+      try { bytes = Buffer.from(b64, 'base64'); } catch { return res.status(400).json({ error: 'Bad image data' }); }
+      if (!bytes.length) return res.status(400).json({ error: 'Empty image' });
+      if (bytes.length > 12 * 1024 * 1024) return res.status(413).json({ error: 'Image too large — keep it under 12MB' });
+      try {
+        const id = await uploadBytes({ name, mime, bytes, folderId: folder });
+        // A new photo may deserve to be the cover, and the gallery caches the
+        // derived one — drop it so the folder is looked at fresh.
+        await kvDel(`autocover:${folder}`);
+        return res.status(200).json({ ok: true, id, name });
+      } catch (e) {
+        return res.status(502).json({ error: e.message || 'Upload failed' });
       }
     }
 

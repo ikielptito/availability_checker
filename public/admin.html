@@ -95,6 +95,12 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
   cursor:pointer;opacity:0;transition:opacity 0.15s;z-index:2;}
 .drive-thumb-wrap:hover .drive-hide-btn{opacity:1;}
 .drive-hide-btn:hover{background:#c5221f;}
+/* Drop zone for adding photos straight into the listing's Drive folder */
+.photo-drop{margin-top:8px;padding:12px;border:1.5px dashed var(--line,#d8d2c7);border-radius:8px;text-align:center;
+  font-size:0.7rem;color:var(--muted);cursor:pointer;transition:all 0.15s;background:transparent;}
+.photo-drop:hover{border-color:var(--accent);color:var(--ink,#333);}
+.photo-drop.over{border-color:var(--accent);background:rgba(226,87,43,0.07);color:var(--ink,#333);}
+.photo-drop.busy{cursor:progress;border-style:solid;}
 .cover-focus-reset:hover{border-color:var(--muted);}
 
 /* PRICING ROW */
@@ -840,6 +846,15 @@ function customCard(l, isNew) {
         <label class="field-label">Card preview photo <span class="field-hint">(click to choose · click again to clear)</span></label>
         <div class="drive-grid" id="${slug}-drive-grid"><div class="drive-preview-placeholder">${l.folder ? 'Loading photos…' : 'Add a Drive folder first'}</div></div>
         <input type="hidden" id="${slug}-coverPhotoId" value="${esc(l.coverPhotoId || '')}" />
+        <div class="photo-drop" id="${slug}-photo-drop"
+             ondragover="event.preventDefault();this.classList.add('over')"
+             ondragleave="this.classList.remove('over')"
+             ondrop="this.classList.remove('over');uploadPhotos('${slug}', event.dataTransfer.files, event)"
+             onclick="document.getElementById('${slug}-photo-input').click()">
+          <span id="${slug}-photo-drop-text">Drag photos here, or click to choose — they upload straight into this listing's Drive folder</span>
+        </div>
+        <input type="file" id="${slug}-photo-input" accept="image/*" multiple style="display:none"
+               onchange="uploadPhotos('${slug}', this.files)" />
         <div class="ai-sort-row">
           <button type="button" class="ai-sort-btn" id="${slug}-ai-sort-btn" onclick="aiSortPhotos('${slug}')">✨ Sort photos with AI</button>
           <span class="field-hint" id="${slug}-ai-sort-status">Puts the best photos first, hides duplicates, junk shots last</span>
@@ -1183,6 +1198,67 @@ function renderHiddenPhotos(slug, folderId, hidden) {
          <button type="button" class="drive-restore-btn" onclick="restorePhoto('${slug}','${folderId}','${p.id}')">Restore</button>
        </div>`
     ).join('') + '</div>';
+}
+
+// ── ADD PHOTOS ──
+// Drop files on the zone (or click to pick) and they upload into this listing's
+// Drive folder. Downscaled in the browser first: the serverless body cap is
+// ~4.5MB and base64 adds a third, so a raw phone photo would bounce. One
+// request per photo, sequential, so progress is honest and one failure doesn't
+// take the batch with it.
+function downscaleForUpload(file, max) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+      if (Math.max(w, h) > max) { const s = max / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', 0.86).split(',')[1]);
+    };
+    img.onerror = () => reject(new Error('Could not read that image'));
+    const fr = new FileReader();
+    fr.onload = () => { img.src = fr.result; };
+    fr.onerror = () => reject(new Error('Could not read that file'));
+    fr.readAsDataURL(file);
+  });
+}
+
+async function uploadPhotos(slug, fileList, ev) {
+  if (ev) ev.preventDefault();
+  const files = Array.from(fileList || []).filter(f => /^image\//.test(f.type));
+  if (!files.length) { showToast('Drop image files (JPG, PNG, WEBP)'); return; }
+  const folderId = extractFolderId((document.getElementById(slug + '-folder-url') || {}).value || '');
+  if (!folderId) { showToast('Add a Drive folder link first'); return; }
+  const zone = document.getElementById(slug + '-photo-drop');
+  const label = document.getElementById(slug + '-photo-drop-text');
+  const input = document.getElementById(slug + '-photo-input');
+  zone.classList.add('busy');
+  let done = 0; const failed = [];
+  for (const f of files) {
+    label.textContent = `Uploading ${done + 1} of ${files.length}…`;
+    try {
+      const data = await downscaleForUpload(f, 2400);
+      const r = await fetch('/api/listings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminPw },
+        body: JSON.stringify({ action: 'upload-photo', folder: folderId, name: f.name, mime: 'image/jpeg', data }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Upload failed');
+      done++;
+    } catch (e) {
+      failed.push(f.name + (e.message ? ' — ' + e.message : ''));
+    }
+  }
+  zone.classList.remove('busy');
+  if (input) input.value = '';
+  label.textContent = "Drag photos here, or click to choose — they upload straight into this listing's Drive folder";
+  if (done) showToast(`${done} photo${done === 1 ? '' : 's'} added to the folder`, 'success');
+  if (failed.length) showToast(`${failed.length} failed: ${failed[0]}`);
+  // Drive needs a beat before the new files list; then refresh the grid.
+  if (done) setTimeout(() => loadDrivePreview(slug, folderId), 1200);
 }
 
 // Hide one photo from the live gallery. It stays in Google Drive — this only
