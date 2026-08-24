@@ -2478,16 +2478,21 @@ async function loadAll() {
     }
     if(p.custom){
       const booked=rangesToSet(info.bookedRanges);
-      // A calendar source = manual booked ranges OR a live iCal that loaded.
-      // Without one we have no availability signal and must not claim "free".
-      let haveCal=Array.isArray(info.bookedRanges)&&info.bookedRanges.length>0;
+      // An owner listing's calendar is MANUALLY managed: the owner tells us
+      // which dates are taken, so "no booked ranges" means nothing is booked —
+      // the villa is OPEN, not unknown. Treating an empty set as a missing
+      // calendar showed "Calendar unavailable" on every owner villa that simply
+      // had no bookings and no OTA (Dony's Vila Lestari — he told Maya outright
+      // the villa is empty and he isn't on Airbnb/Booking). The only genuine
+      // unknown is an iCal that IS configured and then fails to load.
+      let haveCal=true;
       if(info.icalUrl){
         try{
           const r=await fetch('/api/ical?slug='+encodeURIComponent(SLUGS[p.id]));
+          if(!r.ok) throw new Error('ical '+r.status);
           const d=await r.json();
           (d.booked||[]).forEach(x=>booked.add(x));
-          haveCal=true;
-        }catch{}
+        }catch{ haveCal=false; }
       }
       avail[p.id]=booked;
       if(!haveCal)failedAvail.add(p.id);

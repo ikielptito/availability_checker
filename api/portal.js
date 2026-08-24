@@ -1206,7 +1206,10 @@ function buildOwnerListing(slug, data, existing, ownerSub, status) {
     unitType: cleanStr(data.unitType) || existing?.unitType || '',
     location: /^https?:\/\//.test(location) ? location : '',
     icalUrl: /^https?:\/\//.test(cleanStr(data.icalUrl)) ? cleanStr(data.icalUrl) : (existing?.icalUrl || ''),
-    coverPhotoId: existing?.coverPhotoId || '',
+    // Provided → use it; omitted → keep what's stored. Lets a bad auto-picked
+    // cover be corrected without the admin UI (Vila Lestari's cover was one of
+    // the side-by-side collages the owner first sent).
+    coverPhotoId: (/^[A-Za-z0-9_-]{10,}$/.test(cleanStr(data.coverPhotoId)) ? cleanStr(data.coverPhotoId) : '') || existing?.coverPhotoId || '',
     coverPosition: existing?.coverPosition || '50% 50%',
     mapEmbed: existing?.mapEmbed || '',
     overview: cleanStr(data.overview) || existing?.overview || '',
