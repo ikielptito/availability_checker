@@ -1234,7 +1234,9 @@ function buildOwnerListing(slug, data, existing, ownerSub, status) {
     reportWaNumber: data.reportWaNumber !== undefined ? cleanStr(data.reportWaNumber).replace(/[^0-9]/g, '') : (existing?.reportWaNumber || ''),
     bedrooms: bed || existing?.bedrooms || undefined,
     bathrooms: bath || existing?.bathrooms || undefined,
-    bookedRanges: existing?.bookedRanges || [],
+    // Provided → use it (availability can now come in with an intake);
+    // omitted → keep what the listing already had.
+    bookedRanges: cleanBookedRanges(data.bookedRanges) || existing?.bookedRanges || [],
     hidden: false,
     // Ownership + complimentary flags are never set from the edit form — always
     // carried over so an owner edit can't strip its own free/linked status.
@@ -1248,6 +1250,16 @@ function buildOwnerListing(slug, data, existing, ownerSub, status) {
 }
 
 function cleanStr(v) { return typeof v === 'string' ? v.trim() : ''; }
+// Booked date ranges, sanitized the same way api/listings.js does. Lets an
+// intake carry availability — a villa that isn't free until a future date must
+// not show as "available now" to agents (Palem Kembar 1, free 1 Dec 2026).
+const RANGE_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+function cleanBookedRanges(a) {
+  if (!Array.isArray(a)) return null;
+  return a
+    .filter(r => r && RANGE_DATE_RE.test(r.from) && RANGE_DATE_RE.test(r.to) && r.from <= r.to)
+    .map(r => ({ from: r.from, to: r.to }));
+}
 
 // ── Native photo upload (wizard) ────────────────────────────────────
 // The client resizes to ≤1600px JPEG before sending (base64 in JSON keeps

@@ -4,21 +4,55 @@
     {
       "name": "samba-dev",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["dev/devserver.mjs"],
+      "runtimeArgs": [
+        "dev/devserver.mjs"
+      ],
       "port": 3456,
       "autoPort": true
     },
     {
       "name": "kaya-static",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "3499", "--directory", "/Users/ikiel/kaya-agent-crm"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "3499",
+        "--directory",
+        "/Users/ikiel/kaya-agent-crm"
+      ],
       "port": 3499
     },
     {
       "name": "static-site",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8734", "--directory", "public"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8734",
+        "--directory",
+        "public"
+      ],
       "port": 8734
+    },
+    {
+      "name": "workout-app",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4173",
+        "--directory",
+        "/Users/ikiel/parents-workout-app"
+      ],
+      "port": 4173
+    },
+    {
+      "name": "workout-mock",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "/private/tmp/claude-501/-Users-ikiel-Samba-Rentals/56b90c83-97d4-4663-bcb4-48bb26283d40/scratchpad/mockserver.mjs"
+      ],
+      "port": 4174
     }
   ]
 }
