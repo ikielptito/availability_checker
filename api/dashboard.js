@@ -90,6 +90,13 @@ export default async function handler(req, res) {
     d.setDate(d.getDate() - i);
     days.push(d.toISOString().split('T')[0]);
   }
+  // Previous window of the same length, for delta chips on the hero cards.
+  const prevDays = [];
+  for (let i = 2 * nDays - 1; i >= nDays; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    prevDays.push(d.toISOString().split('T')[0]);
+  }
 
   async function pipeline(cmds) {
     const out = [];
@@ -122,11 +129,14 @@ export default async function handler(req, res) {
   const EVENTS = ['page_view', 'listing_view', 'details_open', 'share', 'whatsapp_click', 'photo_view', 'photo_download', 'refresh', 'sessions', 'eng_sessions', 'wa_sessions'];
   const PEVENTS = ['listing_view', 'details_open', 'share', 'whatsapp_click', 'photo_view', 'photo_download'];
 
+  const PREV_EVENTS = ['sessions', 'wa_sessions', 'whatsapp_click'];   // hero deltas only
   const cmds = [];
   EVENTS.forEach(e => cmds.push(['GET', `total:${e}`]));
   days.forEach(d => EVENTS.forEach(e => cmds.push(['GET', `day:${d}:${e}`])));
+  prevDays.forEach(d => PREV_EVENTS.forEach(e => cmds.push(['GET', `day:${d}:${e}`])));
   days.forEach(d => cmds.push(['SCARD', `unique:agents:${d}`]));
   cmds.push(['SUNION', ...days.map(d => `unique:agents:${d}`)]);
+  cmds.push(['SUNION', ...prevDays.map(d => `unique:agents:${d}`)]);
   cmds.push(['SCARD', 'unique:agents:all']);
   listingProps.forEach(p => PEVENTS.forEach(e => cmds.push(['GET', `prop:${p.id}:${e}`])));
   days.forEach(d => cmds.push(['HGETALL', `pstats:${d}`]));
@@ -146,9 +156,13 @@ export default async function handler(req, res) {
     EVENTS.forEach(e => o[e] = num(out[ptr++]));
     return o;
   });
+  const prevTotals = {};
+  prevDays.forEach(() => PREV_EVENTS.forEach(e => prevTotals[e] = (prevTotals[e] || 0) + num(out[ptr++])));
   const agentsPerDay = days.map(() => num(out[ptr++]));
   const unionAgents = out[ptr++];
   const uniqueAgentsPeriod = Array.isArray(unionAgents) ? unionAgents.length : 0;
+  const unionPrev = out[ptr++];
+  prevTotals.unique_agents = Array.isArray(unionPrev) ? unionPrev.length : 0;
   const uniqueAgentsAll = num(out[ptr++]);
   const lifetimeProps = listingProps.map(() => {
     const o = {};
@@ -243,9 +257,13 @@ export default async function handler(req, res) {
       const newInPeriod = period === 'all'
         ? owners.length
         : owners.filter(o => o.createdAt && days.includes(o.createdAt.split('T')[0])).length;
+      const newInPrev = period === 'all'
+        ? 0
+        : owners.filter(o => o.createdAt && prevDays.includes(o.createdAt.split('T')[0])).length;
       signups = {
         count: owners.length,
         newInPeriod,
+        newInPrev,
         recent: owners.slice(0, 25).map(o => ({
           name: o.name || o.email || 'Agent',
           email: o.email || '',
@@ -259,7 +277,28 @@ export default async function handler(req, res) {
     }
   } catch {}
 
-  return res.status(200).json({ period, days, totals, allTotals, series, properties, recent, attribution, signups });
+  // ── CRM campaign performance (server-side proxy) ──────────────────
+  // The broadcast campaigns live in the CRM; its analytics action accepts the
+  // shared sync secret, so the admin dashboard can show campaign funnels
+  // without a console key. Best-effort: the page renders without it.
+  let crm = null;
+  try {
+    const crmBase = process.env.CRM_BASE_URL || 'https://kaya-agent-crm.vercel.app';
+    const sync = process.env.LISTING_SYNC_SECRET;
+    if (sync) {
+      const cr = await fetch(`${crmBase}/api/supabase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sync}` },
+        body: JSON.stringify({ action: 'analytics', payload: { days: Math.min(nDays, 90) } }),
+      });
+      if (cr.ok) {
+        const cd = await cr.json();
+        crm = { campaigns: cd.campaigns || [], msg_stats: cd.msg_stats || null, funnel: cd.funnel || null, prev: cd.prev || null, channels: cd.channels || {} };
+      }
+    }
+  } catch { /* best-effort */ }
+
+  return res.status(200).json({ period, days, totals, prevTotals, allTotals, series, properties, recent, attribution, signups, crm });
 }
 
 // ── Manual broadcast: preview or fire ───────────────────────────────

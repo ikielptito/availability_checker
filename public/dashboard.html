@@ -88,6 +88,14 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 
 /* STAT CARDS */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:28px;}
+.delta{display:inline-flex;align-items:center;font-size:0.66rem;font-weight:700;padding:1px 7px;border-radius:8px;margin-left:8px;vertical-align:4px;font-variant-numeric:tabular-nums;}
+.delta.up{background:#DCEFE2;color:#1B7A44;}
+.delta.down{background:#F7DCD6;color:#B23E19;}
+.delta.flat{background:var(--surface2);color:var(--muted);}
+.camp-goal{font-size:0.8rem;margin:-6px 0 14px;}
+.camp-goal b{color:var(--accent);font-size:0.95rem;font-variant-numeric:tabular-nums;}
+.camp-fail{font-size:0.72rem;color:#B23E19;margin-top:10px;}
+.camp-when{font-weight:400;letter-spacing:0;text-transform:none;color:var(--muted);margin-left:auto;font-size:0.7rem;}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
 .stat-label{font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
 .stat-value{font-family:'Satoshi',-apple-system,sans-serif;font-size:1.8rem;line-height:1;}
@@ -287,55 +295,63 @@ function render(data) {
   const engRate = totals.sessions > 0 ? Math.round((engagement / totals.sessions) * 100) : 0;
   const waRate = totals.sessions > 0 ? Math.round((totals.whatsapp_click / totals.sessions) * 100) : 0;
 
+  const prev = data.prevTotals || {};
+  const noDelta = period === 'all';
+  const delta = (cur, pv, goodDown) => {
+    if (noDelta || pv == null || cur == null) return '';
+    const diff = cur - pv;
+    if (!diff) return '<span class="delta flat">·</span>';
+    const good = goodDown ? diff < 0 : diff > 0;
+    return `<span class="delta ${good ? 'up' : 'down'}">${diff > 0 ? '↑' : '↓'} ${fmt(Math.abs(diff))}</span>`;
+  };
+  const crm = data.crm || null;
+
   document.getElementById('dash-content').innerHTML = `
-    <!-- STAT CARDS -->
+    <!-- HERO — the 5-second answer: every number windowed, with a delta vs
+         the previous period. Everything else on the page is drill-down. -->
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Sessions</div>
-        <div class="stat-value" style="color:var(--accent)">${fmt(totals.sessions)}</div>
+        <div class="stat-value" style="color:var(--accent)">${fmt(totals.sessions)}${delta(totals.sessions, prev.sessions)}</div>
         <div class="stat-sub">${periodLabel}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Signed-up agents</div>
-        <div class="stat-value" style="color:var(--accent)">${fmt(signups?.count || 0)}</div>
-        <div class="stat-sub">Google accounts${signups?.newInPeriod ? ` · ${fmt(signups.newInPeriod)} new ${periodLabel}` : ''}</div>
+        <div class="stat-label">Enquiries</div>
+        <div class="stat-value" style="color:var(--orange)">${fmt(totals.wa_sessions || 0)}${delta(totals.wa_sessions, prev.wa_sessions)}</div>
+        <div class="stat-sub">sessions that tapped WhatsApp · ${fmt(totals.whatsapp_click)} taps</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">New accounts</div>
+        <div class="stat-value" style="color:var(--accent)">${fmt(signups?.newInPeriod || 0)}${delta(signups?.newInPeriod, signups?.newInPrev)}</div>
+        <div class="stat-sub">${fmt(signups?.count || 0)} signed-up agents total</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Active agents</div>
-        <div class="stat-value" style="color:var(--green)">${fmt(totals.unique_agents)}</div>
-        <div class="stat-sub">unique visitors · ${fmt(totals.unique_agents_today)} today · ${fmt(totals.unique_agents_all)} all-time</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Details opened</div>
-        <div class="stat-value">${fmt(totals.details_open)}</div>
-        <div class="stat-sub">in the agent portal</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Listing page views</div>
-        <div class="stat-value" style="color:var(--purple)">${fmt(totals.listing_view)}</div>
-        <div class="stat-sub">from shared links</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Shares</div>
-        <div class="stat-value" style="color:var(--yellow)">${fmt(totals.share)}</div>
-        <div class="stat-sub">links sent out</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">WhatsApp clicks</div>
-        <div class="stat-value" style="color:var(--orange)">${fmt(totals.whatsapp_click)}</div>
-        <div class="stat-sub">${fmt(totals.wa_sessions || 0)} unique sessions enquired</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Photos viewed</div>
-        <div class="stat-value">${fmt(totals.photo_view)}</div>
-        <div class="stat-sub">gallery opens</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Photo downloads</div>
-        <div class="stat-value">${fmt(totals.photo_download)}</div>
-        <div class="stat-sub">Drive folder opens</div>
+        <div class="stat-value" style="color:var(--green)">${fmt(totals.unique_agents)}${delta(totals.unique_agents, prev.unique_agents)}</div>
+        <div class="stat-sub">unique visitors · ${fmt(totals.unique_agents_all)} all-time</div>
       </div>
     </div>
+
+    <!-- CAMPAIGNS — WhatsApp broadcast performance, proxied from the CRM -->
+    ${crm && crm.campaigns && crm.campaigns.length ? crm.campaigns.map(c => {
+      const goal = c.goal === 'signup'
+        ? `<b>${fmt((crm.channels || {}).acct_invite || 0)}</b> portal visits via invite link · <b>${fmt(c.replied)}</b> replied`
+        : (c.recipients ? `<b>${fmt(c.replied)}</b> agent${c.replied === 1 ? '' : 's'} replied — ${Math.round(c.replied / c.recipients * 100)}% of the ${fmt(c.recipients)} reached` : `<b>${fmt(c.replied)}</b> replies`);
+      return `
+      <div class="chart-card">
+        <div class="card-title">${esc(c.name)}<span class="camp-when">${c.first_at ? new Date(c.first_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}${c.last_at && c.last_at.slice(0, 10) !== (c.first_at || '').slice(0, 10) ? ' – ' + new Date(c.last_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}</span></div>
+        <div class="camp-goal">${goal}</div>
+        ${funnel([
+          { label: 'Sent', value: c.sent, color: 'var(--accent)' },
+          { label: 'Delivered', value: c.delivered, color: 'var(--accent)', stepText: 'delivered' },
+          { label: 'Read', value: c.read, color: 'var(--accent)', stepText: 'of delivered read' },
+          { label: 'Replied', value: c.replied, color: 'var(--green)', stepText: 'of read replied' },
+        ])}
+        ${c.failed ? `<div class="camp-fail">⚠ ${fmt(c.failed)} send${c.failed === 1 ? '' : 's'} failed</div>` : ''}
+      </div>`;
+    }).join('') : (crm ? '' : `
+      <div class="chart-card"><div class="card-title">Campaigns</div>
+      <div class="loading-state" style="padding:12px 0 4px">CRM unreachable — campaign performance will appear when the connection recovers.</div></div>`)}
 
     <!-- SIGNED-UP AGENTS — real Google accounts created in the portal -->
     <div class="table-card">
@@ -390,10 +406,7 @@ function render(data) {
       </div>
       <div class="chart-legend">
         <div class="legend-item"><div class="legend-dot" style="background:#E2572B"></div>Sessions</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#2a6a3a"></div>Details opened</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#8a6cb0"></div>Listing views</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#c9a227"></div>WhatsApp</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#3a6ea5"></div>Active agents</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1B7A44"></div>Enquiries</div>
       </div>
       <div class="chart-wrap">
         <canvas id="activity-chart" height="180"></canvas>
@@ -409,12 +422,10 @@ function render(data) {
           <tr>
             <th>#</th>
             <th>Property</th>
-            <th>Details</th>
-            <th>Listing views</th>
-            <th>Shares</th>
-            <th>WhatsApp</th>
-            <th>Photos</th>
-            <th>Downloads</th>
+            <th style="text-align:right">Views</th>
+            <th style="text-align:right">Details</th>
+            <th style="text-align:right">WhatsApp</th>
+            <th style="text-align:right">Downloads</th>
             <th style="width:100px">Interest</th>
           </tr>
         </thead>
@@ -423,12 +434,10 @@ function render(data) {
             <tr>
               <td class="prop-rank">${i + 1}</td>
               <td style="font-weight:500">${esc(p.name)}${p.custom ? ' <span class="metric-pill">custom</span>' : ''}</td>
-              <td>${fmt(p.details_open)}</td>
-              <td><span style="color:var(--purple)">${fmt(p.listing_view)}</span></td>
-              <td><span style="color:var(--yellow)">${fmt(p.share)}</span></td>
-              <td><span style="color:var(--orange)">${fmt(p.whatsapp_click)}</span></td>
-              <td>${fmt(p.photo_view)}</td>
-              <td><span style="color:var(--accent)">${fmt(p.photo_download)}</span></td>
+              <td style="text-align:right">${fmt(p.listing_view)}</td>
+              <td style="text-align:right">${fmt(p.details_open)}</td>
+              <td style="text-align:right"><span style="color:var(--orange)">${fmt(p.whatsapp_click)}</span></td>
+              <td style="text-align:right">${fmt(p.photo_download)}</td>
               <td>
                 <div class="bar-wrap">
                   <div class="bar-fill" style="width:${Math.round((p.engagement/maxEng)*100)}%"></div>
@@ -539,12 +548,11 @@ function drawChart(series) {
   const cw = W - pad.left - pad.right;
   const ch = H - pad.top - pad.bottom;
 
+  // Two series only — five lines was spaghetti nobody could read. Detail
+  // volumes (views, opens, downloads) live in the property table below.
   const metrics = [
     { key: 'sessions', color: '#E2572B' },
-    { key: 'details_open', color: '#2a6a3a' },
-    { key: 'listing_view', color: '#8a6cb0' },
-    { key: 'whatsapp_click', color: '#c9a227' },
-    { key: 'agents', color: '#3a6ea5' },
+    { key: 'whatsapp_click', color: '#1B7A44' },
   ];
 
   const maxVal = Math.max(...series.flatMap(d => metrics.map(m => d[m.key])), 1);
@@ -575,15 +583,14 @@ function drawChart(series) {
     });
     ctx.stroke();
 
-    // Dots
-    series.forEach((d, i) => {
-      const x = pad.left + i * step;
-      const y = pad.top + ch - (d[key] / maxVal) * ch;
-      ctx.beginPath();
-      ctx.arc(x, y, 3, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-    });
+    // Endpoint dot only — per-point dots on a dense series are noise.
+    const li = series.length - 1;
+    const lx = pad.left + li * step;
+    const ly = pad.top + ch - (series[li][key] / maxVal) * ch;
+    ctx.beginPath();
+    ctx.arc(lx, ly, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
   });
 
   // X labels (show every N days)
