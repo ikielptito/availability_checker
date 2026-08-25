@@ -335,7 +335,7 @@ function render(data) {
     <!-- CAMPAIGNS — WhatsApp broadcast performance, proxied from the CRM -->
     ${crm && crm.campaigns && crm.campaigns.length ? crm.campaigns.map(c => {
       const goal = c.goal === 'signup'
-        ? `<b>${fmt((crm.channels || {}).acct_invite || 0)}</b> portal visits via invite link · <b>${fmt(c.replied)}</b> replied`
+        ? `<b>${fmt(c.signups || 0)}</b> account${c.signups === 1 ? '' : 's'} created · ${fmt((crm.channels || {}).acct_invite || 0)} invite-link visits · ${fmt(c.replied)} replied`
         : (c.recipients ? `<b>${fmt(c.replied)}</b> agent${c.replied === 1 ? '' : 's'} replied — ${Math.round(c.replied / c.recipients * 100)}% of the ${fmt(c.recipients)} reached` : `<b>${fmt(c.replied)}</b> replies`);
       return `
       <div class="chart-card">
@@ -352,6 +352,17 @@ function render(data) {
     }).join('') : (crm ? '' : `
       <div class="chart-card"><div class="card-title">Campaigns</div>
       <div class="loading-state" style="padding:12px 0 4px">CRM unreachable — campaign performance will appear when the connection recovers.</div></div>`)}
+
+    <!-- OWNER FUNNEL — villa acquisition (tracked since 25 Aug 2026) -->
+    <div class="chart-card">
+      <div class="card-title">Owner funnel · ${periodLabel}${delta(totals.owner_wizard_submit, prev.owner_wizard_submit)}</div>
+      ${funnel([
+        { label: 'Pitch page views', value: totals.owner_pitch_view || 0, color: 'var(--accent)' },
+        { label: 'Started', hint: 'opened the wizard or Maya chat', value: (totals.owner_wizard_click || 0) + (totals.owner_chat_click || 0), color: 'var(--green)', stepText: 'of views started' },
+        { label: 'Submitted', hint: 'completed the listing wizard', value: totals.owner_wizard_submit || 0, color: 'var(--orange)', stepText: 'of starters submitted' },
+      ])}
+      <div class="funnel-note">Chat starts convert inside WhatsApp with Maya, so "Submitted" only counts wizard submissions — Maya-intake listings land in the approval queue directly. Tracking began 25 Aug 2026.</div>
+    </div>
 
     <!-- SIGNED-UP AGENTS — real Google accounts created in the portal -->
     <div class="table-card">

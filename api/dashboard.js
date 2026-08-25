@@ -126,10 +126,12 @@ export default async function handler(req, res) {
     }));
   } catch {}
 
-  const EVENTS = ['page_view', 'listing_view', 'details_open', 'share', 'whatsapp_click', 'photo_view', 'photo_download', 'refresh', 'sessions', 'eng_sessions', 'wa_sessions'];
+  const EVENTS = ['page_view', 'listing_view', 'details_open', 'share', 'whatsapp_click', 'photo_view', 'photo_download', 'refresh', 'sessions', 'eng_sessions', 'wa_sessions',
+    // Owner acquisition funnel (list-property.html + portal wizard, tracked since 25 Aug 2026)
+    'owner_pitch_view', 'owner_wizard_click', 'owner_chat_click', 'owner_wizard_submit'];
   const PEVENTS = ['listing_view', 'details_open', 'share', 'whatsapp_click', 'photo_view', 'photo_download'];
 
-  const PREV_EVENTS = ['sessions', 'wa_sessions', 'whatsapp_click'];   // hero deltas only
+  const PREV_EVENTS = ['sessions', 'wa_sessions', 'whatsapp_click', 'owner_pitch_view', 'owner_wizard_submit'];   // hero + owner-funnel deltas
   const cmds = [];
   EVENTS.forEach(e => cmds.push(['GET', `total:${e}`]));
   days.forEach(d => EVENTS.forEach(e => cmds.push(['GET', `day:${d}:${e}`])));
@@ -650,18 +652,27 @@ async function handleAgentFunnel(req, res) {
       });
     }
     const today = new Date().toISOString().split('T')[0];
+    const month = today.slice(0, 7);
     let channels = {};
+    let attributionMonth = { views: {}, wa: {} };
     try {
       const ch = await kv([
         ['GET', 'total:src:wa_alert'], ['GET', 'total:src:wa_digest'],
         ['GET', `day:${today}:src:wa_alert`], ['GET', `day:${today}:src:wa_digest`],
+        ['GET', 'total:src:acct_invite'], ['GET', `month:${month}:src:acct_invite`],
+        ['HGETALL', `attr:views:${month}`], ['HGETALL', `attr:wa:${month}`],
       ]);
       channels = {
         wa_alert_all: Number(ch[0]?.result) || 0, wa_digest_all: Number(ch[1]?.result) || 0,
         wa_alert_today: Number(ch[2]?.result) || 0, wa_digest_today: Number(ch[3]?.result) || 0,
+        acct_invite: Number(ch[4]?.result) || 0, acct_invite_month: Number(ch[5]?.result) || 0,
       };
+      const toObj2 = (arr) => { const o = {}; if (Array.isArray(arr)) for (let i = 0; i < arr.length; i += 2) o[arr[i]] = Number(arr[i + 1]) || 0; return o; };
+      // Per-handle share attribution for the current month — the CRM maps
+      // handles to agents (portal_account) for the agent-of-the-month line.
+      attributionMonth = { views: toObj2(ch[6]?.result), wa: toObj2(ch[7]?.result) };
     } catch { /* best-effort */ }
-    return res.status(200).json({ agents, count: Object.keys(agents).length, channels });
+    return res.status(200).json({ agents, count: Object.keys(agents).length, channels, attribution_month: attributionMonth });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
