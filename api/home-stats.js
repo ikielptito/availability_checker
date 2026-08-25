@@ -28,6 +28,22 @@ export default async function handler(req, res) {
     }
   } catch {}
 
+  // Founding-25 slots remaining — public scarcity counter for the owner pitch
+  // (list-property page, sign-in sheets, and Maya's pitch all read this).
+  if (kvUrl && kvToken) {
+    try {
+      const r = await fetch(`${kvUrl}/GET/promo_codes`, { headers: { Authorization: `Bearer ${kvToken}` } });
+      const data = await r.json();
+      let promos = {};
+      try { promos = JSON.parse(data.result) || {}; } catch {}
+      const f = promos.FOUNDING25;
+      // Not yet seeded (seeding is lazy, on first redemption) → all 25 open.
+      const max = f?.maxRedemptions ?? 25;
+      const used = f?.redemptions ?? 0;
+      results.founding = { total: max, used, remaining: Math.max(0, max - used), active: f ? f.active !== false : true };
+    } catch {}
+  }
+
   // Shares this month: from Redis tracking
   if (kvUrl && kvToken) {
     try {

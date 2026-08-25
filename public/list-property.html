@@ -619,6 +619,21 @@ body {
 </div>
 
 <script>
+/* Owner-funnel tracking — the pitch page previously had zero measurement, so
+   pitch views and drop-off were invisible. Same generic /api/track counters
+   the agent portal uses. */
+function ownerTrack(event) {
+  try { fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: event }) }); } catch (e) {}
+}
+ownerTrack('owner_pitch_view');
+document.addEventListener('click', function (e) {
+  var a = e.target.closest && e.target.closest('a');
+  if (!a) return;
+  var href = a.getAttribute('href') || '';
+  if (href.indexOf('/portal?view=new') === 0) ownerTrack('owner_wizard_click');
+  else if (href.indexOf('wa.me') !== -1) ownerTrack('owner_chat_click');
+});
+
 (async function loadStats() {
   try {
     const r = await fetch('/api/home-stats');
@@ -626,6 +641,26 @@ body {
     const d = await r.json();
     const villas = document.getElementById('stat-villas');
     if (d.properties && villas) villas.textContent = d.properties;
+
+    // Live founding-offer scarcity: show real remaining slots everywhere the
+    // offer is mentioned; flip the copy entirely once the 25 are taken.
+    const f = d.founding;
+    if (f && typeof f.remaining === 'number') {
+      const line = document.querySelector('.founding-line');
+      const sub = document.querySelector('.founding-sub');
+      const fine = document.querySelector('.si-fine');
+      if (f.remaining > 0 && f.active) {
+        const n = f.remaining;
+        if (f.used > 0) {
+          if (line) line.innerHTML = 'Only <b>' + n + '</b> of the 25 free founding spots left — list with code <code>FOUNDING25</code>';
+          if (fine) fine.innerHTML = '<b>' + n + '</b> of the 25 free founding spots left — code <b>FOUNDING25</b>';
+        }
+      } else {
+        if (line) line.textContent = 'The 25 founding spots are taken — welcome to everyone who claimed one.';
+        if (sub) sub.textContent = 'Listing costs IDR 150,000/month per villa (billed as US$9.50), with no commissions and no booking fees. You keep what you earn.';
+        if (fine) fine.textContent = 'IDR 150,000/month per villa · no commissions, no booking fees';
+      }
+    }
   } catch {}
 })();
 

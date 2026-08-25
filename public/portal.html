@@ -1483,6 +1483,8 @@ async function importFromUrl(){
 }
 
 async function submitProperty(){
+  // Owner-funnel event (generic /api/track counter, admin analytics reads it).
+  try{fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event:'owner_wizard_submit'})});}catch(e){}
   const g=id=>document.getElementById('f-'+id).value;
   const lines=id=>g(id).split('\n').map(s=>s.trim()).filter(Boolean);
   const data={

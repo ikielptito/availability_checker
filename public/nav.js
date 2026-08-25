@@ -394,6 +394,20 @@
     document.getElementById('snav-signin-wait').style.display = 'none';
     document.getElementById('snav-signin-err').textContent = '';
     snTrack('signup_shown_' + sigSource);
+    // Owner sheet: swap the static founding fineprint for the live count.
+    if (curPortal() === 'owner') {
+      fetch('/api/home-stats').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        var f = d && d.founding;
+        var els = ov.querySelectorAll('.snav-fineprint');
+        if (!f || typeof f.remaining !== 'number' || !els.length) return;
+        var el = els[els.length - 1];
+        if (f.remaining > 0 && f.active) {
+          if (f.used > 0) el.textContent = f.remaining + ' of the 25 free founding spots left — code FOUNDING25';
+        } else {
+          el.textContent = 'IDR 150,000/month per villa · no commissions, no booking fees';
+        }
+      }).catch(function () {});
+    }
     if (isInAppBrowser()) {
       // Google blocks OAuth inside embedded webviews (403 disallowed_useragent),
       // so the primary CTA hops to the real browser, which reopens this sheet
