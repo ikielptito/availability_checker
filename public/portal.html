@@ -13,6 +13,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="/brand.css">
 <script src="/shared.js"></script>
+<script src="/story.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap">
 <style>
 /* Warm/light palette — matches the Samba agent portal (index.html). */
 /* Core tokens come from brand.css aliases; only page-specific extras live here. */
@@ -993,10 +995,11 @@ function propCard(p){
 }
 
 // ── Owner story image ────────────────────────────────────────────────
-// "My villa is on Samba" — a 1080×1920 Instagram-story card the owner can
-// post (owner pride is an organic acquisition channel: their followers
-// include other villa owners). Mirrors the agent-side generator's spirit
-// with a simpler layout: hero photo, name/area/price, the brand line.
+// "My villa is on Samba" — the SAME art-directed 1080×1920 card the agent
+// portal generates (shared engine in /story.js): hero + scrim, title block,
+// olive fact panel, price focal, contact card, brand footer. The contact
+// card renders the generic "Samba Rentals · Message us to enquire" variant —
+// enquiries route through us to the agent network.
 async function ownerStory(slug){
   const btn=document.getElementById('story-'+slug);
   const orig=btn?btn.textContent:'';
@@ -1005,58 +1008,32 @@ async function ownerStory(slug){
     const lr=await fetch('/api/listings');
     const {listings}=await lr.json();
     const l=(listings||[]).find(x=>x.slug===slug)||{};
-    const W=1080,H=1920;
-    const cv=document.createElement('canvas');cv.width=W;cv.height=H;
-    const ctx=cv.getContext('2d');
-    ctx.fillStyle='#131A17';ctx.fillRect(0,0,W,H);
-    if(l.coverPhotoId){
-      const img=new Image();img.crossOrigin='anonymous';
-      await new Promise((ok,no)=>{img.onload=ok;img.onerror=no;img.src='/api/media?source=img&id='+encodeURIComponent(l.coverPhotoId)+'&w=1600';});
-      // Cover-fit ×1.3 zoom anchored at the listing's focal point: a 9:16 crop
-      // of a landscape photo otherwise shows its FULL height, so roof eaves /
-      // sky junk at the frame edges end up on the card (Villa Bula, 25 Aug).
-      const pos=String(l.coverPosition||'').match(/(\d+)%\s+(\d+)%/);
-      const fx=(pos?+pos[1]:50)/100, fy=(pos?+pos[2]:50)/100;
-      const s=Math.max(W/img.width,H/img.height)*1.3;
-      const dw=img.width*s,dh=img.height*s;
-      const dx=Math.min(0,Math.max(W-dw,W/2-fx*dw));
-      const dy=Math.min(0,Math.max(H-dh,H/2-fy*dh));
-      ctx.drawImage(img,dx,dy,dw,dh);
-    }
-    // Legibility gradients top + bottom
-    let g=ctx.createLinearGradient(0,H*0.45,0,H);g.addColorStop(0,'rgba(19,26,23,0)');g.addColorStop(1,'rgba(19,26,23,0.92)');
-    ctx.fillStyle=g;ctx.fillRect(0,H*0.45,W,H*0.55);
-    g=ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,'rgba(19,26,23,0.55)');g.addColorStop(1,'rgba(19,26,23,0)');
-    ctx.fillStyle=g;ctx.fillRect(0,0,W,300);
-    // Top badge
-    ctx.fillStyle='#E2572B';
-    const bw=560,bh=92,bx=(W-bw)/2,by=96,r=bh/2;
-    ctx.beginPath();ctx.moveTo(bx+r,by);ctx.arcTo(bx+bw,by,bx+bw,by+bh,r);ctx.arcTo(bx+bw,by+bh,bx,by+bh,r);ctx.arcTo(bx,by+bh,bx,by,r);ctx.arcTo(bx,by,bx+bw,by,r);ctx.fill();
-    ctx.fillStyle='#fff';ctx.textAlign='center';
-    ctx.font='700 44px Satoshi,-apple-system,sans-serif';
-    ctx.fillText('NOW ON SAMBA RENTALS',W/2,by+bh/2+16);
-    // Bottom block
-    ctx.textAlign='left';
-    const name=(l.name||slug).toUpperCase();
-    ctx.font='800 '+(name.length>18?72:88)+'px Satoshi,-apple-system,sans-serif';
-    ctx.fillStyle='#fff';
-    ctx.fillText(name,72,H-360,W-144);
-    ctx.font='500 46px Satoshi,-apple-system,sans-serif';
-    ctx.fillStyle='rgba(255,255,255,0.92)';
-    const meta=[l.tag,l.unitType].filter(Boolean).join(' · ');
-    if(meta)ctx.fillText(meta,72,H-280,W-144);
-    if(l.monthly){ctx.fillStyle='#E2572B';ctx.font='700 52px Satoshi,-apple-system,sans-serif';ctx.fillText('IDR '+String(l.monthly).replace(/jt/i,'')+'jt / month',72,H-200);}
-    // Brand footer
-    ctx.fillStyle='rgba(255,255,255,0.85)';ctx.font='600 38px Satoshi,-apple-system,sans-serif';
-    ctx.fillText('sambarentals.com',72,H-96);
-    ctx.textAlign='right';ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='500 34px Satoshi,-apple-system,sans-serif';
-    ctx.fillText('One listing. 300+ rental agents.',W-72,H-96);
-    const blob=await new Promise(ok=>cv.toBlob(ok,'image/png'));
+    const feats=[l.unitType||'',...(l.features||[])].join(' · ');
+    const bm=feats.match(/(\d+)\s*(?:BR|Bedroom)/i);
+    const beds=bm?+bm[1]:null;
+    const am=feats.match(/(\d+)\s*Bathroom/i);
+    const baths=am?+am[1]:null;
+    const sm=feats.match(/(\d+)\s*m²/);
+    const sqm=sm?+sm[1]:null;
+    let pool=null;
+    if(/private[^.·]*pool/i.test(feats))pool='Private pool';
+    else if(/pool/i.test(feats))pool='Shared pool';
+    let unit='Villa';
+    if(/townhouse/i.test(feats))unit='Townhouse';
+    else if(/apartment/i.test(feats))unit='Apartment';
+    const mn=l.monthly?String(l.monthly).replace(/\s*jt\s*$/i,''):null;
+    const blob=await SambaStory.makeStoryBlob({
+      name:l.name||slug, loc:l.tag||'', subtitle:((beds?beds+' Bedroom ':'')+unit).trim(),
+      availTxt:null, beds, baths, sqm, pool, mn,
+      heroUrls:l.coverPhotoId?['/api/media?source=img&id='+encodeURIComponent(l.coverPhotoId)+'&w=1600']:[],
+      prof:null,
+    });
     const file=new File([blob],'samba-'+slug+'-story.png',{type:'image/png'});
     if(navigator.canShare&&navigator.canShare({files:[file]})){
       await navigator.share({files:[file]}).catch(()=>{});
     }else{
-      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();URL.revokeObjectURL(a.href);
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),5000);
     }
   }catch(e){showToast('Could not build the story image.');}
   if(btn){btn.disabled=false;btn.textContent=orig;}
