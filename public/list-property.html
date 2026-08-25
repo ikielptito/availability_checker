@@ -622,8 +622,16 @@ body {
 /* Owner-funnel tracking — the pitch page previously had zero measurement, so
    pitch views and drop-off were invisible. Same generic /api/track counters
    the agent portal uses. */
+// ?ref= tags the acquisition channel (wa_group = Ikiel's WhatsApp-group
+// posts, the proven owner channel). Persisted so the wizard-submit event in
+// the portal still carries the source.
+var OWNER_SRC = null;
+try {
+  OWNER_SRC = new URLSearchParams(location.search).get('ref') || sessionStorage.getItem('samba_owner_src') || null;
+  if (OWNER_SRC) sessionStorage.setItem('samba_owner_src', OWNER_SRC);
+} catch (e) {}
 function ownerTrack(event) {
-  try { fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: event }) }); } catch (e) {}
+  try { fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: event, src: OWNER_SRC || undefined }) }); } catch (e) {}
 }
 ownerTrack('owner_pitch_view');
 document.addEventListener('click', function (e) {
