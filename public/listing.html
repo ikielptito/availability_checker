@@ -827,7 +827,16 @@
   </button>
 </div>
 
-<footer>© Samba · Bali, Indonesia</footer>
+<footer>
+  © Samba · Bali, Indonesia
+  <!-- Agent recruitment line — ONLY on non-attributed views (no ?a=handle).
+       An agent's shared page is their client-facing storefront and carries our
+       promise that we don't appear on it; this stays hidden there (script
+       below removes it when the link is attributed). -->
+  <div id="agent-cta" style="margin-top:10px;font-size:0.82rem">
+    Are you a rental agent? <a href="/for-agents" style="color:var(--accent, #E2572B);font-weight:600">Get your own Samba — free →</a>
+  </div>
+</footer>
 
 <!-- Personalized agent contact (populated when the link carries ?a=<handle>) -->
 <div id="agent-bar">
@@ -871,6 +880,10 @@ const URL_PARAMS = new URLSearchParams(window.location.search);
 const URL_REF = URL_PARAMS.get('ref') || null;
 const URL_AID = URL_PARAMS.get('aid') || null;
 const URL_AGENT = URL_PARAMS.get('a') || null;
+
+// Attributed view = an agent's client-facing storefront: strip the agent
+// recruitment line (we promised our contact and CTAs don't appear there).
+if (URL_AGENT) { const c = document.getElementById('agent-cta'); if (c) c.remove(); }
 
 // When an agent shares with ?a=<handle>, show a "Contact <agent>" bar with the
 // agent's photo + WhatsApp (their contact, never the owner's — see note above).

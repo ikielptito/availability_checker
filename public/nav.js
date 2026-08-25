@@ -338,6 +338,7 @@
   var SIGNIN_COPY = {
     favorite:  { title: 'Save this villa',          lede: 'Sign in to keep favourites and private notes on every device.' },
     shortlist: { title: 'Build a client shortlist', lede: 'Sign in to pick villas and send your client one polished link.' },
+    story:     { title: 'Make this story yours',    lede: 'Sign in and this Instagram story carries YOUR name, photo and WhatsApp — clients contact you, not us.' },
     owner:     { title: 'Your owner portal',        lede: 'Sign in to list your villa and manage availability, photos and pricing. New here? Google sign-in creates your account.' },
     'default': { title: 'Welcome to Samba',         lede: 'One account for favourites, shortlists and your public agent profile.' }
   };
@@ -551,7 +552,10 @@
     try { localStorage.setItem('samba_onetap_snooze', String(Date.now() + 864e5)); } catch (e) {}
     api('?action=auth/logout', { method: 'POST' }).then(function () { location.reload(); });
   }
-  function requireSignIn(fn, ctx) { if (account) { fn(); return; } pendingAfterSignIn = fn; openSignIn('gate', ctx); }
+  // The story gate gets its own tracking suffix (signup_shown_story /
+  // signup_done_story) — it's the highest-intent surface and worth measuring
+  // apart from the generic gate.
+  function requireSignIn(fn, ctx) { if (account) { fn(); return; } pendingAfterSignIn = fn; openSignIn(ctx === 'story' ? 'story' : 'gate', ctx); }
 
   // ── Agent profile sheet ──
   function ensureAccount() {

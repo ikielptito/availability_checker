@@ -483,16 +483,45 @@ async function saveProfile(req, res, owner, { kvGet, kvSet }) {
     p.handle = handle;
     await kvSet(`handle:${handle}`, owner.sub);
   }
-  // Best-effort CRM link by WhatsApp number (same CRM call as home-stats.js).
+  // CRM link by WhatsApp number — and, new, the loop finally closes both ways:
+  // an unknown number becomes a real CRM agent (Maya starts serving them), and
+  // a matched agent gets their portal handle written back so Maya knows they
+  // hold an account (stops re-pitching it, references their share link).
   if (p.waNumber && !p.crmAgentId) {
     try {
       const crmBase = process.env.CRM_BASE_URL || 'https://kaya-agent-crm.vercel.app';
-      const r = await fetch(`${crmBase}/api/supabase`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(process.env.LISTING_SYNC_SECRET ? { Authorization: `Bearer ${process.env.LISTING_SYNC_SECRET}` } : {}) }, body: JSON.stringify({ action: 'get_agents' }) });
+      const crmCall = (action, cpayload) => fetch(`${crmBase}/api/supabase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(process.env.LISTING_SYNC_SECRET ? { Authorization: `Bearer ${process.env.LISTING_SYNC_SECRET}` } : {}) },
+        body: JSON.stringify({ action, payload: cpayload }),
+      });
+      const r = await crmCall('get_agents');
       const agents = await r.json();
       if (Array.isArray(agents)) {
         const tail = p.waNumber.slice(-8);
         const match = agents.find(a => a.wa_num && String(a.wa_num).replace(/[^0-9]/g, '').endsWith(tail));
-        if (match) p.crmAgentId = match.id || match.agent_id || null;
+        if (match) {
+          p.crmAgentId = match.id || match.agent_id || null;
+          // Write the account facts back onto the CRM row (jsonb merge on the
+          // fetched value — patch_agent replaces the whole column).
+          const eng = { ...(match.campaign_engagement || {}), portal_account: { handle: p.handle, email: owner.email || null, since: new Date().toISOString().slice(0, 10) } };
+          await crmCall('patch_agent', { id: p.crmAgentId, fields: { campaign_engagement: eng } }).catch(() => {});
+        } else {
+          // Brand-new agent signing up straight through the portal — create the
+          // CRM row so Maya's broadcasts and welcome reach them.
+          const qr = await crmCall('quick_add_agent', {
+            name: displayName || owner.name || owner.email || 'Portal agent',
+            wa_num: p.waNumber, agency: p.agency || null,
+            notes: `portal signup (handle: ${p.handle || '—'})`,
+          });
+          const qd = await qr.json().catch(() => ({}));
+          const newId = qd?.agent?.id ?? qd?.existing_agent_id ?? null;
+          if (newId != null) {
+            p.crmAgentId = newId;
+            const eng2 = { ...(qd?.agent?.campaign_engagement || {}), portal_account: { handle: p.handle, email: owner.email || null, since: new Date().toISOString().slice(0, 10) } };
+            await crmCall('patch_agent', { id: newId, fields: { campaign_engagement: eng2 } }).catch(() => {});
+          }
+        }
       }
     } catch {}
   }

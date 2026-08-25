@@ -1889,10 +1889,25 @@ function doShare(propId, btn){
     setTimeout(()=>{btn.innerHTML=orig;btn.classList.remove('shared-ok');},2000);
   };
   if(navigator.share){
-    navigator.share({title,text,url}).then(()=>flash('Shared')).catch(()=>{});
+    navigator.share({title,text,url}).then(()=>{flash('Shared');maybeShareSignupNudge();}).catch(()=>{});
   } else {
-    sbCopy(text+'\n'+url).then(ok=>flash(ok?'Copied':'Couldn’t copy — select the link and copy it manually'));
+    sbCopy(text+'\n'+url).then(ok=>{flash(ok?'Copied':'Couldn’t copy — select the link and copy it manually');if(ok)maybeShareSignupNudge();});
   }
+}
+// Signed-out shares carry OUR contact instead of the agent's — after a share
+// completes, one soft nudge per session explains what an account fixes.
+function maybeShareSignupNudge(){
+  if(window.SambaNav&&SambaNav.isSignedIn())return;
+  if(sessionStorage.getItem('samba_share_nudge'))return;
+  try{sessionStorage.setItem('samba_share_nudge','1');}catch(e){}
+  try{fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event:'signup_shown_share'})});}catch(e){}
+  const b=document.createElement('div');
+  b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));z-index:1250;background:#131A17;color:#fff;border-radius:12px;padding:12px 16px;font-size:13.5px;max-width:92vw;box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;gap:12px;align-items:center';
+  b.innerHTML='<span>Sign in first and shares like this carry <b>your</b> contact — clients reach you, not us.</span><button style="background:#E2572B;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer">Sign in</button>';
+  b.querySelector('button').onclick=function(){b.remove();if(window.SambaNav)SambaNav.openSignIn('share');};
+  b.onclick=function(e){if(e.target===b)b.remove();};
+  document.body.appendChild(b);
+  setTimeout(function(){b.remove();},9000);
 }
 function shareModal(){ doShare(modalPropId, document.getElementById('modal-share-btn')); }
 
@@ -2162,6 +2177,10 @@ async function makeStoryImage(propId){
   return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('export failed')),'image/png'));
 }
 async function shareStory(){
+  // Gate the highest-intent moment in the product: a story generated
+  // signed-out has no agent card ("Message us to enquire"), which wastes the
+  // agent's post AND sends their audience to us. One sign-in fixes both.
+  if(window.SambaNav && !SambaNav.isSignedIn()){ SambaNav.requireSignIn(function(){ shareStory(); }, 'story'); return; }
   const btn=document.getElementById('modal-story-btn');
   const orig=btn?btn.innerHTML:'';  // preserve the Instagram icon
   if(btn)btn.textContent='Generating…';
