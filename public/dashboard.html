@@ -327,8 +327,8 @@ function render(data) {
       </div>
       <div class="stat-card">
         <div class="stat-label">Active agents</div>
-        <div class="stat-value" style="color:var(--green)">${fmt(totals.unique_agents)}${delta(totals.unique_agents, prev.unique_agents)}</div>
-        <div class="stat-sub">unique visitors · ${fmt(totals.unique_agents_all)} all-time</div>
+        <div class="stat-value" style="color:var(--green)">${fmt(totals.identified_agents || 0)}${delta(totals.identified_agents, prev.identified_agents)}</div>
+        <div class="stat-sub">known agents on the portal · plus ${fmt(Math.max(0, (totals.unique_agents || 0) - (totals.identified_agents || 0)))} anonymous visitors (clients &amp; untagged devices)</div>
       </div>
     </div>
 

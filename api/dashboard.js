@@ -137,7 +137,7 @@ export default async function handler(req, res) {
   days.forEach(d => cmds.push(['SCARD', `unique:agents:${d}`]));
   cmds.push(['SUNION', ...days.map(d => `unique:agents:${d}`)]);
   cmds.push(['SUNION', ...prevDays.map(d => `unique:agents:${d}`)]);
-  cmds.push(['SCARD', 'unique:agents:all']);
+  cmds.push(['SMEMBERS', 'unique:agents:all']);
   listingProps.forEach(p => PEVENTS.forEach(e => cmds.push(['GET', `prop:${p.id}:${e}`])));
   days.forEach(d => cmds.push(['HGETALL', `pstats:${d}`]));
   const curMonth = new Date().toISOString().slice(0, 7);
@@ -159,11 +159,21 @@ export default async function handler(req, res) {
   const prevTotals = {};
   prevDays.forEach(() => PREV_EVENTS.forEach(e => prevTotals[e] = (prevTotals[e] || 0) + num(out[ptr++])));
   const agentsPerDay = days.map(() => num(out[ptr++]));
+  // "Unique agents" sets hold two kinds of ids: numeric CRM agent ids (the
+  // visitor arrived via a broadcast link and is a KNOWN agent) and random
+  // device ids ('a_…' — clients on shared listing pages, agents in fresh
+  // WhatsApp webviews, incognito). Split them: only the numeric ones can
+  // honestly be called agents.
+  const isCrmId = (v) => /^\d{1,12}$/.test(String(v));
   const unionAgents = out[ptr++];
   const uniqueAgentsPeriod = Array.isArray(unionAgents) ? unionAgents.length : 0;
+  const identifiedPeriod = Array.isArray(unionAgents) ? unionAgents.filter(isCrmId).length : 0;
   const unionPrev = out[ptr++];
   prevTotals.unique_agents = Array.isArray(unionPrev) ? unionPrev.length : 0;
-  const uniqueAgentsAll = num(out[ptr++]);
+  prevTotals.identified_agents = Array.isArray(unionPrev) ? unionPrev.filter(isCrmId).length : 0;
+  const allMembers = out[ptr++];
+  const uniqueAgentsAll = Array.isArray(allMembers) ? allMembers.length : 0;
+  const identifiedAll = Array.isArray(allMembers) ? allMembers.filter(isCrmId).length : 0;
   const lifetimeProps = listingProps.map(() => {
     const o = {};
     PEVENTS.forEach(e => o[e] = num(out[ptr++]));
@@ -191,6 +201,8 @@ export default async function handler(req, res) {
   totals.unique_agents = period === 'all' ? uniqueAgentsAll : uniqueAgentsPeriod;
   totals.unique_agents_today = agentsPerDay[agentsPerDay.length - 1];
   totals.unique_agents_all = uniqueAgentsAll;
+  totals.identified_agents = period === 'all' ? identifiedAll : identifiedPeriod;
+  totals.identified_agents_all = identifiedAll;
 
   // Daily series for the chart
   const series = days.map((d, i) => ({
