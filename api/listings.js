@@ -239,6 +239,42 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
+    // Key-facts merge (deposit, electricity, wifi, pool, minStay, petFriendly):
+    // Maya applies a villa contact's chase answer straight to the listing.
+    // Merge-only — no other field is readable or writable through this path,
+    // so the CRM can never clobber a listing. Accepts the CRM's sync secret
+    // (the same one the sync webhook uses) as well as the admin password.
+    if (req.body?.action === 'update-facts') {
+      const sync = process.env.LISTING_SYNC_SECRET;
+      const authed = checkAuth() || (sync && (req.headers.authorization || '') === `Bearer ${sync}`);
+      if (!authed) return res.status(401).json({ error: 'Unauthorized' });
+      const slug = String(req.body.slug || '');
+      const facts = req.body.facts || {};
+      const patch = {};
+      for (const f of ['deposit', 'electricity', 'wifi', 'pool', 'minStay']) {
+        if (typeof facts[f] === 'string' && facts[f].trim()) patch[f] = facts[f].trim().slice(0, 120);
+      }
+      if (typeof facts.petFriendly === 'boolean') patch.petFriendly = facts.petFriendly;
+      if (!Object.keys(patch).length) return res.status(400).json({ error: 'No facts to apply' });
+      let hidden = false;
+      if (DEFAULTS[slug]) {
+        const override = await kvGet(`listing:${slug}`) || { slug };
+        Object.assign(override, patch);
+        override.updatedAt = Date.now();
+        await kvSet(`listing:${slug}`, override);
+        hidden = !!override.hidden;
+      } else {
+        const all = await kvGet(CUSTOM_KEY) || {};
+        if (!all[slug]) return res.status(404).json({ error: 'Not found' });
+        Object.assign(all[slug], patch);
+        all[slug].updatedAt = Date.now();
+        await kvSet(CUSTOM_KEY, all);
+        hidden = !!all[slug].hidden;
+      }
+      await notifyCrmSync(slug, hidden ? 'delete' : 'upsert');
+      return res.status(200).json({ ok: true, slug, applied: Object.keys(patch) });
+    }
+
     if (!checkAuth()) return res.status(401).json({ error: 'Unauthorized' });
 
     // Promo codes: create/update or delete (free-month activation codes used by
