@@ -589,6 +589,7 @@
       '<label class="snav-row"><input type="checkbox" id="snav-pf-public"' + (p.public ? ' checked' : '') + '> Make my agent profile public &amp; shareable</label>' +
       (pubLink ? '<div class="snav-fg"><label>Your shareable profile</label><div class="snav-link-box">' + esc(pubLink) + '</div></div>' : '') +
       '<div class="snav-fg" id="snav-mystats" style="display:none"></div>' +
+      '<div class="snav-fg" id="snav-viewings" style="display:none"></div>' +
       '<div class="snav-err" id="snav-pf-err"></div>' +
       '<button class="snav-btn block" id="snav-pf-save">' + (onboarding ? 'Finish setup' : 'Save profile') + '</button>' +
       '<div class="snav-div"></div>' +
@@ -604,6 +605,28 @@
       var el = document.getElementById('snav-mystats'); if (!el) return;
       el.style.display = '';
       el.innerHTML = '<label>Your share performance</label><div class="snav-link-box"><b>' + s.views + '</b> link open' + (s.views === 1 ? '' : 's') + ' · <b>' + s.enquiries + '</b> WhatsApp enquir' + (s.enquiries === 1 ? 'y' : 'ies') + ' from your shares' + ((s.viewsThisMonth || s.enquiriesThisMonth) ? ' <span style="color:#8a8478">(' + s.viewsThisMonth + ' · ' + s.enquiriesThisMonth + ' this month)</span>' : '') + '</div>';
+    });
+    // Their viewings — Maya's scheduling system, scoped to this agent's
+    // WhatsApp number. Confirmed slots carry a one-tap calendar link.
+    api('?action=viewings').then(function (r) {
+      var vs = (r.ok && r.body && r.body.asAgent) || [];
+      if (!vs.length) return;
+      var el = document.getElementById('snav-viewings'); if (!el) return;
+      var live = vs.filter(function (v) { return v.status === 'requested' || (v.status === 'confirmed' && v.scheduledAt && Date.parse(v.scheduledAt) > Date.now() - 3600e3); });
+      var shown = live.length ? live : vs.slice(0, 3);
+      var line = function (v) {
+        var when = v.scheduledAt
+          ? (function (t) { return t.toISOString().slice(0, 10) + ' ' + t.toISOString().slice(11, 16) + ' WITA'; })(new Date(Date.parse(v.scheduledAt) + 8 * 3600e3))
+          : (v.requestedWindow ? 'asked: ' + esc(v.requestedWindow) : '');
+        var st = v.status === 'confirmed' ? '<b style="color:#1B7A44">confirmed</b>'
+          : v.status === 'requested' ? '<b style="color:#B8860B">awaiting villa</b>'
+          : esc(v.status);
+        return '<div style="padding:4px 0">' + esc(v.property || '?') + ' — ' + when + ' · ' + st
+          + (v.gcal && v.status === 'confirmed' ? ' · <a href="' + v.gcal + '" target="_blank" rel="noopener">calendar 📅</a>' : '') + '</div>';
+      };
+      el.style.display = '';
+      el.innerHTML = '<label>Your viewings</label><div class="snav-link-box">' + shown.map(line).join('')
+        + '<div style="color:#8a8478;font-size:0.72rem;margin-top:4px">Book or change a viewing by messaging Maya on WhatsApp.</div></div>';
     });
     ov.classList.add('open');
   }

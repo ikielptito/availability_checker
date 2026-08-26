@@ -346,6 +346,7 @@ body.wiz-open #snav-tabs{display:none !important;}
       <div class="tabbar">
         <button class="tab active" data-tab="properties" onclick="showTab('properties')">My properties</button>
         <button class="tab" data-tab="reports" onclick="showTab('reports')">Weekly reports</button>
+        <button class="tab" data-tab="viewings" onclick="showTab('viewings')">Viewings</button>
       </div>
       <div class="spacer"></div>
       <div class="period-toggle" id="period-toggle">
@@ -362,6 +363,7 @@ body.wiz-open #snav-tabs{display:none !important;}
       <div id="report-picker"></div>
       <div id="report-body"></div>
     </div>
+    <div id="tab-viewings" style="display:none"></div>
     <div class="portal-foot"><a href="/home">How it works</a> · <a href="/terms">Terms of service</a> · <a href="/privacy">Privacy policy</a> · <a href="/refund">Refund &amp; cancellation policy</a></div>
   </div>
 </div>
@@ -776,10 +778,58 @@ function showTab(name){
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
   document.getElementById('tab-properties').style.display=name==='properties'?'':'none';
   document.getElementById('tab-reports').style.display=name==='reports'?'':'none';
+  document.getElementById('tab-viewings').style.display=name==='viewings'?'':'none';
   const onProps=name==='properties';
   document.getElementById('period-toggle').style.display=onProps?'':'none';
   document.getElementById('add-btn').style.display=onProps?'':'none';
   if(name==='reports') initReports();
+  if(name==='viewings') initViewings();
+}
+
+// ── VIEWINGS TAB ──
+// Agent visits to this owner's villas, read from Maya's scheduling system.
+// Read-only here: confirming, moving or cancelling a slot happens in the
+// owner's WhatsApp thread with Maya, so there is exactly one way to change
+// a viewing and the agent always hears about it.
+async function initViewings(){
+  const pane=document.getElementById('tab-viewings');
+  pane.innerHTML='<div class="loading">Loading…</div>';
+  let d=null;
+  try{ const r=await api('?action=viewings'); if(r.ok) d=r.body||r; }catch(e){}
+  if(d&&d.body) d=d.body;
+  const vs=(d&&d.asOwner)||[];
+  if(!vs.length){
+    pane.innerHTML='<div class="rep-empty"><h3>No viewings yet</h3><p>When an agent asks to visit one of your villas, Maya checks the time with you on WhatsApp — and every visit shows up here, with a calendar link once it\'s confirmed.</p></div>';
+    return;
+  }
+  const now=Date.now();
+  const when=v=>{
+    if(!v.scheduledAt) return v.requestedWindow?('asked: '+escapeHtml(v.requestedWindow)):'—';
+    const t=new Date(Date.parse(v.scheduledAt)+8*3600e3);
+    return t.toISOString().slice(0,10)+' · '+t.toISOString().slice(11,16)+' WITA';
+  };
+  const badge=(txt,c)=>'<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:0.68rem;background:'+c+'22;color:'+c+';font-weight:600">'+txt+'</span>';
+  const sb=v=>v.status==='confirmed'?badge('confirmed','#1B7A44')
+    :v.status==='requested'?badge('awaiting your reply','#B8860B')
+    :v.status==='completed'?badge('completed','#1B7A44')
+    :v.status==='no_show'?badge('no-show','#C0392B')
+    :badge(escapeHtml(v.status),'#8a8478');
+  const upcoming=vs.filter(v=>v.status==='confirmed'&&v.scheduledAt&&Date.parse(v.scheduledAt)>=now-3600e3)
+    .sort((a,b)=>Date.parse(a.scheduledAt)-Date.parse(b.scheduledAt));
+  const awaiting=vs.filter(v=>v.status==='requested');
+  const past=vs.filter(v=>!upcoming.includes(v)&&!awaiting.includes(v))
+    .sort((a,b)=>Date.parse(b.scheduledAt||0)-Date.parse(a.scheduledAt||0)).slice(0,15);
+  const row=v=>'<div class="prop-card" style="gap:6px">'
+    +'<div class="prop-card-top"><div><b>'+escapeHtml(v.property||'?')+'</b>'
+    +(v.who?' <span style="color:var(--muted);font-size:0.85rem">· '+escapeHtml(v.who)+'</span>':'')
+    +'</div>'+sb(v)+'</div>'
+    +'<div style="color:var(--muted);font-size:0.85rem">'+when(v)
+    +(v.outcomeNote?' — '+escapeHtml(v.outcomeNote):'')
+    +(v.gcal&&(v.status==='confirmed')?' · <a href="'+v.gcal+'" target="_blank" rel="noopener">Add to calendar 📅</a>':'')
+    +'</div></div>';
+  const group=(t,list)=>list.length?('<h3 style="font-size:0.85rem;margin:18px 0 10px">'+t+'</h3><div style="display:grid;gap:10px">'+list.map(row).join('')+'</div>'):'';
+  pane.innerHTML=group('Upcoming',upcoming)+group('Awaiting your confirmation',awaiting)+group('Past',past)
+    +'<p style="color:var(--muted);font-size:0.78rem;margin-top:18px">To confirm, move or cancel a viewing, just reply to Maya on WhatsApp — she keeps the agent in the loop.</p>';
 }
 function initReports(){
   const picker=document.getElementById('report-picker');

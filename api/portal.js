@@ -272,6 +272,11 @@ export default async function handler(req, res) {
     // Share attribution readback: how many listing opens + WhatsApp enquiries
     // this agent's personalised links (?a=handle) have produced. Same hashes
     // api/track.js writes; this just lets the agent see their own numbers.
+    if (action === 'viewings' && req.method === 'GET') {
+      const owner = await currentOwner(req, { kvGet });
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      return userViewings(res, owner, { kvGet });
+    }
     if (action === 'my-stats' && req.method === 'GET') {
       const owner = await currentOwner(req, { kvGet });
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
@@ -630,6 +635,71 @@ async function redeemPromo(req, res, owner, { kvGet, kvSet }) {
 }
 
 // ── Owner property CRUD ─────────────────────────────────────────────
+// ── Viewings, scoped to the signed-in user (both roles) ────────────────────
+// The CRM's viewings table is the source of truth; this filters it down to
+// rows where the user is the requesting AGENT (their profile WhatsApp number)
+// and rows on villas they OWN (owner_listings index). Calendar links reuse
+// the shared VIEWINGS_ICS_TOKEN, so a portal "add to calendar" tap and Maya's
+// WhatsApp invite resolve to the exact same event.
+async function userViewings(res, owner, { kvGet }) {
+  const secret = process.env.LISTING_SYNC_SECRET;
+  let rows = [];
+  if (secret) {
+    try {
+      const r = await fetch('https://kaya-agent-crm.vercel.app/api/supabase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+        body: JSON.stringify({ action: 'get_viewings' }),
+      });
+      if (r.ok) rows = await r.json();
+    } catch (e) { /* degrade to empty */ }
+  }
+  if (!Array.isArray(rows)) rows = [];
+  const digits = (s) => String(s || '').replace(/[^0-9]/g, '');
+  const tail = digits(owner.profile?.waNumber).slice(-8);
+  const slugs = (await kvGet(`owner_listings:${owner.sub}`)) || [];
+  // Viewings store db-form slugs (underscores); the portal's are hyphened.
+  const mySlugSet = new Set(slugs.map(s => String(s).replace(/-/g, '_')));
+  const tok = process.env.VIEWINGS_ICS_TOKEN || '';
+  const DUR_MS = 45 * 60e3;
+  const icsDt = (ms) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const calLinks = (v) => {
+    const start = Date.parse(v.scheduled_at);
+    if (!Number.isFinite(start) || !tok) return {};
+    const sig = crypto.createHmac('sha256', tok).update(String(v.id)).digest('hex').slice(0, 16);
+    const title = `Viewing — ${v.property_name || v.rental_slug || 'villa'}`;
+    return {
+      gcal: 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+        + `&text=${encodeURIComponent(title)}&dates=${icsDt(start)}/${icsDt(start + DUR_MS)}`
+        + `&details=${encodeURIComponent('Coordinated by Maya (Samba Rentals) — reply to her on WhatsApp to reschedule.')}`
+        + '&ctz=Asia/Makassar',
+      ics: `https://kaya-agent-crm.vercel.app/api/supabase?event=${v.id}&sig=${sig}`,
+    };
+  };
+  const shape = (v, role) => ({
+    id: v.id,
+    property: v.property_name || v.rental_slug || null,
+    status: v.status,
+    scheduledAt: v.scheduled_at || null,
+    requestedWindow: v.requested_window || null,
+    outcomeNote: v.outcome_note || null,
+    // The other party's name. Agents see the villa contact (they receive the
+    // contact card anyway). Owners see the agent's name only once a slot is
+    // confirmed — before that the relay is deliberately anonymous.
+    who: role === 'agent'
+      ? (v.contact_name || null)
+      : (['confirmed', 'completed', 'no_show'].includes(v.status) ? (v.agent_name || null) : null),
+    ...calLinks(v),
+  });
+  const asAgent = tail
+    ? rows.filter(v => digits(v.agent_wa).endsWith(tail)).map(v => shape(v, 'agent'))
+    : [];
+  const asOwner = mySlugSet.size
+    ? rows.filter(v => v.rental_slug && mySlugSet.has(String(v.rental_slug))).map(v => shape(v, 'owner'))
+    : [];
+  return res.status(200).json({ asAgent, asOwner });
+}
+
 async function listProperties(res, owner, { kvGet, kvSet }) {
   const customMap = (await kvGet(CUSTOM_KEY)) || {};
   const hostexMap = await loadHostexOwnerMap(kvGet);
