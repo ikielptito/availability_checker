@@ -240,6 +240,7 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
       <button class="atab on" data-tab="approvals" onclick="showTab('approvals')">Approvals <span class="atab-count" id="approvals-count"></span></button>
       <button class="atab" data-tab="listings" onclick="showTab('listings')">Listings</button>
       <button class="atab" data-tab="analytics" onclick="showTab('analytics')">Analytics</button>
+      <button class="atab" data-tab="visits" onclick="showTab('visits')">Visits</button>
       <button class="atab" data-tab="promos" onclick="showTab('promos')">Promo codes</button>
       <button class="atab" data-tab="errors" onclick="showTab('errors')">Errors <span class="atab-count" id="errors-count"></span></button>
     </div>
@@ -250,6 +251,7 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
     <div id="tab-approvals" class="tabpane"><div class="loading-state"><div class="spinner"></div>Loading…</div></div>
     <div id="tab-listings" class="tabpane" style="display:none"></div>
     <div id="tab-analytics" class="tabpane" style="display:none"><iframe id="analytics-frame" class="admin-frame" title="Analytics"></iframe></div>
+    <div id="tab-visits" class="tabpane" style="display:none"></div>
     <div id="tab-promos" class="tabpane" style="display:none"></div>
     <div id="tab-errors" class="tabpane" style="display:none"></div>
   </div>
@@ -298,12 +300,76 @@ let activeTab = 'approvals';
 function showTab(t) {
   activeTab = t;
   document.querySelectorAll('.atab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  ['approvals','listings','analytics','promos','errors'].forEach(k => {
+  ['approvals','listings','analytics','visits','promos','errors'].forEach(k => {
     const el = document.getElementById('tab-' + k); if (el) el.style.display = k === t ? '' : 'none';
   });
   if (t === 'analytics') { const f = document.getElementById('analytics-frame'); if (f && !f.src) f.src = '/dashboard.html?embed=1'; }
+  if (t === 'visits') loadVisitsTab();
   if (t === 'promos') loadPromos();
   if (t === 'errors') loadErrors();
+}
+
+// ── VISITS ────────────────────────────────────────────────────────
+// Viewing appointments, read straight from the CRM's viewings table (the
+// source of truth, operated from the Maya console). The copyable URL is the
+// subscribable "Samba Visits" calendar — add it once in Google Calendar
+// (Other calendars → + → From URL) and every confirmed visit stays in sync.
+async function loadVisitsTab() {
+  const pane = document.getElementById('tab-visits');
+  pane.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>';
+  try {
+    const r = await fetch('/api/dashboard?visits=1', { headers: { 'Authorization': 'Bearer ' + adminPw } });
+    if (r.status === 401) { showGate('Session expired. Please log in again.'); return; }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    renderVisitsTab(await r.json());
+  } catch(e) {
+    pane.innerHTML = '<div class="loading-state">Could not load visits: ' + e.message + '</div>';
+  }
+}
+function renderVisitsTab(d) {
+  const vs = d.viewings || [];
+  const now = Date.now();
+  const when = (v) => {
+    if (!v.scheduled_at) return v.requested_window ? 'asked: ' + esc(v.requested_window) : '—';
+    const t = new Date(Date.parse(v.scheduled_at) + 8 * 3600e3);
+    return t.toISOString().slice(0, 10) + ' · ' + t.toISOString().slice(11, 16) + ' WITA';
+  };
+  const badge = (txt, color) => `<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:0.68rem;background:${color}22;color:${color};font-weight:600">${txt}</span>`;
+  const statusBadge = (v) => v.status === 'confirmed' ? badge('confirmed', '#1B7A44')
+    : v.status === 'requested' ? badge('awaiting reply', '#B8860B')
+    : v.status === 'completed' ? badge('completed', '#1B7A44')
+    : v.status === 'no_show' ? badge('no-show', '#C0392B')
+    : badge(v.status, '#8a8478');
+  const upcoming = vs.filter(v => v.status === 'confirmed' && v.scheduled_at && Date.parse(v.scheduled_at) >= now - 3600e3)
+    .sort((a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at));
+  const awaiting = vs.filter(v => v.status === 'requested');
+  const past = vs.filter(v => ['completed','no_show','cancelled','declined','expired'].includes(v.status)
+      || (v.status === 'confirmed' && v.scheduled_at && Date.parse(v.scheduled_at) < now - 3600e3))
+    .sort((a, b) => Date.parse(b.scheduled_at || b.updated_at || b.created_at || 0) - Date.parse(a.scheduled_at || a.updated_at || a.created_at || 0))
+    .slice(0, 20);
+  const rows = (list) => list.length
+    ? `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <thead><tr style="text-align:left;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em">
+          <th style="padding:6px 10px 6px 0">Property</th><th style="padding:6px 10px 6px 0">Agent</th><th style="padding:6px 10px 6px 0">Villa contact</th><th style="padding:6px 10px 6px 0">When</th><th style="padding:6px 0">Status</th></tr></thead>
+        <tbody>${list.map(v => `<tr style="border-top:1px solid var(--border)">
+          <td style="padding:9px 10px 9px 0;font-weight:500">${esc(v.property_name || v.rental_slug || '?')}</td>
+          <td style="padding:9px 10px 9px 0">${esc(v.agent_name || (v.agent_wa ? '+' + v.agent_wa : '—'))}</td>
+          <td style="padding:9px 10px 9px 0">${esc(v.contact_name || (v.contact_wa ? '+' + v.contact_wa : '—'))}</td>
+          <td style="padding:9px 10px 9px 0;white-space:nowrap">${when(v)}</td>
+          <td style="padding:9px 0">${statusBadge(v)}${v.outcome_note ? ' <span style="color:var(--muted);font-size:0.72rem">' + esc(v.outcome_note) + '</span>' : ''}</td>
+        </tr>`).join('')}</tbody></table></div>`
+    : '<div style="color:var(--muted);font-size:0.8rem;padding:4px 0 2px">Nothing here yet.</div>';
+  document.getElementById('tab-visits').innerHTML = `
+    <div class="section-head">
+      <div><h2>Visits</h2><div class="hint">Viewing appointments Maya coordinates — confirmed slots get calendar invites both ways and a reminder on the day</div></div>
+      <div style="display:flex;gap:10px">
+        ${d.ics_url ? `<button class="review-btn" onclick="navigator.clipboard.writeText('${d.ics_url}');showToast('Calendar URL copied — Google Calendar → Other calendars → + → From URL')">📅 Copy calendar URL</button>` : ''}
+        <button class="review-btn" onclick="loadVisitsTab()">↻ Refresh</button>
+      </div>
+    </div>
+    <div class="listing-card"><div class="section-label" style="margin-top:0">Upcoming</div>${rows(upcoming)}</div>
+    <div class="listing-card"><div class="section-label" style="margin-top:0">Awaiting confirmation</div>${rows(awaiting)}</div>
+    <div class="listing-card"><div class="section-label" style="margin-top:0">Recent outcomes</div>${rows(past)}</div>`;
 }
 
 async function loadErrors() {
