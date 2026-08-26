@@ -621,8 +621,11 @@
         var st = v.status === 'confirmed' ? '<b style="color:#1B7A44">confirmed</b>'
           : v.status === 'requested' ? '<b style="color:#B8860B">awaiting villa</b>'
           : esc(v.status);
+        var mayaLink = (v.status === 'requested' || v.status === 'confirmed')
+          ? ' · <a href="https://wa.me/6287841441233?text=' + encodeURIComponent('Hi Maya, about my viewing at ' + (v.property || 'the villa') + ': ') + '" target="_blank" rel="noopener">change 💬</a>'
+          : '';
         return '<div style="padding:4px 0">' + esc(v.property || '?') + ' — ' + when + ' · ' + st
-          + (v.gcal && v.status === 'confirmed' ? ' · <a href="' + v.gcal + '" target="_blank" rel="noopener">calendar 📅</a>' : '') + '</div>';
+          + (v.gcal && v.status === 'confirmed' ? ' · <a href="' + v.gcal + '" target="_blank" rel="noopener">calendar 📅</a>' : '') + mayaLink + '</div>';
       };
       el.style.display = '';
       el.innerHTML = '<label>Your viewings</label><div class="snav-link-box">' + shown.map(line).join('')

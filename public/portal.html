@@ -819,6 +819,12 @@ async function initViewings(){
   const awaiting=vs.filter(v=>v.status==='requested');
   const past=vs.filter(v=>!upcoming.includes(v)&&!awaiting.includes(v))
     .sort((a,b)=>Date.parse(b.scheduledAt||0)-Date.parse(a.scheduledAt||0)).slice(0,15);
+  const maya=v=>{
+    const live=v.status==='requested'||v.status==='confirmed';
+    if(!live) return '';
+    const txt=encodeURIComponent('Hi Maya, about the viewing at '+(v.property||'my villa')+(v.scheduledAt?(' on '+when(v).replace(/ ·.*/,'')):'')+': ');
+    return ' · <a href="https://wa.me/6287841441233?text='+txt+'" target="_blank" rel="noopener">'+(v.status==='requested'?'Reply to Maya':'Change / cancel')+' 💬</a>';
+  };
   const row=v=>'<div class="prop-card" style="gap:6px">'
     +'<div class="prop-card-top"><div><b>'+escapeHtml(v.property||'?')+'</b>'
     +(v.who?' <span style="color:var(--muted);font-size:0.85rem">· '+escapeHtml(v.who)+'</span>':'')
@@ -826,6 +832,7 @@ async function initViewings(){
     +'<div style="color:var(--muted);font-size:0.85rem">'+when(v)
     +(v.outcomeNote?' — '+escapeHtml(v.outcomeNote):'')
     +(v.gcal&&(v.status==='confirmed')?' · <a href="'+v.gcal+'" target="_blank" rel="noopener">Add to calendar 📅</a>':'')
+    +maya(v)
     +'</div></div>';
   const group=(t,list)=>list.length?('<h3 style="font-size:0.85rem;margin:18px 0 10px">'+t+'</h3><div style="display:grid;gap:10px">'+list.map(row).join('')+'</div>'):'';
   pane.innerHTML=group('Upcoming',upcoming)+group('Awaiting your confirmation',awaiting)+group('Past',past)

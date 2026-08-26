@@ -494,15 +494,20 @@ export default async function handler(req, res) {
         reportWaNumber: cleanStr(data.reportWaNumber).replace(/[^0-9]/g, ''),
         bookedRanges: Array.isArray(data.bookedRanges) ? cleanRanges(data.bookedRanges) : existing.bookedRanges || [],
         hidden: !!data.hidden,
-        petFriendly: !!data.petFriendly,
         // Key facts agents ask for most (deposit, electricity terms, wifi,
         // pool type, minimum stay). Free text, short; Maya quotes them
         // verbatim and chases the listed contact for the empty ones.
-        deposit: cleanStr(data.deposit),
-        electricity: cleanStr(data.electricity),
-        wifi: cleanStr(data.wifi),
-        pool: cleanStr(data.pool),
-        minStay: cleanStr(data.minStay),
+        // PRESERVE existing values when the incoming data omits them: Maya's
+        // intake updates come through here without these fields, and blanking
+        // them put the chase back onto owners who had already answered — Dony
+        // was re-asked the same facts three times and got angry (26 Aug 2026).
+        // Same class of bug as the map-pin wipe (13035fd).
+        petFriendly: typeof data.petFriendly === 'boolean' ? data.petFriendly : (existing.petFriendly ?? null),
+        deposit: cleanStr(data.deposit) || existing.deposit || '',
+        electricity: cleanStr(data.electricity) || existing.electricity || '',
+        wifi: cleanStr(data.wifi) || existing.wifi || '',
+        pool: cleanStr(data.pool) || existing.pool || '',
+        minStay: cleanStr(data.minStay) || existing.minStay || '',
         // Ownership/review fields are owned by the portal + review flow; never
         // clobbered by an admin content edit.
         ownerSub: existing.ownerSub || null,
