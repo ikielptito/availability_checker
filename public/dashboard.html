@@ -195,6 +195,7 @@ body.embed .content{padding-top:8px;}
     <div id="dash-content">
       <div class="loading-state"><div class="spinner"></div>Loading analytics…</div>
     </div>
+    <div id="visits-content"></div>
   </div>
 </div>
 
@@ -259,9 +260,68 @@ async function loadData() {
     document.getElementById('app').style.display = 'block';
     const data = await r.json();
     render(data);
+    loadVisits();
   } catch(e) {
     document.getElementById('login-err').textContent = 'Could not connect.';
   }
+}
+
+// ── VISITS ────────────────────────────────────────────────────────
+// Read-only oversight of viewing appointments. The CRM's viewings table is
+// the source of truth (operated from the Maya console); this section and the
+// subscribable "Samba Visits" calendar are views of it.
+async function loadVisits() {
+  let d = null;
+  try {
+    const r = await fetch('/api/dashboard?visits=1', { headers: { Authorization: 'Bearer ' + authToken } });
+    d = await r.json();
+  } catch (e) { /* leave the section empty rather than break analytics */ }
+  const el = document.getElementById('visits-content');
+  if (!el || !d) return;
+  const vs = d.viewings || [];
+  const now = Date.now();
+  const esc2 = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const when = (v) => {
+    if (!v.scheduled_at) return v.requested_window ? `asked: ${esc2(v.requested_window)}` : '—';
+    const t = new Date(Date.parse(v.scheduled_at) + 8 * 3600e3);
+    return `${t.toISOString().slice(0, 10)} · ${t.toISOString().slice(11, 16)} WITA`;
+  };
+  const row = (v, statusHtml) => `<tr>
+      <td>${esc2(v.property_name || v.rental_slug || '?')}</td>
+      <td>${esc2(v.agent_name || (v.agent_wa ? '+' + v.agent_wa : '—'))}</td>
+      <td>${esc2(v.contact_name || (v.contact_wa ? '+' + v.contact_wa : '—'))}</td>
+      <td>${when(v)}</td>
+      <td>${statusHtml}</td>
+    </tr>`;
+  const badge = (txt, color) => `<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:0.72rem;background:${color}22;color:${color};font-weight:600">${txt}</span>`;
+  const upcoming = vs.filter(v => v.status === 'confirmed' && v.scheduled_at && Date.parse(v.scheduled_at) >= now - 3600e3)
+    .sort((a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at));
+  const awaiting = vs.filter(v => v.status === 'requested');
+  const past = vs.filter(v => ['completed', 'no_show', 'cancelled', 'declined', 'expired'].includes(v.status)
+      || (v.status === 'confirmed' && v.scheduled_at && Date.parse(v.scheduled_at) < now - 3600e3))
+    .sort((a, b) => Date.parse(b.scheduled_at || b.updated_at || b.created_at || 0) - Date.parse(a.scheduled_at || a.updated_at || a.created_at || 0))
+    .slice(0, 15);
+  const statusBadge = (v) => v.status === 'confirmed' ? badge('confirmed', '#1B7A44')
+    : v.status === 'requested' ? badge('awaiting reply', '#B8860B')
+    : v.status === 'completed' ? badge('completed', '#1B7A44')
+    : v.status === 'no_show' ? badge('no-show', '#C0392B')
+    : badge(v.status, '#8a8478');
+  const table = (rows) => rows.length
+    ? `<div class="table-scroll"><table><thead><tr><th>Property</th><th>Agent</th><th>Villa contact</th><th>When</th><th>Status</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`
+    : `<div style="color:var(--muted);font-size:0.85rem;padding:6px 0 2px">Nothing here yet.</div>`;
+  el.innerHTML = `
+    <div class="chart-card">
+      <div class="card-title">Visits · viewing appointments
+        ${d.ics_url ? `<button onclick="navigator.clipboard.writeText('${d.ics_url}');this.textContent='Copied ✓';setTimeout(()=>this.textContent='📅 Copy calendar URL',1800)" style="margin-left:auto;border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:8px;padding:4px 10px;font-size:0.72rem;cursor:pointer">📅 Copy calendar URL</button>` : ''}
+      </div>
+      ${d.ics_url ? `<div style="color:var(--muted);font-size:0.78rem;margin:-6px 0 14px">Subscribe once in Google Calendar (Other calendars → + → From URL) and every confirmed visit appears there automatically — the fallback "Samba Visits" calendar.</div>` : ''}
+      <div style="font-weight:600;font-size:0.85rem;margin-bottom:6px">Upcoming</div>
+      ${table(upcoming.map(v => row(v, statusBadge(v))))}
+      <div style="font-weight:600;font-size:0.85rem;margin:16px 0 6px">Awaiting confirmation</div>
+      ${table(awaiting.map(v => row(v, statusBadge(v))))}
+      <div style="font-weight:600;font-size:0.85rem;margin:16px 0 6px">Recent outcomes</div>
+      ${table(past.map(v => row(v, statusBadge(v) + (v.outcome_note ? ` <span style="color:var(--muted);font-size:0.75rem">${esc2(v.outcome_note)}</span>` : ''))))}
+    </div>`;
 }
 
 // Inline stroke SVGs (same icon language as the marketing pages) — emoji

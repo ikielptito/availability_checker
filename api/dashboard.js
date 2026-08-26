@@ -82,6 +82,27 @@ export default async function handler(req, res) {
     }
   }
 
+  // Visits: viewing appointments live in the CRM's DB (single source of
+  // truth); proxy them over the shared sync secret and hand the page its
+  // "Samba Visits" calendar-subscribe URL.
+  if (req.query.visits === '1') {
+    try {
+      const r = await fetch('https://kaya-agent-crm.vercel.app/api/supabase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.LISTING_SYNC_SECRET || ''}` },
+        body: JSON.stringify({ action: 'get_viewings' }),
+      });
+      const viewings = r.ok ? await r.json() : [];
+      const tok = process.env.VIEWINGS_ICS_TOKEN || '';
+      return res.status(200).json({
+        viewings: Array.isArray(viewings) ? viewings : [],
+        ics_url: tok ? `https://kaya-agent-crm.vercel.app/api/supabase?ics=${tok}` : null,
+      });
+    } catch (e) {
+      return res.status(200).json({ viewings: [], ics_url: null, error: e.message });
+    }
+  }
+
   const period = ['today', '7d', '30d', '90d', 'all'].includes(req.query.period) ? req.query.period : '7d';
   const nDays = period === 'today' ? 1 : period === '7d' ? 7 : period === '30d' ? 30 : 90;
   const days = [];
