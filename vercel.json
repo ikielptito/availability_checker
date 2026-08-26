@@ -8,6 +8,7 @@
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/home", "destination": "/list-property.html" },
     { "source": "/for-agents", "destination": "/for-agents.html" },
+    { "source": "/viewings", "destination": "/viewings.html" },
     { "source": "/list-property", "destination": "/list-property.html" },
     { "source": "/portal", "destination": "/portal.html" },
     { "source": "/terms", "destination": "/terms.html" },

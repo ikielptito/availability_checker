@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How Viewings Work · Samba</title>
+<meta name="description" content="How villa viewings work on Samba: ask Maya on WhatsApp, the villa contact confirms, both sides get a calendar invite and a reminder on the day.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Samba">
+<meta property="og:title" content="How Viewings Work · Samba">
+<meta property="og:description" content="Ask Maya on WhatsApp, the villa contact confirms, both sides get a calendar invite and a reminder on the day.">
+<meta property="og:url" content="https://sambarentals.com/viewings">
+<meta property="og:image" content="https://sambarentals.com/og-image.jpg">
+<meta property="og:image:width" content="1536">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How Viewings Work · Samba">
+<meta name="twitter:description" content="Ask Maya on WhatsApp, the villa contact confirms, both sides get a calendar invite and a reminder on the day.">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="stylesheet" href="/brand.css">
+<style>
+/* Page-specific tokens only — palette/type/shadows inherit from brand.css */
+:root { --bg: #FFFFFF; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--sb-font-ui);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── NAV (same chrome as for-agents) ── */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 32px;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-brand { display: flex; align-items: center; text-decoration: none; }
+.nav-brand img { height: 80px; }
+.nav-spacer { flex: 1; }
+.nav-cta { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-family: var(--sb-font-display); font-size: .82rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: background .15s; white-space: nowrap; }
+.nav-cta:hover { background: var(--primary-2); }
+@media (max-width: 600px) {
+  .nav { padding: 8px 16px; }
+  .nav-brand img { height: 56px; }
+}
+@media (max-width: 560px) {
+  .nav { gap: 8px; }
+  .nav-brand img { height: 44px; }
+  .nav-cta { padding: 9px 12px; }
+}
+
+/* ── HERO ── */
+.hero {
+  max-width: 780px; margin: 0 auto; text-align: center;
+  padding: 64px 24px 40px;
+  background: radial-gradient(ellipse 78% 58% at 50% 0%, rgba(226,87,43,.08) 0%, transparent 70%);
+}
+.hero-eyebrow {
+  font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 18px; font-weight: 600;
+}
+.hero h1 {
+  font-family: var(--sb-font-display);
+  font-size: 2.7rem; line-height: 1.08; letter-spacing: -.025em;
+  margin-bottom: 18px;
+}
+.hero-sub { font-size: 1.02rem; color: var(--muted); line-height: 1.7; max-width: 560px; margin: 0 auto; }
+@media (max-width: 600px) { .hero h1 { font-size: 2.1rem; } }
+
+/* ── SECTIONS ── */
+.section { padding: 48px 24px; max-width: 880px; margin: 0 auto; }
+.section-border { border-top: 1px solid var(--border); }
+.section-label {
+  font-size: .68rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--accent); font-weight: 600; margin-bottom: 10px;
+}
+.section-title {
+  font-family: var(--sb-font-display);
+  font-size: 1.7rem; letter-spacing: -.02em; margin-bottom: 26px;
+}
+
+/* ── STEPS ── */
+.steps { display: grid; gap: 14px; }
+.step {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px 20px;
+}
+.step-num {
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--sb-font-display); font-weight: 700; font-size: .9rem;
+}
+.step-title { font-family: var(--sb-font-display); font-weight: 600; font-size: 1rem; margin-bottom: 4px; }
+.step-text { color: var(--muted); line-height: 1.65; font-size: .92rem; }
+
+/* ── NOTES ── */
+.notes { display: grid; gap: 12px; }
+.note {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px 20px;
+}
+.note-q { font-family: var(--sb-font-display); font-weight: 600; font-size: .95rem; margin-bottom: 4px; }
+.note-a { color: var(--muted); line-height: 1.65; font-size: .9rem; }
+
+/* ── FOOTER ── */
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 34px 24px 40px; text-align: center;
+  font-size: .82rem; color: var(--muted);
+}
+.footer a { color: var(--muted); text-decoration: none; }
+.footer a:hover { color: var(--primary); }
+.footer-copy { margin-top: 10px; color: var(--subtle); font-size: .76rem; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="/"><img src="/logo-samba.png" alt="Samba"></a>
+  <div class="nav-spacer"></div>
+  <a class="nav-cta" href="/">Browse villas</a>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-eyebrow">How viewings work</div>
+  <h1>Villa viewings, coordinated for you.</h1>
+  <p class="hero-sub">
+    One WhatsApp message books a viewing. Maya checks the time with whoever runs
+    the villa, both sides get a calendar invite, and a reminder lands on the
+    morning of the visit. No chasing, no mix-ups.
+  </p>
+</section>
+
+<!-- ── FOR AGENTS ── -->
+<section class="section" id="agents">
+  <div class="section-label">For agents</div>
+  <h2 class="section-title">Booking a viewing for your client</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Ask Maya on WhatsApp</div>
+        <div class="step-text">Tell her the villa and when your client wants to see it — "Can we view Villa Amara Thursday afternoon?" is enough.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">Maya checks with the villa</div>
+        <div class="step-text">She contacts whoever manages the villa and asks them to confirm your slot. You don't wait on hold — she comes back to you the moment they answer.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Confirmed — with a calendar invite</div>
+        <div class="step-text">When the villa confirms, you and the villa contact both receive the confirmation and a one-tap calendar link, so the viewing sits in both calendars in your own timezone.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">Reminder on the day</div>
+        <div class="step-text">On the morning of the viewing, Maya reminds you and the villa contact. After the visit, tell her how it went — it keeps the villa's record sharp for your next deal.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOR OWNERS ── -->
+<section class="section section-border" id="owners">
+  <div class="section-label">For villa owners &amp; managers</div>
+  <h2 class="section-title">When an agent wants to view your villa</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Maya messages you the request</div>
+        <div class="step-text">You get one WhatsApp message: an agent would like to view your villa, with the day and time they asked for.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">Reply to confirm — or propose another time</div>
+        <div class="step-text">Answer in your own words: "Thursday 2pm works" or "Friday is better." Nothing is confirmed until you say so.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">You both get the invite and a reminder</div>
+        <div class="step-text">Once you confirm, you and the agent each get a calendar link, and Maya reminds you both on the morning of the visit. Then the agent shows your villa — you close the deal directly with them.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── GOOD TO KNOW ── -->
+<section class="section section-border" id="notes">
+  <div class="section-label">Good to know</div>
+  <h2 class="section-title">The small print, in plain words</h2>
+  <div class="notes">
+    <div class="note">
+      <div class="note-q">The calendar invite</div>
+      <div class="note-a">The confirmation message carries two links: a Google Calendar link (one tap on most phones) and an Apple/other-calendars file. Times are set in Bali time and your phone shows them in your own timezone automatically.</div>
+    </div>
+    <div class="note">
+      <div class="note-q">Need to reschedule or cancel?</div>
+      <div class="note-a">Just tell Maya on WhatsApp. She updates the other side, and if the viewing was already in your calendar, you'll get an updated link.</div>
+    </div>
+    <div class="note">
+      <div class="note-q">Agents: your client stays yours</div>
+      <div class="note-a">Maya never asks for or shares your client's details. The villa side only ever sees that "an agent" requested the viewing — the relationship, and the full 10% commission, stay with you.</div>
+    </div>
+    <div class="note">
+      <div class="note-q">No reply from the villa?</div>
+      <div class="note-a">Maya nudges once, and if there's still no answer she tells you honestly instead of leaving you hanging — so you can offer your client a different villa in time.</div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <a href="/">Browse villas</a> ·
+  <a href="/for-agents">For agents</a> ·
+  <a href="/home">For owners</a> ·
+  <a href="mailto:support@sambarentals.com">support@sambarentals.com</a>
+  <div class="footer-copy">&copy; 2026 Samba &middot; Bali, Indonesia</div>
+</footer>
+
+<script src="/i18n.js"></script>
+</body>
+</html>
