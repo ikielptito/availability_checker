@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Owner Payouts — Samba Rentals</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💸</text></svg>">
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="/brand.css">
+<style>
+/* Owner Payouts — page-local styles only. Core colour/type tokens come from
+   brand.css (do NOT redeclare). */
+:root{
+  --green:var(--sb-success-fg); --red:var(--sb-error-fg);
+  --live-bg:var(--sb-success-bg);
+  --paused-bg:#F1EDE4; --paused-fg:#6E756F;
+  --amber-bg:#FCF3E3; --amber-fg:#8A5A0B;
+  --red-bg:var(--sb-error-bg); --red-fg:var(--sb-error-fg);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body{font:var(--sb-body);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+@media(max-width:640px){input,textarea,select{font-size:16px !important;}}
+
+#login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;}
+#login .box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:min(360px,90vw);box-shadow:var(--sb-shadow-md);}
+#login h1{font:var(--sb-h4);margin-bottom:6px;}
+#login p{font-size:.8rem;color:var(--muted);margin-bottom:16px;}
+#login input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);margin-bottom:10px;}
+#login button{width:100%;padding:11px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;}
+#login .err{color:var(--red);font-size:.75rem;min-height:16px;margin-top:8px;}
+
+#app{display:none;min-height:100vh;}
+.cmdbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;padding:10px 18px;
+  background:color-mix(in srgb,var(--bg) 86%, transparent);backdrop-filter:blur(10px) saturate(1.3);-webkit-backdrop-filter:blur(10px) saturate(1.3);
+  border-bottom:1px solid var(--sb-hairline);}
+.cmdbar .word{font:900 17px/1 var(--sb-font-display);letter-spacing:-.01em;white-space:nowrap;}
+.cmdbar .word small{font:600 10px/1 var(--sb-font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-top:3px;}
+body.embed .cmdbar .word{display:none;}
+.outbanner{display:inline-flex;align-items:center;gap:8px;font:600 12.5px/1.35 var(--sb-font-ui);padding:7px 13px;border-radius:999px;background:var(--red-bg);color:var(--red-fg);}
+.outbanner.clear{background:var(--live-bg);color:var(--green);}
+.btn-sync{margin-left:auto;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:9px 15px;font:600 13px/1 var(--sb-font-ui);cursor:pointer;white-space:nowrap;box-shadow:var(--sb-shadow-accent);}
+.btn-sync:hover{background:var(--sb-terracotta-600);}
+.btn-sync[disabled]{opacity:.55;cursor:wait;}
+
+.shell{display:flex;align-items:flex-start;max-width:1240px;margin:0 auto;}
+.rail{width:184px;flex:none;position:sticky;top:64px;padding:18px 10px 18px 18px;display:flex;flex-direction:column;gap:2px;}
+.rail a{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;color:var(--muted);text-decoration:none;font:500 13.5px/1 var(--sb-font-ui);}
+.rail a:hover{background:var(--surface2);color:var(--text);}
+.rail a.on{background:var(--surface);color:var(--accent);font-weight:600;box-shadow:var(--sb-shadow-xs);border:1px solid var(--sb-hairline);}
+.rail .ico{width:16px;text-align:center;}
+.content{flex:1;min-width:0;padding:18px 18px 80px;}
+@media(max-width:900px){
+  .shell{flex-direction:column;}
+  .rail{position:static;width:100%;flex-direction:row;overflow-x:auto;padding:10px 14px 2px;gap:4px;scrollbar-width:none;}
+  .rail::-webkit-scrollbar{display:none;}
+  .rail a{white-space:nowrap;}
+  .cmdbar{gap:10px;padding:10px 12px;flex-wrap:wrap;}
+}
+
+.loading-state{display:flex;align-items:center;justify-content:center;gap:10px;padding:44px 0;color:var(--muted);font-size:.85rem;}
+.spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;color:var(--muted);padding:34px 12px;font-size:.85rem;}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--sb-green);color:var(--sb-on-green);
+  padding:11px 20px;border-radius:11px;font:500 13px/1.3 var(--sb-font-ui);opacity:0;transition:all .25s var(--sb-ease);z-index:120;max-width:88vw;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.error{background:var(--red-fg);color:#fff;}
+.toast.success{background:var(--sb-success-fg);color:#fff;}
+.crumb{font:500 12px/1 var(--sb-font-ui);color:var(--muted);margin-bottom:14px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.crumb a{color:var(--accent);text-decoration:none;cursor:pointer;}
+.banner{border-radius:12px;padding:11px 14px;font-size:.8rem;margin-bottom:16px;display:flex;gap:9px;align-items:flex-start;line-height:1.45;}
+.banner.amber{background:var(--amber-bg);color:var(--amber-fg);}
+.banner.red{background:var(--red-bg);color:var(--red-fg);}
+
+.pill{display:inline-flex;align-items:center;gap:5px;font:700 10px/1 var(--sb-font-ui);letter-spacing:.05em;text-transform:uppercase;
+  padding:5px 9px;border-radius:999px;white-space:nowrap;flex:none;}
+.pill .d{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.pill.draft{background:var(--surface2);color:var(--muted);}
+.pill.review{background:var(--amber-bg);color:var(--amber-fg);}
+.pill.outstanding{background:var(--red-bg);color:var(--red-fg);}
+.pill.paid{background:var(--live-bg);color:var(--green);}
+.pill.changed{background:var(--amber-bg);color:var(--amber-fg);}
+.pill.void{background:var(--paused-bg);color:var(--paused-fg);}
+
+.periodhead{display:flex;align-items:baseline;gap:10px;margin:26px 0 12px;}
+.periodhead h2{font:700 15px/1 var(--sb-font-display);letter-spacing:-.01em;}
+.strow{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:13px;
+  padding:13px 16px;margin-bottom:8px;cursor:pointer;transition:box-shadow var(--sb-t),transform var(--sb-t);}
+.strow:hover{box-shadow:var(--sb-shadow-md);transform:translateY(-1px);}
+.strow .nm{font:700 14px/1.3 var(--sb-font-display);letter-spacing:-.01em;flex:1;min-width:0;}
+.strow .nm small{display:block;font:500 11px/1.4 var(--sb-font-ui);color:var(--muted);margin-top:2px;}
+.strow .amt{font:700 15px/1 var(--sb-font-display);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.strow .pills{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+select.flt{padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font:500 12.5px/1 var(--sb-font-ui);}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:17px 18px;margin-bottom:14px;}
+.card h3{font:700 14px/1 var(--sb-font-display);margin-bottom:12px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.totgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:4px;}
+.tot{background:var(--surface2);border-radius:11px;padding:11px 13px;}
+.tot .lab{font:600 10px/1 var(--sb-font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.tot .val{font:700 17px/1.2 var(--sb-font-display);margin-top:6px;font-variant-numeric:tabular-nums;}
+.tot.big{background:var(--sb-terracotta-050);}
+.tot.big .val{color:var(--sb-terracotta-700);}
+.rc{display:flex;align-items:baseline;gap:8px;font-size:.78rem;padding:6px 0;border-bottom:1px solid var(--sb-hairline);}
+.rc:last-child{border-bottom:none;}
+.rc .ok{color:var(--green);font-weight:700;}
+.rc .bad{color:var(--red-fg);font-weight:700;}
+.rc .nums{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;}
+
+table.lines{width:100%;border-collapse:collapse;font-size:.78rem;}
+table.lines th{font:600 10px/1 var(--sb-font-ui);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);}
+table.lines td{padding:5px 8px;border-bottom:1px solid var(--sb-hairline);vertical-align:middle;}
+table.lines td.num,table.lines th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+table.lines tr.totrow td{font-weight:700;border-top:2px solid var(--border);background:var(--surface2);}
+table.lines input{width:100%;min-width:60px;padding:5px 7px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--text);font:inherit;}
+table.lines input:hover{border-color:var(--border);}
+table.lines input:focus{border-color:var(--accent);background:var(--surface);outline:none;}
+table.lines input.num{text-align:right;font-variant-numeric:tabular-nums;}
+table.lines .rowflag{font-size:.62rem;color:var(--amber-fg);background:var(--amber-bg);border-radius:6px;padding:2px 6px;margin-left:4px;white-space:nowrap;}
+table.lines .del{border:none;background:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:3px 6px;border-radius:6px;}
+table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
+.tblwrap{overflow-x:auto;}
+.addrow{margin-top:9px;}
+.btn{border:none;border-radius:10px;padding:9px 15px;font:600 12.5px/1 var(--sb-font-ui);cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+.btn.primary{background:var(--accent);color:#fff;box-shadow:var(--sb-shadow-accent);}
+.btn.primary:hover{background:var(--sb-terracotta-600);}
+.btn.ghost{background:var(--surface2);color:var(--text);}
+.btn.ghost:hover{background:var(--border);}
+.btn.danger{background:var(--red-bg);color:var(--red-fg);}
+.btn.green{background:var(--sb-success-fg);color:#fff;}
+.btn[disabled]{opacity:.55;cursor:wait;}
+.actionsrow{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:4px;}
+.proofimg{max-width:280px;border-radius:11px;border:1px solid var(--border);display:block;margin-top:10px;}
+.hx{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px;}
+.hx .cell{background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:.72rem;color:var(--muted);}
+.hx .cell b{display:block;font:700 15px/1.2 var(--sb-font-display);color:var(--text);margin-bottom:3px;}
+
+.grouprow{display:grid;grid-template-columns:1.3fr 1fr 1.4fr auto auto;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--sb-hairline);font-size:.8rem;}
+.grouprow:last-child{border-bottom:none;}
+.grouprow input[type=text]{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font:500 12.5px/1.3 var(--sb-font-ui);}
+.grouprow .key{font:700 12.5px/1.3 var(--sb-font-display);}
+.grouprow .key small{display:block;font:500 10.5px/1.4 var(--sb-font-ui);color:var(--muted);}
+.grouprow label{display:inline-flex;align-items:center;gap:6px;font:500 11.5px/1 var(--sb-font-ui);color:var(--muted);white-space:nowrap;cursor:pointer;}
+@media(max-width:800px){.grouprow{grid-template-columns:1fr 1fr;} }
+
+.modal-back{position:fixed;inset:0;background:rgba(28,25,23,.45);display:none;align-items:center;justify-content:center;z-index:90;padding:18px;}
+.modal-back.show{display:flex;}
+.modal{background:var(--surface);border-radius:16px;padding:24px;width:min(440px,94vw);box-shadow:var(--sb-shadow-lg);}
+.modal h3{font:700 16px/1.2 var(--sb-font-display);margin-bottom:10px;}
+.modal p{font-size:.82rem;color:var(--text-2);line-height:1.55;margin-bottom:14px;}
+.modal .row{display:flex;gap:9px;justify-content:flex-end;margin-top:16px;}
+.modal label.chk{display:flex;align-items:center;gap:8px;font-size:.8rem;margin:10px 0;}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="box">
+    <h1>Owner Payouts</h1>
+    <p>Enter the admin password to continue.</p>
+    <input type="password" id="pw" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">Open</button>
+    <div class="err" id="login-err"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="cmdbar">
+    <div class="word">SAMBA<small>Payouts</small></div>
+    <div class="outbanner clear" id="outbanner">…</div>
+    <button class="btn-sync" id="syncbtn" onclick="syncNow()">⟳ Sync from Era's sheets</button>
+  </div>
+  <div class="shell">
+    <nav class="rail" id="rail">
+      <a href="#/" data-view="list"><span class="ico">🧾</span>Statements</a>
+      <a href="#/groups" data-view="groups"><span class="ico">🏠</span>Properties</a>
+    </nav>
+    <main class="content" id="content">
+      <div class="loading-state"><div class="spinner"></div>Loading statements…</div>
+    </main>
+  </div>
+</div>
+
+<div class="modal-back" id="modal-back"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="/shared.js"></script>
+<script>
+/* esc() comes from /shared.js */
+'use strict';
+
+// ── Auth (shared with /admin via same-origin sessionStorage) ─────────
+const IS_EMBED = new URLSearchParams(location.search).get('embed') === '1';
+if (IS_EMBED) document.body.classList.add('embed');
+let adminPw = sessionStorage.getItem('admin_pw') || sessionStorage.getItem('dash_pwd') || '';
+
+function showGate(msg) {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login').style.display = 'flex';
+  if (msg) document.getElementById('login-err').textContent = msg;
+}
+async function doLogin() {
+  const pw = document.getElementById('pw').value.trim();
+  if (!pw) return;
+  adminPw = pw;
+  try { await api('statement_groups', {}); } catch (e) {
+    if (e.message === 'unauthorized') { document.getElementById('login-err').textContent = 'Wrong password.'; return; }
+  }
+  sessionStorage.setItem('admin_pw', pw);
+  boot();
+}
+
+let toastTimer;
+function showToast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3600);
+}
+
+// ── API ──────────────────────────────────────────────────────────────
+async function api(action, payload) {
+  const r = await fetch('/api/statements', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminPw },
+    body: JSON.stringify({ action, payload: payload || {} }),
+  });
+  if (r.status === 401) { showGate('Session expired. Please log in again.'); throw new Error('unauthorized'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+  return d;
+}
+
+const IDR = (n) => 'IDR ' + Math.round(Number(n) || 0).toLocaleString('en-US');
+const monthLabel = (period) => {
+  const [y, m] = String(period).split('-').map(Number);
+  return y && m ? new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }) : period;
+};
+const dstr = (iso) => iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+
+// ── Router ───────────────────────────────────────────────────────────
+let listData = null;      // statement_list payload
+let groupsData = null;    // statement_groups payload
+let groupFilter = '';
+
+function go(h) { location.hash = h; }
+function route() {
+  const h = location.hash || '#/';
+  const view = h.startsWith('#/statement/') ? 'detail' : h === '#/groups' ? 'groups' : 'list';
+  document.querySelectorAll('.rail a').forEach(a => a.classList.toggle('on', a.dataset.view === (view === 'detail' ? 'list' : view)));
+  if (view === 'list') renderList();
+  else if (view === 'groups') renderGroups();
+  else renderDetail(parseInt(h.slice('#/statement/'.length), 10));
+}
+window.addEventListener('hashchange', route);
+
+async function boot() {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  await refreshList();
+  route();
+}
+async function refreshList() {
+  try {
+    [listData, groupsData] = await Promise.all([api('statement_list'), groupsData ? Promise.resolve(groupsData) : api('statement_groups')]);
+    renderOutBanner();
+  } catch (e) {
+    if (e.message === 'unauthorized') return;
+    document.getElementById('content').innerHTML =
+      `<div class="banner red">⚠ <div>Could not reach the statements engine: ${esc(e.message)}. The CRM may be redeploying — <a style="cursor:pointer;text-decoration:underline" onclick="refreshList().then(route)">retry</a>.</div></div>`;
+    throw e;
+  }
+}
+function renderOutBanner() {
+  const el = document.getElementById('outbanner');
+  const o = listData?.outstanding || { count: 0, total: 0 };
+  if (o.count > 0) { el.className = 'outbanner'; el.textContent = `Outstanding: ${o.count} payout${o.count > 1 ? 's' : ''} · ${IDR(o.total)}`; }
+  else { el.className = 'outbanner clear'; el.textContent = 'All payouts settled'; }
+}
+
+async function syncNow() {
+  const btn = document.getElementById('syncbtn');
+  btn.disabled = true; btn.textContent = '⟳ Syncing…';
+  try {
+    const out = await api('statement_sync', {});
+    const c = (out.groups || []).reduce((a, g) => ({ created: a.created + (g.created || 0), updated: a.updated + (g.updated || 0), disc: a.disc + (g.discrepancies || 0), kept: a.kept + (g.kept_edits || 0) }), { created: 0, updated: 0, disc: 0, kept: 0 });
+    const errs = (out.groups || []).filter(g => g.error);
+    showToast(`Sync done — ${c.created} new, ${c.updated} updated${c.kept ? `, ${c.kept} kept your edits` : ''}${c.disc ? `, ⚠ ${c.disc} changed after publish` : ''}${errs.length ? ` · ${errs.length} error(s)` : ''}`, errs.length || c.disc ? 'error' : 'success');
+    await refreshList(); route();
+  } catch (e) { if (e.message !== 'unauthorized') showToast('Sync failed: ' + e.message, 'error'); }
+  btn.disabled = false; btn.textContent = "⟳ Sync from Era's sheets";
+}
+
+// ── Statement list ───────────────────────────────────────────────────
+const balanceOf = (s) => Math.max(0, (Number(s.payout_total) || 0) - (Number(s.paid_total) || 0));
+function pillsFor(s) {
+  const pills = [];
+  if (s.status === 'draft' && s.needs_review) pills.push('<span class="pill review"><span class="d"></span>Needs review</span>');
+  else if (s.status === 'draft') pills.push('<span class="pill draft">Draft</span>');
+  if (s.status === 'published') pills.push('<span class="pill outstanding"><span class="d"></span>Unpaid</span>');
+  if (s.status === 'partial') pills.push(`<span class="pill review"><span class="d"></span>Partial · ${IDR(balanceOf(s))} due</span>`);
+  if (s.status === 'paid') pills.push('<span class="pill paid">Paid</span>');
+  if (s.status === 'void') pills.push('<span class="pill void">Void</span>');
+  if (s.source_changed) pills.push('<span class="pill changed">⚠ Sheet changed</span>');
+  return pills.join('');
+}
+function renderList() {
+  const c = document.getElementById('content');
+  if (!listData) { c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>'; return; }
+  const groups = groupsData?.groups || [];
+  const rows = (listData.statements || []).filter(s => !groupFilter || s.group_key === groupFilter);
+  const byPeriod = {};
+  for (const s of rows) (byPeriod[s.period] ||= []).push(s);
+  const periods = Object.keys(byPeriod).sort().reverse();
+
+  let html = `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
+    <select class="flt" onchange="groupFilter=this.value;renderList()">
+      <option value="">All properties</option>
+      ${groups.map(g => `<option value="${esc(g.key)}"${g.key === groupFilter ? ' selected' : ''}>${esc(g.name)}</option>`).join('')}
+    </select>
+  </div>`;
+  if (!rows.length) {
+    html += `<div class="empty-state">No statements yet. Hit <b>Sync from Era's sheets</b> to import the monthly reports${groups.length ? '' : ' (set up properties first)'}.</div>`;
+  }
+  for (const p of periods) {
+    html += `<div class="periodhead"><h2>${esc(monthLabel(p))}</h2></div>`;
+    for (const s of byPeriod[p]) {
+      html += `<div class="strow" onclick="go('#/statement/${s.id}')">
+        <div class="nm">${esc(s.statement_groups?.name || s.group_key)}
+          <small>${s.status === 'paid' ? 'paid ' + dstr(s.paid_at) : s.status === 'partial' ? IDR(s.paid_total) + ' paid of ' + IDR(s.payout_total) : s.status === 'published' ? 'published ' + dstr(s.published_at) + (s.notified_at ? ' · owner notified' : ' · not announced yet') : 'parsed ' + dstr(s.parsed_at)}</small>
+        </div>
+        <div class="amt">${IDR(s.payout_total)}</div>
+        <div class="pills">${pillsFor(s)}</div>
+      </div>`;
+    }
+  }
+  c.innerHTML = html;
+}
+
+// ── Statement detail ─────────────────────────────────────────────────
+let det = null;   // {statement, lines, token, period_label}
+async function renderDetail(id) {
+  const c = document.getElementById('content');
+  c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading statement…</div>';
+  try { det = await api('statement_detail', { id }); }
+  catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red">⚠ <div>${esc(e.message)}</div></div>`; return; }
+  drawDetail();
+}
+function drawDetail() {
+  const c = document.getElementById('content');
+  const s = det.statement, g = s.statement_groups || {};
+  const editable = s.status === 'draft';
+  const bookings = det.lines.filter(l => l.kind === 'booking');
+  const expenses = det.lines.filter(l => l.kind === 'expense');
+  const adjustments = det.lines.filter(l => l.kind === 'adjustment');
+  const units = [...new Set(bookings.map(b => b.unit_name || ''))];
+  const checks = s.reconciliation?.checks || [];
+  const unparsed = s.reconciliation?.unparsed_rows || [];
+
+  let html = `<div class="crumb"><a onclick="go('#/')">Statements</a> ›
+    ${esc(g.name || s.group_key)} · ${esc(det.period_label)}</div>`;
+
+  if (s.source_changed) html += `<div class="banner amber">✏️ <div><b>Era's sheet changed</b> after ${s.status === 'draft' ? 'you edited this draft' : 'this statement was published'}.
+    ${s.discrepancy ? esc(s.discrepancy.note || '') + (s.discrepancy.new_era_payout != null ? ` Sheet now says ${IDR(s.discrepancy.new_era_payout)}.` : '') : ''}
+    ${s.status === 'draft' ? '<a style="cursor:pointer;text-decoration:underline" onclick="reparse()">Re-parse from sheet (discards your edits)</a>' : 'The published numbers are frozen — add a corrected statement next month or contact the owner.'}</div></div>`;
+
+  // Totals
+  const eraDelta = s.era_payout_total != null && Math.abs(s.era_payout_total - s.payout_total) > 1;
+  html += `<div class="card"><h3>${esc(g.name || s.group_key)} — ${esc(det.period_label)} ${pillsFor(s)}</h3>
+    <div class="totgrid">
+      <div class="tot"><div class="lab">Gross revenue</div><div class="val">${IDR(s.gross_total)}</div></div>
+      <div class="tot"><div class="lab">Commission</div><div class="val">${IDR(s.commission_total)}</div></div>
+      <div class="tot"><div class="lab">Nett to owner</div><div class="val">${IDR(s.nett_total)}</div></div>
+      <div class="tot"><div class="lab">Expenses</div><div class="val">− ${IDR(s.expenses_total)}</div></div>
+      ${Number(s.adjustments_total) ? `<div class="tot"><div class="lab">Adjustments</div><div class="val">${IDR(s.adjustments_total)}</div></div>` : ''}
+      <div class="tot big"><div class="lab">Total payout</div><div class="val">${IDR(s.payout_total)}</div></div>
+      ${s.status !== 'draft' ? `
+      <div class="tot"><div class="lab">Paid to date</div><div class="val">${IDR(s.paid_total)}</div></div>
+      <div class="tot" style="${balanceOf(s) > 0 ? 'background:var(--red-bg)' : ''}"><div class="lab">Balance due</div><div class="val" style="${balanceOf(s) > 0 ? 'color:var(--red-fg)' : ''}">${IDR(balanceOf(s))}</div></div>` : ''}
+    </div>
+    ${eraDelta ? `<div class="banner amber" style="margin:10px 0 0">⚠ <div>Era's sheet says <b>${IDR(s.era_payout_total)}</b> — the parsed lines compute <b>${IDR(s.payout_total)}</b>. Fix the lines below or trust the computed number.</div></div>` : ''}
+  </div>`;
+
+  // Reconciliation
+  if (checks.length || unparsed.length) {
+    html += `<div class="card"><h3>Reconciliation</h3>` +
+      checks.map(ch => `<div class="rc"><span class="${ch.ok ? 'ok' : 'bad'}">${ch.ok ? '✓' : '✗'}</span>
+        <span>${esc(ch.name.replace(/_/g, ' '))}</span>
+        <span class="nums">${ch.expected != null ? Number(ch.expected).toLocaleString() : '—'} vs ${ch.actual != null ? Number(ch.actual).toLocaleString() : '—'}</span></div>`).join('') +
+      unparsed.map(u => `<div class="rc"><span class="bad">?</span><span>Row ${u.row} not understood: ${esc((u.cells || []).join(' | '))}</span></div>`).join('') +
+      `</div>`;
+  }
+
+  // Booking tables per unit
+  for (const u of units) {
+    const rows = bookings.filter(b => (b.unit_name || '') === u);
+    html += `<div class="card"><h3>Bookings${u ? ' — ' + esc(u) : ''}</h3><div class="tblwrap"><table class="lines">
+      <tr><th>Guest</th><th>Dates</th><th>Platform</th><th class="num">Nights</th><th class="num">Amount</th><th class="num">Commission</th><th class="num">Nett</th>${editable ? '<th></th>' : ''}</tr>
+      ${rows.map(l => lineRow(l, editable, ['guest_name', 'stay_dates', 'platform', 'nights', 'amount', 'commission', 'nett'])).join('')}
+      <tr class="totrow"><td colspan="3">Total</td><td class="num">${rows.reduce((a, l) => a + (Number(l.nights) || 0), 0)}</td>
+        <td class="num">${IDR(rows.reduce((a, l) => a + (Number(l.amount) || 0), 0))}</td>
+        <td class="num">${IDR(rows.reduce((a, l) => a + (Number(l.commission) || 0), 0))}</td>
+        <td class="num">${IDR(rows.reduce((a, l) => a + (Number(l.nett) || 0), 0))}</td>${editable ? '<td></td>' : ''}</tr>
+    </table></div>
+    ${editable ? `<div class="addrow"><button class="btn ghost" onclick="addLine('booking', ${JSON.stringify(u).replace(/"/g, '&quot;')})">＋ Add booking</button></div>` : ''}</div>`;
+  }
+  if (!units.length && editable) {
+    html += `<div class="card"><h3>Bookings</h3><div class="empty-state">No bookings parsed.</div>
+      <div class="addrow"><button class="btn ghost" onclick="addLine('booking','')">＋ Add booking</button></div></div>`;
+  }
+
+  // Expenses
+  html += `<div class="card"><h3>Expenses</h3><div class="tblwrap"><table class="lines">
+    <tr><th>Date</th><th>Description</th><th class="num">Amount</th>${editable ? '<th></th>' : ''}</tr>
+    ${expenses.map(l => lineRow(l, editable, ['expense_date', 'description', 'amount'])).join('')}
+    <tr class="totrow"><td colspan="2">Total expenses</td><td class="num">${IDR(expenses.reduce((a, l) => a + (Number(l.amount) || 0), 0))}</td>${editable ? '<td></td>' : ''}</tr>
+  </table></div>
+  ${editable ? `<div class="addrow"><button class="btn ghost" onclick="addLine('expense','')">＋ Add expense</button></div>` : ''}</div>`;
+
+  // Adjustments
+  if (adjustments.length || editable) {
+    html += `<div class="card"><h3>Adjustments <span style="font:500 11px/1 var(--sb-font-ui);color:var(--muted)">signed — positive increases the payout</span></h3>
+      ${adjustments.length ? `<div class="tblwrap"><table class="lines">
+        <tr><th>Description</th><th class="num">Amount</th>${editable ? '<th></th>' : ''}</tr>
+        ${adjustments.map(l => lineRow(l, editable, ['description', 'amount'])).join('')}
+      </table></div>` : '<div class="empty-state" style="padding:8px">None.</div>'}
+      ${editable ? `<div class="addrow"><button class="btn ghost" onclick="addLine('adjustment','')">＋ Add adjustment</button></div>` : ''}</div>`;
+  }
+
+  // Hostex snapshot (frozen at publish)
+  const hx = s.hostex_snapshot;
+  if (hx?.group) {
+    html += `<div class="card"><h3>Hostex — ${esc(det.period_label)} <span style="font:500 11px/1 var(--sb-font-ui);color:var(--muted)">frozen at publish</span></h3>
+      <div class="hx">
+        <div class="cell"><b>${hx.group.occupancy_pct}%</b>occupancy</div>
+        <div class="cell"><b>${hx.group.nights_sold}</b>nights sold</div>
+        <div class="cell"><b>${hx.group.reservations}</b>reservations</div>
+        ${hx.group.adr ? `<div class="cell"><b>${IDR(hx.group.adr)}</b>net ADR</div>` : ''}
+        ${Object.entries(hx.group.channels || {}).map(([k, v]) => `<div class="cell"><b>${v}</b>${esc(k)} nights</div>`).join('')}
+      </div></div>`;
+  }
+
+  // Payments ledger (published/partial/paid)
+  const pays = det.payments || [];
+  if (s.status !== 'draft') {
+    html += `<div class="card"><h3>Payments</h3>`;
+    if (!pays.length) html += `<div class="empty-state" style="padding:8px">No payments recorded yet.</div>`;
+    else html += `<div class="tblwrap"><table class="lines">
+      <tr><th>Date</th><th class="num">Amount</th><th>Note</th><th>Proof</th><th></th></tr>
+      ${pays.map(p => `<tr>
+        <td style="white-space:nowrap">${dstr(p.paid_at)}</td>
+        <td class="num">${IDR(p.amount)}</td>
+        <td>${esc(p.note || '—')}</td>
+        <td>${p.proof_url ? `<a href="${esc(p.proof_url)}" target="_blank">view ↗</a>` : '—'}</td>
+        <td><button class="del" title="Delete payment" onclick="deletePayment(${p.id})">✕</button></td>
+      </tr>`).join('')}
+      <tr class="totrow"><td>Paid to date</td><td class="num">${IDR(s.paid_total)}</td><td colspan="3">${balanceOf(s) > 0 ? 'Balance due ' + IDR(balanceOf(s)) : 'Settled in full'}</td></tr>
+    </table></div>`;
+    html += `</div>`;
+  }
+
+  // Payout account on file
+  const acct = g.payout_account;
+  if (s.status !== 'draft') {
+    html += `<div class="card"><h3>Payout account</h3>` + (acct && (acct.bank || acct.account_number)
+      ? `<div style="font-size:.82rem;line-height:1.7">${esc(acct.bank || '')} · ${esc(acct.account_name || '')} · <b>${esc(acct.account_number || '')}</b>${acct.note ? `<br><span style="color:var(--muted)">${esc(acct.note)}</span>` : ''}<br><span style="font-size:.7rem;color:var(--muted)">entered by ${esc(acct.updated_by || 'admin')} · edit under Properties</span></div>`
+      : `<div class="empty-state" style="padding:8px">None on file — the owner can add it in their portal, or you can under Properties.</div>`) + `</div>`;
+  }
+
+  // Actions
+  html += `<div class="card"><h3>Actions</h3><div class="actionsrow">`;
+  if (s.status === 'draft') {
+    html += `<button class="btn primary" onclick="askPublish()">Publish statement</button>`;
+    if (s.has_manual_edits) html += `<button class="btn ghost" onclick="reparse()">⟳ Re-parse from sheet</button>`;
+  }
+  if (s.status === 'published' || s.status === 'partial') {
+    html += `<button class="btn green" onclick="askRecordPayment()">＋ Record payment</button>`;
+    if (s.status === 'published' && !s.notified_at && !pays.length) html += `<button class="btn ghost" onclick="unpublish()">Unpublish</button>`;
+  }
+  if (s.status !== 'draft') {
+    html += `<a class="btn ghost" href="/st/${esc(det.token)}" target="_blank">Preview owner view ↗</a>`;
+    html += `<a class="btn ghost" href="/api/statements?action=export&token=${esc(det.token)}">⬇ Excel</a>`;
+  }
+  html += `</div>`;
+  if (s.status === 'published' || s.status === 'partial') {
+    html += `<p style="font-size:.75rem;color:var(--muted);margin-top:10px">${s.notified_at ? 'Owner notified via Maya on ' + dstr(s.notified_at) + '.' : (g.notify ? 'Owner will be notified by Maya on the next daily pass (or arm/run the owner_statements campaign).' : 'Notifications are off for this property.')}</p>`;
+  }
+  html += `</div>`;
+
+  c.innerHTML = html;
+}
+function lineRow(l, editable, fields) {
+  const flags = (l.flags || []).filter(f => f !== 'manual');
+  const cells = fields.map(f => {
+    const num = ['nights', 'amount', 'commission', 'nett'].includes(f);
+    const val = l[f] == null ? '' : l[f];
+    if (!editable) return `<td class="${num ? 'num' : ''}">${num && val !== '' ? Number(val).toLocaleString() : esc(String(val))}${f === fields[0] && flags.length ? flags.map(x => `<span class="rowflag">${esc(x.replace(/_/g, ' '))}</span>`).join('') : ''}</td>`;
+    return `<td class="${num ? 'num' : ''}"><input class="${num ? 'num' : ''}" value="${esc(String(val))}" onchange="patchLine(${l.id}, '${f}', this.value, ${num})">${f === fields[0] && flags.length ? flags.map(x => `<span class="rowflag">${esc(x.replace(/_/g, ' '))}</span>`).join('') : ''}</td>`;
+  }).join('');
+  return `<tr>${cells}${editable ? `<td><button class="del" title="Delete line" onclick="deleteLine(${l.id})">✕</button></td>` : ''}</tr>`;
+}
+
+async function patchLine(lineId, field, value, isNum) {
+  const v = isNum ? Number(String(value).replace(/[^\d.-]/g, '')) || 0 : value;
+  try {
+    await api('statement_patch_line', { id: det.statement.id, line_id: lineId, fields: { [field]: v } });
+    det = await api('statement_detail', { id: det.statement.id });
+    drawDetail();
+    refreshList();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function addLine(kind, unitName) {
+  try {
+    const fields = { kind };
+    if (kind === 'booking') { fields.unit_name = unitName || null; fields.guest_name = ''; fields.amount = 0; fields.commission = 0; fields.nett = 0; }
+    if (kind === 'expense') { fields.description = ''; fields.amount = 0; }
+    if (kind === 'adjustment') { fields.description = ''; fields.amount = 0; }
+    await api('statement_add_line', { id: det.statement.id, fields });
+    det = await api('statement_detail', { id: det.statement.id });
+    drawDetail();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function deleteLine(lineId) {
+  try {
+    await api('statement_delete_line', { id: det.statement.id, line_id: lineId });
+    det = await api('statement_detail', { id: det.statement.id });
+    drawDetail(); refreshList();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function reparse() {
+  if (!confirm("Re-parse this month from Era's sheet? Your manual edits to this draft will be discarded.")) return;
+  try {
+    await api('statement_reparse', { id: det.statement.id });
+    await refreshList();
+    renderDetail(det.statement.id);
+    showToast('Re-parsed from sheet', 'success');
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
+// ── Publish / paid / proof ───────────────────────────────────────────
+function modal(html) {
+  document.getElementById('modal').innerHTML = html;
+  document.getElementById('modal-back').classList.add('show');
+}
+function closeModal() { document.getElementById('modal-back').classList.remove('show'); }
+document.getElementById('modal-back').addEventListener('click', (e) => { if (e.target.id === 'modal-back') closeModal(); });
+
+function askPublish() {
+  const s = det.statement, g = s.statement_groups || {};
+  const who = g.notify && (g.owner_wa_nums || []).length
+    ? `${esc(g.owner_names || 'the owner')} (${(g.owner_wa_nums || []).map(esc).join(', ')})`
+    : null;
+  modal(`<h3>Publish ${esc(g.name || s.group_key)} — ${esc(det.period_label)}?</h3>
+    <p>Total payout <b>${IDR(s.payout_total)}</b>. Publishing freezes the numbers, snapshots Hostex occupancy, and makes the statement visible to the owner.</p>
+    ${s.needs_review ? `<p style="color:var(--amber-fg)">⚠ This statement has unresolved review flags — publish only if you've checked the numbers.</p>` : ''}
+    ${who ? `<label class="chk"><input type="checkbox" id="pub-notify" checked> Notify ${who} via Maya on WhatsApp</label>`
+          : `<p style="color:var(--muted)">No WhatsApp notification ${g.notify ? '(no owner numbers set — add them under Properties)' : '(notifications off for this property)'}.</p>`}
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn primary" onclick="doPublish()">Publish</button></div>`);
+}
+async function doPublish() {
+  const notify = document.getElementById('pub-notify')?.checked !== false;
+  closeModal();
+  try {
+    await api('statement_publish', { id: det.statement.id, notify_owner: notify });
+    showToast('Published' + (notify ? ' — Maya will notify the owner' : ''), 'success');
+    await refreshList();
+    renderDetail(det.statement.id);
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function unpublish() {
+  if (!confirm('Return this statement to draft?')) return;
+  try {
+    await api('statement_unpublish', { id: det.statement.id });
+    await refreshList(); renderDetail(det.statement.id);
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
+function askRecordPayment() {
+  const bal = balanceOf(det.statement);
+  modal(`<h3>Record payment — ${esc(det.period_label)}</h3>
+    <p>Balance due: <b>${IDR(bal)}</b>. Enter what you transferred — a partial amount keeps the statement open with the remaining balance.</p>
+    <label style="font-size:.72rem;color:var(--muted)">Amount (IDR)</label>
+    <input type="text" id="pay-amount" value="${bal}" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);margin:4px 0 10px;font-variant-numeric:tabular-nums">
+    <label style="font-size:.72rem;color:var(--muted)">Note / transfer reference (optional)</label>
+    <input type="text" id="pay-note" placeholder="e.g. BCA transfer #123" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);margin:4px 0 10px">
+    <label style="font-size:.72rem;color:var(--muted)">Proof screenshot (optional)</label>
+    <input type="file" id="prooffile" accept="image/*" style="margin:4px 0 6px;display:block">
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn green" onclick="doRecordPayment()">Record payment</button></div>`);
+}
+async function doRecordPayment() {
+  const amount = Number(String(document.getElementById('pay-amount')?.value || '').replace(/[^\d.]/g, ''));
+  const note = document.getElementById('pay-note')?.value.trim() || null;
+  const file = document.getElementById('prooffile')?.files?.[0] || null;
+  if (!amount || amount <= 0) { showToast('Enter a positive amount', 'error'); return; }
+  closeModal();
+  try {
+    const payload = { id: det.statement.id, amount, note };
+    if (file) {
+      const { base64, type } = await downscale(file);
+      payload.fileBase64 = base64; payload.contentType = type;
+    }
+    const out = await api('statement_record_payment', payload);
+    showToast(out.status === 'paid' ? 'Payment recorded — settled in full ✓' : `Payment recorded — ${IDR(out.balance)} still due`, 'success');
+    await refreshList();
+    renderDetail(det.statement.id);
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function deletePayment(paymentId) {
+  if (!confirm('Delete this payment? The owed balance goes back up.')) return;
+  try {
+    await api('statement_delete_payment', { id: det.statement.id, payment_id: paymentId });
+    await refreshList();
+    renderDetail(det.statement.id);
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+// Downscale to ≤1600px JPEG so the upload stays well under the body cap.
+function downscale(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * scale); cv.height = Math.round(img.height * scale);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      resolve({ base64: cv.toDataURL('image/jpeg', 0.88), type: 'image/jpeg' });
+    };
+    img.onerror = () => reject(new Error('Could not read image'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+// ── Properties / registry ────────────────────────────────────────────
+async function renderGroups() {
+  const c = document.getElementById('content');
+  c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading properties…</div>';
+  try { groupsData = await api('statement_groups'); }
+  catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red">⚠ <div>${esc(e.message)}</div></div>`; return; }
+  const groups = groupsData.groups || [];
+  c.innerHTML = `<div class="card"><h3>Properties &amp; owners</h3>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:10px">Owner WhatsApp numbers (digits only, comma-separated, e.g. <b>628123456789</b>) are who Maya notifies when a statement is published. “Notify” off = never message (e.g. your own units).</p>
+    <div class="grouprow" style="font:600 10px/1 var(--sb-font-ui);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">
+      <div>Property</div><div>Owner name(s)</div><div>Owner WhatsApp number(s)</div><div>Notify</div><div>Active</div></div>
+    ${groups.map(g => { const a = g.payout_account || {}; return `<div class="grouprow">
+      <div class="key">${esc(g.name)}<small>${esc(g.key)} · ${(g.listing_slugs || []).map(esc).join(', ')}</small></div>
+      <div><input type="text" id="gn-${esc(g.key)}" value="${esc(g.owner_names || '')}" placeholder="e.g. Romina &amp; Tim"></div>
+      <div><input type="text" id="gw-${esc(g.key)}" value="${esc((g.owner_wa_nums || []).join(', '))}" placeholder="62…"></div>
+      <div><label><input type="checkbox" id="gy-${esc(g.key)}" ${g.notify ? 'checked' : ''}> notify</label></div>
+      <div style="display:flex;gap:8px;align-items:center"><label><input type="checkbox" id="ga-${esc(g.key)}" ${g.active ? 'checked' : ''}> active</label>
+        <button class="btn ghost" onclick="saveGroup('${esc(g.key)}')">Save</button></div>
+      <div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1.2fr 1.2fr auto;gap:8px;padding:2px 0 6px">
+        <input type="text" id="gab-${esc(g.key)}" value="${esc(a.bank || '')}" placeholder="Payout bank (e.g. BCA)">
+        <input type="text" id="gan-${esc(g.key)}" value="${esc(a.account_name || '')}" placeholder="Account holder name">
+        <input type="text" id="gac-${esc(g.key)}" value="${esc(a.account_number || '')}" placeholder="Account number">
+        <button class="btn ghost" onclick="downloadGroupExcel('${esc(g.key)}')">⬇ Excel</button>
+      </div>
+    </div>`; }).join('')}
+  </div>`;
+}
+// Fetch with the admin bearer header, then hand the browser a blob download
+// (a bare <a href> can't carry the Authorization header).
+async function downloadGroupExcel(key) {
+  try {
+    const r = await fetch(`/api/statements?action=export-group&group=${encodeURIComponent(key)}`, {
+      headers: { Authorization: 'Bearer ' + adminPw },
+    });
+    if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error || 'HTTP ' + r.status); }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Samba-Financials-${key}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) { showToast('Export failed: ' + e.message, 'error'); }
+}
+
+async function saveGroup(key) {
+  try {
+    await api('statement_group_patch', {
+      key,
+      fields: {
+        owner_names: document.getElementById('gn-' + key).value.trim(),
+        owner_wa_nums: document.getElementById('gw-' + key).value.split(',').map(s => s.replace(/\D/g, '')).filter(Boolean),
+        notify: document.getElementById('gy-' + key).checked,
+        active: document.getElementById('ga-' + key).checked,
+        payout_account: {
+          bank: document.getElementById('gab-' + key).value.trim(),
+          account_name: document.getElementById('gan-' + key).value.trim(),
+          account_number: document.getElementById('gac-' + key).value.trim(),
+        },
+      },
+    });
+    groupsData = null;
+    showToast('Saved ✓', 'success');
+    renderGroups();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────
+if (adminPw) boot(); else showGate();
+</script>
+</body>
+</html>

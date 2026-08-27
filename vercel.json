@@ -7,6 +7,7 @@
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/campaigns", "destination": "/campaigns.html" },
+    { "source": "/payouts", "destination": "/payouts.html" },
     { "source": "/home", "destination": "/list-property.html" },
     { "source": "/for-agents", "destination": "/for-agents.html" },
     { "source": "/viewings", "destination": "/viewings.html" },
@@ -16,6 +17,7 @@
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/refund", "destination": "/refund.html" },
     { "source": "/r/(.*)", "destination": "/api/listing-page?report=$1" },
+    { "source": "/st/(.*)", "destination": "/api/listing-page?statement=$1" },
     { "source": "/l/(.*)", "destination": "/api/listing-page?slug=$1" },
     { "source": "/a/(.*)", "destination": "/api/listing-page?agent=$1" },
     { "source": "/s/(.*)", "destination": "/api/listing-page?list=$1" },
@@ -29,6 +31,9 @@
       "maxDuration": 60
     },
     "api/portal.js": {
+      "maxDuration": 60
+    },
+    "api/statements.js": {
       "maxDuration": 60
     }
   },

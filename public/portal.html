@@ -346,6 +346,7 @@ body.wiz-open #snav-tabs{display:none !important;}
       <div class="tabbar">
         <button class="tab active" data-tab="properties" onclick="showTab('properties')">My properties</button>
         <button class="tab" data-tab="reports" onclick="showTab('reports')">Weekly reports</button>
+        <button class="tab" data-tab="statements" id="tab-btn-statements" style="display:none" onclick="showTab('statements')">Statements</button>
         <button class="tab" data-tab="viewings" onclick="showTab('viewings')">Viewings</button>
       </div>
       <div class="spacer"></div>
@@ -363,6 +364,7 @@ body.wiz-open #snav-tabs{display:none !important;}
       <div id="report-picker"></div>
       <div id="report-body"></div>
     </div>
+    <div id="tab-statements" style="display:none"></div>
     <div id="tab-viewings" style="display:none"></div>
     <div class="portal-foot"><a href="/home">How it works</a> · <a href="/terms">Terms of service</a> · <a href="/privacy">Privacy policy</a> · <a href="/refund">Refund &amp; cancellation policy</a></div>
   </div>
@@ -661,6 +663,7 @@ function enterApp(owner){
   document.getElementById('app').style.display='block';
   loadProperties();
   loadConfig();
+  probeStatements();
   // Deep-link from the "List a property" sub-tab → open the add form.
   // Skipped in the demo: it fires for real once the owner signs in.
   const qs = new URLSearchParams(location.search);
@@ -778,12 +781,84 @@ function showTab(name){
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
   document.getElementById('tab-properties').style.display=name==='properties'?'':'none';
   document.getElementById('tab-reports').style.display=name==='reports'?'':'none';
+  document.getElementById('tab-statements').style.display=name==='statements'?'':'none';
   document.getElementById('tab-viewings').style.display=name==='viewings'?'':'none';
   const onProps=name==='properties';
   document.getElementById('period-toggle').style.display=onProps?'':'none';
   document.getElementById('add-btn').style.display=onProps?'':'none';
   if(name==='reports') initReports();
+  if(name==='statements') initStatements();
   if(name==='viewings') initViewings();
+}
+
+// ── STATEMENTS TAB (Samba Realty-managed villas only) ──
+// Monthly payout statements published by Ikiel. The tab only appears when
+// this owner has at least one — marketplace-only owners never see it.
+let statementsCache=null, statementGroupsCache=[];
+async function probeStatements(){
+  if(DEMO) return;
+  try{
+    const r=await fetch('/api/statements?action=statements',{credentials:'include'});
+    if(!r.ok) return;
+    const d=await r.json();
+    statementsCache=d.statements||[];
+    statementGroupsCache=d.groups||[];
+    if(statementsCache.length||statementGroupsCache.length) document.getElementById('tab-btn-statements').style.display='';
+  }catch(e){}
+}
+function initStatements(){
+  const pane=document.getElementById('tab-statements');
+  const sts=statementsCache||[];
+  const IDRf=n=>'IDR '+Math.round(Number(n)||0).toLocaleString('en-US');
+  const mlab=p=>{const[y,m]=String(p).split('-').map(Number);return y&&m?new Date(Date.UTC(y,m-1,1)).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}):p;};
+  const sub=s=>s.status==='paid'?' · paid':s.status==='partial'?` · ${IDRf(s.balance)} to follow`:' · payout on its way';
+  let html='';
+  if(!sts.length){
+    html='<div class="rep-empty"><h3>No statements yet</h3><p>Monthly payout statements for villas under Samba Realty management appear here once published.</p></div>';
+  }else{
+    html='<div style="display:flex;flex-direction:column;gap:10px">'+sts.map(s=>
+      `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener"
+        style="display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:14px 16px;text-decoration:none;color:var(--text)">
+        <div style="flex:1;min-width:0"><div style="font-weight:700">${escapeHtml(s.group_name)}</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:2px">${escapeHtml(mlab(s.period))}${sub(s)}</div></div>
+        <div style="font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">${IDRf(s.payout_total)}</div>
+        <div style="color:var(--muted)">›</div></a>`
+    ).join('')+'</div>';
+  }
+  // Payout account + full-history Excel, one block per property group.
+  for(const g of statementGroupsCache){
+    const a=g.payout_account||{};
+    html+=`<div style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:16px">
+      <div style="font-weight:700;margin-bottom:4px">${escapeHtml(g.name)} — payout account</div>
+      <div style="font-size:.74rem;color:var(--muted);margin-bottom:10px">Where Samba Realty transfers your monthly payout.</div>
+      <div style="display:grid;grid-template-columns:1fr 1.2fr 1.2fr;gap:8px">
+        <input type="text" id="pa-bank-${escapeHtml(g.key)}" value="${escapeHtml(a.bank||'')}" placeholder="Bank (e.g. BCA)" style="padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text)">
+        <input type="text" id="pa-name-${escapeHtml(g.key)}" value="${escapeHtml(a.account_name||'')}" placeholder="Account holder name" style="padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text)">
+        <input type="text" id="pa-num-${escapeHtml(g.key)}" value="${escapeHtml(a.account_number||'')}" placeholder="Account number" style="padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text)">
+      </div>
+      <div style="display:flex;gap:9px;margin-top:10px;flex-wrap:wrap">
+        <button onclick="savePayoutAccount('${escapeHtml(g.key)}')" style="border:none;border-radius:9px;background:var(--accent);color:#fff;padding:9px 15px;font-weight:600;cursor:pointer">Save account</button>
+        <a href="/api/statements?action=export-group&group=${encodeURIComponent(g.key)}" style="display:inline-flex;align-items:center;border-radius:9px;background:var(--surface2);color:var(--text);padding:9px 15px;font-weight:600;text-decoration:none">⬇ Download all financials (.xlsx)</a>
+      </div>
+      <div id="pa-msg-${escapeHtml(g.key)}" style="font-size:.74rem;margin-top:8px;color:var(--muted)"></div>
+    </div>`;
+  }
+  pane.innerHTML=html;
+}
+async function savePayoutAccount(key){
+  const msg=document.getElementById('pa-msg-'+key);
+  try{
+    const r=await fetch('/api/statements',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'payout_account',payload:{group_key:key,account:{
+        bank:document.getElementById('pa-bank-'+key).value.trim(),
+        account_name:document.getElementById('pa-name-'+key).value.trim(),
+        account_number:document.getElementById('pa-num-'+key).value.trim(),
+      }}})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.error||'HTTP '+r.status);
+    msg.textContent='Saved ✓ — future payouts go to this account.'; msg.style.color='var(--sb-success-fg,green)';
+    probeStatements();
+  }catch(e){ msg.textContent='Could not save: '+e.message; msg.style.color='var(--sb-error-fg,#b00)'; }
 }
 
 // ── VIEWINGS TAB ──

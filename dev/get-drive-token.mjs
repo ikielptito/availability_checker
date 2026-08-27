@@ -1,16 +1,24 @@
 #!/usr/bin/env node
-// One-time OAuth setup for the Drive photo pipeline (drive.file scope).
+// OAuth setup for Google Drive/Sheets access, minted as the Drive owner.
 //
 // Why: service accounts have no Drive storage quota on personal Gmail, so
-// photo uploads must run as the Drive owner. This script mints a refresh
-// token for that, and creates the app-owned parent folder that the
-// drive.file scope requires (the scope only reaches files this app created).
+// photo uploads must run as the Drive owner. Scopes minted:
+//   drive.file                — photo pipeline (files this app created)
+//   spreadsheets.readonly     — read Era's monthly report sheets (owner
+//                               statements; the files are SHARED with the
+//                               consenting account, so read scopes reach them)
+//   drive.metadata.readonly   — cheap modifiedTime change probes on them
 //
-// Usage:
+// Usage (re-mint after a scope change — keeps the existing photo folder):
 //   GOOGLE_OAUTH_CLIENT_ID=xxx GOOGLE_OAUTH_CLIENT_SECRET=yyy node dev/get-drive-token.mjs
 //
+// First-time setup ONLY — also creates the app-owned parent photo folder
+// (would orphan the current one if run again casually):
+//   ... node dev/get-drive-token.mjs --new-folder
+//
 // It prints a consent URL — open it, approve with the Drive-owner Google
-// account, and the script finishes by printing the three Vercel env values.
+// account (the one Era shares her report folder with), and the script
+// finishes by printing the Vercel env values.
 
 import http from 'http';
 import crypto from 'crypto';
@@ -25,7 +33,12 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
 
 const PORT = 8765;
 const REDIRECT = `http://localhost:${PORT}/callback`;
-const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const SCOPE = [
+  'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/spreadsheets.readonly',
+  'https://www.googleapis.com/auth/drive.metadata.readonly',
+].join(' ');
+const NEW_FOLDER = process.argv.includes('--new-folder');
 const state = crypto.randomBytes(12).toString('hex');
 
 const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
@@ -64,24 +77,28 @@ const server = http.createServer(async (req, res) => {
       process.exit(1);
     }
 
-    // Create the app-owned parent folder — with drive.file scope, the app can
-    // only work inside folders it created itself, so this replaces any
-    // manually created parent folder.
-    const fr = await fetch('https://www.googleapis.com/drive/v3/files', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${tokens.access_token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Samba villa photos (auto)', mimeType: 'application/vnd.google-apps.folder' }),
-    });
-    const folder = await fr.json();
-    if (!fr.ok) { console.error('Folder create failed:', JSON.stringify(folder)); process.exit(1); }
-
-    console.log('\n✅ All set. Put these in BOTH Vercel projects (sambarentals + kaya-agent-crm):\n');
-    console.log('GOOGLE_OAUTH_CLIENT_ID=' + CLIENT_ID);
-    console.log('GOOGLE_OAUTH_CLIENT_SECRET=' + CLIENT_SECRET);
-    console.log('GOOGLE_OAUTH_REFRESH_TOKEN=' + tokens.refresh_token);
-    console.log('DRIVE_PARENT_FOLDER_ID=' + folder.id + '   (REPLACES the old value — this is the new "Samba villa photos (auto)" folder)');
-    console.log('\nThe GOOGLE_SA_EMAIL / GOOGLE_SA_KEY vars are no longer needed and can be deleted.');
-    console.log('Folder: https://drive.google.com/drive/folders/' + folder.id);
+    if (NEW_FOLDER) {
+      // First-time setup: create the app-owned parent folder — with drive.file
+      // scope, the app can only work inside folders it created itself.
+      const fr = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokens.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Samba villa photos (auto)', mimeType: 'application/vnd.google-apps.folder' }),
+      });
+      const folder = await fr.json();
+      if (!fr.ok) { console.error('Folder create failed:', JSON.stringify(folder)); process.exit(1); }
+      console.log('\n✅ All set. Put these in BOTH Vercel projects (sambarentals + kaya-agent-crm):\n');
+      console.log('GOOGLE_OAUTH_CLIENT_ID=' + CLIENT_ID);
+      console.log('GOOGLE_OAUTH_CLIENT_SECRET=' + CLIENT_SECRET);
+      console.log('GOOGLE_OAUTH_REFRESH_TOKEN=' + tokens.refresh_token);
+      console.log('DRIVE_PARENT_FOLDER_ID=' + folder.id + '   (REPLACES the old value — this is the new "Samba villa photos (auto)" folder)');
+      console.log('\nThe GOOGLE_SA_EMAIL / GOOGLE_SA_KEY vars are no longer needed and can be deleted.');
+      console.log('Folder: https://drive.google.com/drive/folders/' + folder.id);
+    } else {
+      console.log('\n✅ Token re-minted with the current scopes. Update in BOTH Vercel projects (sambarentals + kaya-agent-crm):\n');
+      console.log('GOOGLE_OAUTH_REFRESH_TOKEN=' + tokens.refresh_token);
+      console.log('\nKeep the existing GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET / DRIVE_PARENT_FOLDER_ID unchanged.');
+    }
     process.exit(0);
   } catch (e) {
     console.error('Token exchange failed:', e.message);

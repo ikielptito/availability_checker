@@ -22,6 +22,7 @@ process.env.DIGEST_SHARED_SECRET = 'dev_secret';
 process.env.CRM_BASE_URL = 'http://localhost:3456/__crm_mock';
 process.env.LISTING_SYNC_SECRET = process.env.LISTING_SYNC_SECRET || 'dev-sync-secret';
 const __crmCalls = [];
+const { statementToken: devStatementToken } = await import(path.join(ROOT, 'lib', 'tokens.js'));
 
 // ── mock Campaign Command Center (kaya-agent-crm /api/campaigns) ──────
 // Stateful enough that pause/resume/arm/launch visibly work in the UI.
@@ -40,6 +41,188 @@ const mockCampaigns = [
   { id: 'c-sched', kind: 'one_off', name: 'Villa Saturno spotlight', status: 'scheduled', goal: 'click', pipeline: 'samba', template_name: 'samba_availability_alert_v3', total_count: 40, sent_count: 0, delivered_count: 0, read_count: 0, reply_count: 0, conversion_count: 0, fail_count: 0, skip_count: 0, scheduled_at: dayISO(-2), spark: {}, created_at: dayISO(1) },
 ];
 const mockSettings = { enabled: true, test_agents_only: false, intro_sweep_daily_cap: 0, account_invite_daily_cap: 0, viewings_announce_daily_cap: 0, carousel_enabled: true };
+
+// ── mock Owner Statements engine (kaya-agent-crm /api/statements) ─────
+// Stateful enough that edit → publish → mark-paid visibly works in
+// payouts.html, and /st/<token> + the portal Statements tab render.
+const mockGroups = [
+  { key: 'haus-2-4', name: 'HAUS Canggu – Units 2 & 4', sheet_file_id: 'SHEET_HAUS24', listing_slugs: ['haus-2', 'haus-4'], owner_wa_nums: ['628111111111', '628122222222'], owner_names: 'Romina & Tim', notify: true, active: true },
+  { key: 'lanehaus', name: 'LaneHAUS – Units 1 & 3', sheet_file_id: 'SHEET_LANE', listing_slugs: ['lanehaus-1', 'lanehaus-3'], owner_wa_nums: [], owner_names: 'Ikiel & Guy', notify: false, active: true },
+  { key: 'villa-saturno', name: 'Villa Saturno', sheet_file_id: 'SHEET_SAT', listing_slugs: ['villa-saturno'], owner_wa_nums: ['628133333333'], owner_names: 'Pedro', notify: true, active: true },
+];
+let mockLineId = 100;
+const mockStatements = [
+  { id: 1, group_key: 'haus-2-4', period: '2026-07', status: 'draft', currency: 'IDR',
+    gross_total: 16800000, commission_total: 2520000, nett_total: 14280000, expenses_total: 5244750, adjustments_total: 0, payout_total: 9035250,
+    era_payout_total: 9035250, needs_review: true, has_manual_edits: false, source_changed: false, discrepancy: null, hostex_snapshot: null,
+    reconciliation: { checks: [
+      { name: 'bookings_nett_vs_era_total (Unit 4 Haus Canggu)', ok: true, expected: 14280000, actual: 14280000 },
+      { name: 'expenses_vs_era_total', ok: true, expected: 5244750, actual: 5244750 },
+      { name: 'payout_vs_nett_minus_expenses', ok: false, expected: 9035250, actual: 9035251 },
+    ], unparsed_rows: [{ row: 44, cells: ['Mystery transfer', '1,234,567'] }] },
+    source_tab: 'July', parsed_at: dayISO(0), published_at: null, published_by: null, notified_at: null, paid_at: null, proof_path: null,
+    paid_total: 0, payments: [],
+    lines: [
+      { id: 1, kind: 'booking', unit_name: 'Unit 2 Haus Canggu', position: 0, guest_name: 'Becki', stay_dates: '25 July - 11 Aug', platform: 'Airbnb', nights: 6, amount: 0, commission: 0, nett: 0, flags: ['zero_amount'], edited: false },
+      { id: 2, kind: 'booking', unit_name: 'Unit 4 Haus Canggu', position: 1, guest_name: 'Genevieve', stay_dates: '1-18 July', platform: 'Direct Booking', nights: 18, amount: 16800000, commission: 2520000, nett: 14280000, flags: [], edited: false },
+      { id: 3, kind: 'expense', position: 2, expense_date: '01 Jul 2026', description: 'Internet', amount: 168750, flags: [], edited: false },
+      { id: 4, kind: 'expense', position: 3, expense_date: '02 Jul 2026', description: 'Advance payment Sebastian', amount: 2460000, flags: [], edited: false },
+      { id: 5, kind: 'expense', position: 4, expense_date: '25 Jul 2026', description: 'Electricity Expense unit 2', amount: 503500, flags: [], edited: false },
+      { id: 6, kind: 'expense', position: 5, expense_date: '31 Jul 2026', description: 'Laundry unit 2 + 4', amount: 2112500, flags: ['missing_date'], edited: false },
+    ] },
+  { id: 2, group_key: 'lanehaus', period: '2026-07', status: 'published', currency: 'IDR',
+    gross_total: 21000000, commission_total: 3150000, nett_total: 17850000, expenses_total: 2400000, adjustments_total: 0, payout_total: 15450000,
+    era_payout_total: 15450000, needs_review: false, has_manual_edits: false, source_changed: false, discrepancy: null,
+    hostex_snapshot: { period: '2026-07', days_in_month: 31, units: {}, group: { nights_sold: 41, occupancy_pct: 66, reservations: 5, channels: { Airbnb: 28, Direct: 13 }, adr: 435000 } },
+    reconciliation: { checks: [], unparsed_rows: [] },
+    source_tab: 'July', parsed_at: dayISO(2), published_at: dayISO(1), published_by: 'admin', notified_at: null, paid_at: null, proof_path: null,
+    paid_total: 0, payments: [],
+    lines: [
+      { id: 10, kind: 'booking', unit_name: 'LaneHAUS – Unit 1', position: 0, guest_name: 'Hunter', stay_dates: '3-14 July', platform: 'Airbnb', nights: 11, amount: 12000000, commission: 1800000, nett: 10200000, flags: [], edited: false },
+      { id: 11, kind: 'booking', unit_name: 'LaneHAUS – Unit 3', position: 1, guest_name: 'Sasha', stay_dates: '10-25 July', platform: 'Direct Booking', nights: 15, amount: 9000000, commission: 1350000, nett: 7650000, flags: [], edited: false },
+      { id: 12, kind: 'expense', position: 2, expense_date: '05 Jul 2026', description: 'Pool maintenance', amount: 900000, flags: [], edited: false },
+      { id: 13, kind: 'expense', position: 3, expense_date: '28 Jul 2026', description: 'Electricity', amount: 1500000, flags: [], edited: false },
+    ] },
+  { id: 3, group_key: 'villa-saturno', period: '2026-06', status: 'paid', currency: 'IDR',
+    gross_total: 36460000, commission_total: 5469000, nett_total: 30991000, expenses_total: 4700000, adjustments_total: 0, payout_total: 26291000,
+    era_payout_total: 26291000, needs_review: false, has_manual_edits: false, source_changed: false, discrepancy: null,
+    hostex_snapshot: { period: '2026-06', days_in_month: 30, units: {}, group: { nights_sold: 26, occupancy_pct: 87, reservations: 4, channels: { Airbnb: 20, 'Booking.com': 6 }, adr: 1050000 } },
+    reconciliation: { checks: [], unparsed_rows: [] },
+    source_tab: 'June', parsed_at: dayISO(30), published_at: dayISO(28), published_by: 'admin', notified_at: dayISO(28), paid_at: dayISO(26), proof_path: 'villa-saturno/2026-06.jpg',
+    paid_total: 26291000,
+    payments: [{ id: 900, amount: 26291000, paid_at: dayISO(26), note: 'BCA transfer', proof_path: 'villa-saturno/2026-06.jpg' }],
+    lines: [
+      { id: 20, kind: 'booking', unit_name: null, position: 0, guest_name: 'Long stay (27 nights)', stay_dates: '1-28 June', platform: 'Airbnb', nights: 27, amount: 27850000, commission: 4177500, nett: 23672500, flags: [], edited: false },
+      { id: 21, kind: 'booking', unit_name: null, position: 1, guest_name: 'Mia', stay_dates: '28-30 June', platform: 'Booking.com', nights: 2, amount: 8610000, commission: 1291500, nett: 7318500, flags: [], edited: false },
+      { id: 22, kind: 'expense', position: 2, expense_date: '30 Jun 2026', description: 'Housekeeping + pool + utilities', amount: 4700000, flags: [], edited: false },
+    ] },
+];
+function stTotals(st) {
+  const t = { gross_total: 0, commission_total: 0, nett_total: 0, expenses_total: 0, adjustments_total: 0 };
+  for (const l of st.lines) {
+    if (l.kind === 'booking') { t.gross_total += +l.amount || 0; t.commission_total += +l.commission || 0; t.nett_total += +l.nett || 0; }
+    else if (l.kind === 'expense') t.expenses_total += +l.amount || 0;
+    else t.adjustments_total += +l.amount || 0;
+  }
+  Object.assign(st, t, { payout_total: t.nett_total - t.expenses_total + t.adjustments_total });
+}
+function stripLines(st) { const { lines, payments, ...rest } = st; return { ...rest, statement_groups: mockGroups.find(g => g.key === st.group_key) || null }; }
+function stRecomputePayments(st) {
+  st.paid_total = (st.payments || []).reduce((a, p) => a + (+p.amount || 0), 0);
+  if (['published', 'partial', 'paid'].includes(st.status)) {
+    const settled = st.payments.length && st.paid_total >= st.payout_total - 1;
+    st.status = settled ? 'paid' : st.payments.length ? 'partial' : 'published';
+    st.paid_at = settled ? st.payments[st.payments.length - 1].paid_at : null;
+  }
+}
+function mockStatementsApi({ action, payload = {} }) {
+  const find = (id) => mockStatements.find(s => s.id === +id);
+  const monthLabel = (p) => { const [y, m] = String(p).split('-').map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+  if (action === 'statement_groups') return { status: 200, body: { groups: mockGroups } };
+  if (action === 'statement_group_patch') {
+    const g = mockGroups.find(x => x.key === payload.key);
+    if (g) Object.assign(g, payload.fields || {});
+    return { status: 200, body: { ok: true } };
+  }
+  if (action === 'statement_list') {
+    const rows = mockStatements.map(stripLines);
+    const out = rows.filter(s => s.status === 'published' || s.status === 'partial');
+    return { status: 200, body: { statements: rows, outstanding: { count: out.length, total: out.reduce((a, s) => a + Math.max(0, s.payout_total - (s.paid_total || 0)), 0) } } };
+  }
+  if (action === 'statement_detail') {
+    const st = find(payload.id);
+    if (!st) return { status: 404, body: { error: 'Statement not found' } };
+    return { status: 200, body: { statement: stripLines(st), lines: st.lines, payments: (st.payments || []).map(p => ({ ...p, proof_url: p.proof_path ? 'https://picsum.photos/seed/proof/700/900' : null })), period_label: monthLabel(st.period), token: devStatementToken(st.group_key, st.period) } };
+  }
+  if (action === 'statement_record_payment') {
+    const st = find(payload.id);
+    if (!st) return { status: 404, body: { error: 'Statement not found' } };
+    if (!['published', 'partial'].includes(st.status)) return { status: 400, body: { error: `cannot record a payment on a ${st.status} statement` } };
+    st.payments.push({ id: ++mockLineId, amount: +payload.amount || 0, paid_at: new Date().toISOString(), note: payload.note || null, proof_path: payload.fileBase64 ? 'mock/proof.jpg' : null });
+    stRecomputePayments(st);
+    return { status: 200, body: { paid_total: st.paid_total, balance: st.payout_total - st.paid_total, status: st.status } };
+  }
+  if (action === 'statement_delete_payment') {
+    const st = find(payload.id);
+    if (!st) return { status: 404, body: { error: 'Statement not found' } };
+    st.payments = st.payments.filter(p => p.id !== +payload.payment_id);
+    stRecomputePayments(st);
+    return { status: 200, body: { paid_total: st.paid_total, balance: st.payout_total - st.paid_total, status: st.status } };
+  }
+  if (action === 'statement_payments') {
+    const st = find(payload.id);
+    return { status: 200, body: { payments: (st?.payments || []).map(p => ({ ...p, proof_url: p.proof_path ? 'https://picsum.photos/seed/proof/700/900' : null })) } };
+  }
+  if (action === 'statement_export_data') {
+    const group = mockGroups.find(g => g.key === payload.group_key);
+    if (!group) return { status: 404, body: { error: 'Unknown group' } };
+    const statements = mockStatements
+      .filter(s => s.group_key === group.key && ['published', 'partial', 'paid'].includes(s.status) && (!payload.year || s.period.startsWith(payload.year)))
+      .map(s => ({ ...s, period_label: monthLabel(s.period) }));
+    return { status: 200, body: { group, statements } };
+  }
+  if (action === 'statement_patch_line' || action === 'statement_add_line' || action === 'statement_delete_line') {
+    const st = find(payload.id);
+    if (!st) return { status: 404, body: { error: 'Statement not found' } };
+    if (st.status !== 'draft') return { status: 409, body: { error: `Statement is ${st.status} — lines are frozen` } };
+    if (action === 'statement_patch_line') {
+      const l = st.lines.find(x => x.id === +payload.line_id);
+      if (l) { Object.assign(l, payload.fields || {}); l.edited = true; }
+    } else if (action === 'statement_add_line') {
+      st.lines.push({ id: ++mockLineId, position: st.lines.length, flags: ['manual'], edited: true, ...payload.fields });
+    } else {
+      st.lines = st.lines.filter(x => x.id !== +payload.line_id);
+    }
+    st.has_manual_edits = true;
+    stTotals(st);
+    return { status: 200, body: { ok: true } };
+  }
+  if (action === 'statement_sync') return { status: 200, body: { groups: mockGroups.map(g => ({ group: g.key, tabs: 1, created: 0, updated: 0, unchanged: 1, kept_edits: 0, discrepancies: 0 })) } };
+  if (action === 'statement_reparse') { const st = find(payload.id); if (st) { st.has_manual_edits = false; st.source_changed = false; } return { status: 200, body: { ok: true } }; }
+  if (action === 'statement_publish') {
+    const st = find(payload.id);
+    if (!st) return { status: 404, body: { error: 'Statement not found' } };
+    if (st.status !== 'draft') return { status: 400, body: { error: `cannot publish a ${st.status} statement` } };
+    stTotals(st);
+    st.status = 'published'; st.published_at = new Date().toISOString(); st.published_by = 'admin';
+    st.hostex_snapshot = { period: st.period, days_in_month: 31, units: {}, group: { nights_sold: 24, occupancy_pct: 39, reservations: 3, channels: { Airbnb: 13, Direct: 11 }, adr: 595000 } };
+    if (payload.notify_owner === false) st.notified_at = new Date().toISOString();
+    return { status: 200, body: { ok: true, payout_total: st.payout_total } };
+  }
+  if (action === 'statement_unpublish') {
+    const st = find(payload.id);
+    if (!st || st.status !== 'published' || st.notified_at) return { status: 400, body: { error: 'cannot unpublish' } };
+    st.status = 'draft'; st.published_at = null; st.hostex_snapshot = null;
+    return { status: 200, body: { ok: true } };
+  }
+  if (action === 'statement_mark_paid') {
+    const st = find(payload.id);
+    if (!st || !['published', 'partial'].includes(st.status)) return { status: 400, body: { error: 'cannot mark paid' } };
+    st.payments.push({ id: ++mockLineId, amount: st.payout_total - st.paid_total, paid_at: new Date().toISOString(), note: 'Paid in full', proof_path: null });
+    stRecomputePayments(st);
+    return { status: 200, body: { ok: true } };
+  }
+  if (action === 'statement_upload_proof') { const st = find(payload.id); if (st) st.proof_path = `${st.group_key}/${st.period}-dev.jpg`; return { status: 200, body: { ok: true, proof_path: st?.proof_path } }; }
+  if (action === 'statement_proof_url') return { status: 200, body: { url: 'https://picsum.photos/seed/proof/700/900' } };
+  if (action === 'statement_notify_preview') {
+    const q = mockStatements.filter(s => s.status === 'published' && !s.notified_at);
+    return { status: 200, body: { queued: q.length, sent: 0, failed: 0, plan: q.map(s => ({ statement: `${s.group_key} ${s.period}`, to: mockGroups.find(g => g.key === s.group_key)?.owner_wa_nums || [], payout: 'IDR ' + s.payout_total.toLocaleString(), url: `/st/${devStatementToken(s.group_key, s.period)}` })) } };
+  }
+  if (action === 'statement_public') {
+    const st = mockStatements.find(s => s.group_key === payload.group_key && s.period === payload.period && ['published', 'partial', 'paid'].includes(s.status));
+    if (!st) return { status: 404, body: { error: 'No published statement for that period' } };
+    const g = mockGroups.find(x => x.key === st.group_key);
+    return { status: 200, body: {
+      group: { key: g.key, name: g.name, owner_names: g.owner_names, payout_account: g.payout_account || null },
+      period: st.period, period_label: monthLabel(st.period), status: st.status, currency: 'IDR',
+      totals: { gross: st.gross_total, commission: st.commission_total, nett: st.nett_total, expenses: st.expenses_total, adjustments: st.adjustments_total, payout: st.payout_total, paid: st.paid_total || 0, balance: st.payout_total - (st.paid_total || 0) },
+      paid_at: st.paid_at, published_at: st.published_at, hostex: st.hostex_snapshot,
+      lines: st.lines,
+      payments: (st.payments || []).map(p => ({ amount: p.amount, paid_at: p.paid_at, note: p.note, proof_url: p.proof_path ? 'https://picsum.photos/seed/proof/700/900' : null })),
+    } };
+  }
+  return { status: 400, body: { error: 'unsupported action: ' + action } };
+}
 function mockCampaignsApi({ action, payload = {} }) {
   const find = (id) => mockCampaigns.find(c => c.id === id);
   if (action === 'campaign_center') {
@@ -240,6 +423,12 @@ globalThis.fetch = async (url, opts = {}) => {
     const out = mockCampaignsApi(body);
     return { ok: out.status === 200, status: out.status, json: async () => out.body };
   }
+  if (u.includes('/__crm_mock/api/statements')) {
+    const body = JSON.parse(opts.body || '{}');
+    __crmCalls.push({ kind: 'statements', body });
+    const out = mockStatementsApi(body);
+    return { ok: out.status === 200, status: out.status, json: async () => out.body };
+  }
   if (u.includes('/__crm_mock/api/supabase')) {
     const body = JSON.parse(opts.body);
     __crmCalls.push({ kind: 'set_settings', body });
@@ -309,14 +498,15 @@ function shimRes(nodeRes) {
     },
     end() { if (nodeRes) { nodeRes.writeHead(this._code, this._headers); nodeRes.end(); } return this; },
     send(body) {
-      // Mirrors Vercel's res.send — auto-routes string vs object
+      // Mirrors Vercel's res.send — auto-routes Buffer vs string vs object
       this._data = body;
       if (nodeRes) {
+        const isBuf = Buffer.isBuffer(body);
         const isString = typeof body === 'string';
         const headers = { ...this._headers };
-        if (!headers['Content-Type']) headers['Content-Type'] = isString ? 'text/html; charset=utf-8' : 'application/json';
+        if (!headers['Content-Type']) headers['Content-Type'] = isBuf ? 'application/octet-stream' : isString ? 'text/html; charset=utf-8' : 'application/json';
         nodeRes.writeHead(this._code, headers);
-        nodeRes.end(isString ? body : JSON.stringify(body));
+        nodeRes.end(isBuf || isString ? body : JSON.stringify(body));
       }
       return this;
     },
@@ -373,8 +563,13 @@ const server = http.createServer(async (req, res) => {
       const fakeReq = { method: 'GET', headers: req.headers, query: { report: u.pathname.slice(3) }, body: null };
       return void await handlers['listing-page'].default(fakeReq, shimRes(res));
     }
+    // /st/<token> → listing-page in statement mode (matches vercel.json rewrite).
+    if (u.pathname.startsWith('/st/')) {
+      const fakeReq = { method: 'GET', headers: req.headers, query: { statement: u.pathname.slice(4) }, body: null };
+      return void await handlers['listing-page'].default(fakeReq, shimRes(res));
+    }
     let file;
-    const CLEAN = { '/admin':'admin.html', '/campaigns':'campaigns.html', '/portal':'portal.html', '/home':'list-property.html', '/for-agents':'for-agents.html', '/list-property':'list-property.html', '/terms':'terms.html', '/privacy':'privacy.html', '/refund':'refund.html' };
+    const CLEAN = { '/admin':'admin.html', '/campaigns':'campaigns.html', '/payouts':'payouts.html', '/portal':'portal.html', '/home':'list-property.html', '/for-agents':'for-agents.html', '/list-property':'list-property.html', '/terms':'terms.html', '/privacy':'privacy.html', '/refund':'refund.html' };
     if (CLEAN[u.pathname]) file = CLEAN[u.pathname];
     else {
       const candidate = u.pathname.replace(/^\//, '');

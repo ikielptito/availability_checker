@@ -10,7 +10,7 @@
 // returns the modified HTML. The existing client-side JS in listing.html
 // still runs after the OG tags are read by the scraper.
 
-import crypto from 'node:crypto';
+import { verifyReportToken, verifyStatementToken } from '../lib/tokens.js';
 
 let _htmlCache = null;
 let _htmlCacheAt = 0;
@@ -18,6 +18,8 @@ let _agentHtmlCache = null;
 let _agentHtmlCacheAt = 0;
 let _reportHtmlCache = null;
 let _reportHtmlCacheAt = 0;
+let _statementHtmlCache = null;
+let _statementHtmlCacheAt = 0;
 let _listingsCache = null;
 let _listingsCacheAt = 0;
 const TEMPLATE_TTL_MS = 5 * 60 * 1000;
@@ -53,6 +55,11 @@ async function serve(req, res) {
   // instead of a generic page. The report itself still renders client-side.
   const reportToken = (req.query?.report || '').toString();
   if (reportToken) return serveReport(req, res, { proto, host, token: reportToken });
+
+  // /st/<groupKey>.<period>~<sig> — the monthly payout statement Maya sends
+  // owners of managed villas. Financial page: no-store, minimal OG.
+  const statementToken = (req.query?.statement || '').toString();
+  if (statementToken) return serveStatement(req, res, { proto, host, token: statementToken });
 
   const slug = (req.query?.slug || '').toLowerCase();
 
@@ -201,19 +208,11 @@ async function serveAgent(req, res, { proto, host, agentHandle, shareId }) {
 // scheme api/portal.js verifies); an invalid signature still serves the page
 // with generic branding — report-view.html shows its own error client-side.
 async function serveReport(req, res, { proto, host, token }) {
-  const i = token.lastIndexOf('~');
   let listing = null;
-  if (i > 0) {
-    const slug = token.slice(0, i).toLowerCase().replace(/[^a-z0-9-]/g, '');
-    const sig = token.slice(i + 1);
-    const expect = crypto.createHmac('sha256', process.env.LISTING_SYNC_SECRET || '')
-      .update(slug).digest('hex').slice(0, 16);
-    let ok = false;
-    try { ok = sig.length === expect.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expect)); } catch {}
-    if (ok) {
-      await Promise.all([ensureReportTemplate(proto, host), getListings(proto, host)]);
-      listing = (_listingsCache || []).find(l => l.slug === slug) || null;
-    }
+  const slug = verifyReportToken(token);
+  if (slug) {
+    await Promise.all([ensureReportTemplate(proto, host), getListings(proto, host)]);
+    listing = (_listingsCache || []).find(l => l.slug === slug) || null;
   }
   if (!_reportHtmlCache) await ensureReportTemplate(proto, host);
 
@@ -248,6 +247,45 @@ async function serveReport(req, res, { proto, host, token }) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=86400');
   return res.status(200).send(html);
+}
+
+// Monthly payout statement page. Token = groupKey.period~hmac16 (verified by
+// lib/tokens.js — same scheme the CRM mints). Financial content: the page is
+// never CDN-cached, and OG tags stay generic (no amounts, no owner names —
+// WhatsApp link previews are rendered by Meta's scraper).
+async function serveStatement(req, res, { proto, host, token }) {
+  const parsed = verifyStatementToken(token);
+  if (!_statementHtmlCache || Date.now() - _statementHtmlCacheAt > TEMPLATE_TTL_MS) {
+    const tr = await fetch(`${proto}://${host}/statement.html`);
+    if (!tr.ok) throw new Error(`statement.html fetch ${tr.status}`);
+    _statementHtmlCache = await tr.text();
+    _statementHtmlCacheAt = Date.now();
+  }
+  const title = parsed ? `Monthly statement · ${monthLabel(parsed.period)} · Samba` : 'Monthly statement · Samba';
+  const desc = 'Your villa’s monthly statement from Samba Realty: bookings, expenses, occupancy and payout.';
+  const tags = `
+    <title>${esc(title)}</title>
+    <meta name="description" content="${esc(desc)}">
+    <meta name="robots" content="noindex">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Samba">
+    <meta property="og:title" content="${esc(title)}">
+    <meta property="og:description" content="${esc(desc)}">
+    <meta property="og:image" content="${FALLBACK_OG}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="${esc(title)}">
+    <meta name="twitter:description" content="${esc(desc)}">
+  `.trim();
+  const html = _statementHtmlCache.replace(/<title>[\s\S]*?<\/title>/, tags);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(200).send(html);
+}
+
+function monthLabel(period) {
+  const [y, m] = String(period).split('-').map(Number);
+  if (!y || !m) return period;
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
 async function ensureReportTemplate(proto, host) {
