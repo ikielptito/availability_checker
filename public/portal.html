@@ -251,6 +251,58 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .rep-empty{background:var(--surface);border:1px dashed var(--border);border-radius:14px;padding:40px 24px;text-align:center;color:var(--muted);}
 .rep-empty h3{font-family:var(--rep-serif);color:var(--text);font-size:1.2rem;margin-bottom:7px;}
 
+/* ── STATEMENTS TAB — monthly payout statements for managed villas.
+   Same document language as the weekly report: serif for the financial
+   artefact moments, Satoshi for UI, one calm card per property. ── */
+.st-strip{display:flex;align-items:center;gap:30px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 24px;margin-bottom:16px;box-shadow:var(--shadow);}
+.st-strip .pf-v{font-family:var(--rep-serif);font-weight:500;font-size:1.45rem;}
+.st-strip .pf-v small{font-size:.8rem;color:var(--muted);font-family:'Satoshi',-apple-system,sans-serif;}
+.st-prop{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;}
+.st-prop-head{display:flex;align-items:center;gap:14px;padding:20px 24px 14px;}
+.st-prop-head .hgroup{min-width:0;}
+.st-eyebrow{font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow);font-weight:600;margin-bottom:5px;}
+.st-prop-name{font-family:var(--rep-serif);font-weight:500;font-size:1.4rem;line-height:1.1;letter-spacing:-.01em;color:var(--text);}
+.st-xlsx{margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:7px 12px;border-radius:8px;white-space:nowrap;}
+.st-xlsx:hover{color:var(--accent);border-color:var(--accent);}
+.st-rows{padding:0 12px 8px;}
+.st-row{display:flex;align-items:center;gap:14px;padding:13px 12px;text-decoration:none;color:var(--text);border-radius:10px;border-top:1px dashed var(--border);}
+.st-row:first-child{border-top:none;}
+.st-row:hover{background:var(--surface2);border-top-color:transparent;}
+.st-row:hover + .st-row{border-top-color:transparent;}
+.st-month{font-family:var(--rep-serif);font-size:1.05rem;line-height:1.2;}
+.st-sub{font-size:.7rem;color:var(--muted);margin-top:2px;}
+.st-amt{margin-left:auto;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.st-amt small{display:block;font-weight:500;font-size:.66rem;color:var(--muted);margin-top:1px;}
+.st-chip{flex-shrink:0;display:inline-flex;align-items:center;gap:5px;font-size:.64rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:5px 10px;border-radius:20px;white-space:nowrap;}
+.st-chip.paid{background:#e2ede0;color:var(--green);}
+.st-chip.partial{background:#FCF3E3;color:#8A5A0B;}
+.st-chip.due{background:var(--accent-soft);color:var(--accent);}
+.st-arrow{color:var(--muted);font-size:1rem;flex-shrink:0;}
+.st-none{padding:18px 24px 20px;font-size:.82rem;color:var(--muted);line-height:1.6;}
+.st-acct{border-top:1px solid var(--border);background:var(--surface2);padding:13px 24px;display:flex;align-items:center;gap:9px;font-size:.78rem;color:var(--text-2);flex-wrap:wrap;}
+.st-acct .lab{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-right:2px;}
+.st-acct b{font-variant-numeric:tabular-nums;color:var(--text);font-weight:600;}
+.st-acct .sep{color:var(--border);}
+.st-acct .edit{margin-left:auto;background:none;border:none;color:var(--accent);font-family:inherit;font-size:.74rem;font-weight:600;cursor:pointer;padding:4px 2px;}
+.st-acct .edit:hover{text-decoration:underline;}
+.st-acct-form{border-top:1px solid var(--border);background:var(--surface2);padding:14px 24px 16px;}
+.st-acct-form .lab{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:9px;}
+.st-acct-grid{display:grid;grid-template-columns:1fr 1.3fr 1.3fr;gap:9px;margin-bottom:10px;}
+.st-acct-grid input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 12px;font-family:inherit;font-size:.82rem;color:var(--text);outline:none;}
+.st-acct-grid input:focus{border-color:var(--accent);}
+.st-acct-actions{display:flex;align-items:center;gap:10px;}
+.st-acct-actions .save{background:var(--accent);border:1px solid var(--accent);border-radius:8px;color:#fff;padding:8px 16px;font-family:inherit;font-size:.76rem;font-weight:600;cursor:pointer;}
+.st-acct-actions .cancel{background:none;border:none;color:var(--muted);font-family:inherit;font-size:.76rem;font-weight:600;cursor:pointer;}
+.st-acct-actions .msg{font-size:.72rem;color:var(--muted);}
+@media(max-width:640px){
+  .st-prop-head{padding:16px 16px 10px;flex-wrap:wrap;}
+  .st-rows{padding:0 6px 6px;}
+  .st-acct,.st-acct-form{padding-left:16px;padding-right:16px;}
+  .st-acct-grid{grid-template-columns:1fr;}
+  .st-chip{display:none;}
+  .st-amt small{display:block;}
+}
+
 /* Toasts must beat the floating nav pill (z 900) and sit above it on mobile */
 #toast{z-index:1400 !important;}
 @media(max-width:640px){#toast{bottom:92px !important;}}
@@ -806,59 +858,114 @@ async function probeStatements(){
     if(statementsCache.length||statementGroupsCache.length) document.getElementById('tab-btn-statements').style.display='';
   }catch(e){}
 }
+const stAcctEditing={};   // group key → true while its payout-account form is open
 function initStatements(){
   const pane=document.getElementById('tab-statements');
   const sts=statementsCache||[];
+  const groups=statementGroupsCache||[];
   const IDRf=n=>'IDR '+Math.round(Number(n)||0).toLocaleString('en-US');
   const mlab=p=>{const[y,m]=String(p).split('-').map(Number);return y&&m?new Date(Date.UTC(y,m-1,1)).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}):p;};
-  const sub=s=>s.status==='paid'?' · paid':s.status==='partial'?` · ${IDRf(s.balance)} to follow`:' · payout on its way';
-  let html='';
-  if(!sts.length){
-    html='<div class="rep-empty"><h3>No statements yet</h3><p>Monthly payout statements for villas under Samba Realty management appear here once published.</p></div>';
-  }else{
-    html='<div style="display:flex;flex-direction:column;gap:10px">'+sts.map(s=>
-      `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener"
-        style="display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:14px 16px;text-decoration:none;color:var(--text)">
-        <div style="flex:1;min-width:0"><div style="font-weight:700">${escapeHtml(s.group_name)}</div>
-          <div style="font-size:.75rem;color:var(--muted);margin-top:2px">${escapeHtml(mlab(s.period))}${sub(s)}</div></div>
-        <div style="font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">${IDRf(s.payout_total)}</div>
-        <div style="color:var(--muted)">›</div></a>`
-    ).join('')+'</div>';
+  const dlab=iso=>iso?new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
+
+  if(!groups.length&&!sts.length){
+    pane.innerHTML='<div class="rep-empty"><h3>No statements yet</h3><p>Monthly payout statements for villas under Samba Realty management appear here once published.</p></div>';
+    return;
   }
-  // Payout account + full-history Excel, one block per property group.
-  for(const g of statementGroupsCache){
-    const a=g.payout_account||{};
-    html+=`<div style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:16px">
-      <div style="font-weight:700;margin-bottom:4px">${escapeHtml(g.name)} — payout account</div>
-      <div style="font-size:.74rem;color:var(--muted);margin-bottom:10px">Where Samba Realty transfers your monthly payout.</div>
-      <div style="display:grid;grid-template-columns:1fr 1.2fr 1.2fr;gap:8px">
-        <input type="text" id="pa-bank-${escapeHtml(g.key)}" value="${escapeHtml(a.bank||'')}" placeholder="Bank (e.g. BCA)" style="padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text)">
-        <input type="text" id="pa-name-${escapeHtml(g.key)}" value="${escapeHtml(a.account_name||'')}" placeholder="Account holder name" style="padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text)">
-        <input type="text" id="pa-num-${escapeHtml(g.key)}" value="${escapeHtml(a.account_number||'')}" placeholder="Account number" style="padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text)">
-      </div>
-      <div style="display:flex;gap:9px;margin-top:10px;flex-wrap:wrap">
-        <button onclick="savePayoutAccount('${escapeHtml(g.key)}')" style="border:none;border-radius:9px;background:var(--accent);color:#fff;padding:9px 15px;font-weight:600;cursor:pointer">Save account</button>
-        <a href="/api/statements?action=export-group&group=${encodeURIComponent(g.key)}" style="display:inline-flex;align-items:center;border-radius:9px;background:var(--surface2);color:var(--text);padding:9px 15px;font-weight:600;text-decoration:none">⬇ Download all financials (.xlsx)</a>
-      </div>
-      <div id="pa-msg-${escapeHtml(g.key)}" style="font-size:.74rem;margin-top:8px;color:var(--muted)"></div>
+
+  let html='';
+
+  // Year-to-date summary — only once there's something to summarise.
+  if(sts.length){
+    const paid=sts.reduce((a,s)=>a+(Number(s.paid_total)||0),0);
+    const owed=sts.reduce((a,s)=>a+(Number(s.balance)||0),0);
+    const latest=sts.reduce((a,s)=>s.period>a?s.period:a,'');
+    html+=`<div class="st-strip">
+      <div class="pf-cell"><span class="pf-v">${IDRf(paid)}</span><span class="pf-l">Paid to you</span></div>
+      ${owed>0?`<div class="pf-cell"><span class="pf-v" style="color:var(--accent)">${IDRf(owed)}</span><span class="pf-l">On its way</span></div>`:''}
+      <div class="pf-cell"><span class="pf-v">${sts.length}<small> statement${sts.length>1?'s':''}</small></span><span class="pf-l">Published</span></div>
+      <div class="pf-cell"><span class="pf-v"><small>through</small> ${escapeHtml(mlab(latest)).replace(/ \d{4}$/,'')}</span><span class="pf-l">Latest month</span></div>
     </div>`;
+  }
+
+  for(const g of groups){
+    const rows=sts.filter(s=>s.group_key===g.key).sort((a,b)=>b.period.localeCompare(a.period));
+    const a=g.payout_account||{};
+    const hasAcct=!!(a.bank||a.account_number);
+    const maskedNum=a.account_number?('···· '+String(a.account_number).slice(-4)):'';
+
+    html+=`<div class="st-prop">
+      <div class="st-prop-head">
+        <div class="hgroup">
+          <div class="st-eyebrow">Samba Realty · managed</div>
+          <div class="st-prop-name">${escapeHtml(g.name)}</div>
+        </div>
+        ${rows.length?`<a class="st-xlsx" href="/api/statements?action=export-group&group=${encodeURIComponent(g.key)}">⬇ Financials (.xlsx)</a>`:''}
+      </div>`;
+
+    if(!rows.length){
+      html+=`<div class="st-none">Your first monthly statement is being prepared — it will appear here, and reach you on WhatsApp, as soon as it's published.</div>`;
+    }else{
+      html+=`<div class="st-rows">`+rows.map(s=>{
+        const chip=s.status==='paid'?'<span class="st-chip paid">✓ Paid</span>'
+          :s.status==='partial'?'<span class="st-chip partial">Partially paid</span>'
+          :'<span class="st-chip due">On its way</span>';
+        const sub=s.status==='paid'?`paid ${dlab(s.paid_at)}`:s.status==='partial'?`${IDRf(s.balance)} to follow`:`published ${dlab(s.published_at)}`;
+        return `<a class="st-row" href="${escapeHtml(s.url)}" target="_blank" rel="noopener">
+          <div><div class="st-month">${escapeHtml(mlab(s.period))}</div><div class="st-sub">${sub}</div></div>
+          ${chip}
+          <div class="st-amt">${IDRf(s.payout_total)}</div>
+          <div class="st-arrow">›</div>
+        </a>`;
+      }).join('')+`</div>`;
+    }
+
+    if(stAcctEditing[g.key]){
+      html+=`<div class="st-acct-form">
+        <div class="lab">Payout account — where Samba Realty transfers your payout</div>
+        <div class="st-acct-grid">
+          <input type="text" id="pa-bank-${escapeHtml(g.key)}" value="${escapeHtml(a.bank||'')}" placeholder="Bank (e.g. BCA)">
+          <input type="text" id="pa-name-${escapeHtml(g.key)}" value="${escapeHtml(a.account_name||'')}" placeholder="Account holder name">
+          <input type="text" id="pa-num-${escapeHtml(g.key)}" value="${escapeHtml(a.account_number||'')}" placeholder="Account number">
+        </div>
+        <div class="st-acct-actions">
+          <button class="save" onclick="savePayoutAccount('${escapeHtml(g.key)}')">Save account</button>
+          <button class="cancel" onclick="stAcctEditing['${escapeHtml(g.key)}']=false;initStatements()">Cancel</button>
+          <span class="msg" id="pa-msg-${escapeHtml(g.key)}"></span>
+        </div>
+      </div>`;
+    }else{
+      html+=`<div class="st-acct">
+        <span class="lab">Payouts to</span>
+        ${hasAcct
+          ?`${escapeHtml(a.bank||'')} <span class="sep">·</span> ${escapeHtml(a.account_name||'')} <span class="sep">·</span> <b>${escapeHtml(maskedNum)}</b>`
+          :`<span style="color:var(--muted)">no account on file yet</span>`}
+        <button class="edit" onclick="stAcctEditing['${escapeHtml(g.key)}']=true;initStatements()">${hasAcct?'Edit':'＋ Add payout account'}</button>
+      </div>`;
+    }
+    html+=`</div>`;
   }
   pane.innerHTML=html;
 }
 async function savePayoutAccount(key){
   const msg=document.getElementById('pa-msg-'+key);
   try{
+    const account={
+      bank:document.getElementById('pa-bank-'+key).value.trim(),
+      account_name:document.getElementById('pa-name-'+key).value.trim(),
+      account_number:document.getElementById('pa-num-'+key).value.trim(),
+    };
     const r=await fetch('/api/statements',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'payout_account',payload:{group_key:key,account:{
-        bank:document.getElementById('pa-bank-'+key).value.trim(),
-        account_name:document.getElementById('pa-name-'+key).value.trim(),
-        account_number:document.getElementById('pa-num-'+key).value.trim(),
-      }}})});
+      body:JSON.stringify({action:'payout_account',payload:{group_key:key,account}})});
     const d=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(d.error||'HTTP '+r.status);
-    msg.textContent='Saved ✓ — future payouts go to this account.'; msg.style.color='var(--sb-success-fg,green)';
+    stAcctEditing[key]=false;
+    // Optimistic local update, then re-probe for truth.
+    const g=(statementGroupsCache||[]).find(x=>x.key===key);
+    if(g) g.payout_account=account;
+    initStatements();
+    showToast('Payout account saved — future payouts go there.');
     probeStatements();
-  }catch(e){ msg.textContent='Could not save: '+e.message; msg.style.color='var(--sb-error-fg,#b00)'; }
+  }catch(e){ if(msg){msg.textContent='Could not save: '+e.message; msg.style.color='var(--red)';} }
 }
 
 // ── VIEWINGS TAB ──
