@@ -304,6 +304,23 @@ function render(d) {
     <div class="mathline"><span class="mk"><b>Balance to follow</b></span><span class="mv">${IDR(balance)}</span></div>` : ''}
   </div>`;
 
+  // Payout account: never its own hollow section. On file → a quiet
+  // bank-statement footer line under the payments; missing → one compact,
+  // actionable strip. Either attaches to the Payments section when it
+  // exists, otherwise rides at the end of the payout-math section above.
+  const acct = d.group?.payout_account;
+  const hasAcct = acct && (acct.bank || acct.account_number);
+  const acctLine = hasAcct
+    ? `<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px dashed var(--border);font-size:.76rem;color:var(--text-2)">
+        <span style="font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600">Payouts to</span>
+        ${esc(acct.bank || '')} · ${esc(acct.account_name || '')} · <b style="font-variant-numeric:tabular-nums">···· ${esc(String(acct.account_number || '').slice(-4))}</b>
+        <span style="color:var(--muted)">· change it in your <a href="https://sambarentals.com/portal" style="color:var(--accent)">Samba portal</a> or via Maya</span>
+      </div>`
+    : `<div style="margin-top:14px;background:var(--accent-soft);border-radius:11px;padding:12px 15px;font-size:.78rem;line-height:1.55;color:var(--text-2)">
+        <b style="color:var(--accent)">Where should we send your payouts?</b>
+        Add your bank account in your <a href="https://sambarentals.com/portal" style="color:var(--accent);font-weight:600">Samba portal</a> — or simply reply to Maya on WhatsApp with your details.
+      </div>`;
+
   // Payments received
   if ((d.payments || []).length) {
     html += `<div class="pad"><div class="sec-h">Payments${paid ? '' : ' so far'}</div>
@@ -316,15 +333,12 @@ function render(d) {
         <td>${p.proof_url ? `<a href="${esc(p.proof_url)}" target="_blank" rel="noopener">view ↗</a>` : '—'}</td>
       </tr>`).join('')}
       <tr class="tot"><td>Total paid</td><td class="num">${mval(paidTotal)}</td><td colspan="2">${paid ? 'Settled in full' : IDR(balance) + ' to follow'}</td></tr>
-      </table></div></div>`;
+      </table></div>${acctLine}</div>`;
+  } else {
+    // No payments yet: the account line gets a slim band of its own — no
+    // headline, just the answer to "where will the money go".
+    html += `<div class="pad" style="padding-top:16px;padding-bottom:16px">${acctLine.replace('margin-top:14px', 'margin-top:0').replace('padding-top:12px;border-top:1px dashed var(--border);', '')}</div>`;
   }
-
-  // Payout account on file
-  const acct = d.group?.payout_account;
-  html += `<div class="pad"><div class="sec-h">Payout account</div>` + (acct && (acct.bank || acct.account_number)
-    ? `<div style="font-size:.86rem;line-height:1.8">${esc(acct.bank || '')} · ${esc(acct.account_name || '')} · <b>${esc(acct.account_number || '')}</b>
-       <div style="font-size:.72rem;color:var(--muted);margin-top:4px">Payouts go to this account. To change it, update it in your Samba portal (sambarentals.com/portal → Statements) or reply to Maya.</div></div>`
-    : `<div style="font-size:.84rem;color:var(--muted)">No payout account on file yet — add yours in your Samba portal (sambarentals.com/portal → Statements) or reply to Maya with your bank details.</div>`) + `</div>`;
 
   // Hostex occupancy — timeframe chips (month = frozen snapshot; quarter and
   // year computed LIVE from the calendar) plus per-listing chips for
