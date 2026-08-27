@@ -172,14 +172,14 @@ function render(d) {
         <td>${esc(b.stay_dates || '—')}</td>
         <td>${esc(b.platform || '—')}</td>
         <td class="num">${b.nights != null ? esc(String(b.nights)) : '—'}</td>
-        <td class="num">${Number(b.amount).toLocaleString()}</td>
-        <td class="num">${Number(b.commission).toLocaleString()}</td>
-        <td class="num">${Number(b.nett).toLocaleString()}</td>
+        <td class="num">${Math.round(Number(b.amount)).toLocaleString()}</td>
+        <td class="num">${Math.round(Number(b.commission)).toLocaleString()}</td>
+        <td class="num">${Math.round(Number(b.nett)).toLocaleString()}</td>
       </tr>`).join('')}
       <tr class="tot"><td colspan="4">Total</td>
-        <td class="num">${rows.reduce((a, b) => a + (+b.amount || 0), 0).toLocaleString()}</td>
-        <td class="num">${rows.reduce((a, b) => a + (+b.commission || 0), 0).toLocaleString()}</td>
-        <td class="num">${rows.reduce((a, b) => a + (+b.nett || 0), 0).toLocaleString()}</td></tr>
+        <td class="num">${Math.round(rows.reduce((a, b) => a + (+b.amount || 0), 0)).toLocaleString()}</td>
+        <td class="num">${Math.round(rows.reduce((a, b) => a + (+b.commission || 0), 0)).toLocaleString()}</td>
+        <td class="num">${Math.round(rows.reduce((a, b) => a + (+b.nett || 0), 0)).toLocaleString()}</td></tr>
     </table></div>`;
   }
   html += `</div>`;
@@ -189,8 +189,8 @@ function render(d) {
   if (!expenses.length) html += `<div style="color:var(--muted);font-size:.84rem">No expenses this month.</div>`;
   else html += `<div class="tblwrap"><table class="st">
     <tr><th>Date</th><th>Description</th><th class="num">Amount</th></tr>
-    ${expenses.map(e => `<tr><td style="white-space:nowrap">${esc(e.expense_date || '—')}</td><td>${esc(e.description || '—')}</td><td class="num">${Number(e.amount).toLocaleString()}</td></tr>`).join('')}
-    <tr class="tot"><td colspan="2">Total expenses</td><td class="num">${expenses.reduce((a, e) => a + (+e.amount || 0), 0).toLocaleString()}</td></tr>
+    ${expenses.map(e => `<tr><td style="white-space:nowrap">${esc(e.expense_date || '—')}</td><td>${esc(e.description || '—')}</td><td class="num">${Math.round(Number(e.amount)).toLocaleString()}</td></tr>`).join('')}
+    <tr class="tot"><td colspan="2">Total expenses</td><td class="num">${Math.round(expenses.reduce((a, e) => a + (+e.amount || 0), 0)).toLocaleString()}</td></tr>
   </table></div>`;
   html += `</div>`;
 
@@ -213,11 +213,11 @@ function render(d) {
       <tr><th>Date</th><th class="num">Amount</th><th>Reference</th><th>Confirmation</th></tr>
       ${d.payments.map(p => `<tr>
         <td style="white-space:nowrap">${esc(dstr(p.paid_at))}</td>
-        <td class="num">${Number(p.amount).toLocaleString()}</td>
+        <td class="num">${Math.round(Number(p.amount)).toLocaleString()}</td>
         <td>${esc(p.note || '—')}</td>
         <td>${p.proof_url ? `<a href="${esc(p.proof_url)}" target="_blank" rel="noopener">view ↗</a>` : '—'}</td>
       </tr>`).join('')}
-      <tr class="tot"><td>Total paid</td><td class="num">${paidTotal.toLocaleString()}</td><td colspan="2">${paid ? 'Settled in full' : IDR(balance) + ' to follow'}</td></tr>
+      <tr class="tot"><td>Total paid</td><td class="num">${Math.round(paidTotal).toLocaleString()}</td><td colspan="2">${paid ? 'Settled in full' : IDR(balance) + ' to follow'}</td></tr>
       </table></div></div>`;
   }
 
