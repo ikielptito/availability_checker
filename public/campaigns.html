@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Campaign Command Center — Samba Rentals</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="/brand.css">
+<style>
+/* Campaign Command Center — page-local styles only. Core colour/type tokens
+   come from brand.css (do NOT redeclare). Page-specific extras: */
+:root{
+  --green:var(--sb-success-fg); --orange:#B45309; --red:var(--sb-error-fg);
+  --live:var(--sb-success-fg); --live-bg:var(--sb-success-bg);
+  --paused-bg:#F1EDE4; --paused-fg:#6E756F;
+  --amber-bg:#FCF3E3; --amber-fg:#8A5A0B;
+  --red-bg:var(--sb-error-bg); --red-fg:var(--sb-error-fg);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body{font:var(--sb-body);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+@media(max-width:640px){input,textarea,select{font-size:16px !important;}}
+
+/* ── Login gate (standalone only; embed inherits sessionStorage) ─── */
+#login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;}
+#login .box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:min(360px,90vw);box-shadow:var(--sb-shadow-md);}
+#login h1{font:var(--sb-h4);margin-bottom:6px;}
+#login p{font-size:.8rem;color:var(--muted);margin-bottom:16px;}
+#login input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);margin-bottom:10px;}
+#login button{width:100%;padding:11px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;}
+#login .err{color:var(--red);font-size:.75rem;min-height:16px;margin-top:8px;}
+
+/* ── Shell: command bar + rail + content ─────────────────────────── */
+#app{display:none;min-height:100vh;}
+.cmdbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;padding:10px 18px;
+  background:color-mix(in srgb,var(--bg) 86%, transparent);backdrop-filter:blur(10px) saturate(1.3);-webkit-backdrop-filter:blur(10px) saturate(1.3);
+  border-bottom:1px solid var(--sb-hairline);}
+.cmdbar .word{font:900 17px/1 var(--sb-font-display);letter-spacing:-.01em;white-space:nowrap;}
+.cmdbar .word small{font:600 10px/1 var(--sb-font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-top:3px;}
+body.embed .cmdbar .word{display:none;}
+.lamp{display:inline-flex;align-items:center;gap:7px;font:600 12px/1 var(--sb-font-ui);padding:7px 12px;border-radius:999px;white-space:nowrap;}
+.lamp .dot{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 20%, transparent);}
+.lamp.ok{background:var(--live-bg);color:var(--live);}
+.lamp.off{background:var(--red-bg);color:var(--red-fg);}
+.lamp.test{background:var(--amber-bg);color:var(--amber-fg);}
+.spendmini{font:500 11.5px/1.3 var(--sb-font-ui);color:var(--muted);white-space:nowrap;}
+.spendmini b{color:var(--text);font-weight:700;}
+.gauge{width:74px;height:5px;border-radius:3px;background:var(--surface2);overflow:hidden;margin-top:4px;}
+.gauge i{display:block;height:100%;background:var(--accent);border-radius:3px;}
+.witaclock{font:500 11.5px/1.3 var(--sb-font-ui);color:var(--muted);text-align:right;white-space:nowrap;margin-left:auto;}
+.witaclock b{color:var(--text);font-variant-numeric:tabular-nums;}
+.witaclock .qh{font-size:10px;}
+.btn-new{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:9px 15px;font:600 13px/1 var(--sb-font-ui);cursor:pointer;white-space:nowrap;box-shadow:var(--sb-shadow-accent);}
+.btn-new:hover{background:var(--sb-terracotta-600);}
+
+.shell{display:flex;align-items:flex-start;max-width:1240px;margin:0 auto;}
+.rail{width:184px;flex:none;position:sticky;top:64px;padding:18px 10px 18px 18px;display:flex;flex-direction:column;gap:2px;}
+.rail a{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;color:var(--muted);text-decoration:none;font:500 13.5px/1 var(--sb-font-ui);}
+.rail a:hover{background:var(--surface2);color:var(--text);}
+.rail a.on{background:var(--surface);color:var(--accent);font-weight:600;box-shadow:var(--sb-shadow-xs);border:1px solid var(--sb-hairline);}
+.rail .ico{width:16px;text-align:center;}
+.content{flex:1;min-width:0;padding:18px 18px 80px;}
+@media(max-width:900px){
+  .shell{flex-direction:column;}
+  .rail{position:static;width:100%;flex-direction:row;overflow-x:auto;padding:10px 14px 2px;gap:4px;scrollbar-width:none;}
+  .rail::-webkit-scrollbar{display:none;}
+  .rail a{white-space:nowrap;}
+  .cmdbar{gap:10px;padding:10px 12px;}
+  .spendmini,.witaclock .qh{display:none;}
+}
+
+/* ── Shared bits ─────────────────────────────────────────────────── */
+.loading-state{display:flex;align-items:center;justify-content:center;gap:10px;padding:44px 0;color:var(--muted);font-size:.85rem;}
+.spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;color:var(--muted);padding:34px 12px;font-size:.85rem;}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--sb-green);color:var(--sb-on-green);
+  padding:11px 20px;border-radius:11px;font:500 13px/1.3 var(--sb-font-ui);opacity:0;transition:all .25s var(--sb-ease);z-index:120;max-width:88vw;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.error{background:var(--red-fg);color:#fff;}
+.toast.success{background:var(--sb-success-fg);color:#fff;}
+.crumb{font:500 12px/1 var(--sb-font-ui);color:var(--muted);margin-bottom:14px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.crumb a{color:var(--accent);text-decoration:none;cursor:pointer;}
+.banner{border-radius:12px;padding:11px 14px;font-size:.8rem;margin-bottom:16px;display:flex;gap:9px;align-items:flex-start;line-height:1.45;}
+.banner.amber{background:var(--amber-bg);color:var(--amber-fg);}
+.banner.red{background:var(--red-bg);color:var(--red-fg);}
+
+/* ── KPI strip ───────────────────────────────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-bottom:22px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:13px 15px;}
+.kpi .lab{font:600 10.5px/1 var(--sb-font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.kpi .val{font:700 24px/1.15 var(--sb-font-display);letter-spacing:-.02em;margin-top:7px;}
+.kpi .sub{font-size:.68rem;color:var(--muted);margin-top:4px;line-height:1.35;}
+.kpi .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:1px;}
+
+/* ── Campaign board ──────────────────────────────────────────────── */
+.grouphead{display:flex;align-items:baseline;gap:10px;margin:26px 0 12px;}
+.grouphead h2{font:700 15px/1 var(--sb-font-display);letter-spacing:-.01em;}
+.grouphead .n{font:600 11px/1 var(--sb-font-ui);color:var(--muted);background:var(--surface2);border-radius:999px;padding:4px 9px;}
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(298px,1fr));gap:12px;}
+.camp-card{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:15px 16px 13px;cursor:pointer;
+  transition:box-shadow var(--sb-t),transform var(--sb-t),border-color var(--sb-t);position:relative;}
+.camp-card:hover{box-shadow:var(--sb-shadow-md);transform:translateY(-2px);}
+.camp-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:3px;}
+.camp-name{font:700 14.5px/1.3 var(--sb-font-display);letter-spacing:-.01em;}
+.camp-sub{font-size:.7rem;color:var(--muted);line-height:1.4;min-height:2.6em;margin-top:2px;}
+.pill{display:inline-flex;align-items:center;gap:5px;font:700 10px/1 var(--sb-font-ui);letter-spacing:.05em;text-transform:uppercase;
+  padding:5px 9px;border-radius:999px;white-space:nowrap;flex:none;}
+.pill .d{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.pill.live{background:var(--live-bg);color:var(--live);}
+.pill.paused{background:var(--paused-bg);color:var(--paused-fg);}
+.pill.sending{background:var(--sb-terracotta-050);color:var(--sb-terracotta-700);}
+.pill.sending .d{animation:pulse 1.1s ease-in-out infinite;}
+@keyframes pulse{50%{opacity:.25}}
+.pill.draft{background:var(--surface2);color:var(--muted);}
+.pill.scheduled{background:#E3EDF9;color:#1D4ED8;}
+.pill.complete{background:var(--surface2);color:var(--text-2);}
+.pill.cancelled,.pill.failed{background:var(--red-bg);color:var(--red-fg);}
+.camp-chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px;}
+.chip{font:600 10.5px/1 var(--sb-font-ui);color:var(--text-2);background:var(--surface2);border-radius:7px;padding:5px 8px;white-space:nowrap;}
+.chip.warn{background:var(--amber-bg);color:var(--amber-fg);}
+.chip.bad{background:var(--red-bg);color:var(--red-fg);}
+.spark{display:flex;align-items:flex-end;gap:2px;height:26px;margin:2px 0 10px;}
+.spark i{flex:1;background:var(--sb-terracotta-100);border-radius:2px 2px 0 0;min-height:2px;}
+.spark i.hot{background:var(--accent);}
+.minifunnel{display:grid;grid-template-columns:auto 1fr auto;gap:4px 8px;font-size:.68rem;color:var(--muted);align-items:center;}
+.minifunnel .bar{height:7px;border-radius:4px;background:var(--surface2);overflow:hidden;}
+.minifunnel .bar i{display:block;height:100%;border-radius:4px;}
+.minifunnel .num{font-variant-numeric:tabular-nums;text-align:right;color:var(--text-2);font-weight:600;}
+
+/* ── Detail view ─────────────────────────────────────────────────── */
+.dhead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px;}
+.dhead h1{font:700 22px/1.2 var(--sb-font-display);letter-spacing:-.02em;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.dhead .desc{font-size:.8rem;color:var(--muted);margin-top:6px;max-width:60ch;line-height:1.5;}
+.dctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:9px;padding:8px 13px;font:600 12.5px/1 var(--sb-font-ui);cursor:pointer;}
+.btn:hover{background:var(--surface2);}
+.btn.primary{background:var(--accent);border-color:transparent;color:#fff;}
+.btn.primary:hover{background:var(--sb-terracotta-600);}
+.btn.danger{color:var(--red-fg);border-color:#E7C3BC;}
+.btn.danger:hover{background:var(--red-bg);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.capstep{display:inline-flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:var(--surface);}
+.capstep button{border:none;background:none;padding:8px 11px;cursor:pointer;font-weight:700;color:var(--muted);}
+.capstep button:hover{background:var(--surface2);color:var(--text);}
+.capstep span{font:700 12.5px/1 var(--sb-font-ui);min-width:56px;text-align:center;font-variant-numeric:tabular-nums;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+@media(max-width:860px){.grid2{grid-template-columns:1fr;}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;}
+.card-title{font:700 13.5px/1 var(--sb-font-display);letter-spacing:-.01em;margin-bottom:14px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+.card-title .aux{font:500 11px/1 var(--sb-font-ui);color:var(--muted);}
+.funnel{max-width:760px;margin:0 auto;}
+.funnel-meta{display:flex;justify-content:space-between;align-items:baseline;font-size:0.78rem;margin-bottom:6px;}
+.funnel-hint{color:var(--muted);font-size:0.68rem;}
+.funnel-nums{color:var(--muted);font-size:0.72rem;}
+.funnel-track{background:var(--surface2);border-radius:7px;height:30px;display:flex;justify-content:center;overflow:hidden;}
+.funnel-bar{height:100%;border-radius:7px;min-width:2px;transition:width 0.35s ease;}
+.funnel-connector{text-align:center;color:var(--muted);font-size:0.7rem;padding:7px 0;}
+.funnel-note{margin-top:13px;font-size:0.66rem;color:var(--muted);text-align:center;line-height:1.5;}
+table{width:100%;border-collapse:collapse;font-size:.78rem;}
+th{font:600 10.5px/1.2 var(--sb-font-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:8px 10px;border-bottom:1px solid var(--sb-hairline);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+.table-scroll{overflow-x:auto;margin:0 -18px;padding:0 18px;}
+.qdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;}
+.q-GREEN{background:var(--sb-success);} .q-YELLOW{background:var(--sb-warning);} .q-RED{background:var(--sb-error);} .q-UNKNOWN,.q-null{background:var(--sb-gray-300);}
+.st{font:600 10.5px/1 var(--sb-font-ui);border-radius:6px;padding:4px 7px;white-space:nowrap;}
+.st.replied{background:var(--live-bg);color:var(--live);}
+.st.read{background:#E3EDF9;color:#1D4ED8;}
+.st.delivered,.st.sent{background:var(--surface2);color:var(--muted);}
+.st.failed{background:var(--red-bg);color:var(--red-fg);}
+.filterchips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.fchip{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 12px;font:600 11.5px/1 var(--sb-font-ui);color:var(--muted);cursor:pointer;}
+.fchip.on{background:var(--sb-green);border-color:var(--sb-green);color:var(--sb-on-green);}
+.searchbox{width:100%;max-width:280px;padding:8px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:.8rem;margin-bottom:12px;}
+.timeline{list-style:none;}
+.timeline li{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--sb-hairline);font-size:.78rem;align-items:baseline;}
+.timeline li:last-child{border-bottom:none;}
+.timeline .when{flex:none;width:118px;color:var(--muted);font-size:.68rem;font-variant-numeric:tabular-nums;}
+.timeline .ev b{text-transform:capitalize;}
+.timeline .actor{font-size:.66rem;color:var(--muted);background:var(--surface2);border-radius:5px;padding:2px 6px;margin-left:6px;}
+
+/* ── Wizard ──────────────────────────────────────────────────────── */
+.steps{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap;}
+.step{display:flex;align-items:center;gap:7px;font:600 12px/1 var(--sb-font-ui);color:var(--muted);padding:8px 13px;border-radius:999px;background:var(--surface2);}
+.step.on{background:var(--sb-green);color:var(--sb-on-green);}
+.step.done{background:var(--live-bg);color:var(--live);}
+.step .n{width:17px;height:17px;border-radius:50%;background:color-mix(in srgb,currentColor 16%,transparent);display:grid;place-items:center;font-size:10px;}
+.wizgrid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start;}
+@media(max-width:900px){.wizgrid{grid-template-columns:1fr;}}
+.field{margin-bottom:16px;}
+.field label{font:600 12.5px/1.4 var(--sb-font-ui);color:var(--text-2);display:block;margin-bottom:6px;}
+.field input[type=text],.field input[type=datetime-local],.field input[type=number],.field textarea,.field select{
+  width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-size:.85rem;}
+.field textarea{min-height:110px;resize:vertical;line-height:1.5;}
+.field .hint{font-size:.68rem;color:var(--muted);margin-top:5px;line-height:1.45;}
+.optrow{display:flex;gap:8px;flex-wrap:wrap;}
+.opt{border:1.5px solid var(--border);background:var(--surface);border-radius:11px;padding:10px 14px;cursor:pointer;font:600 12.5px/1.3 var(--sb-font-ui);color:var(--muted);}
+.opt small{display:block;font-weight:400;font-size:.66rem;margin-top:3px;}
+.opt.on{border-color:var(--accent);color:var(--text);background:var(--sb-terracotta-050);}
+.waterfall{display:flex;flex-direction:column;gap:7px;}
+.wf-row{display:grid;grid-template-columns:112px 1fr auto;gap:9px;align-items:center;font-size:.72rem;color:var(--muted);}
+.wf-row .bar{height:13px;border-radius:6px;background:var(--surface2);overflow:hidden;}
+.wf-row .bar i{display:block;height:100%;border-radius:6px;background:var(--sb-sage);}
+.wf-row.total .bar i{background:var(--sb-green-700);}
+.wf-row.elig .bar i{background:var(--sb-success);}
+.wf-row.cut .bar i{background:var(--sb-error);opacity:.55;}
+.wf-row b{font-variant-numeric:tabular-nums;color:var(--text-2);}
+.bignum{font:700 34px/1 var(--sb-font-display);letter-spacing:-.02em;}
+.tplcard{border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;margin-bottom:8px;background:var(--surface);}
+.tplcard.on{border-color:var(--accent);background:var(--sb-terracotta-050);}
+.tplcard.dis{opacity:.45;cursor:not-allowed;}
+.tplcard .tname{font:600 13px/1.3 var(--sb-font-ui);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.tplcard .tmeta{font-size:.68rem;color:var(--muted);margin-top:4px;}
+.wa-preview{background:#E7DFD3;border-radius:13px;padding:14px;margin-top:10px;}
+.wa-bubble{background:#fff;border-radius:4px 13px 13px 13px;padding:10px 13px;font-size:.8rem;line-height:1.5;color:#111;white-space:pre-wrap;box-shadow:0 1px 1px rgba(0,0,0,.08);max-width:96%;}
+.review-row{display:flex;justify-content:space-between;gap:12px;font-size:.8rem;padding:9px 0;border-bottom:1px solid var(--sb-hairline);}
+.review-row:last-child{border-bottom:none;}
+.review-row .k{color:var(--muted);flex:none;}
+.review-row .v{text-align:right;font-weight:600;}
+
+/* ── Modal ───────────────────────────────────────────────────────── */
+.modal-back{position:fixed;inset:0;background:rgba(19,26,23,.45);display:none;align-items:center;justify-content:center;z-index:110;padding:16px;}
+.modal-back.show{display:flex;}
+.modal{background:var(--surface);border-radius:16px;padding:24px;width:min(430px,94vw);box-shadow:var(--sb-shadow-lg);}
+.modal h3{font:700 16px/1.3 var(--sb-font-display);margin-bottom:8px;}
+.modal p{font-size:.8rem;color:var(--muted);line-height:1.5;margin-bottom:14px;}
+.modal input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);margin-bottom:14px;}
+.modal .row{display:flex;gap:8px;justify-content:flex-end;}
+
+/* System view */
+.runrow{border-bottom:1px solid var(--sb-hairline);padding:10px 0;font-size:.78rem;cursor:pointer;}
+.runrow:last-child{border-bottom:none;}
+.runrow .rr-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline;}
+.runrow .rr-detail{display:none;font-size:.7rem;color:var(--muted);margin-top:8px;line-height:1.7;}
+.runrow.open .rr-detail{display:block;}
+.switchrow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid var(--sb-hairline);}
+.switchrow:last-child{border-bottom:none;}
+.switchrow .sw-lab{font:600 13px/1.4 var(--sb-font-ui);}
+.switchrow .sw-sub{font-size:.7rem;color:var(--muted);margin-top:3px;line-height:1.45;max-width:46ch;}
+.explain{font-size:.75rem;color:var(--text-2);line-height:1.65;}
+.explain b{color:var(--text);}
+.explain li{margin:6px 0 6px 18px;}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="box">
+    <h1>Campaign Command Center</h1>
+    <p>Enter the admin password to continue.</p>
+    <input type="password" id="pw" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">Open</button>
+    <div class="err" id="login-err"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="cmdbar">
+    <div class="word">SAMBA<small>Campaigns</small></div>
+    <div class="lamp ok" id="lamp" title="Master sending switch"><span class="dot"></span><span id="lamp-text">…</span></div>
+    <div class="spendmini" id="spendmini"></div>
+    <div class="witaclock"><b id="wita-time">--:--</b> WITA <span class="qh" id="wita-qh"></span></div>
+    <button class="btn-new" onclick="go('#/new')">＋ New campaign</button>
+  </div>
+  <div class="shell">
+    <nav class="rail" id="rail">
+      <a href="#/" data-view="overview"><span class="ico">◉</span>Overview</a>
+      <a href="#/audience" data-view="audience"><span class="ico">👥</span>Audience</a>
+      <a href="#/system" data-view="system"><span class="ico">⚙</span>System</a>
+    </nav>
+    <main class="content" id="content">
+      <div class="loading-state"><div class="spinner"></div>Loading command center…</div>
+    </main>
+  </div>
+</div>
+
+<div class="modal-back" id="modal-back"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="/shared.js"></script>
+<script>
+/* esc() comes from /shared.js */
+'use strict';
+
+// ── Auth (shared with /admin via same-origin sessionStorage) ─────────
+const IS_EMBED = new URLSearchParams(location.search).get('embed') === '1';
+if (IS_EMBED) document.body.classList.add('embed');
+let adminPw = sessionStorage.getItem('admin_pw') || sessionStorage.getItem('dash_pwd') || '';
+
+function showGate(msg) {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login').style.display = 'flex';
+  if (msg) document.getElementById('login-err').textContent = msg;
+}
+async function doLogin() {
+  const pw = document.getElementById('pw').value.trim();
+  if (!pw) return;
+  adminPw = pw;
+  const r = await fetch('/api/campaigns?view=center', { headers: { Authorization: 'Bearer ' + pw } });
+  if (r.status === 401) { document.getElementById('login-err').textContent = 'Wrong password.'; return; }
+  sessionStorage.setItem('admin_pw', pw);
+  boot();
+}
+
+let toastTimer;
+function showToast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// ── API ──────────────────────────────────────────────────────────────
+async function apiGet(qs) {
+  const r = await fetch('/api/campaigns?' + qs, { headers: { Authorization: 'Bearer ' + adminPw } });
+  if (r.status === 401) { showGate('Session expired. Please log in again.'); throw new Error('unauthorized'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+  return d;
+}
+async function apiPost(action, payload) {
+  const r = await fetch('/api/campaigns', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminPw },
+    body: JSON.stringify({ action, payload }),
+  });
+  if (r.status === 401) { showGate('Session expired. Please log in again.'); throw new Error('unauthorized'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+  return d;
+}
+
+const fmt = (n) => (n == null ? '—' : Number(n).toLocaleString('en-US'));
+const pct = (a, b) => (b > 0 ? Math.round(a / b * 100) + '%' : '—');
+
+// ── Command bar: WITA clock + quiet hours ────────────────────────────
+function tickClock() {
+  const wita = new Date(Date.now() + 8 * 3600e3);
+  const hh = wita.getUTCHours(), mm = wita.getUTCMinutes();
+  document.getElementById('wita-time').textContent = String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+  const quiet = hh < 9 || hh >= 21;
+  document.getElementById('wita-qh').textContent = quiet ? '· quiet hours (Maya holds outreach)' : '· contact hours 09–21';
+}
+setInterval(tickClock, 20e3); tickClock();
+
+function renderCmdbar() {
+  const s = center?.settings || {};
+  const lamp = document.getElementById('lamp');
+  if (!s.enabled) { lamp.className = 'lamp off'; document.getElementById('lamp-text').textContent = 'KILL SWITCH ON — sending disabled'; }
+  else if (s.test_agents_only) { lamp.className = 'lamp test'; document.getElementById('lamp-text').textContent = 'TEST MODE — test agents only'; }
+  else { lamp.className = 'lamp ok'; document.getElementById('lamp-text').textContent = 'Sending enabled'; }
+  lamp.onclick = () => go('#/system');
+  lamp.style.cursor = 'pointer';
+  const sp = center?.spend;
+  if (sp) {
+    document.getElementById('spendmini').innerHTML =
+      `Maya spend today <b>$${(sp.spentToday ?? 0).toFixed(2)}</b> / $${(sp.cap ?? 0).toFixed(2)}` +
+      `<div class="gauge"><i style="width:${Math.min(100, Math.round((sp.spentToday / (sp.cap || 1)) * 100))}%"></i></div>`;
+  }
+}
+
+// ── Router ───────────────────────────────────────────────────────────
+let center = null;          // campaign_center payload (cached per load)
+let detailCache = {};       // id → campaign_detail payload
+
+function go(hash) { location.hash = hash; }
+function route() {
+  const h = location.hash || '#/';
+  const content = document.getElementById('content');
+  const view = h.startsWith('#/campaign/') ? 'detail'
+    : h === '#/new' ? 'new'
+    : h === '#/audience' ? 'audience'
+    : h === '#/system' ? 'system' : 'overview';
+  document.querySelectorAll('.rail a').forEach(a => a.classList.toggle('on',
+    a.dataset.view === (view === 'detail' || view === 'new' ? 'overview' : view)));
+  if (!center) { content.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>'; return; }
+  if (view === 'overview') renderOverview();
+  else if (view === 'detail') renderDetail(h.slice('#/campaign/'.length));
+  else if (view === 'new') renderWizard();
+  else if (view === 'audience') renderAudience();
+  else if (view === 'system') renderSystem();
+}
+window.addEventListener('hashchange', route);
+
+async function loadCenter(force) {
+  try {
+    center = await apiGet('view=center');
+    renderCmdbar();
+    route();
+  } catch (e) {
+    if (e.message === 'unauthorized') return;
+    document.getElementById('content').innerHTML =
+      `<div class="banner red">⚠ <div>Could not reach the campaign engine: ${esc(e.message)}. The CRM may be redeploying — <a style="cursor:pointer;text-decoration:underline" onclick="loadCenter(true)">retry</a>.</div></div>`;
+  }
+}
+
+// ── Helpers on campaign rows ─────────────────────────────────────────
+const STATUS_LABEL = { live: 'Live', paused: 'Paused', sending: 'Sending', draft: 'Draft', scheduled: 'Scheduled', complete: 'Complete', cancelled: 'Cancelled', failed: 'Failed' };
+function statusPill(c) {
+  const s = c.status || 'draft';
+  return `<span class="pill ${esc(s)}"><span class="d"></span>${STATUS_LABEL[s] || esc(s)}</span>`;
+}
+function capChip(c) {
+  const capSetting = c.schedule?.cap_setting;
+  if (!capSetting) return '';
+  const key = capSetting.split('.').pop();
+  const v = center?.settings?.[key];
+  if (v == null || v === 0 || v === '') return '<span class="chip warn">cap OFF — dormant</span>';
+  return `<span class="chip">cap ${esc(String(v))}/day</span>`;
+}
+function nextRunChip(c) {
+  if (c.kind !== 'always_on' || c.status !== 'live') return '';
+  const now = new Date();
+  // Wave 0 fires 01:00 UTC daily (09:00 WITA); the digest only counts Mondays,
+  // the capped sweeps skip Mondays.
+  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 1, 0, 0));
+  while (next <= now
+    || (c.key === 'availability_digest' && next.getUTCDay() !== 1)
+    || (['availability_intro', 'account_invite', 'viewings_announce'].includes(c.key) && next.getUTCDay() === 1)) {
+    next.setUTCDate(next.getUTCDate() + (next <= now ? 1 : 1));
+    next.setUTCHours(1, 0, 0, 0);
+  }
+  const hrs = (next - now) / 3.6e6;
+  const label = hrs < 1.5 ? Math.max(1, Math.round(hrs * 60)) + 'm' : hrs < 48 ? Math.round(hrs) + 'h' : Math.round(hrs / 24) + 'd';
+  return `<span class="chip">next run ~${label}</span>`;
+}
+function healthChip(c) {
+  if (c.status === 'failed') return '<span class="chip bad">failing</span>';
+  const sent = c.sent_count || 0, failed = c.fail_count || 0;
+  if (sent > 0 && failed / sent > 0.1) return `<span class="chip bad">${Math.round(failed / sent * 100)}% failed</span>`;
+  const lr = c.last_run_summary;
+  if (lr && (lr.errors > 0)) return `<span class="chip warn">${fmt(lr.errors)} error${lr.errors === 1 ? '' : 's'} last run</span>`;
+  if (sent > 0 && failed / sent > 0.05) return `<span class="chip warn">${Math.round(failed / sent * 100)}% failed</span>`;
+  return '';
+}
+function sparkline(c) {
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400e3).toISOString().slice(0, 10);
+    days.push(c.spark?.[d] || 0);
+  }
+  const max = Math.max(...days, 1);
+  if (!days.some(v => v > 0)) return '<div class="spark" title="no sends in 14 days">' + days.map(() => '<i style="height:2px"></i>').join('') + '</div>';
+  return '<div class="spark" title="sends, last 14 days">' + days.map((v, i) =>
+    `<i class="${i === 13 && v > 0 ? 'hot' : ''}" style="height:${Math.max(2, Math.round(v / max * 26))}px"></i>`).join('') + '</div>';
+}
+function miniFunnel(c) {
+  const rows = [
+    ['Sent', c.sent_count || 0, 'var(--sb-green-700)'],
+    ['Read', c.read_count || 0, 'var(--sb-info)'],
+    ['Replied', c.reply_count || 0, 'var(--sb-success)'],
+  ];
+  if (c.goal === 'signup') rows.push(['Signups', c.conversion_count || 0, 'var(--accent)']);
+  const max = Math.max(rows[0][1], 1);
+  return '<div class="minifunnel">' + rows.map(([lab, v, col]) =>
+    `<span>${lab}</span><span class="bar"><i style="width:${Math.max(v > 0 ? 3 : 0, Math.round(v / max * 100))}%;background:${col}"></i></span><span class="num">${fmt(v)}</span>`
+  ).join('') + '</div>';
+}
+
+// ── OVERVIEW ─────────────────────────────────────────────────────────
+function renderOverview() {
+  const k = center.kpis || {};
+  const tpls = center.templates || [];
+  const live = tpls.filter(t => t.status === 'APPROVED');
+  const worst = live.some(t => t.quality === 'RED') ? ['RED', 'var(--sb-error)']
+    : live.some(t => t.quality === 'YELLOW') ? ['YELLOW', 'var(--sb-warning)'] : ['GREEN', 'var(--sb-success)'];
+  const camps = (center.campaigns || []);
+  const groups = {
+    always: camps.filter(c => c.kind === 'always_on'),
+    oneoff: camps.filter(c => c.kind !== 'always_on' && ['sending', 'complete', 'failed', 'cancelled', 'live'].includes(c.status)).slice(0, 10),
+    pending: camps.filter(c => c.kind !== 'always_on' && ['draft', 'scheduled'].includes(c.status)),
+  };
+  const sup = center.suppression || {};
+  const card = (c) => `
+    <div class="camp-card" onclick="go('#/campaign/${esc(c.id)}')">
+      <div class="camp-top"><div class="camp-name">${esc(c.name || 'Untitled')}</div>${statusPill(c)}</div>
+      <div class="camp-sub">${esc(c.context || (c.kind === 'always_on' ? '' : (c.template_name ? 'Template: ' + c.template_name : 'Free-text broadcast')))}</div>
+      <div class="camp-chips">${capChip(c)}${nextRunChip(c)}${healthChip(c)}
+        ${c.kind !== 'always_on' && c.total_count ? `<span class="chip">${fmt(c.total_count)} recipients</span>` : ''}
+        ${c.scheduled_at && c.status === 'scheduled' ? `<span class="chip">fires ${new Date(c.scheduled_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>` : ''}
+      </div>
+      ${sparkline(c)}
+      ${miniFunnel(c)}
+    </div>`;
+  document.getElementById('content').innerHTML = `
+    <div class="kpis">
+      <div class="kpi"><div class="lab">Reach · 30d</div><div class="val">${fmt(k.reach_30d)}</div><div class="sub">agents messaged</div></div>
+      <div class="kpi"><div class="lab">Messages · 30d</div><div class="val">${fmt(k.sent_30d)}</div><div class="sub">outbound sends</div></div>
+      <div class="kpi"><div class="lab">Read rate · 30d</div><div class="val">${k.read_rate_30d != null ? k.read_rate_30d + '%' : '—'}</div><div class="sub">of status-tracked sends</div></div>
+      <div class="kpi"><div class="lab">Replied · 30d</div><div class="val">${fmt(k.replied_30d)}</div><div class="sub">agents who wrote back</div></div>
+      <div class="kpi"><div class="lab">Signups · 30d</div><div class="val">${fmt(k.conversions_30d)}</div><div class="sub">portal accounts from campaigns${center.portal ? ` · ${fmt(center.portal.signup?.done_total)} lifetime` : ''}</div></div>
+      <div class="kpi"><div class="lab">Template health</div><div class="val" style="font-size:17px;padding-top:5px"><span class="dot" style="background:${worst[1]}"></span>${worst[0] === 'GREEN' ? 'Healthy' : worst[0] === 'YELLOW' ? 'Watch' : 'At risk'}</div><div class="sub">${live.length} approved templates · worst Meta quality</div></div>
+    </div>
+
+    <div class="grouphead"><h2>Always-on campaigns</h2><span class="n">${groups.always.length}</span></div>
+    ${groups.always.length ? `<div class="board">${groups.always.map(card).join('')}</div>`
+      : '<div class="empty-state">No always-on campaigns registered — run the migration in the CRM.</div>'}
+
+    <div class="grouphead"><h2>One-off broadcasts</h2><span class="n">${groups.oneoff.length}</span>
+      <span style="font:500 11px/1 var(--sb-font-ui);color:var(--muted)">last 10</span></div>
+    ${groups.oneoff.length ? `<div class="board">${groups.oneoff.map(card).join('')}</div>`
+      : `<div class="empty-state">No one-off campaigns yet.<br><button class="btn primary" style="margin-top:12px" onclick="go('#/new')">Launch your first</button></div>`}
+
+    ${groups.pending.length ? `
+      <div class="grouphead"><h2>Drafts &amp; scheduled</h2><span class="n">${groups.pending.length}</span></div>
+      <div class="board">${groups.pending.map(card).join('')}</div>` : ''}
+
+    <div class="card" style="margin-top:26px">
+      <div class="card-title">Audience health <span class="aux">${fmt(sup.total)} contacts with WhatsApp</span></div>
+      <div class="camp-chips" style="margin:0">
+        <span class="chip">${fmt(sup.opted_out)} opted out</span>
+        <span class="chip">${fmt(sup.dead_numbers)} dead numbers</span>
+        <span class="chip">${fmt(sup.meta_capped)} Meta-capped (24h)</span>
+        <span class="chip">${fmt(sup.monthly_only)} monthly-only</span>
+        <span class="chip">${fmt(sup.auto_responders)} auto-responders</span>
+        <button class="btn" style="margin-left:auto" onclick="go('#/audience')">Open audience →</button>
+      </div>
+    </div>`;
+}
+
+// ── DETAIL ───────────────────────────────────────────────────────────
+let recipFilter = 'all', recipSearch = '';
+async function renderDetail(id) {
+  const content = document.getElementById('content');
+  if (!detailCache[id]) {
+    content.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading campaign…</div>';
+    try { detailCache[id] = await apiGet('view=detail&id=' + encodeURIComponent(id)); }
+    catch (e) {
+      if (e.message === 'unauthorized') return;
+      content.innerHTML = `<div class="crumb"><a onclick="go('#/')">← Overview</a></div><div class="banner red">⚠ <div>${esc(e.message)}</div></div>`;
+      return;
+    }
+  }
+  const d = detailCache[id];
+  const c = d.campaign;
+  recipFilter = 'all'; recipSearch = '';
+
+  const reg = d.registry;
+  const capSetting = c.schedule?.cap_setting;
+  const capKey = capSetting ? capSetting.split('.').pop() : null;
+  const capVal = capKey != null ? (center?.settings?.[capKey] ?? 0) : null;
+  const isDormantArmed = c.kind === 'always_on' && capSetting && (!capVal || capVal === 0);
+
+  let controls = '';
+  if (c.kind === 'always_on') {
+    controls += c.status === 'paused'
+      ? (isDormantArmed && reg?.control?.cap
+        ? `<button class="btn primary" onclick="armModal('${esc(c.id)}','${esc(c.name)}')">Arm campaign…</button>`
+        : `<button class="btn primary" onclick="ctrl('${esc(c.id)}','resume')">▶ Resume</button>`)
+      : `<button class="btn" onclick="ctrl('${esc(c.id)}','pause')">⏸ Pause</button>`;
+    if (reg?.control?.cap && !isDormantArmed) {
+      controls += `<span class="capstep"><button onclick="ctrl('${esc(c.id)}','set_cap',${Math.max(0, (capVal || 0) - 5)})">−</button><span>${fmt(capVal)}/day</span><button onclick="ctrl('${esc(c.id)}','set_cap',${(capVal || 0) + 5})">＋</button></span>`;
+      if (capVal > 0 && c.status !== 'paused') controls += `<button class="btn danger" onclick="ctrl('${esc(c.id)}','disarm')">Disarm</button>`;
+    }
+  } else {
+    if (c.status === 'paused') controls += `<button class="btn primary" onclick="ctrl('${esc(c.id)}','resume')">▶ Resume</button>`;
+    if (['draft', 'scheduled'].includes(c.status)) controls += `<button class="btn danger" onclick="ctrl('${esc(c.id)}','cancel')">Cancel</button>`;
+    if (['complete', 'cancelled', 'failed'].includes(c.status)) controls += `<button class="btn" onclick="ctrl('${esc(c.id)}','archive')">Archive</button>`;
+  }
+
+  const sent = c.sent_count || 0;
+  const stages = [
+    { label: 'Sent', value: sent, color: 'var(--sb-green-700)' },
+    { label: 'Delivered', value: c.delivered_count || 0, color: 'var(--sb-info)', stepText: 'delivered' },
+    { label: 'Read', value: c.read_count || 0, color: 'var(--accent)', stepText: 'of delivered read' },
+    { label: 'Replied', value: c.reply_count || 0, color: 'var(--green)', stepText: 'of read replied' },
+  ];
+  if (c.goal === 'signup') stages.push({ label: 'Account created', value: c.conversion_count || 0, color: 'var(--sb-terracotta-700)', stepText: 'converted' });
+
+  const tplRows = (d.templates || []).map(t => `
+    <tr><td>${esc(t.name)}</td><td>${fmt(t.sent)}</td><td>${t.read_rate != null ? t.read_rate + '%' : '—'}</td><td>${t.failed ? `<span class="st failed">${fmt(t.failed)}</span>` : '0'}</td></tr>`).join('');
+
+  const attribution = d.portal ? `
+    <div class="card">
+      <div class="card-title">Portal attribution <span class="aux">?ref=${esc(d.portal.src)}</span></div>
+      <div class="camp-chips" style="margin:0">
+        <span class="chip">${fmt(d.portal.visits_30d)} tracked visits · 30d</span>
+        <span class="chip">${fmt(d.portal.visits_total)} lifetime</span>
+        ${c.goal === 'signup' ? `<span class="chip">${fmt(c.conversion_count)} accounts created</span>` : ''}
+      </div>
+    </div>` : '';
+
+  content.innerHTML = `
+    <div class="crumb"><a onclick="go('#/')">← Overview</a><span>/</span><span>${esc(c.name)}</span></div>
+    <div class="dhead">
+      <div>
+        <h1>${esc(c.name)} ${statusPill(c)} <span class="chip">${c.kind === 'always_on' ? 'always-on' : c.kind === 'sequence' ? 'sequence' : 'one-off'}</span></h1>
+        <div class="desc">${esc(c.context || '')}${c.schedule?.cron ? ` · <b>${esc(c.schedule.cron)}</b>` : ''}${c.schedule?.gate ? ` · ${esc(c.schedule.gate)}` : ''}</div>
+        ${isDormantArmed ? `<div class="banner amber" style="margin-top:10px">⚠ <div>Built but dormant — its daily cap is unset, so the cron skips it. ${c.key === 'account_invite' ? inviteTemplateNote() : 'Arm it to start the daily sweep.'}</div></div>` : ''}
+      </div>
+      <div class="dctrl">${controls}</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Lifetime funnel <span class="aux">${fmt(c.skip_count || 0)} skipped by guardrails · ${fmt(c.fail_count || 0)} failed</span></div>
+      ${sent ? funnel(stages) : '<div class="empty-state">Nothing sent yet.</div>'}
+      ${c.last_run_at ? `<div class="funnel-note">Last run ${new Date(c.last_run_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${d.note ? ' · ' + esc(d.note) : ''}</div>` : ''}
+    </div>
+
+    <div class="card">
+      <div class="card-title">Daily activity <span class="aux">last 90 days</span></div>
+      ${(d.series || []).length ? '<canvas id="detail-chart"></canvas>' : '<div class="empty-state">No message-level activity in the last 90 days.</div>'}
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Template performance</div>
+        ${tplRows ? `<div class="table-scroll"><table><thead><tr><th>Template</th><th>Sent</th><th>Read rate</th><th>Failed</th></tr></thead><tbody>${tplRows}</tbody></table></div>` : '<div class="empty-state">No sends yet.</div>'}
+      </div>
+      <div>
+        ${attribution}
+        <div class="card">
+          <div class="card-title">Failures</div>
+          ${(d.failures || []).length ? (d.failures || []).map(f => `
+            <div style="display:flex;justify-content:space-between;gap:10px;font-size:.78rem;padding:7px 0;border-bottom:1px solid var(--sb-hairline)">
+              <span>${esc(f.reason)}</span><b>${fmt(f.count)}</b></div>`).join('')
+            : '<div class="empty-state">No failed sends in the last 90 days 🎉</div>'}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Recipients <span class="aux">${fmt(d.recipients_total)} in the last 90 days · ${fmt(d.replied_in_window)} replied</span></div>
+      <div class="filterchips" id="recip-chips"></div>
+      <input class="searchbox" placeholder="Search agent…" oninput="recipSearch=this.value.toLowerCase();drawRecipients()">
+      <div class="table-scroll"><table><thead><tr><th>Agent</th><th>Tier</th><th>Outcome</th><th>Portal</th><th>Error</th></tr></thead><tbody id="recip-body"></tbody></table></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Timeline</div>
+      ${(d.events || []).length ? `<ul class="timeline">${(d.events || []).map(ev => `
+        <li><span class="when">${new Date(ev.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+        <span class="ev"><b>${esc(String(ev.type).replace(/_/g, ' '))}</b>${ev.detail ? ' · <span style="color:var(--muted)">' + esc(summarizeDetail(ev.detail)) + '</span>' : ''}<span class="actor">${esc(ev.actor)}</span></span></li>`).join('')}</ul>`
+        : '<div class="empty-state">No lifecycle events recorded yet.</div>'}
+    </div>`;
+
+  window._detailFor = id;
+  drawRecipients();
+  if ((d.series || []).length) drawDetailChart(d.series);
+}
+function inviteTemplateNote() {
+  const tpl = (center.templates || []).find(t => t.name === 'samba_account_invite_v1');
+  if (!tpl) return 'Its template (samba_account_invite_v1) is not on the WABA yet.';
+  return tpl.status === 'APPROVED'
+    ? 'Template approved ✓ — arming starts the daily sweep.'
+    : `Its Meta template is <b>${esc(tpl.status)}</b> — arming waits for approval; the sweep skips until then.`;
+}
+function summarizeDetail(det) {
+  try {
+    return Object.entries(det).filter(([k]) => k !== 'via').map(([k, v]) => `${k.replace(/_/g, ' ')}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(', ').slice(0, 140);
+  } catch { return ''; }
+}
+function drawRecipients() {
+  const d = detailCache[window._detailFor];
+  if (!d) return;
+  const counts = { all: d.recipients?.length || 0, replied: 0, read: 0, delivered: 0, failed: 0 };
+  (d.recipients || []).forEach(r => { if (counts[r.status] != null) counts[r.status]++; else if (r.status === 'sent') counts.delivered++; });
+  const chips = [['all', 'All'], ['replied', 'Replied'], ['read', 'Read, no reply'], ['delivered', 'Delivered/sent'], ['failed', 'Failed']];
+  document.getElementById('recip-chips').innerHTML = chips.map(([k, lab]) =>
+    `<button class="fchip ${recipFilter === k ? 'on' : ''}" onclick="recipFilter='${k}';drawRecipients()">${lab} · ${counts[k]}</button>`).join('');
+  const rows = (d.recipients || []).filter(r => {
+    if (recipFilter === 'delivered' && !['delivered', 'sent'].includes(r.status)) return false;
+    else if (recipFilter !== 'all' && recipFilter !== 'delivered' && r.status !== recipFilter) return false;
+    if (recipSearch && !String(r.name).toLowerCase().includes(recipSearch)) return false;
+    return true;
+  }).slice(0, 200);
+  document.getElementById('recip-body').innerHTML = rows.length ? rows.map(r => `
+    <tr><td>${esc(r.name)}${r.portal_account ? ' <span title="has portal account">👤</span>' : ''}</td>
+    <td style="color:var(--muted)">${esc(r.tier)}</td>
+    <td><span class="st ${esc(r.status)}">${esc(r.status)}</span></td>
+    <td style="color:var(--muted)">${r.portal_views != null ? `${fmt(r.portal_views)} views · ${fmt(r.portal_wa_clicks)} clicks` : '—'}</td>
+    <td style="color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.error || '')}">${esc((r.error || '').slice(0, 60))}</td></tr>`).join('')
+    : '<tr><td colspan="5" class="empty-state">No recipients match.</td></tr>';
+}
+function drawDetailChart(series) {
+  const canvas = document.getElementById('detail-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.parentElement.offsetWidth - 4, H = 160;
+  canvas.width = W; canvas.height = H;
+  const pad = { top: 8, right: 8, bottom: 24, left: 32 };
+  const cw = W - pad.left - pad.right, ch = H - pad.top - pad.bottom;
+  const maxVal = Math.max(...series.map(s => s.sent), 1);
+  const bw = Math.max(2, Math.min(16, cw / series.length - 2));
+  ctx.strokeStyle = '#F1ECE7'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 3; i++) {
+    const y = pad.top + ch / 3 * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
+    ctx.fillStyle = '#8a8478'; ctx.font = '10px Inter,sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(Math.round(maxVal * (1 - i / 3)), pad.left - 4, y + 4);
+  }
+  const step = cw / Math.max(series.length, 1);
+  series.forEach((s, i) => {
+    const x = pad.left + i * step + (step - bw) / 2;
+    const hS = (s.sent / maxVal) * ch, hR = (s.read / maxVal) * ch, hF = (s.failed / maxVal) * ch;
+    ctx.fillStyle = '#EAD9CE'; ctx.fillRect(x, pad.top + ch - hS, bw, hS);
+    ctx.fillStyle = '#E2572B'; ctx.fillRect(x, pad.top + ch - hR, bw, hR);
+    if (s.failed) { ctx.fillStyle = '#B3271A'; ctx.fillRect(x, pad.top + ch - hS - 3, bw, 2); }
+  });
+  ctx.fillStyle = '#8a8478'; ctx.font = '10px Inter,sans-serif'; ctx.textAlign = 'center';
+  const every = Math.ceil(series.length / 6);
+  series.forEach((s, i) => {
+    if (i % every) return;
+    ctx.fillText(new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), pad.left + i * step + step / 2, H - 8);
+  });
+  ctx.textAlign = 'left'; ctx.font = '10px Inter,sans-serif';
+  ctx.fillStyle = '#EAD9CE'; ctx.fillRect(pad.left, H - 14, 8, 8); ctx.fillStyle = '#8a8478'; ctx.fillText('sent', pad.left + 12, H - 7);
+  ctx.fillStyle = '#E2572B'; ctx.fillRect(pad.left + 44, H - 14, 8, 8); ctx.fillStyle = '#8a8478'; ctx.fillText('read', pad.left + 56, H - 7);
+}
+
+// funnel() — same CSS-div renderer as dashboard.html.
+function funnel(stages) {
+  const top = stages[0].value || 0;
+  return '<div class="funnel">' + stages.map((s, i) => {
+    const pctTop = top > 0 ? Math.round((s.value / top) * 100) : 0;
+    const prev = i > 0 ? stages[i - 1].value : null;
+    const step = i > 0 ? (prev > 0 ? Math.round((s.value / prev) * 100) : 0) : null;
+    const width = s.value > 0 ? Math.max(Math.min(pctTop, 100), 3) : 0;
+    const connector = i > 0
+      ? `<div class="funnel-connector">↓ ${step > 100 ? '100%+' : step + '%'} ${s.stepText || 'continued'}</div>` : '';
+    return connector + `
+      <div class="funnel-stage">
+        <div class="funnel-meta"><span>${s.label}</span>
+          <span class="funnel-nums">${fmt(s.value)}${i > 0 ? ` · ${pctTop > 100 ? '100%+' : pctTop + '%'} of sent` : ''}</span></div>
+        <div class="funnel-track"><div class="funnel-bar" style="width:${width}%;background:${s.color}"></div></div>
+      </div>`;
+  }).join('') + '</div>';
+}
+
+// ── CONTROL OPS ──────────────────────────────────────────────────────
+async function ctrl(id, op, value) {
+  const risky = { pause: 0, resume: 0, disarm: 1, cancel: 1 };
+  const run = async () => {
+    try {
+      await apiPost('campaign_control', { id, op, value });
+      showToast(op === 'pause' ? 'Paused' : op === 'resume' ? 'Resumed' : op === 'set_cap' ? 'Cap updated' : op === 'arm' ? 'Armed — starts on the next 9am WITA pass' : 'Done', 'success');
+      delete detailCache[id];
+      await loadCenter();
+    } catch (e) { showToast('Failed: ' + e.message, 'error'); }
+  };
+  if (risky[op]) confirmModal(`${op === 'cancel' ? 'Cancel' : 'Disarm'} this campaign?`,
+    op === 'cancel' ? 'The draft/scheduled launch is discarded. Nothing that already went out is affected.' : 'The daily cap is set to 0 and the sweep stops. You can arm it again any time.',
+    run);
+  else run();
+}
+function armModal(id, name) {
+  openModal(`
+    <h3>Arm “${esc(name)}”</h3>
+    <p>Sets the daily cap and flips the campaign live — the sweep starts on the next 9am WITA cron pass and works through its queue at this rate.</p>
+    <label style="font:600 12.5px/1.4 var(--sb-font-ui)">Daily cap</label>
+    <input type="number" id="arm-cap" value="10" min="1" max="50">
+    <div class="row"><button class="btn" onclick="closeModal()">Not now</button>
+    <button class="btn primary" onclick="closeModal();ctrl('${esc(id)}','arm',parseInt(document.getElementById('arm-cap').value,10)||10)">Arm campaign</button></div>`);
+}
+
+// ── WIZARD ───────────────────────────────────────────────────────────
+let wiz = null;
+function freshWiz() {
+  return {
+    step: 1, name: '', goal: 'reply', when: 'now', scheduled_at: '',
+    filter: { tiers: [], frequency: [], last_reply_days: '', portal_account: 'any', not_received_category: '', not_received_days: 30 },
+    mode: 'template', template_name: '', template_params: '', message: '',
+    preview: null, draft: null, launching: false, result: null,
+  };
+}
+function renderWizard() {
+  if (!wiz) wiz = freshWiz();
+  const w = wiz;
+  const stepper = [1, 2, 3, 4].map(n => `
+    <div class="step ${w.step === n ? 'on' : w.step > n ? 'done' : ''}"><span class="n">${w.step > n ? '✓' : n}</span>${['Basics', 'Audience', 'Message', 'Review & launch'][n - 1]}</div>`).join('');
+  let body = '';
+  if (w.step === 1) body = wizStep1();
+  else if (w.step === 2) body = wizStep2();
+  else if (w.step === 3) body = wizStep3();
+  else body = wizStep4();
+  document.getElementById('content').innerHTML = `
+    <div class="crumb"><a onclick="wiz=null;go('#/')">← Overview</a><span>/</span><span>New campaign</span></div>
+    <div class="steps">${stepper}</div>${body}`;
+  if (w.step === 2) refreshAudience();
+}
+function wizNav(back) {
+  return `<div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px">
+    ${back ? `<button class="btn" onclick="wiz.step--;renderWizard()">← Back</button>` : '<span></span>'}
+    <button class="btn primary" onclick="wizNext()">Continue →</button></div>`;
+}
+function wizStep1() {
+  const w = wiz;
+  return `<div class="card" style="max-width:560px">
+    <div class="field"><label>Campaign name</label>
+      <input type="text" id="wz-name" value="${esc(w.name)}" placeholder="e.g. September re-engagement" oninput="wiz.name=this.value">
+      <div class="hint">Shows on the board and in the audit trail — name the intent, not the date.</div></div>
+    <div class="field"><label>Goal — which outcome counts as conversion</label>
+      <div class="optrow">${[['reply', 'Reply', 'agent writes back'], ['signup', 'Account signup', 'portal account created'], ['click', 'Portal visit', 'tracked link opened'], ['enquiry', 'Enquiry', 'client enquiry sent']].map(([v, lab, sub]) =>
+        `<div class="opt ${w.goal === v ? 'on' : ''}" onclick="wiz.goal='${v}';renderWizard()">${lab}<small>${sub}</small></div>`).join('')}</div></div>
+    <div class="field"><label>When</label>
+      <div class="optrow">
+        <div class="opt ${w.when === 'now' ? 'on' : ''}" onclick="wiz.when='now';renderWizard()">Send now<small>after your final confirm</small></div>
+        <div class="opt ${w.when === 'at' ? 'on' : ''}" onclick="wiz.when='at';renderWizard()">Schedule<small>fires on the cron after the time</small></div>
+      </div>
+      ${w.when === 'at' ? `<div style="margin-top:10px"><input type="datetime-local" id="wz-at" value="${esc(w.scheduled_at)}" onchange="wiz.scheduled_at=this.value">
+        <div class="hint">Times are your local clock. The daily cron (9:00 WITA) launches anything past due — schedule for the morning window; quiet hours are 21:00–09:00 WITA.</div></div>` : ''}</div>
+    ${wizNav(false)}</div>`;
+}
+function tierChip(v, lab) {
+  const on = wiz.filter.tiers.includes(v);
+  return `<button class="fchip ${on ? 'on' : ''}" onclick="toggleArr(wiz.filter.tiers,'${v}');renderWizard()">${lab}${center.tiers?.[v] != null ? ' · ' + fmt(center.tiers[v]) : ''}</button>`;
+}
+function toggleArr(arr, v) { const i = arr.indexOf(v); if (i >= 0) arr.splice(i, 1); else arr.push(v); }
+function wizStep2() {
+  const w = wiz;
+  return `<div class="wizgrid">
+    <div class="card">
+      <div class="field"><label>Engagement tier <span style="font-weight:400;color:var(--muted)">(none selected = all)</span></label>
+        <div class="filterchips" style="margin:0">${[['champion', 'Champion'], ['active', 'Active'], ['new', 'New'], ['warm', 'Warm'], ['dormant', 'Dormant'], ['unset', 'Untagged']].map(([v, l]) => tierChip(v, l)).join('')}</div></div>
+      <div class="field"><label>Contact frequency</label>
+        <div class="filterchips" style="margin:0">${[['normal', 'Normal'], ['weekly', 'Weekly'], ['monthly', 'Monthly']].map(([v, l]) => {
+          const on = w.filter.frequency.includes(v);
+          return `<button class="fchip ${on ? 'on' : ''}" onclick="toggleArr(wiz.filter.frequency,'${v}');renderWizard()">${l}</button>`;
+        }).join('')}</div>
+        <div class="hint">Paused agents are always excluded — that's a suppression, not a filter.</div></div>
+      <div class="field"><label>Replied within the last…</label>
+        <select onchange="wiz.filter.last_reply_days=this.value;renderWizard()">
+          ${[['', 'any time (or never)'], ['7', '7 days'], ['30', '30 days'], ['90', '90 days']].map(([v, l]) => `<option value="${v}" ${String(w.filter.last_reply_days) === v ? 'selected' : ''}>${l}</option>`).join('')}
+        </select></div>
+      <div class="field"><label>Portal account</label>
+        <div class="optrow">${[['any', 'Any'], ['yes', 'Has account'], ['no', 'No account']].map(([v, l]) =>
+          `<div class="opt ${w.filter.portal_account === v ? 'on' : ''}" onclick="wiz.filter.portal_account='${v}';renderWizard()">${l}</div>`).join('')}</div></div>
+      <div class="field"><label>Hasn't received…</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select style="flex:1" onchange="wiz.filter.not_received_category=this.value;renderWizard()">
+            ${[['', '(no exclusion)'], ['broadcast', 'a one-off broadcast'], ['availability_alert', 'an availability alert'], ['availability_digest', 'a weekly digest'], ['account_invite', 'an account invite'], ['new_arrivals', 'a new-arrivals blast']].map(([v, l]) => `<option value="${v}" ${w.filter.not_received_category === v ? 'selected' : ''}>${l}</option>`).join('')}
+          </select>
+          ${w.filter.not_received_category ? `<span style="font-size:.78rem;color:var(--muted);white-space:nowrap">in the last</span>
+          <input type="number" style="width:70px" value="${w.filter.not_received_days}" min="1" onchange="wiz.filter.not_received_days=this.value;refreshAudience()">
+          <span style="font-size:.78rem;color:var(--muted)">days</span>` : ''}
+        </div></div>
+      ${wizNav(true)}
+    </div>
+    <div class="card" id="aud-panel"><div class="loading-state"><div class="spinner"></div>Counting…</div></div>
+  </div>`;
+}
+let audTimer = null, audSeq = 0;
+function refreshAudience() {
+  clearTimeout(audTimer);
+  audTimer = setTimeout(async () => {
+    const seq = ++audSeq;
+    const panel = document.getElementById('aud-panel');
+    if (!panel) return;
+    try {
+      const p = await apiPost('audience_preview', { filter: cleanFilter() });
+      if (seq !== audSeq) return;
+      wiz.preview = p;
+      const b = p.breakdown;
+      const wf = (lab, v, cls) => `<div class="wf-row ${cls || ''}"><span>${lab}</span><span class="bar"><i style="width:${Math.max(v > 0 ? 2 : 0, Math.round(v / Math.max(b.total, 1) * 100))}%"></i></span><b>${fmt(v)}</b></div>`;
+      panel.innerHTML = `
+        <div class="card-title">Reachability</div>
+        <div class="bignum" style="color:var(--sb-success-fg)">${fmt(b.eligible)}</div>
+        <div style="font-size:.72rem;color:var(--muted);margin:3px 0 16px">eligible recipients · ${fmt(b.in_window)} inside the 24h free-text window</div>
+        <div class="waterfall">
+          ${wf('All contacts', b.total, 'total')}
+          ${wf('− opted out', b.opted_out, 'cut')}
+          ${wf('− dead numbers', b.dead_number, 'cut')}
+          ${wf('− Meta-capped 24h', b.capped_24h, 'cut')}
+          ${wf('− paused/limited', b.frequency_limited, 'cut')}
+          ${wf('− auto-responders', b.auto_responder, 'cut')}
+          ${b.test_excluded ? wf('− not test agents', b.test_excluded, 'cut') : ''}
+          ${wf('− outside filters', b.filtered_out, 'cut')}
+          ${wf('Eligible', b.eligible, 'elig')}
+        </div>
+        ${p.over_cap ? `<div class="banner amber" style="margin-top:14px">⚠ <div>${fmt(b.eligible)} is over the ${p.max_recipients}-per-launch ceiling — narrow the filter by ${fmt(p.over_cap)}.</div></div>` : ''}
+        ${(p.sample || []).length ? `<div style="margin-top:14px;font-size:.7rem;color:var(--muted);line-height:1.7"><b style="color:var(--text-2)">Sample:</b> ${p.sample.map(s => esc(s.name)).join(', ')}</div>` : ''}`;
+    } catch (e) {
+      if (panel) panel.innerHTML = `<div class="banner red">⚠ <div>${esc(e.message)}</div></div>`;
+    }
+  }, 300);
+}
+function cleanFilter() {
+  const f = { ...wiz.filter };
+  if (!f.tiers.length) delete f.tiers;
+  if (!f.frequency.length) delete f.frequency;
+  if (!f.last_reply_days) delete f.last_reply_days;
+  if (f.portal_account === 'any') delete f.portal_account;
+  if (!f.not_received_category) { delete f.not_received_category; delete f.not_received_days; }
+  return f;
+}
+function wizStep3() {
+  const w = wiz;
+  const inW = w.preview?.breakdown?.in_window ?? '?', elig = w.preview?.breakdown?.eligible ?? '?';
+  const tpls = (center.templates || []).filter(t => !/^maya_/.test(t.name));
+  return `<div class="card" style="max-width:640px">
+    <div class="filterchips">
+      <button class="fchip ${w.mode === 'template' ? 'on' : ''}" onclick="wiz.mode='template';renderWizard()">Meta template — reaches everyone</button>
+      <button class="fchip ${w.mode === 'text' ? 'on' : ''}" onclick="wiz.mode='text';renderWizard()">Free text — 24h window only</button>
+    </div>
+    ${w.mode === 'text' ? `
+      <div class="banner amber">⚠ <div>Free text only reaches agents who wrote in within 24h — <b>${fmt(inW)} of ${fmt(elig)}</b> eligible are in-window right now. Everyone else is skipped at send time.</div></div>
+      <div class="field"><label>Message</label>
+        <textarea oninput="wiz.message=this.value" placeholder="Hi {name}, …">${esc(w.message)}</textarea>
+        <div class="hint">{name} → the agent's first name. Keep it short, personal, and give an easy out.</div></div>
+      ${w.message ? `<div class="wa-preview"><div class="wa-bubble">${esc(w.message.replaceAll('{name}', 'Wayan'))}</div></div>` : ''}`
+    : `
+      <div class="field"><label>Template <span style="font-weight:400;color:var(--muted)">(only APPROVED are launchable)</span></label>
+        ${tpls.map(t => {
+          const ok = t.status === 'APPROVED';
+          return `<div class="tplcard ${w.template_name === t.name ? 'on' : ''} ${ok ? '' : 'dis'}" ${ok ? `onclick="wiz.template_name='${esc(t.name)}';renderWizard()"` : ''}>
+            <div class="tname">${esc(t.name)}
+              <span class="pill ${ok ? 'live' : 'failed'}" style="text-transform:none">${esc(t.status)}</span>
+              ${t.quality ? `<span title="Meta quality"><span class="qdot q-${esc(t.quality)}"></span></span>` : ''}</div>
+            <div class="tmeta">${esc(t.language || '')}</div></div>`;
+        }).join('') || '<div class="empty-state">No templates on the WABA.</div>'}
+      </div>
+      ${w.template_name ? `<div class="field"><label>Body variables</label>
+        <input type="text" value="${esc(w.template_params)}" oninput="wiz.template_params=this.value" placeholder="{name}, Villa Saturno, Seseh">
+        <div class="hint">Comma-separated, one per {{n}} placeholder. {name} → recipient's first name. Leave empty for zero-variable templates.</div></div>` : ''}`}
+    ${wizNav(true)}</div>`;
+}
+function wizStep4() {
+  const w = wiz;
+  if (w.result) {
+    return `<div class="card" style="max-width:560px;text-align:center;padding:36px">
+      <div style="font-size:40px">${w.result.failed ? '⚠️' : '🎉'}</div>
+      <h2 style="font:700 20px/1.3 var(--sb-font-display);margin:12px 0 6px">${w.result.scheduled_for ? 'Scheduled' : 'Launched'}</h2>
+      <p style="font-size:.85rem;color:var(--muted);line-height:1.6">${w.result.scheduled_for
+        ? 'Fires on the first cron pass after ' + new Date(w.result.scheduled_for).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+        : `${fmt(w.result.sent)} sent · ${fmt(w.result.skipped)} skipped by guardrails · ${fmt(w.result.failed)} failed`}</p>
+      ${(w.result.errors || []).length ? `<div class="banner red" style="text-align:left;margin-top:12px">⚠ <div>${w.result.errors.map(esc).join('<br>')}</div></div>` : ''}
+      <button class="btn primary" style="margin-top:16px" onclick="wiz=null;detailCache={};loadCenter();go('#/')">Back to overview</button></div>`;
+  }
+  const d = w.draft;
+  return `<div class="card" style="max-width:560px">
+    <div class="card-title">Review &amp; launch</div>
+    <div class="review-row"><span class="k">Campaign</span><span class="v">${esc(w.name || 'Untitled')}</span></div>
+    <div class="review-row"><span class="k">Goal</span><span class="v">${esc(w.goal)}</span></div>
+    <div class="review-row"><span class="k">Message</span><span class="v">${w.mode === 'template' ? esc(w.template_name) : 'free text'}</span></div>
+    <div class="review-row"><span class="k">When</span><span class="v">${w.when === 'at' && w.scheduled_at ? esc(w.scheduled_at.replace('T', ' ')) : 'now, on confirm'}</span></div>
+    ${d ? `
+      <div class="review-row"><span class="k">Recipients (server-resolved)</span><span class="v">${fmt(d.recipients)}</span></div>
+      <div class="review-row"><span class="k">In 24h window</span><span class="v">${fmt(d.in_window)}</span></div>
+      ${d.estimate_usd ? `<div class="review-row"><span class="k">Est. template cost</span><span class="v">~$${d.estimate_usd.toFixed(2)}</span></div>` : ''}
+      ${d.test_agents_only ? '<div class="banner amber" style="margin-top:12px">⚠ <div><b>Test mode is ON</b> — only test agents will actually receive this.</div></div>' : ''}
+      <div style="margin-top:10px;font-size:.7rem;color:var(--muted);line-height:1.7"><b style="color:var(--text-2)">Sample:</b> ${(d.sample || []).map(esc).join(', ')}</div>
+      ${d.recipients > 50 ? `
+        <div class="field" style="margin-top:14px"><label>Type the recipient count (${fmt(d.recipients)}) to confirm</label>
+        <input type="number" id="wz-confirm-n" placeholder="${d.recipients}"></div>` : ''}
+      <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
+        <button class="btn" onclick="wiz.draft=null;wiz.step=3;renderWizard()">← Back</button>
+        <button class="btn primary" id="wz-launch" onclick="executeLaunch()" ${w.launching ? 'disabled' : ''}>${w.launching ? 'Sending…' : (w.when === 'at' && w.scheduled_at ? '🕘 Confirm schedule' : '🚀 Launch to ' + fmt(d.recipients) + ' agents')}</button></div>`
+    : `
+      <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
+        <button class="btn" onclick="wiz.step=3;renderWizard()">← Back</button>
+        <button class="btn primary" onclick="draftLaunch()" ${w.launching ? 'disabled' : ''}>${w.launching ? 'Resolving audience…' : 'Resolve final audience →'}</button></div>`}
+  </div>`;
+}
+function wizNext() {
+  const w = wiz;
+  if (w.step === 1) {
+    w.name = document.getElementById('wz-name')?.value?.trim() || w.name;
+    if (!w.name) { showToast('Give the campaign a name.', 'error'); return; }
+    if (w.when === 'at' && !document.getElementById('wz-at')?.value) { showToast('Pick a schedule time (or choose Send now).', 'error'); return; }
+    if (w.when === 'at') w.scheduled_at = document.getElementById('wz-at').value;
+  }
+  if (w.step === 2) {
+    if (!w.preview) { showToast('Wait for the audience count.', 'error'); return; }
+    if (!w.preview.breakdown.eligible) { showToast('Audience is empty — widen the filters.', 'error'); return; }
+    if (w.preview.over_cap) { showToast('Audience is over the 200 ceiling — narrow it first.', 'error'); return; }
+  }
+  if (w.step === 3) {
+    if (w.mode === 'template' && !w.template_name) { showToast('Pick a template.', 'error'); return; }
+    if (w.mode === 'text' && !w.message.trim()) { showToast('Write the message.', 'error'); return; }
+  }
+  w.step++; renderWizard();
+}
+async function draftLaunch() {
+  const w = wiz;
+  w.launching = true; renderWizard();
+  try {
+    const payload = {
+      phase: 'draft', name: w.name, goal: w.goal, filter: cleanFilter(),
+      scheduled_at: w.when === 'at' && w.scheduled_at ? new Date(w.scheduled_at).toISOString() : null,
+    };
+    if (w.mode === 'template') {
+      payload.template_name = w.template_name;
+      payload.template_params = w.template_params.split(',').map(s => s.trim()).filter(Boolean);
+    } else payload.message = w.message.trim();
+    w.draft = await apiPost('launch_broadcast', payload);
+  } catch (e) { showToast('Draft failed: ' + e.message, 'error'); }
+  w.launching = false; renderWizard();
+}
+async function executeLaunch() {
+  const w = wiz, d = w.draft;
+  if (d.recipients > 50) {
+    const typed = parseInt(document.getElementById('wz-confirm-n')?.value, 10);
+    if (typed !== d.recipients) { showToast(`Type ${d.recipients} to confirm a launch this size.`, 'error'); return; }
+  }
+  w.launching = true; renderWizard();
+  try {
+    w.result = await apiPost('launch_broadcast', { phase: 'execute', campaign_id: d.campaign_id, confirm_token: d.confirm_token });
+    showToast(w.result.scheduled_for ? 'Scheduled ✓' : 'Broadcast finished', 'success');
+  } catch (e) { showToast('Launch failed: ' + e.message, 'error'); }
+  w.launching = false; renderWizard();
+}
+
+// ── AUDIENCE EXPLORER ────────────────────────────────────────────────
+async function renderAudience() {
+  const content = document.getElementById('content');
+  const sup = center.suppression || {}, tiers = center.tiers || {};
+  const tierOrder = ['champion', 'active', 'new', 'warm', 'dormant', 'unset'];
+  const maxT = Math.max(...tierOrder.map(t => tiers[t] || 0), 1);
+  content.innerHTML = `
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Engagement tiers <span class="aux">${fmt(sup.total)} contacts</span></div>
+        <div class="waterfall">${tierOrder.map(t => `
+          <div class="wf-row"><span style="text-transform:capitalize">${t}</span>
+          <span class="bar"><i style="width:${Math.round((tiers[t] || 0) / maxT * 100)}%;background:${t === 'champion' || t === 'active' ? 'var(--sb-success)' : t === 'dormant' ? 'var(--sb-gray-300)' : 'var(--sb-sage)'}"></i></span>
+          <b>${fmt(tiers[t] || 0)}</b></div>`).join('')}</div>
+        <div class="funnel-note" style="text-align:left">Tiers drive who gets the daily event-alert stream — dormant agents only see the Monday digest. Tune per-agent in the Maya console.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Suppressions <span class="aux">never receive campaigns</span></div>
+        ${[['Opted out', sup.opted_out, 'said stop — legally and reputationally final unless they return'],
+           ['Dead numbers', sup.dead_numbers, 'not on WhatsApp / chronic delivery failures — auto-cleared if they write in'],
+           ['Meta-capped (24h)', sup.meta_capped, 'Meta throttled marketing to them today; retrying risks a block'],
+           ['Monthly-only', sup.monthly_only, 'asked for less — digest at most every ~4 weeks'],
+           ['Auto-responders', sup.auto_responders, 'robot inboxes detected — they look engaged but nobody is reading']]
+          .map(([lab, v, sub]) => `<div class="switchrow"><div><div class="sw-lab">${lab}</div><div class="sw-sub">${sub}</div></div><div class="bignum" style="font-size:22px">${fmt(v)}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Live reachability check</div>
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">The exact waterfall a launch would see right now, with no filters applied.</p>
+      <div id="aud-panel"><div class="loading-state"><div class="spinner"></div>Counting…</div></div>
+    </div>`;
+  try {
+    const p = await apiPost('audience_preview', { filter: {} });
+    const b = p.breakdown;
+    const wf = (lab, v, cls) => `<div class="wf-row ${cls || ''}"><span>${lab}</span><span class="bar"><i style="width:${Math.max(v > 0 ? 2 : 0, Math.round(v / Math.max(b.total, 1) * 100))}%"></i></span><b>${fmt(v)}</b></div>`;
+    const el = document.getElementById('aud-panel');
+    if (el) el.innerHTML = `<div class="waterfall" style="max-width:560px">
+      ${wf('All contacts', b.total, 'total')}${wf('− opted out', b.opted_out, 'cut')}${wf('− dead numbers', b.dead_number, 'cut')}
+      ${wf('− Meta-capped', b.capped_24h, 'cut')}${wf('− paused/limited', b.frequency_limited, 'cut')}${wf('− auto-responders', b.auto_responder, 'cut')}
+      ${b.test_excluded ? wf('− not test agents', b.test_excluded, 'cut') : ''}${wf('Reachable', b.eligible, 'elig')}</div>
+      <div class="funnel-note" style="text-align:left">${fmt(b.in_window)} of the reachable are inside the 24h free-text window right now.</div>`;
+  } catch (e) {
+    const el = document.getElementById('aud-panel');
+    if (el) el.innerHTML = `<div class="banner red">⚠ <div>${esc(e.message)}</div></div>`;
+  }
+}
+
+// ── SYSTEM ───────────────────────────────────────────────────────────
+function renderSystem() {
+  const s = center.settings || {}, log = center.cron_log || [], tpls = center.templates || [], sp = center.spend || {};
+  document.getElementById('content').innerHTML = `
+    <div class="grid2">
+      <div>
+        <div class="card">
+          <div class="card-title">Master switches</div>
+          <div class="switchrow">
+            <div><div class="sw-lab">Sending enabled</div><div class="sw-sub">The kill switch every sweep and broadcast checks (settings.samba_availability.enabled). Off = nothing goes out, campaigns keep their own statuses.</div></div>
+            <button class="btn ${s.enabled ? 'danger' : 'primary'}" onclick="masterSwitch(${s.enabled ? "'kill_all'" : "'enable_sending'"})">${s.enabled ? 'KILL SWITCH' : 'Enable sending'}</button>
+          </div>
+          <div class="switchrow">
+            <div><div class="sw-lab">Test agents only</div><div class="sw-sub">Every send is restricted to is_test contacts — the safe way to rehearse a campaign end-to-end.</div></div>
+            <button class="btn ${s.test_agents_only ? '' : ''}" onclick="masterSwitch('test_mode', ${s.test_agents_only ? 'false' : 'true'})">${s.test_agents_only ? 'Turn OFF' : 'Turn ON'}</button>
+          </div>
+          <div class="switchrow">
+            <div><div class="sw-lab">Maya spend today</div><div class="sw-sub">Shared Claude budget across replies + campaigns; sequences pause at the cap.</div></div>
+            <div style="text-align:right"><div class="bignum" style="font-size:22px">$${(sp.spentToday ?? 0).toFixed(2)}</div><div style="font-size:.68rem;color:var(--muted)">of $${(sp.cap ?? 0).toFixed(2)} (incl. rollover)</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">How sending works <span class="aux">read-only guardrails</span></div>
+          <ul class="explain">
+            <li><b>Quiet hours</b> — Maya-initiated outreach only between 09:00–21:00 WITA. Inbound replies are answered any time.</li>
+            <li><b>3 waves</b> — the morning broadcast splits into cohorts at 9:00 / 9:20 / 9:40 WITA to protect the Meta quality rating.</li>
+            <li><b>High-signal bar</b> — an event alert needs ≥3 genuine improvements or it rolls into the Monday digest.</li>
+            <li><b>Frequency caps</b> — 72h between alerts, 6h hard idempotency, tier-muted stream (dormant = digest only).</li>
+            <li><b>Auto-suppression</b> — dead numbers, Meta 131049 caps, opt-outs and auto-responders are excluded everywhere, automatically.</li>
+            <li><b>200-recipient ceiling</b> per one-off launch, ~1.2s spacing, executed server-side.</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-title">Cron run log <span class="aux">latest ${log.length}</span></div>
+          ${log.length ? log.map((r, i) => `
+            <div class="runrow" onclick="this.classList.toggle('open')">
+              <div class="rr-head"><b style="text-transform:capitalize">${esc(r.kind || 'run')}</b>
+                <span style="color:var(--muted);font-size:.68rem">${r.at ? new Date(r.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</span></div>
+              <div style="font-size:.7rem;color:var(--muted);margin-top:3px">${['alerts', 'digests', 'intros', 'invites', 'sequences', 'welcomes', 'drafts'].filter(k => r[k]).map(k => `${r[k]} ${k}`).join(' · ') || 'no sends'}</div>
+              <div class="rr-detail">${Object.entries(r).filter(([k]) => !['at', 'kind'].includes(k)).map(([k, v]) => `${esc(k)}: ${esc(String(typeof v === 'object' ? JSON.stringify(v) : v))}`).join(' · ')}</div>
+            </div>`).join('') : '<div class="empty-state">No runs logged yet.</div>'}
+        </div>
+        <div class="card">
+          <div class="card-title">Meta template health <span class="aux">${tpls.length} on the WABA</span></div>
+          <div class="table-scroll"><table><thead><tr><th>Template</th><th>Status</th><th>Quality</th></tr></thead><tbody>
+            ${tpls.map(t => `<tr><td style="font-size:.72rem">${esc(t.name)}</td>
+              <td><span class="st ${t.status === 'APPROVED' ? 'replied' : t.status === 'REJECTED' ? 'failed' : 'sent'}">${esc(t.status)}</span></td>
+              <td><span class="qdot q-${esc(t.quality || 'null')}"></span>${esc(t.quality || '—')}</td></tr>`).join('')}
+          </tbody></table></div>
+          <div class="funnel-note" style="text-align:left">RED quality risks Meta pausing the template. Rotate copy (create a _vN+1) before it gets there.</div>
+        </div>
+      </div>
+    </div>`;
+}
+function masterSwitch(op, value) {
+  const danger = op === 'kill_all';
+  const word = danger ? 'KILL' : op === 'enable_sending' ? 'ENABLE' : (value ? 'TEST' : 'LIVE');
+  openModal(`
+    <h3>${danger ? 'Stop all sending?' : op === 'enable_sending' ? 'Enable sending?' : value ? 'Restrict to test agents?' : 'Go live for everyone?'}</h3>
+    <p>${danger ? 'Every sweep and broadcast stops on its next check. Nothing is lost — campaigns keep their state and resume when re-enabled.'
+      : op === 'enable_sending' ? 'Live campaigns resume on the next cron pass.'
+      : value ? 'Only is_test contacts receive anything until this is turned off.'
+      : 'All eligible agents receive campaign sends again.'}</p>
+    <p>Type <b>${word}</b> to confirm.</p>
+    <input id="confirm-word" autocomplete="off">
+    <div class="row"><button class="btn" onclick="closeModal()">Cancel</button>
+    <button class="btn ${danger ? 'danger' : 'primary'}" onclick="if(document.getElementById('confirm-word').value.trim().toUpperCase()!=='${word}'){showToast('Type ${word} to confirm.','error');return;}closeModal();doMaster('${op}',${value === undefined ? 'undefined' : value})">Confirm</button></div>`);
+}
+async function doMaster(op, value) {
+  try {
+    await apiPost('campaign_control', { op, value });
+    showToast('Done', 'success');
+    detailCache = {};
+    await loadCenter();
+  } catch (e) { showToast('Failed: ' + e.message, 'error'); }
+}
+
+// ── Modal helpers ────────────────────────────────────────────────────
+function openModal(html) {
+  document.getElementById('modal').innerHTML = html;
+  document.getElementById('modal-back').classList.add('show');
+}
+function closeModal() { document.getElementById('modal-back').classList.remove('show'); }
+document.getElementById('modal-back').addEventListener('click', (e) => { if (e.target.id === 'modal-back') closeModal(); });
+function confirmModal(title, text, onYes) {
+  openModal(`<h3>${esc(title)}</h3><p>${esc(text)}</p>
+    <div class="row"><button class="btn" onclick="closeModal()">Keep it</button>
+    <button class="btn danger" id="cm-yes">Yes, do it</button></div>`);
+  document.getElementById('cm-yes').onclick = () => { closeModal(); onYes(); };
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────
+function boot() {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  loadCenter();
+}
+if (adminPw) boot(); else showGate();
+</script>
+</body>
+</html>

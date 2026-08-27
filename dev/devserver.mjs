@@ -20,7 +20,121 @@ process.env.PADDLE_PRICE_ID = 'pri_dev_10mo';
 process.env.PADDLE_WEBHOOK_SECRET = 'pdl_ntfset_devsecret';
 process.env.DIGEST_SHARED_SECRET = 'dev_secret';
 process.env.CRM_BASE_URL = 'http://localhost:3456/__crm_mock';
+process.env.LISTING_SYNC_SECRET = process.env.LISTING_SYNC_SECRET || 'dev-sync-secret';
 const __crmCalls = [];
+
+// ── mock Campaign Command Center (kaya-agent-crm /api/campaigns) ──────
+// Stateful enough that pause/resume/arm/launch visibly work in the UI.
+const dayISO = (back) => new Date(Date.now() - back * 86400e3).toISOString();
+const sparkOf = (seed) => { const o = {}; for (let i = 0; i < 14; i++) { const v = Math.max(0, Math.round(Math.sin(i / 2 + seed) * 6 + (seed % 5) + 4 - (i % 3))); if (v) o[dayISO(13 - i).slice(0, 10)] = v; } return o; };
+const mockCampaigns = [
+  { id: 'c-alert', key: 'availability_alert', kind: 'always_on', name: 'Availability alerts', status: 'live', goal: 'reply', pipeline: 'samba', context: 'High-signal availability changes to matched agents', schedule: { cron: 'daily 09:00-09:40 WITA, 3 waves', gate: 'HIGH_SIGNAL_MIN=3, 72h frequency' }, sent_count: 1240, delivered_count: 1180, read_count: 861, reply_count: 118, conversion_count: 0, fail_count: 34, skip_count: 402, last_run_at: dayISO(0), last_run_summary: { sent: 41, skipped: 12, errors: 0 }, spark: sparkOf(1), created_at: dayISO(80) },
+  { id: 'c-digest', key: 'availability_digest', kind: 'always_on', name: 'Weekly digest', status: 'live', goal: 'reply', pipeline: 'samba', context: 'Monday availability digest — reaches every non-paused agent', schedule: { cron: 'Mondays 09:00 WITA, 3 waves' }, sent_count: 880, delivered_count: 852, read_count: 512, reply_count: 64, conversion_count: 0, fail_count: 12, skip_count: 130, last_run_at: dayISO(2), last_run_summary: { sent: 214, skipped: 30, errors: 2 }, spark: sparkOf(2), created_at: dayISO(80) },
+  { id: 'c-intro', key: 'availability_intro', kind: 'always_on', name: 'First-touch intro', status: 'paused', goal: 'reply', pipeline: 'samba', context: 'Carousel intro to agents the broadcast has never reached', schedule: { cron: 'daily (not Mondays)', cap_setting: 'samba_availability.intro_sweep_daily_cap' }, sent_count: 62, delivered_count: 58, read_count: 31, reply_count: 9, conversion_count: 0, fail_count: 3, skip_count: 0, last_run_at: dayISO(9), last_run_summary: { sent: 8, queue: 66, errors: 0 }, spark: {}, created_at: dayISO(60) },
+  { id: 'c-arrivals', key: 'new_arrivals', kind: 'always_on', name: 'New arrivals', status: 'live', goal: 'reply', pipeline: 'samba', context: 'Just-went-live listings announced as a NEW-badge carousel', schedule: { cron: 'daily 09:00 WITA (wave 0), when listings went live' }, sent_count: 310, delivered_count: 300, read_count: 214, reply_count: 41, conversion_count: 0, fail_count: 4, skip_count: 55, last_run_at: dayISO(3), last_run_summary: { sent: 96, failed: 1 }, spark: sparkOf(3), created_at: dayISO(70) },
+  { id: 'c-invite', key: 'account_invite', kind: 'always_on', name: 'Account invites', status: 'paused', goal: 'signup', pipeline: 'samba', context: 'Portal-account invite for dormant agents + closing-window nudge', schedule: { cron: 'daily (not Mondays)', cap_setting: 'samba_availability.account_invite_daily_cap' }, sent_count: 48, delivered_count: 44, read_count: 26, reply_count: 7, conversion_count: 5, fail_count: 2, skip_count: 0, last_run_at: dayISO(4), last_run_summary: { sent: 10, queue: 84, errors: 0 }, spark: sparkOf(4), created_at: dayISO(30) },
+  { id: 'c-viewings', key: 'viewings_announce', kind: 'always_on', name: 'Viewings announce', status: 'paused', goal: 'reply', pipeline: 'samba', context: 'One-time "Maya books viewings now" note to engaged agents', schedule: { cron: 'daily (not Mondays)', cap_setting: 'samba_availability.viewings_announce_daily_cap' }, sent_count: 0, delivered_count: 0, read_count: 0, reply_count: 0, conversion_count: 0, fail_count: 0, skip_count: 0, spark: {}, created_at: dayISO(2) },
+  { id: 'c-onboard', key: 'onboarding', kind: 'always_on', name: 'Welcome / onboarding', status: 'live', goal: 'reply', pipeline: 'samba', context: 'Welcome template for newly added agents (deferred to 9am WITA)', schedule: { cron: 'daily 09:00 WITA (wave 0)' }, sent_count: 92, delivered_count: 90, read_count: 71, reply_count: 33, conversion_count: 0, fail_count: 1, skip_count: 0, last_run_at: dayISO(1), last_run_summary: { sent: 2 }, spark: sparkOf(5), created_at: dayISO(80) },
+  { id: 'c-owner', key: 'owner_cold', kind: 'always_on', name: 'Owner cold outreach', status: 'paused', goal: 'reply', pipeline: 'samba', context: 'Cold intro drip to prospect villa owners (screenshot pipeline)', schedule: { cron: 'daily 09:00 WITA', cap_setting: 'owner_cold.intro_daily_cap' }, sent_count: 14, delivered_count: 13, read_count: 8, reply_count: 2, conversion_count: 0, fail_count: 1, skip_count: 0, last_run_at: dayISO(6), spark: {}, created_at: dayISO(20) },
+  { id: 'c-sept', kind: 'one_off', name: 'September promo blast', status: 'complete', goal: 'reply', pipeline: 'samba', context: null, template_name: 'samba_availability_alert_v3', total_count: 74, sent_count: 71, delivered_count: 69, read_count: 47, reply_count: 12, conversion_count: 0, fail_count: 3, skip_count: 3, last_run_at: dayISO(5), spark: sparkOf(6), created_at: dayISO(5) },
+  { id: 'c-sched', kind: 'one_off', name: 'Villa Saturno spotlight', status: 'scheduled', goal: 'click', pipeline: 'samba', template_name: 'samba_availability_alert_v3', total_count: 40, sent_count: 0, delivered_count: 0, read_count: 0, reply_count: 0, conversion_count: 0, fail_count: 0, skip_count: 0, scheduled_at: dayISO(-2), spark: {}, created_at: dayISO(1) },
+];
+const mockSettings = { enabled: true, test_agents_only: false, intro_sweep_daily_cap: 0, account_invite_daily_cap: 0, viewings_announce_daily_cap: 0, carousel_enabled: true };
+function mockCampaignsApi({ action, payload = {} }) {
+  const find = (id) => mockCampaigns.find(c => c.id === id);
+  if (action === 'campaign_center') {
+    return { status: 200, body: {
+      campaigns: mockCampaigns.filter(c => !c.archived_at),
+      kpis: { reach_30d: 208, sent_30d: 934, read_rate_30d: 68, replied_30d: 74, conversions_30d: 5 },
+      spend: { spentToday: 2.41, cap: 13.2, base: 10, rollover: 3.2, remaining: 10.79 },
+      suppression: { total: 296, opted_out: 14, dead_numbers: 9, meta_capped: 3, monthly_only: 11, auto_responders: 2 },
+      tiers: { champion: 12, active: 58, new: 34, warm: 71, dormant: 95, unset: 26 },
+      templates: [
+        { name: 'samba_availability_alert_v3', status: 'APPROVED', language: 'en', quality: 'GREEN' },
+        { name: 'samba_availability_digest_v3', status: 'APPROVED', language: 'en', quality: 'GREEN' },
+        { name: 'samba_weekly_carousel_v2', status: 'APPROVED', language: 'en', quality: 'YELLOW' },
+        { name: 'samba_account_invite_v1', status: 'PENDING', language: 'en', quality: null },
+        { name: 'samba_viewings_v1', status: 'APPROVED', language: 'en', quality: 'GREEN' },
+        { name: 'samba_agent_welcome_v3', status: 'APPROVED', language: 'en', quality: 'GREEN' },
+        { name: 'samba_owner_cold_v3', status: 'REJECTED', language: 'en', quality: null },
+      ],
+      settings: mockSettings,
+      cron_log: [
+        { at: dayISO(0), kind: 'daily', agents: 296, alerts: 41, digests: 0, intros: 0, invites: 0, sequences: 3, welcomes: 2, spend: 2.41, campaigns_repaired: 0, campaigns_launched: 0 },
+        { at: dayISO(1), kind: 'wave2', alerts: 12, digests: 0, errors: 0 },
+        { at: dayISO(2), kind: 'daily', agents: 294, alerts: 0, digests: 214, sequences: 1, spend: 4.02 },
+      ],
+      cron_utc: { waves: ['01:00', '01:20', '01:40'], hourly_sweep: ':05' },
+      portal: { src_of_key: { availability_alert: 'wa_alert', availability_digest: 'wa_digest', account_invite: 'acct_invite' }, src: { wa_alert: { total: 412, last30: 168 }, wa_digest: { total: 388, last30: 122 }, acct_invite: { total: 61, last30: 24 } }, signup: { shown_total: 402, done_total: 57 } },
+    } };
+  }
+  if (action === 'campaign_detail') {
+    const c = find(payload.id);
+    if (!c) return { status: 404, body: { error: 'campaign not found' } };
+    const series = []; for (let i = 29; i >= 0; i--) { const sent = Math.max(0, Math.round(Math.sin(i / 3) * 8 + 9)); series.push({ date: dayISO(i).slice(0, 10), sent, read: Math.round(sent * 0.66), failed: i % 9 === 0 ? 1 : 0 }); }
+    const names = ['Wayan Sujana', 'Made Artini', 'Ketut Wira', 'Putu Eka', 'Nyoman Sari', 'Agus Pratama', 'Dewi Lestari', 'Rizky Ramadhan', 'Komang Ayu', 'Gede Bagus', 'Sari Indah', 'Yoga Mahendra'];
+    return { status: 200, body: {
+      campaign: c,
+      registry: c.key ? { control: c.schedule?.cap_setting ? { cap: { key: 'samba_availability', path: c.schedule.cap_setting.split('.').pop() } } : { master: true } } : null,
+      series,
+      templates: [{ name: c.template_name || 'samba_availability_alert_v3', sent: c.sent_count, tracked: c.sent_count, read: c.read_count, failed: c.fail_count, read_rate: c.sent_count ? Math.round(c.read_count / c.sent_count * 100) : null }],
+      recipients: names.map((n, i) => ({ id: 100 + i, name: n, tier: ['active', 'warm', 'dormant', 'new'][i % 4], status: ['replied', 'read', 'delivered', 'sent', 'failed'][i % 5], portal_account: i % 3 === 0, error: i % 5 === 4 ? '131026 — Recipient is not a valid WhatsApp user' : null, at: dayISO(i % 10), portal_views: i * 3, portal_wa_clicks: i % 4 })),
+      recipients_total: names.length, replied_in_window: 3,
+      failures: c.fail_count ? [{ reason: 'Number not on WhatsApp (131026)', count: Math.max(1, Math.round(c.fail_count * 0.7)) }, { reason: 'Meta per-user marketing cap (131049)', count: Math.max(1, Math.round(c.fail_count * 0.3)) }] : [],
+      events: [
+        { type: 'created', actor: 'system', detail: { self_healed: false }, created_at: c.created_at },
+        ...(c.status === 'paused' ? [{ type: 'paused', actor: 'admin', detail: null, created_at: dayISO(3) }] : []),
+        ...(c.last_run_at ? [{ type: 'completed', actor: 'cron', detail: c.last_run_summary, created_at: c.last_run_at }] : []),
+      ],
+      portal: c.key === 'availability_alert' ? { src: 'wa_alert', visits_total: 412, visits_30d: 168 } : null,
+      note: 'message-level data covers the last 90 days; campaign counters are lifetime',
+    } };
+  }
+  if (action === 'campaign_control') {
+    const { op, id, value } = payload;
+    if (op === 'kill_all') { mockSettings.enabled = false; return { status: 200, body: { ok: true, settings: mockSettings } }; }
+    if (op === 'enable_sending') { mockSettings.enabled = true; return { status: 200, body: { ok: true, settings: mockSettings } }; }
+    if (op === 'test_mode') { mockSettings.test_agents_only = !!value; return { status: 200, body: { ok: true, settings: mockSettings } }; }
+    const c = find(id);
+    if (!c) return { status: 404, body: { error: 'campaign not found' } };
+    if (op === 'pause') c.status = 'paused';
+    else if (op === 'resume') c.status = c.kind === 'always_on' ? 'live' : 'scheduled';
+    else if (op === 'arm') { c.status = 'live'; if (c.schedule?.cap_setting) mockSettings[c.schedule.cap_setting.split('.').pop()] = value; }
+    else if (op === 'disarm') { c.status = 'paused'; if (c.schedule?.cap_setting) mockSettings[c.schedule.cap_setting.split('.').pop()] = 0; }
+    else if (op === 'set_cap') { if (c.schedule?.cap_setting) mockSettings[c.schedule.cap_setting.split('.').pop()] = value; }
+    else if (op === 'cancel') c.status = 'cancelled';
+    else if (op === 'archive') c.archived_at = new Date().toISOString();
+    else return { status: 400, body: { error: 'unknown op: ' + op } };
+    return { status: 200, body: { ok: true, campaign: c } };
+  }
+  if (action === 'audience_preview') {
+    const f = payload.filter || {};
+    const narrowed = (f.tiers?.length ? 0.4 : 1) * (f.portal_account === 'no' ? 0.8 : f.portal_account === 'yes' ? 0.2 : 1) * (f.last_reply_days ? 0.5 : 1) * (f.not_received_category ? 0.7 : 1);
+    const eligible = Math.max(3, Math.round(219 * narrowed));
+    return { status: 200, body: {
+      breakdown: { total: 296, opted_out: 14, dead_number: 9, capped_24h: 3, frequency_limited: 17, auto_responder: 2, test_excluded: 0, filtered_out: 296 - 45 - eligible < 0 ? 0 : 296 - 45 - eligible, eligible, in_window: Math.round(eligible * 0.18) },
+      sample: ['Wayan Sujana', 'Made Artini', 'Ketut Wira', 'Putu Eka', 'Nyoman Sari', 'Agus Pratama', 'Dewi Lestari', 'Rizky R.', 'Komang Ayu', 'Gede Bagus'].slice(0, 10).map((n, i) => ({ id: 100 + i, name: n, tier: 'active', in_window: i % 5 === 0 })),
+      over_cap: eligible > 200 ? eligible - 200 : 0, max_recipients: 200,
+    } };
+  }
+  if (action === 'launch_broadcast') {
+    if (payload.phase === 'draft') {
+      const id = 'c-new-' + Date.now().toString(36);
+      mockCampaigns.unshift({ id, kind: 'one_off', name: payload.name, status: 'draft', goal: payload.goal, template_name: payload.template_name || null, broadcast_msg: payload.message || null, scheduled_at: payload.scheduled_at || null, total_count: 57, sent_count: 0, delivered_count: 0, read_count: 0, reply_count: 0, conversion_count: 0, fail_count: 0, skip_count: 0, spark: {}, created_at: new Date().toISOString() });
+      return { status: 200, body: { campaign_id: id, confirm_token: 'tok-' + id, recipients: 57, in_window: 11, breakdown: { eligible: 57, in_window: 11 }, sample: ['Wayan Sujana', 'Made Artini', 'Ketut Wira'], estimate_usd: payload.template_name ? 2.28 : 0, test_agents_only: mockSettings.test_agents_only } };
+    }
+    if (payload.phase === 'execute') {
+      const c = find(payload.campaign_id);
+      if (!c) return { status: 404, body: { error: 'campaign not found' } };
+      if (payload.confirm_token !== 'tok-' + c.id) return { status: 409, body: { error: 'confirm token mismatch — the audience changed since the preview; draft again' } };
+      if (c.scheduled_at && Date.parse(c.scheduled_at) > Date.now()) { c.status = 'scheduled'; return { status: 200, body: { ok: true, scheduled_for: c.scheduled_at } }; }
+      c.status = 'complete'; c.sent_count = 55; c.skip_count = 2; c.delivered_count = 52; c.read_count = 30;
+      return { status: 200, body: { ok: true, sent: 55, skipped: 2, failed: 0, errors: [] } };
+    }
+    return { status: 400, body: { error: 'phase must be "draft" or "execute"' } };
+  }
+  return { status: 400, body: { error: 'unknown action: ' + action } };
+}
 
 // ── mock redis ──
 const store = new Map(), sets = new Map(), hashes = new Map(), lists = new Map();
@@ -40,6 +154,7 @@ function exec(cmd) {
     case 'HGETALL': { const h = hashes.get(a[0]); if (!h) return []; const o = []; for (const [k, v] of h) o.push(k, v); return o; }
     case 'SADD': { if (!sets.has(a[0])) sets.set(a[0], new Set()); sets.get(a[0]).add(a[1]); return 1; }
     case 'SCARD': return sets.has(a[0]) ? sets.get(a[0]).size : 0;
+    case 'SMEMBERS': return sets.has(a[0]) ? [...sets.get(a[0])] : [];
     case 'SUNION': { const u = new Set(); a.forEach(k => (sets.get(k) || new Set()).forEach(m => u.add(m))); return [...u]; }
     case 'LPUSH': { if (!lists.has(a[0])) lists.set(a[0], []); lists.get(a[0]).unshift(a[1]); return lists.get(a[0]).length; }
     case 'LTRIM': { const l = lists.get(a[0]) || []; lists.set(a[0], l.slice(parseInt(a[1]), parseInt(a[2]) + 1)); return 'OK'; }
@@ -119,6 +234,12 @@ globalThis.fetch = async (url, opts = {}) => {
     return { json: async () => ({ files: [{ id: 'ph1' }, { id: 'ph2' }, { id: 'ph3' }] }) };
   }
   // CRM mock — used by api/notify-agents.js when CRM_BASE_URL points back at us
+  if (u.includes('/__crm_mock/api/campaigns')) {
+    const body = JSON.parse(opts.body || '{}');
+    __crmCalls.push({ kind: 'campaigns', body });
+    const out = mockCampaignsApi(body);
+    return { ok: out.status === 200, status: out.status, json: async () => out.body };
+  }
   if (u.includes('/__crm_mock/api/supabase')) {
     const body = JSON.parse(opts.body);
     __crmCalls.push({ kind: 'set_settings', body });
@@ -253,7 +374,7 @@ const server = http.createServer(async (req, res) => {
       return void await handlers['listing-page'].default(fakeReq, shimRes(res));
     }
     let file;
-    const CLEAN = { '/admin':'admin.html', '/portal':'portal.html', '/home':'list-property.html', '/for-agents':'for-agents.html', '/list-property':'list-property.html', '/terms':'terms.html', '/privacy':'privacy.html', '/refund':'refund.html' };
+    const CLEAN = { '/admin':'admin.html', '/campaigns':'campaigns.html', '/portal':'portal.html', '/home':'list-property.html', '/for-agents':'for-agents.html', '/list-property':'list-property.html', '/terms':'terms.html', '/privacy':'privacy.html', '/refund':'refund.html' };
     if (CLEAN[u.pathname]) file = CLEAN[u.pathname];
     else {
       const candidate = u.pathname.replace(/^\//, '');

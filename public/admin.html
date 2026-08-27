@@ -240,6 +240,7 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
       <button class="atab on" data-tab="approvals" onclick="showTab('approvals')">Approvals <span class="atab-count" id="approvals-count"></span></button>
       <button class="atab" data-tab="listings" onclick="showTab('listings')">Listings</button>
       <button class="atab" data-tab="analytics" onclick="showTab('analytics')">Analytics</button>
+      <button class="atab" data-tab="campaigns" onclick="showTab('campaigns')">Campaigns</button>
       <button class="atab" data-tab="visits" onclick="showTab('visits')">Visits</button>
       <button class="atab" data-tab="promos" onclick="showTab('promos')">Promo codes</button>
       <button class="atab" data-tab="errors" onclick="showTab('errors')">Errors <span class="atab-count" id="errors-count"></span></button>
@@ -251,6 +252,7 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
     <div id="tab-approvals" class="tabpane"><div class="loading-state"><div class="spinner"></div>Loading…</div></div>
     <div id="tab-listings" class="tabpane" style="display:none"></div>
     <div id="tab-analytics" class="tabpane" style="display:none"><iframe id="analytics-frame" class="admin-frame" title="Analytics"></iframe></div>
+    <div id="tab-campaigns" class="tabpane" style="display:none"><iframe id="campaigns-frame" class="admin-frame" title="Campaigns"></iframe></div>
     <div id="tab-visits" class="tabpane" style="display:none"></div>
     <div id="tab-promos" class="tabpane" style="display:none"></div>
     <div id="tab-errors" class="tabpane" style="display:none"></div>
@@ -300,10 +302,11 @@ let activeTab = 'approvals';
 function showTab(t) {
   activeTab = t;
   document.querySelectorAll('.atab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  ['approvals','listings','analytics','visits','promos','errors'].forEach(k => {
+  ['approvals','listings','analytics','campaigns','visits','promos','errors'].forEach(k => {
     const el = document.getElementById('tab-' + k); if (el) el.style.display = k === t ? '' : 'none';
   });
   if (t === 'analytics') { const f = document.getElementById('analytics-frame'); if (f && !f.src) f.src = '/dashboard.html?embed=1'; }
+  if (t === 'campaigns') { const f = document.getElementById('campaigns-frame'); if (f && !f.src) f.src = '/campaigns.html?embed=1'; }
   if (t === 'visits') loadVisitsTab();
   if (t === 'promos') loadPromos();
   if (t === 'errors') loadErrors();
@@ -1638,6 +1641,14 @@ function lines(str) {
 }
 
 /* esc() comes from /shared.js */
+
+// Embedded pages (analytics dashboard, campaign center) deep-link between
+// tabs via postMessage — e.g. the dashboard's campaign summary card opens
+// the Campaigns tab without leaving /admin.
+window.addEventListener('message', (e) => {
+  if (e.origin !== location.origin) return;
+  if (e.data && typeof e.data.tab === 'string') showTab(e.data.tab);
+});
 
 // Boot
 const saved = sessionStorage.getItem('admin_pw');

@@ -392,24 +392,22 @@ function render(data) {
       </div>
     </div>
 
-    <!-- CAMPAIGNS — WhatsApp broadcast performance, proxied from the CRM -->
-    ${crm && crm.campaigns && crm.campaigns.length ? crm.campaigns.map(c => {
-      const goal = c.goal === 'signup'
-        ? `<b>${fmt(c.signups || 0)}</b> account${c.signups === 1 ? '' : 's'} created · ${fmt((crm.channels || {}).acct_invite || 0)} invite-link visits · ${fmt(c.replied)} replied`
-        : (c.recipients ? `<b>${fmt(c.replied)}</b> agent${c.replied === 1 ? '' : 's'} replied — ${Math.round(c.replied / c.recipients * 100)}% of the ${fmt(c.recipients)} reached` : `<b>${fmt(c.replied)}</b> replies`);
+    <!-- CAMPAIGNS — one summary card; the full picture lives in the Campaign
+         Command Center (campaigns.html), so nothing is duplicated here. -->
+    ${crm && crm.campaigns && crm.campaigns.length ? (() => {
+      const cs = crm.campaigns;
+      const tot = (k) => cs.reduce((s, c) => s + (c[k] || 0), 0);
+      const failed = tot('failed');
+      const signups = cs.reduce((s, c) => s + (c.signups || 0), 0);
       return `
       <div class="chart-card">
-        <div class="card-title">${esc(c.name)}<span class="camp-when">${c.first_at ? new Date(c.first_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}${c.last_at && c.last_at.slice(0, 10) !== (c.first_at || '').slice(0, 10) ? ' – ' + new Date(c.last_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}</span></div>
-        <div class="camp-goal">${goal}</div>
-        ${funnel([
-          { label: 'Sent', value: c.sent, color: 'var(--accent)' },
-          { label: 'Delivered', value: c.delivered, color: 'var(--accent)', stepText: 'delivered' },
-          { label: 'Read', value: c.read, color: 'var(--accent)', stepText: 'of delivered read' },
-          { label: 'Replied', value: c.replied, color: 'var(--green)', stepText: 'of read replied' },
-        ])}
-        ${c.failed ? `<div class="camp-fail">⚠ ${fmt(c.failed)} send${c.failed === 1 ? '' : 's'} failed</div>` : ''}
+        <div class="card-title">Campaigns<span class="camp-when">${cs.length} active this period</span></div>
+        <div class="camp-goal"><b>${fmt(tot('sent'))}</b> sent · ${fmt(tot('read'))} read · <b>${fmt(tot('replied'))}</b> replied${signups ? ` · ${fmt(signups)} account${signups === 1 ? '' : 's'} created` : ''}${failed ? ` · <span style="color:var(--red,#B3271A)">${fmt(failed)} failed</span>` : ''}</div>
+        <div style="margin-top:12px">
+          <button class="btn-primary" style="padding:9px 16px;border:none;border-radius:9px;background:var(--accent);color:#fff;font-weight:600;font-size:0.8rem;cursor:pointer" onclick="openCampaignCenter()">📡 Open Campaign Command Center</button>
+        </div>
       </div>`;
-    }).join('') : (crm ? '' : `
+    })() : (crm ? '' : `
       <div class="chart-card"><div class="card-title">Campaigns</div>
       <div class="loading-state" style="padding:12px 0 4px">CRM unreachable — campaign performance will appear when the connection recovers.</div></div>`)}
 
@@ -579,6 +577,15 @@ function render(data) {
 
   // Draw chart
   drawChart(series);
+}
+
+// Inside /admin the dashboard lives in an iframe — ask the parent to switch
+// to its Campaigns tab; standalone, just navigate.
+function openCampaignCenter() {
+  if (window.parent !== window) {
+    try { window.parent.postMessage({ tab: 'campaigns' }, location.origin); return; } catch (_) {}
+  }
+  location.href = '/campaigns';
 }
 
 function funnel(stages) {
