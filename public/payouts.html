@@ -376,7 +376,7 @@ function drawDetail() {
   html += `<div class="card"><h3>${esc(g.name || s.group_key)} — ${esc(det.period_label)} ${pillsFor(s)}</h3>
     <div class="totgrid">
       <div class="tot"><div class="lab">Gross revenue</div><div class="val">${IDR(s.gross_total)}</div></div>
-      <div class="tot"><div class="lab">Commission</div><div class="val">${IDR(s.commission_total)}</div></div>
+      <div class="tot"><div class="lab">Mgmt fee (yours)</div><div class="val">${IDR(s.commission_total)}</div></div>
       <div class="tot"><div class="lab">Nett to owner</div><div class="val">${IDR(s.nett_total)}</div></div>
       <div class="tot"><div class="lab">Expenses</div><div class="val">− ${IDR(s.expenses_total)}</div></div>
       ${Number(s.adjustments_total) ? `<div class="tot"><div class="lab">Adjustments</div><div class="val">${IDR(s.adjustments_total)}</div></div>` : ''}
@@ -402,7 +402,7 @@ function drawDetail() {
   for (const u of units) {
     const rows = bookings.filter(b => (b.unit_name || '') === u);
     html += `<div class="card"><h3>Bookings${u ? ' — ' + esc(u) : ''}</h3><div class="tblwrap"><table class="lines">
-      <tr><th>Guest</th><th>Dates</th><th>Platform</th><th class="num">Nights</th><th class="num">Amount</th><th class="num">Commission</th><th class="num">Nett</th>${editable ? '<th></th>' : ''}</tr>
+      <tr><th>Guest</th><th>Dates</th><th>Platform</th><th class="num">Nights</th><th class="num">Amount</th><th class="num">Mgmt fee</th><th class="num">Nett</th>${editable ? '<th></th>' : ''}</tr>
       ${rows.map(l => lineRow(l, editable, ['guest_name', 'stay_dates', 'platform', 'nights', 'amount', 'commission', 'nett'])).join('')}
       <tr class="totrow"><td colspan="3">Total</td><td class="num">${rows.reduce((a, l) => a + (Number(l.nights) || 0), 0)}</td>
         <td class="num">${IDR(rows.reduce((a, l) => a + (Number(l.amount) || 0), 0))}</td>

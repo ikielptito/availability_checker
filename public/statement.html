@@ -160,10 +160,10 @@ function render(d) {
         const h = deficit
           ? { label: 'This month closed in deficit', value: t.payout, sub: `Villa expenses exceeded rental income in ${esc(d.period_label || '')}. Samba Realty covers the shortfall — it carries into your next statement and is repaid from future rental revenue.` }
           : paid
-            ? { label: 'Total payout to you — settled in full', value: t.payout, sub: `Paid in full on ${esc(dstr(d.paid_at))}. Rental income after platform commission and villa expenses${Number(t.adjustments) ? ' and adjustments' : ''}, ${esc(d.period_label || '')}.` }
+            ? { label: 'Total payout to you — settled in full', value: t.payout, sub: `Paid in full on ${esc(dstr(d.paid_at))}. Rental income after the Samba management fee and villa expenses${Number(t.adjustments) ? ' and adjustments' : ''}, ${esc(d.period_label || '')}.` }
             : partial
               ? { label: 'Balance owed to you', value: balance, sub: `${IDR(paidTotal)} of the ${IDR(t.payout)} total for ${esc(d.period_label || '')} has already been transferred — this is what's still on its way.` }
-              : { label: 'Total payout to you', value: t.payout, sub: `Rental income after platform commission and villa expenses${Number(t.adjustments) ? ' and adjustments' : ''}, ${esc(d.period_label || '')}.` };
+              : { label: 'Total payout to you', value: t.payout, sub: `Rental income after the Samba management fee and villa expenses${Number(t.adjustments) ? ' and adjustments' : ''}, ${esc(d.period_label || '')}.` };
         return `<div class="payout">
         <div class="pl">${h.label}</div>
         <div class="pv">${IDR(h.value)}</div>
@@ -179,7 +179,7 @@ function render(d) {
     const rows = bookings.filter(b => (b.unit_name || '') === u);
     if (u) html += `<div class="unit-h">${esc(u)}</div>`;
     html += `<div class="tblwrap"><table class="st">
-      <tr><th>Guest</th><th>Dates</th><th>Platform</th><th class="num">Nights</th><th class="num">Amount</th><th class="num">Commission</th><th class="num">Nett to you</th></tr>
+      <tr><th>Guest</th><th>Dates</th><th>Platform</th><th class="num">Nights</th><th class="num">Amount</th><th class="num">Mgmt fee</th><th class="num">Nett to you</th></tr>
       ${rows.map(b => `<tr>
         <td>${esc(b.guest_name || '—')}</td>
         <td>${esc(b.stay_dates || '—')}</td>
@@ -210,7 +210,7 @@ function render(d) {
   // The math
   html += `<div class="pad"><div class="sec-h">How your payout adds up</div>
     <div class="mathline"><span class="mk">Rental income (gross)</span><span class="mv">${IDR(t.gross)}</span></div>
-    <div class="mathline"><span class="mk">Platform / booking commission</span><span class="mv">− ${IDR(t.commission)}</span></div>
+    <div class="mathline"><span class="mk">Samba Realty management fee</span><span class="mv">− ${IDR(t.commission)}</span></div>
     <div class="mathline"><span class="mk">Nett rental income</span><span class="mv">${IDR(t.nett)}</span></div>
     <div class="mathline"><span class="mk">Villa expenses</span><span class="mv">− ${IDR(t.expenses)}</span></div>
     ${adjustments.length ? adjustments.map(a => `<div class="mathline"><span class="mk">${esc(a.description || 'Adjustment')}</span><span class="mv">${Number(a.amount) < 0 ? '− ' + IDR(-a.amount) : '+ ' + IDR(a.amount)}</span></div>`).join('') : ''}
@@ -250,7 +250,7 @@ function render(d) {
         <div class="hxc"><div class="kl">Occupancy</div><div class="kv">${hx.occupancy_pct}<small>%</small></div><div class="kc">of available nights</div></div>
         <div class="hxc"><div class="kl">Nights sold</div><div class="kv">${hx.nights_sold}</div><div class="kc">across the month</div></div>
         <div class="hxc"><div class="kl">Reservations</div><div class="kv">${hx.reservations}</div><div class="kc">stays touching this month</div></div>
-        <div class="hxc"><div class="kl">Net nightly rate</div><div class="kv" style="font-size:1.15rem;line-height:1.3">${hx.adr ? IDR(hx.adr) : '—'}</div><div class="kc">average, after commission</div></div>
+        <div class="hxc"><div class="kl">Net nightly rate</div><div class="kv" style="font-size:1.15rem;line-height:1.3">${hx.adr ? IDR(hx.adr) : '—'}</div><div class="kc">average, after platform fees</div></div>
       </div>
       ${Object.keys(hx.channels || {}).length ? `<div class="chmix">${Object.entries(hx.channels).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
         `<div class="chrow"><span>${esc(k)}</span><span class="bar"><i style="width:${Math.round(v / chTotal * 100)}%"></i></span><span class="n">${v} nights</span></div>`).join('')}</div>` : ''}
