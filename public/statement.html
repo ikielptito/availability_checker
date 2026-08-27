@@ -113,7 +113,7 @@ const CURS = {
 let CUR = 'IDR', FX = null, DATA = null, HXSEL = 'group', RANGE = 'month', TOKEN = '';
 const STATS = {};   // 'quarter' | 'year' | 'next' → live Hostex range stats (fetched once)
 async function loadStats(range) {
-  if (STATS[range] !== undefined) return;
+  if (STATS[range] !== undefined && STATS[range] !== false) return;   // a past failure retries
   STATS[range] = null;   // in flight
   try {
     const r = await fetch(`/api/statements?action=stats&token=${encodeURIComponent(TOKEN)}&range=${range}`);
@@ -151,6 +151,7 @@ async function boot() {
   const m = location.pathname.match(/\/st\/(.+)$/);
   const token = m ? decodeURIComponent(m[1]) : '';
   if (!token) return fail('Statement link missing', 'Open this page from the link Maya sent you on WhatsApp.');
+  TOKEN = token;   // known immediately — stats fetches must never race the statement fetch
   let d;
   try {
     const r = await fetch('/api/statements?action=public-statement&token=' + encodeURIComponent(token));
