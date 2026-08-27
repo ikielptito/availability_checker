@@ -73,6 +73,14 @@ table.st tr.tot td{border-top:1px solid var(--border);border-bottom:none;font-we
 .chrow .bar i{display:block;height:100%;background:var(--accent);border-radius:5px;}
 .chrow .n{font-variant-numeric:tabular-nums;color:var(--muted);}
 
+/* Tap-friendly "?" explainers on the important figures */
+.q{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:5px;vertical-align:1px;
+  border:1px solid var(--border);border-radius:50%;background:var(--surface);color:var(--muted);
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:.6rem;font-weight:700;cursor:pointer;padding:0;flex:none;}
+.q:hover,.q.on{border-color:var(--accent);color:var(--accent);}
+.tipnote{display:none;margin:8px 0 4px;padding:9px 12px;background:var(--surface2);border:1px dashed var(--border);border-radius:9px;
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:.72rem;line-height:1.55;color:var(--text-2);font-weight:400;}
+.tipnote.show{display:block;}
 .proof{margin-top:14px;}
 .proof img{max-width:100%;border-radius:11px;border:1px solid var(--border);}
 .foot{padding:20px 28px;border-top:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
@@ -133,6 +141,17 @@ function setCur(c) {
   if (DATA) render(DATA);
 }
 function setHx(k) { HXSEL = k; if (DATA) render(DATA); }
+// "?" explainers: one open at a time; the note expands under the figure.
+function tg(id) {
+  const el = document.getElementById('tip-' + id);
+  const was = el?.classList.contains('show');
+  document.querySelectorAll('.tipnote.show').forEach(n => n.classList.remove('show'));
+  document.querySelectorAll('.q.on').forEach(b => b.classList.remove('on'));
+  if (el && !was) { el.classList.add('show'); document.querySelector(`[data-q="${id}"]`)?.classList.add('on'); }
+}
+const qm = (id) => `<button class="q" data-q="${id}" onclick="tg('${id}')" aria-label="What is this?">?</button>`;
+const tip = (id, text) => `<div class="tipnote" id="tip-${id}">${text}</div>`;
+
 // Direct bookings are Samba bookings — say so on the owner's document.
 // (Owner stays keep Era's wording; those aren't Samba-sourced revenue.)
 const platformLabel = (p) => /direct/i.test(p || '') && !/owner/i.test(p || '') ? 'Samba' : (p || '—');
@@ -208,10 +227,16 @@ function render(d) {
             : partial
               ? { label: 'Balance owed to you', value: balance, sub: `${IDR(paidTotal)} of the ${IDR(t.payout)} total for ${esc(d.period_label || '')} has already been transferred — this is what's still on its way.` }
               : { label: 'Total payout to you', value: t.payout, sub: `Rental income after the Samba management fee and villa expenses${Number(t.adjustments) ? ' and adjustments' : ''}, ${esc(d.period_label || '')}.` };
+        const heroTip = deficit
+          ? 'This month\'s expenses were bigger than its rental income. You never owe Samba a transfer — the shortfall is covered by Samba Realty and automatically deducted from your next months\' payouts until recovered.'
+          : partial
+            ? 'Your payout can arrive in more than one transfer. This figure is the remaining amount still to be transferred; every payment already made is listed in the Payments section below, with its date and reference.'
+            : 'Your rental income for the month after Samba\'s management fee and the villa\'s running costs. The full calculation is in "How your payout adds up" below.';
         return `<div class="payout">
-        <div class="pl">${h.label}</div>
+        <div class="pl">${h.label}${qm('hero')}</div>
         <div class="pv">${IDR(h.value)}</div>
         <div class="ps">${h.sub}</div>
+        ${tip('hero', heroTip)}
       </div>`;
       })()}
       ${(() => {
@@ -263,12 +288,18 @@ function render(d) {
 
   // The math
   html += `<div class="pad"><div class="sec-h">How your payout adds up</div>
-    <div class="mathline"><span class="mk">Rental income (gross)</span><span class="mv">${IDR(t.gross)}</span></div>
-    <div class="mathline"><span class="mk">Samba Realty management fee</span><span class="mv">− ${IDR(t.commission)}</span></div>
-    <div class="mathline"><span class="mk">Nett rental income</span><span class="mv">${IDR(t.nett)}</span></div>
-    <div class="mathline"><span class="mk">Villa expenses</span><span class="mv">− ${IDR(t.expenses)}</span></div>
-    ${adjustments.length ? adjustments.map(a => `<div class="mathline"><span class="mk">${esc(a.description || 'Adjustment')}</span><span class="mv">${Number(a.amount) < 0 ? '− ' + IDR(-a.amount) : '+ ' + IDR(a.amount)}</span></div>`).join('') : ''}
-    <div class="mathline grand"><span class="mk">Total payout</span><span class="mv">${IDR(t.payout)}</span></div>
+    <div class="mathline"><span class="mk">Rental income (gross)${qm('gross')}</span><span class="mv">${IDR(t.gross)}</span></div>
+    ${tip('gross', 'Everything guests paid for stays this month, per booking, before any fees — each booking is itemized in the Bookings section above.')}
+    <div class="mathline"><span class="mk">Samba Realty management fee${qm('fee')}</span><span class="mv">− ${IDR(t.commission)}</span></div>
+    ${tip('fee', `Samba Realty's fee for fully managing your villa — guest communication, check-ins, housekeeping coordination, and these statements${Number(t.gross) > 0 ? ` (${Math.round(Number(t.commission) / Number(t.gross) * 100)}% of gross rental income per your agreement)` : ''}. It is not Airbnb's or Booking.com's platform fee.`)}
+    <div class="mathline"><span class="mk">Nett rental income${qm('nett')}</span><span class="mv">${IDR(t.nett)}</span></div>
+    ${tip('nett', 'Gross rental income minus the Samba management fee — your share of the month\'s rental revenue before villa costs.')}
+    <div class="mathline"><span class="mk">Villa expenses${qm('exp')}</span><span class="mv">− ${IDR(t.expenses)}</span></div>
+    ${tip('exp', 'Running costs Era paid on your behalf this month — utilities, cleaning, laundry, repairs. Every item is listed with its date in the Villa expenses section above.')}
+    ${adjustments.length ? adjustments.map((a, i) => `<div class="mathline"><span class="mk">${esc(a.description || 'Adjustment')}${i === 0 ? qm('adj') : ''}</span><span class="mv">${Number(a.amount) < 0 ? '− ' + IDR(-a.amount) : '+ ' + IDR(a.amount)}</span></div>`).join('') : ''}
+    ${adjustments.length ? tip('adj', 'Amounts rolled in from other months — most commonly a previous month\'s deficit (covered by Samba at the time) being recovered from this month\'s revenue.') : ''}
+    <div class="mathline grand"><span class="mk">Total payout${qm('payout')}</span><span class="mv">${IDR(t.payout)}</span></div>
+    ${tip('payout', 'What lands in your account for this month: nett rental income, minus villa expenses, plus or minus any adjustments. Once transferred in full, this statement shows as Paid.')}
     ${paidTotal > 0 && !paid ? `<div class="mathline"><span class="mk">Paid so far</span><span class="mv">− ${IDR(paidTotal)}</span></div>
     <div class="mathline"><span class="mk"><b>Balance to follow</b></span><span class="mv">${IDR(balance)}</span></div>` : ''}
   </div>`;
@@ -322,11 +353,14 @@ function render(d) {
     } else {
       const chTotal = Object.values(hx.channels || {}).reduce((a, b) => a + b, 0) || 1;
       html += `<div class="hxgrid">
-        <div class="hxc"><div class="kl">Occupancy</div><div class="kv">${hx.occupancy_pct}<small>%</small></div><div class="kc">of available nights${hx.owner_blocked ? ` · ${hx.owner_blocked} calendar-blocked night${hx.owner_blocked > 1 ? 's' : ''} excluded (own stays or direct rentals)` : ''}</div></div>
-        <div class="hxc"><div class="kl">Nights sold</div><div class="kv">${hx.nights_sold}</div><div class="kc">${RANGE === 'month' ? 'across the month' : 'across ' + esc(STATS[RANGE]?.label || '')}</div></div>
+        <div class="hxc"><div class="kl">Occupancy${qm('occ')}</div><div class="kv">${hx.occupancy_pct}<small>%</small></div><div class="kc">of available nights${hx.owner_blocked ? ` · ${hx.owner_blocked} calendar-blocked night${hx.owner_blocked > 1 ? 's' : ''} excluded (own stays or direct rentals)` : ''}</div></div>
+        <div class="hxc"><div class="kl">Nights sold${qm('nights')}</div><div class="kv">${hx.nights_sold}</div><div class="kc">${RANGE === 'month' ? 'across the month' : 'across ' + esc(STATS[RANGE]?.label || '')}</div></div>
         <div class="hxc"><div class="kl">Reservations</div><div class="kv">${hx.reservations}</div><div class="kc">stays in the period</div></div>
-        <div class="hxc"><div class="kl">Net nightly rate</div><div class="kv" style="font-size:1.15rem;line-height:1.3">${hx.adr ? IDR(hx.adr) : '—'}</div><div class="kc">average, after platform fees</div></div>
+        <div class="hxc"><div class="kl">Net nightly rate${qm('adr')}</div><div class="kv" style="font-size:1.15rem;line-height:1.3">${hx.adr ? IDR(hx.adr) : '—'}</div><div class="kc">average, after platform fees</div></div>
       </div>
+      ${tip('occ', 'Nights with a guest ÷ nights your villa was actually open for guests. Nights the calendar was blocked — your own stays, or direct rentals arranged off-calendar — don\'t count against you.')}
+      ${tip('nights', 'Guest nights from the booking calendar in this period. Long-stay tenants arranged directly may not appear here even though they\'re in your statement\'s booking lines.')}
+      ${tip('adr', 'Average earned per booked night after the booking platforms\' own fees (Airbnb, Booking.com, …) — before Samba\'s management fee and villa costs.')}
       ${Object.keys(hx.channels || {}).length ? `<div class="chmix">${Object.entries(hx.channels).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
         `<div class="chrow"><span>${esc(chLabel(k))}</span><span class="bar"><i style="width:${Math.round(v / chTotal * 100)}%"></i></span><span class="n">${v} nights</span></div>`).join('')}</div>` : ''}
       ${RANGE !== 'month' ? `<div style="margin-top:12px;font-size:.68rem;color:var(--muted)">Live calendar data for ${esc(STATS[RANGE]?.label || '')} — unlike this statement's frozen figures, it updates as bookings land.</div>` : ''}
@@ -337,7 +371,8 @@ function render(d) {
     const nx = STATS.next?.group;
     if (nx && nx.nights_sold > 0) {
       html += `<div style="margin-top:14px;background:var(--accent-soft);border-radius:11px;padding:13px 16px;font-size:.8rem;color:var(--text-2)">
-        <b style="color:var(--accent)">Coming up — ${esc(STATS.next.label)}:</b> ${nx.nights_sold} night${nx.nights_sold > 1 ? 's' : ''} already booked${nx.net ? ` · ≈ ${IDR(nx.net)} on the books` : ''}${nx.occupancy_pct ? ` (${nx.occupancy_pct}% so far)` : ''}</div>`;
+        <b style="color:var(--accent)">Coming up — ${esc(STATS.next.label)}:</b> ${nx.nights_sold} night${nx.nights_sold > 1 ? 's' : ''} already booked${nx.net ? ` · ≈ ${IDR(nx.net)} on the books` : ''}${nx.occupancy_pct ? ` (${nx.occupancy_pct}% so far)` : ''}${qm('outlook')}
+        ${tip('outlook', 'Confirmed future bookings already in the calendar for next month — live data that grows as new bookings land. Next month\'s statement will show the final numbers.')}</div>`;
     }
     html += `</div>`;
   }
