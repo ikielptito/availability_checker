@@ -16,7 +16,7 @@
 //   GET ?action=month-stats&slugs=&period=   service auth (sync secret) —
 //     Hostex month aggregates the CRM snapshots into a statement at publish.
 
-import { verifyStatementToken, statementToken } from '../lib/tokens.js';
+import { verifyStatementToken, statementToken, inviteToken, verifyInviteToken } from '../lib/tokens.js';
 import { buildMonthStats, buildRangeStats, applyStatementNights } from '../lib/month-stats.js';
 import { buildStatementWorkbook, buildGroupWorkbook } from '../lib/statement-export.js';
 import { UNITS_BY_SLUG } from '../lib/catalog.js';
@@ -60,9 +60,53 @@ export default async function handler(req, res) {
     try { return JSON.parse(raw); } catch { return raw; }
   };
 
+  const kvSet = async (key, value) => {
+    if (!kvUrl || !kvToken) return false;
+    const r = await fetch(`${kvUrl}/pipeline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${kvToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify([['SET', key, JSON.stringify(value)]]),
+    });
+    const out = await r.json().catch(() => null);
+    return Array.isArray(out) && out[0]?.result === 'OK';
+  };
+
   // ── POST ──────────────────────────────────────────────────────────
   if (req.method === 'POST') {
     const { action, payload } = req.body || {};
+
+    // Owner-onboarding invite: the signed link Ikiel sends on WhatsApp. The
+    // owner opens it, signs in with ANY Google account, and this claims the
+    // group's catalog listings to that account — one-shot: refused when a
+    // different account already holds any of the units.
+    if (action === 'claim_invite') {
+      const owner = await sessionOwner(req, kvGet);
+      if (!owner) return res.status(401).json({ error: 'Not signed in' });
+      const groupKey = verifyInviteToken(payload?.token || '');
+      if (!groupKey) return res.status(403).json({ error: 'Invalid invite link' });
+      const groupsRes = await crm('statement_groups', {});
+      const group = (groupsRes.body?.groups || []).find(g => g.key === groupKey);
+      if (!group) return res.status(404).json({ error: 'Unknown property' });
+      const slugs = (group.listing_slugs || []).filter(s => UNITS_BY_SLUG[s]);
+      if (!slugs.length) return res.status(404).json({ error: 'No claimable listings' });
+      const overrides = await Promise.all(slugs.map(s => kvGet(`listing:${s}`)));
+      for (let i = 0; i < slugs.length; i++) {
+        const cur = overrides[i] || {};
+        if (cur.ownerSub && cur.ownerSub !== owner.sub) {
+          return res.status(409).json({ error: `${UNITS_BY_SLUG[slugs[i]].name} is already linked to another account — ask Samba to sort it out.` });
+        }
+      }
+      for (let i = 0; i < slugs.length; i++) {
+        const cur = overrides[i] || { slug: slugs[i] };
+        await kvSet(`listing:${slugs[i]}`, {
+          ...cur, slug: slugs[i],
+          ownerSub: owner.sub,
+          ownerEmail: (owner.email || cur.ownerEmail || '').toLowerCase() || null,
+          updatedAt: Date.now(),
+        });
+      }
+      return res.status(200).json({ ok: true, group: group.name, listings: slugs.map(s => UNITS_BY_SLUG[s].name) });
+    }
 
     // Owner-session realm: the signed-in owner saves their preferred payout
     // account for one of THEIR property groups. The server forwards only the
@@ -204,6 +248,16 @@ export default async function handler(req, res) {
         statements: mine,
         groups: groups.map(g => ({ key: g.key, name: g.name, payout_account: g.payout_account || null })),
       });
+    }
+
+    // ── Owner invite link (admin) ───────────────────────────────────
+    if (action === 'invite-link') {
+      const auth = req.headers.authorization || '';
+      const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
+      if (!isAdmin) return res.status(401).json({ error: 'Unauthorized' });
+      const groupKey = String(req.query.group || '');
+      if (!groupKey) return res.status(400).json({ error: 'Missing group' });
+      return res.status(200).json({ url: `https://sambarentals.com/portal?invite=${inviteToken(groupKey)}` });
     }
 
     // ── Excel exports ───────────────────────────────────────────────

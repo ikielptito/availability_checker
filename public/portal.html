@@ -689,6 +689,10 @@ function demoBlock(){
 // view=new so that popup returns straight to the wizard. Only ?demo boots the
 // demo dashboard (reached from the "Explore the demo first" link on /home).
 (async function boot(){
+  // Owner invite link (/portal?invite=<token>): remember it across the
+  // sign-in bounce so the claim runs the moment they're authenticated.
+  const inviteQS = new URLSearchParams(location.search).get('invite');
+  if (inviteQS) { try { sessionStorage.setItem('samba_invite', inviteQS); } catch {} }
   const me = await api('?action=auth/me');
   if (me.ok && me.body?.owner) return enterApp(me.body.owner);
   const qs = new URLSearchParams(location.search);
@@ -713,9 +717,8 @@ function leaveDemoFor(owner){
 function enterApp(owner){
   currentOwnerData=owner;
   document.getElementById('app').style.display='block';
-  loadProperties();
+  claimPendingInvite().then(()=>{ loadProperties(); probeStatements(); });
   loadConfig();
-  probeStatements();
   // Deep-link from the "List a property" sub-tab → open the add form.
   // Skipped in the demo: it fires for real once the owner signs in.
   const qs = new URLSearchParams(location.search);
@@ -841,6 +844,27 @@ function showTab(name){
   if(name==='reports') initReports();
   if(name==='statements') initStatements();
   if(name==='viewings') initViewings();
+}
+
+// Claim an owner invite the moment the account exists: links the property
+// group's units to this Google account, then the Statements tab lights up.
+async function claimPendingInvite(){
+  let tok=null;
+  try{ tok=sessionStorage.getItem('samba_invite'); }catch(e){}
+  if(!tok) return;
+  try{
+    const r=await fetch('/api/statements',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'claim_invite',payload:{token:tok}})});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok){
+      try{ sessionStorage.removeItem('samba_invite'); }catch(e){}
+      showToast(`Welcome! ${d.group||'Your property'} is now linked to your account — see the Statements tab.`);
+      setTimeout(()=>showTab('statements'),600);
+    }else if(r.status===403||r.status===409){
+      try{ sessionStorage.removeItem('samba_invite'); }catch(e){}
+      showToast(d.error||'This invite link could not be used.');
+    } // transient errors: keep the token, retry next visit
+  }catch(e){}
 }
 
 // ── STATEMENTS TAB (Samba Realty-managed villas only) ──
