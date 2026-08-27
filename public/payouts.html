@@ -74,6 +74,7 @@ body.embed .cmdbar .word{display:none;}
 .banner{border-radius:12px;padding:11px 14px;font-size:.8rem;margin-bottom:16px;display:flex;gap:9px;align-items:flex-start;line-height:1.45;}
 .banner.amber{background:var(--amber-bg);color:var(--amber-fg);}
 .banner.red{background:var(--red-bg);color:var(--red-fg);}
+.banner.calm{background:var(--surface2,#f1efe9);color:var(--text-2,#555);border:1px solid var(--border,#e4e0d6);}
 
 .pill{display:inline-flex;align-items:center;gap:5px;font:700 10px/1 var(--sb-font-ui);letter-spacing:.05em;text-transform:uppercase;
   padding:5px 9px;border-radius:999px;white-space:nowrap;flex:none;}
@@ -373,6 +374,11 @@ function drawDetail() {
 
   // Totals
   const eraDelta = s.era_payout_total != null && Math.abs(s.era_payout_total - s.payout_total) > 1;
+  // When the gap is exactly the carry-forward adjustment, nothing is wrong —
+  // Era's sheet shows the month on its own; the system nets off earlier
+  // deficit months Ikiel fronted. Say so calmly instead of crying wolf.
+  const carryExplains = eraDelta && Number(s.adjustments_total)
+    && Math.abs((Number(s.era_payout_total) || 0) + (Number(s.adjustments_total) || 0) - (Number(s.payout_total) || 0)) <= 1;
   html += `<div class="card"><h3>${esc(g.name || s.group_key)} — ${esc(det.period_label)} ${pillsFor(s)}</h3>
     <div class="totgrid">
       <div class="tot"><div class="lab">Gross revenue</div><div class="val">${IDR(s.gross_total)}</div></div>
@@ -385,7 +391,8 @@ function drawDetail() {
       <div class="tot"><div class="lab">Paid to date</div><div class="val">${IDR(s.paid_total)}</div></div>
       <div class="tot" style="${balanceOf(s) > 0 ? 'background:var(--red-bg)' : ''}"><div class="lab">Balance due</div><div class="val" style="${balanceOf(s) > 0 ? 'color:var(--red-fg)' : ''}">${IDR(balanceOf(s))}</div></div>` : ''}
     </div>
-    ${eraDelta ? `<div class="banner amber" style="margin:10px 0 0">⚠ <div>Era's sheet says <b>${IDR(s.era_payout_total)}</b> — the parsed lines compute <b>${IDR(s.payout_total)}</b>. Fix the lines below or trust the computed number.</div></div>` : ''}
+    ${carryExplains ? `<div class="banner calm" style="margin:10px 0 0">↩ <div>Era's sheet shows <b>${IDR(s.era_payout_total)}</b> for the month on its own. A carry-over of <b>${IDR(s.adjustments_total)}</b> from earlier deficit months (fronted by you) brings the actual payout to <b>${IDR(s.payout_total)}</b>. Nothing to fix — the sheet doesn't track carry-overs; this system does.</div></div>`
+      : eraDelta ? `<div class="banner amber" style="margin:10px 0 0">⚠ <div>Era's sheet says <b>${IDR(s.era_payout_total)}</b> — the parsed lines compute <b>${IDR(s.payout_total)}</b>. Fix the lines below or trust the computed number.</div></div>` : ''}
   </div>`;
 
   // Reconciliation

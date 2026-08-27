@@ -257,6 +257,20 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .st-strip{display:flex;align-items:center;gap:30px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 24px;margin-bottom:16px;box-shadow:var(--shadow);}
 .st-strip .pf-v{font-family:var(--rep-serif);font-weight:500;font-size:1.45rem;}
 .st-strip .pf-v small{font-size:.8rem;color:var(--muted);font-family:'Satoshi',-apple-system,sans-serif;}
+.st-dash{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 24px 16px;margin-bottom:16px;box-shadow:var(--shadow);}
+.st-dash-metrics{display:flex;align-items:flex-start;gap:34px;flex-wrap:wrap;}
+.st-dash-metrics .pf-v{font-family:var(--rep-serif);font-weight:500;font-size:1.45rem;}
+.st-dash-metrics .pf-v small{font-size:.8rem;color:var(--muted);font-family:'Satoshi',-apple-system,sans-serif;}
+.st-chart{display:flex;align-items:flex-end;gap:7px;height:96px;margin-top:20px;padding-top:6px;border-top:1px dashed var(--border);}
+.st-bar{flex:1;max-width:52px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%;min-width:0;cursor:default;}
+.st-bar .col{width:100%;border-radius:5px 5px 2px 2px;background:var(--accent);opacity:.85;min-height:3px;transition:opacity .15s;}
+.st-bar .col.paid{background:#7d9877;}
+.st-bar .col.neg{background:var(--red,#b3402a);border-radius:2px;}
+.st-bar:hover .col{opacity:1;}
+.st-bar .ml{font-size:.6rem;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;flex-shrink:0;}
+.st-chart-cap{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:10px;font-size:.66rem;color:var(--muted);}
+.st-chart-cap .sw{display:inline-flex;align-items:center;gap:5px;margin-left:12px;}
+.st-chart-cap .dot{width:8px;height:8px;border-radius:3px;display:inline-block;}
 .st-prop{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;}
 .st-prop-head{display:flex;align-items:center;gap:14px;padding:20px 24px 14px;}
 .st-prop-head .hgroup{min-width:0;}
@@ -265,10 +279,24 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .st-xlsx{margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:7px 12px;border-radius:8px;white-space:nowrap;}
 .st-xlsx:hover{color:var(--accent);border-color:var(--accent);}
 .st-rows{padding:0 12px 8px;}
-.st-row{display:flex;align-items:center;gap:14px;padding:13px 12px;text-decoration:none;color:var(--text);border-radius:10px;border-top:1px dashed var(--border);}
+.st-row{display:flex;align-items:center;gap:14px;padding:13px 12px;text-decoration:none;color:var(--text);border-radius:10px;border-top:1px dashed var(--border);cursor:pointer;}
 .st-row:first-child{border-top:none;}
 .st-row:hover{background:var(--surface2);border-top-color:transparent;}
 .st-row:hover + .st-row{border-top-color:transparent;}
+.st-arrow{transition:transform .18s ease;}
+.st-row.open .st-arrow{transform:rotate(90deg);}
+.st-row.open{background:var(--surface2);border-radius:10px 10px 0 0;}
+.st-det{background:var(--surface2);border-radius:0 0 10px 10px;padding:4px 16px 14px;margin-top:-1px;}
+.st-det-lines{max-width:420px;margin-left:2px;}
+.st-det-lines .dl{display:flex;justify-content:space-between;gap:20px;padding:6px 0;font-size:.82rem;color:var(--text-2);}
+.st-det-lines .dl b{font-variant-numeric:tabular-nums;font-weight:600;color:var(--text);white-space:nowrap;}
+.st-det-lines .dl.rule{border-top:1px solid var(--border);margin-top:4px;padding-top:10px;}
+.st-det-lines .dl.hero{font-size:.9rem;}
+.st-det-lines .dl.hero b{font-size:.95rem;}
+.st-det-lines .dl.due b{color:var(--accent);}
+.st-det-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:.74rem;color:var(--muted);}
+.st-det-foot a{color:var(--accent);font-weight:600;text-decoration:none;}
+.st-det-foot a:hover{text-decoration:underline;}
 .st-month{font-family:var(--rep-serif);font-size:1.05rem;line-height:1.2;}
 .st-sub{font-size:.7rem;color:var(--muted);margin-top:2px;}
 .st-amt{margin-left:auto;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;}
@@ -698,6 +726,20 @@ let PORTAL_PREVIEW=null;   // signed admin preview token — read-only owner vie
   // sign-in bounce so the claim runs the moment they're authenticated.
   const inviteQS = new URLSearchParams(location.search).get('invite');
   if (inviteQS) { try { sessionStorage.setItem('samba_invite', inviteQS); } catch {} }
+  // WhatsApp magic link (/portal?wa_login=<one-time token>): the owner tapped
+  // "Open my portal" in WhatsApp — exchange the token for a session, then
+  // continue booting as a signed-in owner.
+  const waTok = new URLSearchParams(location.search).get('wa_login');
+  if (waTok) {
+    history.replaceState(null, '', '/portal');   // token is one-time; don't leave it in the bar
+    try {
+      const r = await fetch('/api/statements', { method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'wa_login_verify', payload: { token: waTok } }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) showToast(d.error || 'This sign-in link has expired — request a fresh one.');
+    } catch {}
+  }
   const me = await api('?action=auth/me');
   if (me.ok && me.body?.owner) return enterApp(me.body.owner);
   const qs = new URLSearchParams(location.search);
@@ -928,6 +970,8 @@ function acctSummary(a){
   return `${escapeHtml(a.bank||ACCT_SCHEMA[a.country]?.label||'')}${country} <span class="sep">·</span> ${escapeHtml(a.account_name||'')} <span class="sep">·</span> <b>${escapeHtml(mask)}</b>`;
 }
 const stDlOpen={};        // group key → true while its download range picker is open
+const stRowOpen={};       // "group.period" → true while that month is expanded
+function stToggleRow(rk){ stRowOpen[rk]=!stRowOpen[rk]; initStatements(); }
 function initStatements(){
   const pane=document.getElementById('tab-statements');
   const sts=statementsCache||[];
@@ -943,16 +987,51 @@ function initStatements(){
 
   let html='';
 
-  // Year-to-date summary — only once there's something to summarise.
+  // Dashboard — the numbers an owner actually checks: what's owed to them,
+  // what they've earned, and how the villa is performing. The month chart
+  // reads left-to-right like a bank app's spending graph.
   if(sts.length){
     const paid=sts.reduce((a,s)=>a+(Number(s.paid_total)||0),0);
     const owed=sts.reduce((a,s)=>a+(Number(s.balance)||0),0);
-    const latest=sts.reduce((a,s)=>s.period>a?s.period:a,'');
-    html+=`<div class="st-strip">
-      <div class="pf-cell"><span class="pf-v">${IDRf(paid)}</span><span class="pf-l">Paid to you</span></div>
-      ${owed>0?`<div class="pf-cell"><span class="pf-v" style="color:var(--accent)">${IDRf(owed)}</span><span class="pf-l">On its way</span></div>`:''}
-      <div class="pf-cell"><span class="pf-v">${sts.length}<small> statement${sts.length>1?'s':''}</small></span><span class="pf-l">Published</span></div>
-      <div class="pf-cell"><span class="pf-v"><small>through</small> ${escapeHtml(mlab(latest)).replace(/ \d{4}$/,'')}</span><span class="pf-l">Latest month</span></div>
+    const year=sts.reduce((a,s)=>s.period>a?s.period:a,'').slice(0,4);
+    const ytd=sts.filter(s=>s.period.startsWith(year));
+    const gross=ytd.reduce((a,s)=>a+(Number(s.gross_total)||0),0);
+    const occs=ytd.filter(s=>s.occupancy_pct!=null);
+    const avgOcc=occs.length?Math.round(occs.reduce((a,s)=>a+Number(s.occupancy_pct),0)/occs.length):null;
+    const nights=ytd.reduce((a,s)=>a+(Number(s.nights_sold)||0),0);
+
+    // One bar per month, payouts summed across the owner's properties.
+    const byPeriod={};
+    for(const s of sts){
+      const p=byPeriod[s.period]||(byPeriod[s.period]={payout:0,balance:0});
+      p.payout+=Number(s.payout_total)||0;
+      p.balance+=Number(s.balance)||0;
+    }
+    const periods=Object.keys(byPeriod).sort();
+    const maxP=Math.max(1,...periods.map(p=>byPeriod[p].payout));
+    const bars=periods.map(p=>{
+      const d=byPeriod[p];
+      const neg=d.payout<0;
+      const h=neg?4:Math.max(4,Math.round(d.payout/maxP*62));
+      const cls=neg?'neg':(d.balance>0?'':'paid');
+      const tip=`${mlab(p)} · ${IDRf(d.payout)}${d.balance>0?` (${IDRf(d.balance)} on its way)`:neg?' (carried forward)':''}`;
+      const m=new Date(Date.UTC(+p.slice(0,4),+p.slice(5,7)-1,1)).toLocaleDateString('en-GB',{month:'short',timeZone:'UTC'});
+      return `<div class="st-bar" title="${escapeHtml(tip)}"><div class="col ${cls}" style="height:${h}px"></div><div class="ml">${m}</div></div>`;
+    }).join('');
+
+    html+=`<div class="st-dash">
+      <div class="st-dash-metrics">
+        ${owed>0?`<div class="pf-cell"><span class="pf-v" style="color:var(--accent)">${IDRf(owed)}</span><span class="pf-l">On its way to you</span></div>`:''}
+        <div class="pf-cell"><span class="pf-v">${IDRf(paid)}</span><span class="pf-l">Paid to you</span></div>
+        <div class="pf-cell"><span class="pf-v">${IDRf(gross)}</span><span class="pf-l">${escapeHtml(year)} rental revenue</span></div>
+        ${avgOcc!=null?`<div class="pf-cell"><span class="pf-v">${avgOcc}<small>%</small></span><span class="pf-l">Avg occupancy</span></div>`:''}
+        ${nights>0?`<div class="pf-cell"><span class="pf-v">${nights}</span><span class="pf-l">Nights hosted</span></div>`:''}
+      </div>
+      <div class="st-chart">${bars}</div>
+      <div class="st-chart-cap">
+        <span>Monthly payout to you</span>
+        <span><span class="sw"><span class="dot" style="background:#7d9877"></span> settled</span><span class="sw"><span class="dot" style="background:var(--accent);opacity:.85"></span> on its way</span></span>
+      </div>
     </div>`;
   }
 
@@ -996,12 +1075,35 @@ function initStatements(){
           :s.status==='partial'?'<span class="st-chip partial">Partially paid</span>'
           :'<span class="st-chip due">On its way</span>';
         const sub=s.status==='paid'?`paid ${dlab(s.paid_at)}`:s.status==='partial'?`${IDRf(s.balance)} to follow`:`published ${dlab(s.published_at)}`;
-        return `<a class="st-row" href="${escapeHtml(s.url)}" target="_blank" rel="noopener">
+        const rk=s.group_key+'.'+s.period;
+        const open=!!stRowOpen[rk];
+        // Expanded: the month's arithmetic inline, bank-app style; the full
+        // document (per-booking detail, stats, currency picker) stays one
+        // click deeper.
+        const adj=Number(s.adjustments_total)||0;
+        const paidAmt=Number(s.paid_total)||0;
+        let det='';
+        if(open){
+          det=`<div class="st-det"><div class="st-det-lines">
+            <div class="dl"><span>Gross rental revenue</span><b>${IDRf(s.gross_total)}</b></div>
+            <div class="dl"><span>Samba Realty management fee</span><b>− ${IDRf(s.commission_total)}</b></div>
+            <div class="dl"><span>Villa expenses</span><b>− ${IDRf(s.expenses_total)}</b></div>
+            ${adj?`<div class="dl"><span>${adj<0?'Carried over from earlier months':'Adjustments'}</span><b>${adj<0?'− ':'+ '}${IDRf(Math.abs(adj))}</b></div>`:''}
+            <div class="dl rule hero"><span>Your payout</span><b>${IDRf(s.payout_total)}</b></div>
+            ${paidAmt>0?`<div class="dl"><span>Paid to date</span><b>− ${IDRf(paidAmt)}</b></div>`:''}
+            ${s.balance>0&&paidAmt>0?`<div class="dl due hero"><span>Still on its way</span><b>${IDRf(s.balance)}</b></div>`:''}
+          </div>
+          <div class="st-det-foot">
+            <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">Open full statement ↗</a>
+            ${s.occupancy_pct!=null?`<span>${Math.round(s.occupancy_pct)}% occupancy${s.nights_sold?` · ${s.nights_sold} nights hosted`:''}</span>`:''}
+          </div></div>`;
+        }
+        return `<div class="st-row${open?' open':''}" role="button" tabindex="0" aria-expanded="${open}" onclick="stToggleRow('${escapeHtml(rk)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();stToggleRow('${escapeHtml(rk)}')}">
           <div><div class="st-month">${escapeHtml(mlab(s.period))}</div><div class="st-sub">${sub}</div></div>
           ${chip}
           <div class="st-amt">${IDRf(s.payout_total)}</div>
           <div class="st-arrow">›</div>
-        </a>`;
+        </div>${det}`;
       }).join('')+`</div>`;
     }
 

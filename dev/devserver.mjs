@@ -83,6 +83,33 @@ const mockStatements = [
       { id: 12, kind: 'expense', position: 2, expense_date: '05 Jul 2026', description: 'Pool maintenance', amount: 900000, flags: [], edited: false },
       { id: 13, kind: 'expense', position: 3, expense_date: '28 Jul 2026', description: 'Electricity', amount: 1500000, flags: [], edited: false },
     ] },
+  // June: partial + carry-over adjustment — exercises the portal's expanded
+  // row (paid-to-date / still-on-its-way) and payouts.html's calm carry banner.
+  { id: 4, group_key: 'lanehaus', period: '2026-06', status: 'partial', currency: 'IDR',
+    gross_total: 18000000, commission_total: 2700000, nett_total: 15300000, expenses_total: 3000000, adjustments_total: -4000000, payout_total: 8300000,
+    era_payout_total: 12300000, needs_review: false, has_manual_edits: false, source_changed: false, discrepancy: null,
+    hostex_snapshot: { period: '2026-06', days_in_month: 30, units: {}, group: { nights_sold: 38, occupancy_pct: 74, reservations: 4, channels: { Airbnb: 26, Direct: 12 }, adr: 473000 } },
+    reconciliation: { checks: [], unparsed_rows: [] },
+    source_tab: 'June', parsed_at: dayISO(32), published_at: dayISO(30), published_by: 'admin', notified_at: dayISO(30), paid_at: null, proof_path: null,
+    paid_total: 5000000,
+    payments: [{ id: 901, amount: 5000000, paid_at: dayISO(20), note: 'first tranche', proof_path: null }],
+    lines: [
+      { id: 30, kind: 'booking', unit_name: 'LaneHAUS – Unit 1', position: 0, guest_name: 'Priya', stay_dates: '2-20 June', platform: 'Airbnb', nights: 18, amount: 18000000, commission: 2700000, nett: 15300000, flags: [], edited: false },
+      { id: 31, kind: 'expense', position: 1, expense_date: '28 Jun 2026', description: 'Pool + garden + utilities', amount: 3000000, flags: [], edited: false },
+      { id: 32, kind: 'adjustment', position: 2, description: 'Carried over from May deficit', amount: -4000000, flags: ['carry_forward'], edited: false },
+    ] },
+  { id: 5, group_key: 'lanehaus', period: '2026-05', status: 'paid', currency: 'IDR',
+    gross_total: 16000000, commission_total: 2400000, nett_total: 13600000, expenses_total: 1150000, adjustments_total: 0, payout_total: 12450000,
+    era_payout_total: 12450000, needs_review: false, has_manual_edits: false, source_changed: false, discrepancy: null,
+    hostex_snapshot: { period: '2026-05', days_in_month: 31, units: {}, group: { nights_sold: 44, occupancy_pct: 81, reservations: 6, channels: { Airbnb: 30, 'Booking.com': 14 }, adr: 364000 } },
+    reconciliation: { checks: [], unparsed_rows: [] },
+    source_tab: 'May', parsed_at: dayISO(62), published_at: dayISO(60), published_by: 'admin', notified_at: dayISO(60), paid_at: dayISO(58), proof_path: null,
+    paid_total: 12450000,
+    payments: [{ id: 902, amount: 12450000, paid_at: dayISO(58), note: 'BCA transfer', proof_path: null }],
+    lines: [
+      { id: 40, kind: 'booking', unit_name: 'LaneHAUS – Unit 3', position: 0, guest_name: 'Wei', stay_dates: '1-31 May', platform: 'Airbnb', nights: 30, amount: 16000000, commission: 2400000, nett: 13600000, flags: [], edited: false },
+      { id: 41, kind: 'expense', position: 1, expense_date: '30 May 2026', description: 'Utilities', amount: 1150000, flags: [], edited: false },
+    ] },
   { id: 3, group_key: 'villa-saturno', period: '2026-06', status: 'paid', currency: 'IDR',
     gross_total: 36460000, commission_total: 5469000, nett_total: 30991000, expenses_total: 4700000, adjustments_total: 0, payout_total: 26291000,
     era_payout_total: 26291000, needs_review: false, has_manual_edits: false, source_changed: false, discrepancy: null,
@@ -120,6 +147,13 @@ function mockStatementsApi({ action, payload = {} }) {
   const find = (id) => mockStatements.find(s => s.id === +id);
   const monthLabel = (p) => { const [y, m] = String(p).split('-').map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }); };
   if (action === 'statement_groups') return { status: 200, body: { groups: mockGroups } };
+  if (action === 'statement_wa_login_code') {
+    const to = String(payload?.wa_num || '').replace(/\D/g, '');
+    const known = mockGroups.some(g => (g.owner_wa_nums || []).some(n => String(n).replace(/\D/g, '') === to));
+    if (!known) return { status: 403, body: { error: 'Number not registered to any property' } };
+    console.log(`[mock] WhatsApp sign-in link for ${to}: http://localhost:3456/portal?wa_login=${payload.token}`);
+    return { status: 200, body: { ok: true, message_id: 'wamid.mock' } };
+  }
   if (action === 'statement_group_patch') {
     const g = mockGroups.find(x => x.key === payload.key);
     if (g) Object.assign(g, payload.fields || {});

@@ -16,6 +16,7 @@
 //   GET ?action=month-stats&slugs=&period=   service auth (sync secret) —
 //     Hostex month aggregates the CRM snapshots into a statement at publish.
 
+import crypto from 'node:crypto';
 import { verifyStatementToken, statementToken, inviteToken, verifyInviteToken, previewToken, verifyPreviewToken } from '../lib/tokens.js';
 import { buildMonthStats, buildRangeStats, applyStatementNights } from '../lib/month-stats.js';
 import { buildStatementWorkbook, buildGroupWorkbook } from '../lib/statement-export.js';
@@ -71,6 +72,19 @@ export default async function handler(req, res) {
     return Array.isArray(out) && out[0]?.result === 'OK';
   };
 
+  // Raw pipeline command — for the WhatsApp-login OTP records (SET…EX, INCR,
+  // EXPIRE, DEL), which need TTLs kvSet can't express.
+  const kvCmd = async (...cmd) => {
+    if (!kvUrl || !kvToken) return null;
+    const r = await fetch(`${kvUrl}/pipeline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${kvToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify([cmd]),
+    });
+    const out = await r.json().catch(() => null);
+    return Array.isArray(out) ? out[0]?.result : null;
+  };
+
   // ── POST ──────────────────────────────────────────────────────────
   if (req.method === 'POST') {
     const { action, payload } = req.body || {};
@@ -106,6 +120,75 @@ export default async function handler(req, res) {
         });
       }
       return res.status(200).json({ ok: true, group: group.name, listings: slugs.map(s => UNITS_BY_SLUG[s].name) });
+    }
+
+    // ── WhatsApp sign-in (owners without a Google account) ──────────
+    // Same session/cookie machinery as Google sign-in, but identity is the
+    // WhatsApp number Ikiel registered on the owner's property group: the
+    // synthetic sub `wa:<digits>` flows through every existing ownership
+    // check unchanged. Magic link, not OTP — the owner enters their number,
+    // WhatsApp delivers a one-time "Open my portal" button (10-min TTL), and
+    // tapping it lands them signed in. The link goes out via the CRM's WABA
+    // and only to numbers already registered on an active group — this
+    // cannot message strangers.
+    if (action === 'wa_login_start') {
+      const phone = String(payload?.phone || '').replace(/\D/g, '').replace(/^0+/, '');
+      if (phone.length < 8 || phone.length > 15) {
+        return res.status(400).json({ error: 'Enter your full WhatsApp number with country code, e.g. +62 812… or +1 786…' });
+      }
+      const sends = Number(await kvCmd('INCR', `waotp:rl:${phone}`)) || 1;
+      if (sends === 1) await kvCmd('EXPIRE', `waotp:rl:${phone}`, 3600);
+      if (sends > 5) return res.status(429).json({ error: 'Too many sign-in links requested — try again in an hour.' });
+      const tok = crypto.randomBytes(16).toString('hex');
+      const sendRes = await crm('statement_wa_login_code', { wa_num: phone, token: tok });
+      if (sendRes.status === 403) {
+        return res.status(403).json({ error: 'This number isn’t linked to a Samba Realty property yet — message us on WhatsApp and we’ll set you up.' });
+      }
+      if (sendRes.status !== 200) return res.status(502).json({ error: sendRes.body?.error || 'Could not send the link — try again.' });
+      await kvCmd('SET', `walogin:${tok}`, JSON.stringify({ phone, exp: Date.now() + 10 * 60 * 1000 }), 'EX', 600);
+      return res.status(200).json({ ok: true });
+    }
+
+    if (action === 'wa_login_verify') {
+      const tok = String(payload?.token || '').replace(/[^a-f0-9]/gi, '');
+      const rec = tok.length >= 16 ? await kvGet(`walogin:${tok}`) : null;
+      if (!rec || !rec.phone || (rec.exp && rec.exp < Date.now())) {
+        return res.status(400).json({ error: 'This sign-in link has expired — request a fresh one from the sign-in page.' });
+      }
+      await kvCmd('DEL', `walogin:${tok}`);
+      const phone = String(rec.phone).replace(/\D/g, '');
+
+      // Upsert the owner record under the synthetic wa: sub. Name comes from
+      // the group registry so the portal greets "Romina & Tim", not a number.
+      const sub = `wa:${phone}`;
+      const existing = await kvGet(`owner:${sub}`);
+      let name = existing?.name || null;
+      if (!name) {
+        const groupsRes = await crm('statement_groups', {});
+        const g = (groupsRes.body?.groups || []).find(x => (x.owner_wa_nums || []).some(n => String(n).replace(/\D/g, '') === phone));
+        name = g?.owner_names || 'Villa owner';
+      }
+      const owner = {
+        sub, wa: phone,
+        email: existing?.email || null,
+        name,
+        picture: existing?.picture || '',
+        createdAt: existing?.createdAt || new Date().toISOString(),
+        creemCustomerId: existing?.creemCustomerId || null,
+        favorites: Array.isArray(existing?.favorites) ? existing.favorites : [],
+        notes: existing?.notes && typeof existing.notes === 'object' ? existing.notes : {},
+        lists: Array.isArray(existing?.lists) ? existing.lists : [],
+        profile: existing?.profile && typeof existing.profile === 'object' ? existing.profile : {},
+      };
+      await kvSet(`owner:${sub}`, owner);
+
+      const token = crypto.randomBytes(32).toString('hex');
+      const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days, same as Google sessions
+      await kvCmd('SET', `session:${token}`, JSON.stringify({ sub, exp: Date.now() + SESSION_TTL * 1000 }), 'EX', SESSION_TTL);
+      const proto = req.headers['x-forwarded-proto'];
+      const secure = proto ? proto.split(',')[0].trim() === 'https' : !/^localhost|^127\.0\.0\.1/.test(req.headers.host || '');
+      res.setHeader('Set-Cookie', `${SESSION_COOKIE}=${token}; HttpOnly;${secure ? ' Secure;' : ''} SameSite=Lax; Path=/; Max-Age=${SESSION_TTL}`);
+      return res.status(200).json({ owner: { sub, name: owner.name, wa: phone }, isNew: !existing });
     }
 
     // Owner-session realm: the signed-in owner saves their preferred payout
@@ -237,21 +320,37 @@ export default async function handler(req, res) {
       const listRes = await crm('statement_list', {});
       const mine = (listRes.body?.statements || [])
         .filter(s => ['published', 'partial', 'paid'].includes(s.status) && groups.some(g => g.key === s.group_key))
-        .map(s => ({
-          group_key: s.group_key,
-          group_name: s.statement_groups?.name || s.group_key,
-          period: s.period,
-          status: s.status,
-          payout_total: s.payout_total,
-          paid_total: s.paid_total,
-          balance: Math.max(0, (Number(s.payout_total) || 0) - (Number(s.paid_total) || 0)),
-          currency: s.currency,
-          published_at: s.published_at,
-          paid_at: s.paid_at,
-          // Safe to hand this owner the signed link — they're authorized for
-          // the group; the token just lets them open/share the no-login page.
-          url: `/st/${statementToken(s.group_key, s.period)}`,
-        }));
+        .map(s => {
+          const snap = s.hostex_snapshot || {};
+          const sg = snap.group || null;
+          const units = snap.units && typeof snap.units === 'object' ? Object.values(snap.units) : [];
+          const soldU = units.reduce((a, u) => a + (Number(u.nights_sold) || 0), 0);
+          const availU = units.reduce((a, u) => a + (Number(u.available_nights) || 0), 0);
+          const nights = sg?.nights_sold ?? (units.length ? soldU : null);
+          const occ = sg?.occupancy_pct ?? (availU > 0 ? Math.round((soldU / availU) * 100) : null);
+          return {
+            group_key: s.group_key,
+            group_name: s.statement_groups?.name || s.group_key,
+            period: s.period,
+            status: s.status,
+            gross_total: s.gross_total,
+            commission_total: s.commission_total,
+            nett_total: s.nett_total,
+            expenses_total: s.expenses_total,
+            adjustments_total: s.adjustments_total,
+            payout_total: s.payout_total,
+            paid_total: s.paid_total,
+            balance: Math.max(0, (Number(s.payout_total) || 0) - (Number(s.paid_total) || 0)),
+            occupancy_pct: occ,
+            nights_sold: nights,
+            currency: s.currency,
+            published_at: s.published_at,
+            paid_at: s.paid_at,
+            // Safe to hand this owner the signed link — they're authorized for
+            // the group; the token just lets them open/share the no-login page.
+            url: `/st/${statementToken(s.group_key, s.period)}`,
+          };
+        });
       res.setHeader('Cache-Control', 'no-store');
       return res.status(200).json({
         statements: mine,
@@ -361,7 +460,12 @@ async function sessionOwner(req, kvGet) {
 async function ownerGroups(owner, kvGet, crm) {
   const hostexMap = await loadHostexOwnerMap(kvGet);
   const mySlugs = new Set(Object.values(hostexMap).filter(l => l.ownerSub === owner.sub).map(l => l.slug));
-  if (!mySlugs.size) return [];
+  // WhatsApp-sign-in owners also match groups by their registered number —
+  // their statements appear even before any listing is claimed to the account.
+  const wa = owner.wa ? String(owner.wa).replace(/\D/g, '') : null;
+  if (!mySlugs.size && !wa) return [];
   const groupsRes = await crm('statement_groups', {});
-  return (groupsRes.body?.groups || []).filter(g => (g.listing_slugs || []).some(s => mySlugs.has(s)));
+  return (groupsRes.body?.groups || []).filter(g =>
+    (g.listing_slugs || []).some(s => mySlugs.has(s))
+    || (wa && (g.owner_wa_nums || []).some(n => String(n).replace(/\D/g, '') === wa)));
 }
