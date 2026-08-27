@@ -303,7 +303,8 @@ function pillsFor(s) {
   const pills = [];
   if (s.status === 'draft' && s.needs_review) pills.push('<span class="pill review"><span class="d"></span>Needs review</span>');
   else if (s.status === 'draft') pills.push('<span class="pill draft">Draft</span>');
-  if (s.status === 'published') pills.push('<span class="pill outstanding"><span class="d"></span>Unpaid</span>');
+  if (s.status === 'published' && Number(s.payout_total) < 0) pills.push('<span class="pill void">Deficit — carries forward</span>');
+  else if (s.status === 'published') pills.push('<span class="pill outstanding"><span class="d"></span>Unpaid</span>');
   if (s.status === 'partial') pills.push(`<span class="pill review"><span class="d"></span>Partial · ${IDR(balanceOf(s))} due</span>`);
   if (s.status === 'paid') pills.push('<span class="pill paid">Paid</span>');
   if (s.status === 'void') pills.push('<span class="pill void">Void</span>');
@@ -561,8 +562,17 @@ function askPublish() {
   const who = g.notify && (g.owner_wa_nums || []).length
     ? `${esc(g.owner_names || 'the owner')} (${(g.owner_wa_nums || []).map(esc).join(', ')})`
     : null;
+  // A prior deficit month rolls into this payout on publish — warn up front
+  // so the confirmed number isn't a surprise.
+  const prevPeriod = (() => { const [y, m] = s.period.split('-').map(Number); const d = new Date(Date.UTC(y, m - 2, 1)); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`; })();
+  const prev = (listData?.statements || []).find(x => x.group_key === s.group_key && x.period === prevPeriod && ['published', 'partial', 'paid'].includes(x.status));
+  const prevBal = prev ? (Number(prev.payout_total) || 0) - (Number(prev.paid_total) || 0) : 0;
+  const hasCarry = (det.lines || []).some(l => l.kind === 'adjustment' && /minus|carr(y|ied)|deficit/i.test(l.description || ''));
+  const carryNote = prevBal < -1 && !hasCarry
+    ? `<p style="color:var(--amber-fg)">↩ Last month closed <b>${IDR(-prevBal)}</b> in deficit — it will be carried into this payout on publish (final payout ≈ <b>${IDR(Number(s.payout_total) + prevBal)}</b>).</p>` : '';
   modal(`<h3>Publish ${esc(g.name || s.group_key)} — ${esc(det.period_label)}?</h3>
     <p>Total payout <b>${IDR(s.payout_total)}</b>. Publishing freezes the numbers, snapshots Hostex occupancy, and makes the statement visible to the owner.</p>
+    ${carryNote}
     ${s.needs_review ? `<p style="color:var(--amber-fg)">⚠ This statement has unresolved review flags — publish only if you've checked the numbers.</p>` : ''}
     ${who ? `<label class="chk"><input type="checkbox" id="pub-notify" checked> Notify ${who} via Maya on WhatsApp</label>`
           : `<p style="color:var(--muted)">No WhatsApp notification ${g.notify ? '(no owner numbers set — add them under Properties)' : '(notifications off for this property)'}.</p>`}
