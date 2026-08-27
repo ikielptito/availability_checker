@@ -17,7 +17,7 @@
 //     Hostex month aggregates the CRM snapshots into a statement at publish.
 
 import { verifyStatementToken, statementToken } from '../lib/tokens.js';
-import { buildMonthStats } from '../lib/month-stats.js';
+import { buildMonthStats, buildRangeStats } from '../lib/month-stats.js';
 import { buildStatementWorkbook, buildGroupWorkbook } from '../lib/statement-export.js';
 import { UNITS_BY_SLUG } from '../lib/catalog.js';
 import { loadHostexOwnerMap } from '../lib/owner-listings.js';
@@ -130,6 +130,39 @@ export default async function handler(req, res) {
       if (status === 200) { try { body.fx = await getFx(); } catch { /* best-effort */ } }
       res.setHeader('Cache-Control', 'no-store');
       return res.status(status).json(body);
+    }
+
+    // ── Live timeframe stats for a statement's property group ───────
+    // Authorized by the statement token (occupancy/nights only — the same
+    // audience that can already see the month's full financials). The month
+    // view stays the frozen snapshot; quarter/year/next are computed LIVE
+    // from Hostex relative to the statement's period.
+    if (action === 'stats') {
+      const parsed = verifyStatementToken(req.query.token || '');
+      if (!parsed) return res.status(403).json({ error: 'Invalid statement link' });
+      const range = String(req.query.range || 'quarter');
+      const [y, m] = parsed.period.split('-').map(Number);
+      let from, to, label;
+      if (range === 'year') {
+        from = `${y}-01`; to = `${y}-12`; label = String(y);
+      } else if (range === 'next') {
+        const d = new Date(Date.UTC(y, m, 1));
+        from = to = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+        label = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+      } else {
+        const q = Math.floor((m - 1) / 3);
+        from = `${y}-${String(q * 3 + 1).padStart(2, '0')}`;
+        to = `${y}-${String(q * 3 + 3).padStart(2, '0')}`;
+        label = `Q${q + 1} ${y}`;
+      }
+      const groupsRes = await crm('statement_groups', {});
+      const group = (groupsRes.body?.groups || []).find(g => g.key === parsed.groupKey);
+      if (!group) return res.status(404).json({ error: 'Unknown group' });
+      const units = (group.listing_slugs || [])
+        .map(slug => ({ slug, hostexId: UNITS_BY_SLUG[slug]?.hostexId || null, name: UNITS_BY_SLUG[slug]?.name || null }));
+      const stats = await buildRangeStats(units, { from, to });
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json({ range, from, to, label, ...stats });
     }
 
     // ── Signed-in owner's statements (portal tab) ───────────────────

@@ -110,7 +110,18 @@ const CURS = {
   IDR: { sym: 'IDR ', dec: 0 }, USD: { sym: '$', dec: 2 }, EUR: { sym: '€', dec: 2 },
   GBP: { sym: '£', dec: 2 }, AUD: { sym: 'A$', dec: 2 }, SGD: { sym: 'S$', dec: 2 },
 };
-let CUR = 'IDR', FX = null, DATA = null, HXSEL = 'group';
+let CUR = 'IDR', FX = null, DATA = null, HXSEL = 'group', RANGE = 'month', TOKEN = '';
+const STATS = {};   // 'quarter' | 'year' | 'next' → live Hostex range stats (fetched once)
+async function loadStats(range) {
+  if (STATS[range] !== undefined) return;
+  STATS[range] = null;   // in flight
+  try {
+    const r = await fetch(`/api/statements?action=stats&token=${encodeURIComponent(TOKEN)}&range=${range}`);
+    STATS[range] = r.ok ? await r.json() : false;
+  } catch { STATS[range] = false; }
+  if (DATA) render(DATA);
+}
+function setRange(r) { RANGE = r; if (r !== 'month') loadStats(r); if (DATA) render(DATA); }
 try { const saved = localStorage.getItem('samba_stmt_cur'); if (saved && CURS[saved]) CUR = saved; } catch {}
 const conv = (n) => (CUR === 'IDR' || !FX?.rates?.[CUR]) ? (Number(n) || 0) : (Number(n) || 0) * FX.rates[CUR];
 const fmt = (n) => { const c = CURS[CUR] || CURS.IDR; return conv(n).toLocaleString('en-US', { minimumFractionDigits: c.dec, maximumFractionDigits: c.dec }); };
@@ -149,9 +160,11 @@ async function boot() {
     return fail('Connection problem', 'Could not load your statement — check your connection and try again.');
   }
   DATA = d;
+  TOKEN = token;
   FX = d.fx || null;
   if (CUR !== 'IDR' && !FX?.rates?.[CUR]) CUR = 'IDR';   // saved choice no longer available
   render(d);
+  loadStats('next');   // forward-bookings teaser, injected when it arrives
 }
 
 function render(d) {
@@ -199,6 +212,16 @@ function render(d) {
         <div class="pv">${IDR(h.value)}</div>
         <div class="ps">${h.sub}</div>
       </div>`;
+      })()}
+      ${(() => {
+        // Month-over-month, from the previous published statement.
+        const pv = d.previous;
+        if (!pv || !(Number(pv.payout_total) > 0) || !(Number(t.payout) > 0)) return '';
+        const pct = Math.round((Number(t.payout) / Number(pv.payout_total) - 1) * 100);
+        const occNow = d.hostex?.group?.occupancy_pct, occPrev = pv.occupancy_pct;
+        return `<div style="margin-top:10px;font-size:.76rem;color:var(--muted)">vs ${esc(pv.period_label)}:
+          <b style="color:${pct >= 0 ? 'var(--green)' : 'var(--red)'}">${pct >= 0 ? '↑' : '↓'} ${Math.abs(pct)}%</b> payout
+          ${occNow != null && occPrev != null ? ` · occupancy ${occPrev}% → ${occNow}%` : ''}</div>`;
       })()}
     </div>`;
 
@@ -271,29 +294,51 @@ function render(d) {
        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">Payouts go to this account. To change it, update it in your Samba portal (sambarentals.com/portal → Statements) or reply to Maya.</div></div>`
     : `<div style="font-size:.84rem;color:var(--muted)">No payout account on file yet — add yours in your Samba portal (sambarentals.com/portal → Statements) or reply to Maya with your bank details.</div>`) + `</div>`;
 
-  // Hostex occupancy — multi-unit properties get a per-listing toggle
-  // (Combined is the default; each unit's own numbers one tap away).
-  const hxUnits = d.hostex?.units || {};
+  // Hostex occupancy — timeframe chips (month = frozen snapshot; quarter and
+  // year computed LIVE from the calendar) plus per-listing chips for
+  // multi-unit properties.
+  const src = RANGE === 'month' ? d.hostex : (STATS[RANGE] || null);
+  const hxUnits = src?.units || {};
   const unitKeys = Object.keys(hxUnits).filter(k => hxUnits[k] && !hxUnits[k].error);
   const unitLabel = (k) => hxUnits[k]?.name?.replace(/^.*–\s*/, '') || k.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   if (HXSEL !== 'group' && !hxUnits[HXSEL]) HXSEL = 'group';
-  const hx = HXSEL === 'group' ? d.hostex?.group : hxUnits[HXSEL];
-  if (hx) {
-    const chTotal = Object.values(hx.channels || {}).reduce((a, b) => a + b, 0) || 1;
-    const chip = (key, label) => `<button onclick="setHx('${esc(key)}')" style="border:1px solid ${HXSEL === key ? 'var(--accent)' : 'var(--border)'};background:${HXSEL === key ? 'var(--accent)' : 'var(--surface)'};color:${HXSEL === key ? '#fff' : 'var(--text-2)'};border-radius:999px;padding:6px 13px;font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer">${esc(label)}</button>`;
-    html += `<div class="pad"><div class="sec-h">Your month in numbers<small>from the booking calendar</small></div>
-      ${unitKeys.length > 1 ? `<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">${chip('group', 'Combined')}${unitKeys.map(k => chip(k, unitLabel(k))).join('')}</div>` : ''}
-      <div class="hxgrid">
+  const hx = HXSEL === 'group' ? src?.group : hxUnits[HXSEL];
+  if (d.hostex?.group) {
+    const chip = (on, fn, label) => `<button onclick="${fn}" style="border:1px solid ${on ? 'var(--accent)' : 'var(--border)'};background:${on ? 'var(--accent)' : 'var(--surface)'};color:${on ? '#fff' : 'var(--text-2)'};border-radius:999px;padding:6px 13px;font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer">${esc(label)}</button>`;
+    const y = String(d.period).slice(0, 4);
+    const q = 'Q' + (Math.floor((+String(d.period).slice(5) - 1) / 3) + 1);
+    html += `<div class="pad"><div class="sec-h">Your numbers<small>from the booking calendar</small></div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">
+        ${chip(RANGE === 'month', "setRange('month')", 'This month')}
+        ${chip(RANGE === 'quarter', "setRange('quarter')", q + ' ' + y)}
+        ${chip(RANGE === 'year', "setRange('year')", y)}
+      </div>
+      ${unitKeys.length > 1 ? `<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">${chip(HXSEL === 'group', "setHx('group')", 'Combined')}${unitKeys.map(k => chip(HXSEL === k, `setHx('${esc(k)}')`, unitLabel(k))).join('')}</div>` : ''}`;
+    if (!hx) {
+      html += STATS[RANGE] === false
+        ? `<div style="font-size:.8rem;color:var(--muted)">Live calendar data is unavailable right now — try again shortly.</div>`
+        : `<div style="font-size:.8rem;color:var(--muted)">Loading live calendar data…</div>`;
+    } else {
+      const chTotal = Object.values(hx.channels || {}).reduce((a, b) => a + b, 0) || 1;
+      html += `<div class="hxgrid">
         <div class="hxc"><div class="kl">Occupancy</div><div class="kv">${hx.occupancy_pct}<small>%</small></div><div class="kc">of available nights</div></div>
-        <div class="hxc"><div class="kl">Nights sold</div><div class="kv">${hx.nights_sold}</div><div class="kc">across the month</div></div>
-        <div class="hxc"><div class="kl">Reservations</div><div class="kv">${hx.reservations}</div><div class="kc">stays touching this month</div></div>
+        <div class="hxc"><div class="kl">Nights sold</div><div class="kv">${hx.nights_sold}</div><div class="kc">${RANGE === 'month' ? 'across the month' : 'across ' + esc(STATS[RANGE]?.label || '')}</div></div>
+        <div class="hxc"><div class="kl">Reservations</div><div class="kv">${hx.reservations}</div><div class="kc">stays in the period</div></div>
         <div class="hxc"><div class="kl">Net nightly rate</div><div class="kv" style="font-size:1.15rem;line-height:1.3">${hx.adr ? IDR(hx.adr) : '—'}</div><div class="kc">average, after platform fees</div></div>
       </div>
       ${Object.keys(hx.channels || {}).length ? `<div class="chmix">${Object.entries(hx.channels).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
         `<div class="chrow"><span>${esc(chLabel(k))}</span><span class="bar"><i style="width:${Math.round(v / chTotal * 100)}%"></i></span><span class="n">${v} nights</span></div>`).join('')}</div>` : ''}
-      ${bookings.reduce((a, b) => a + (Number(b.nights) || 0), 0) > (Number(d.hostex?.group?.nights_sold) || 0) * 1.2
-        ? `<div style="margin-top:12px;font-size:.68rem;color:var(--muted)">Long-stay rentals arranged directly (e.g. monthly tenants) may not appear in the booking calendar — the statement's booking lines above are the complete picture.</div>` : ''}
-    </div>`;
+      ${RANGE !== 'month' ? `<div style="margin-top:12px;font-size:.68rem;color:var(--muted)">Live calendar data for ${esc(STATS[RANGE]?.label || '')} — unlike this statement's frozen figures, it updates as bookings land.</div>` : ''}
+      ${RANGE === 'month' && bookings.reduce((a, b) => a + (Number(b.nights) || 0), 0) > (Number(d.hostex?.group?.nights_sold) || 0) * 1.2
+        ? `<div style="margin-top:12px;font-size:.68rem;color:var(--muted)">Long-stay rentals arranged directly (e.g. monthly tenants) may not appear in the booking calendar — the statement's booking lines above are the complete picture.</div>` : ''}`;
+    }
+    // Forward outlook: what's already on the books for next month.
+    const nx = STATS.next?.group;
+    if (nx && nx.nights_sold > 0) {
+      html += `<div style="margin-top:14px;background:var(--accent-soft);border-radius:11px;padding:13px 16px;font-size:.8rem;color:var(--text-2)">
+        <b style="color:var(--accent)">Coming up — ${esc(STATS.next.label)}:</b> ${nx.nights_sold} night${nx.nights_sold > 1 ? 's' : ''} already booked${nx.net ? ` · ≈ ${IDR(nx.net)} on the books` : ''}${nx.occupancy_pct ? ` (${nx.occupancy_pct}% so far)` : ''}</div>`;
+    }
+    html += `</div>`;
   }
 
   const token = (location.pathname.match(/\/st\/(.+)$/) || [])[1] || '';
