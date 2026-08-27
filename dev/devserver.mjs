@@ -46,8 +46,8 @@ const mockSettings = { enabled: true, test_agents_only: false, intro_sweep_daily
 // Stateful enough that edit → publish → mark-paid visibly works in
 // payouts.html, and /st/<token> + the portal Statements tab render.
 const mockGroups = [
-  { key: 'haus-2-4', name: 'HAUS Canggu – Units 2 & 4', sheet_file_id: 'SHEET_HAUS24', listing_slugs: ['haus-2', 'haus-4'], owner_wa_nums: ['628111111111', '628122222222'], owner_names: 'Romina & Tim', notify: true, active: true },
-  { key: 'lanehaus', name: 'LaneHAUS – Units 1 & 3', sheet_file_id: 'SHEET_LANE', listing_slugs: ['lanehaus-1', 'lanehaus-3'], owner_wa_nums: [], owner_names: 'Ikiel & Guy', notify: false, active: true },
+  { key: 'haus-2-4', name: 'HAUS Canggu – Units 2 & 4', sheet_file_id: 'SHEET_HAUS24', listing_slugs: ['haus-2', 'haus-4'], owner_wa_nums: ['628111111111', '628122222222'], owner_names: 'Romina & Tim', notify: true, active: true, charges_commission: true },
+  { key: 'lanehaus', name: 'LaneHAUS – Units 1 & 3', sheet_file_id: 'SHEET_LANE', listing_slugs: ['lanehaus-1', 'lanehaus-3'], owner_wa_nums: [], owner_names: 'Ikiel & Guy', notify: false, active: true, charges_commission: false },
   { key: 'villa-saturno', name: 'Villa Saturno', sheet_file_id: 'SHEET_SAT', listing_slugs: ['villa-saturno'], owner_wa_nums: ['628133333333'], owner_names: 'Pedro', notify: true, active: true },
 ];
 let mockLineId = 100;
@@ -108,11 +108,12 @@ function stTotals(st) {
 }
 function stripLines(st) { const { lines, payments, ...rest } = st; return { ...rest, statement_groups: mockGroups.find(g => g.key === st.group_key) || null }; }
 function stRecomputePayments(st) {
-  st.paid_total = (st.payments || []).reduce((a, p) => a + (+p.amount || 0), 0);
+  const cleared = (st.payments || []).filter(p => p.status !== 'returned');
+  st.paid_total = cleared.reduce((a, p) => a + (+p.amount || 0), 0);
   if (['published', 'partial', 'paid'].includes(st.status)) {
-    const settled = st.payments.length && st.paid_total >= st.payout_total - 1;
-    st.status = settled ? 'paid' : st.payments.length ? 'partial' : 'published';
-    st.paid_at = settled ? st.payments[st.payments.length - 1].paid_at : null;
+    const settled = cleared.length && st.paid_total >= st.payout_total - 1;
+    st.status = settled ? 'paid' : cleared.length ? 'partial' : 'published';
+    st.paid_at = settled ? cleared[cleared.length - 1].paid_at : null;
   }
 }
 function mockStatementsApi({ action, payload = {} }) {
@@ -157,9 +158,21 @@ function mockStatementsApi({ action, payload = {} }) {
     const group = mockGroups.find(g => g.key === payload.group_key);
     if (!group) return { status: 404, body: { error: 'Unknown group' } };
     const statements = mockStatements
-      .filter(s => s.group_key === group.key && ['published', 'partial', 'paid'].includes(s.status) && (!payload.year || s.period.startsWith(payload.year)))
+      .filter(s => s.group_key === group.key && ['published', 'partial', 'paid'].includes(s.status)
+        && (!payload.year || s.period.startsWith(payload.year))
+        && (!payload.from || s.period >= payload.from)
+        && (!payload.to || s.period <= payload.to))
       .map(s => ({ ...s, period_label: monthLabel(s.period) }));
     return { status: 200, body: { group, statements } };
+  }
+  if (action === 'statement_payment_returned') {
+    const st = find(payload.id);
+    const p = st?.payments.find(x => x.id === +payload.payment_id);
+    if (!p) return { status: 404, body: { error: 'Payment not found' } };
+    if (payload.undo) { p.status = 'cleared'; p.return_note = null; }
+    else { p.status = 'returned'; p.return_note = payload.note || null; }
+    stRecomputePayments(st);
+    return { status: 200, body: { paid_total: st.paid_total, balance: st.payout_total - st.paid_total, status: st.status } };
   }
   if (action === 'statement_patch_line' || action === 'statement_add_line' || action === 'statement_delete_line') {
     const st = find(payload.id);

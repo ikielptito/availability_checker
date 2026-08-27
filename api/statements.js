@@ -171,10 +171,13 @@ export default async function handler(req, res) {
       if (status !== 200) return res.status(status).json(body);
       return sendXlsx(res, buildStatementWorkbook(body), `Samba-Statement-${parsed.groupKey}-${parsed.period}.xlsx`);
     }
-    // Whole group (optionally one year) — owner session or admin password.
+    // Whole group, banking-statement style: pick a month range (or all) and
+    // get ONE consolidated workbook. Owner session or admin password.
     if (action === 'export-group') {
       const groupKey = String(req.query.group || '');
       const year = String(req.query.year || '').replace(/\D/g, '').slice(0, 4) || null;
+      const from = /^\d{4}-\d{2}$/.test(String(req.query.from || '')) ? String(req.query.from) : null;
+      const to = /^\d{4}-\d{2}$/.test(String(req.query.to || '')) ? String(req.query.to) : null;
       const auth = req.headers.authorization || '';
       const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
       if (!isAdmin) {
@@ -182,9 +185,12 @@ export default async function handler(req, res) {
         const groups = owner ? await ownerGroups(owner, kvGet, crm) : [];
         if (!groups.some(g => g.key === groupKey)) return res.status(owner ? 403 : 401).json({ error: owner ? 'Not your property' : 'Not signed in' });
       }
-      const { status, body } = await crm('statement_export_data', { group_key: groupKey, year });
+      const { status, body } = await crm('statement_export_data', { group_key: groupKey, year, from, to });
       if (status !== 200) return res.status(status).json(body);
-      return sendXlsx(res, buildGroupWorkbook(body, year), `Samba-Financials-${groupKey}${year ? '-' + year : ''}.xlsx`);
+      const mlab = (p) => { const [y, m] = p.split('-').map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+      const rangeLabel = from || to ? `${from ? mlab(from) : 'start'} – ${to ? mlab(to) : 'latest'}` : year;
+      const suffix = from || to ? `-${from || 'start'}-to-${to || 'latest'}` : year ? '-' + year : '';
+      return sendXlsx(res, buildGroupWorkbook(body, rangeLabel), `Samba-Financials-${groupKey}${suffix}.xlsx`);
     }
 
     return res.status(400).json({ error: 'Unknown action' });

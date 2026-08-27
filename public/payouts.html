@@ -176,6 +176,7 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
   <div class="shell">
     <nav class="rail" id="rail">
       <a href="#/" data-view="list"><span class="ico">🧾</span>Statements</a>
+      <a href="#/earnings" data-view="earnings"><span class="ico">📈</span>Earnings</a>
       <a href="#/groups" data-view="groups"><span class="ico">🏠</span>Properties</a>
     </nav>
     <main class="content" id="content">
@@ -250,10 +251,11 @@ let groupFilter = '';
 function go(h) { location.hash = h; }
 function route() {
   const h = location.hash || '#/';
-  const view = h.startsWith('#/statement/') ? 'detail' : h === '#/groups' ? 'groups' : 'list';
+  const view = h.startsWith('#/statement/') ? 'detail' : h === '#/groups' ? 'groups' : h === '#/earnings' ? 'earnings' : 'list';
   document.querySelectorAll('.rail a').forEach(a => a.classList.toggle('on', a.dataset.view === (view === 'detail' ? 'list' : view)));
   if (view === 'list') renderList();
   else if (view === 'groups') renderGroups();
+  else if (view === 'earnings') renderEarnings();
   else renderDetail(parseInt(h.slice('#/statement/'.length), 10));
 }
 window.addEventListener('hashchange', route);
@@ -450,15 +452,20 @@ function drawDetail() {
     html += `<div class="card"><h3>Payments</h3>`;
     if (!pays.length) html += `<div class="empty-state" style="padding:8px">No payments recorded yet.</div>`;
     else html += `<div class="tblwrap"><table class="lines">
-      <tr><th>Date</th><th class="num">Amount</th><th>Note</th><th>Proof</th><th></th></tr>
-      ${pays.map(p => `<tr>
+      <tr><th>Date</th><th class="num">Amount</th><th>Note</th><th>Proof</th><th></th><th></th></tr>
+      ${pays.map(p => {
+        const returned = p.status === 'returned';
+        return `<tr${returned ? ' style="opacity:.6"' : ''}>
         <td style="white-space:nowrap">${dstr(p.paid_at)}</td>
-        <td class="num">${IDR(p.amount)}</td>
-        <td>${esc(p.note || '—')}</td>
+        <td class="num"${returned ? ' style="text-decoration:line-through"' : ''}>${IDR(p.amount)}</td>
+        <td>${esc(p.note || '—')}${returned ? ` <span class="rowflag">↩ returned by bank${p.return_note ? ' — ' + esc(p.return_note) : ''}</span>` : ''}</td>
         <td>${p.proof_url ? `<a href="${esc(p.proof_url)}" target="_blank">view ↗</a>` : '—'}</td>
+        <td>${returned
+          ? `<button class="btn ghost" style="padding:5px 9px;font-size:.68rem" onclick="paymentReturned(${p.id}, true)">undo</button>`
+          : `<button class="btn ghost" style="padding:5px 9px;font-size:.68rem" title="The bank bounced this transfer — keep it in the ledger but restore the owed balance" onclick="paymentReturned(${p.id}, false)">↩ Returned</button>`}</td>
         <td><button class="del" title="Delete payment" onclick="deletePayment(${p.id})">✕</button></td>
-      </tr>`).join('')}
-      <tr class="totrow"><td>Paid to date</td><td class="num">${IDR(s.paid_total)}</td><td colspan="3">${balanceOf(s) > 0 ? 'Balance due ' + IDR(balanceOf(s)) : 'Settled in full'}</td></tr>
+      </tr>`; }).join('')}
+      <tr class="totrow"><td>Paid to date</td><td class="num">${IDR(s.paid_total)}</td><td colspan="4">${balanceOf(s) > 0 ? 'Balance due ' + IDR(balanceOf(s)) : 'Settled in full'}</td></tr>
     </table></div>`;
     html += `</div>`;
   }
@@ -611,6 +618,20 @@ async function doRecordPayment() {
     renderDetail(det.statement.id);
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
+async function paymentReturned(paymentId, undo) {
+  let note = null;
+  if (!undo) {
+    if (!confirm('Mark this transfer as returned by the bank? It stays in the ledger but the owed balance goes back up.')) return;
+    note = prompt('Reason / bank message (optional):') || null;
+  }
+  try {
+    const out = await api('statement_payment_returned', { id: det.statement.id, payment_id: paymentId, note, undo });
+    showToast(undo ? 'Payment restored ✓' : `Marked returned — ${IDR(out.balance)} owed again. Double-check the payout account with the owner before retrying.`, undo ? 'success' : 'error');
+    await refreshList();
+    renderDetail(det.statement.id);
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
 async function deletePayment(paymentId) {
   if (!confirm('Delete this payment? The owed balance goes back up.')) return;
   try {
@@ -634,6 +655,58 @@ function downscale(file) {
     img.src = URL.createObjectURL(file);
   });
 }
+// ── Earnings: monthly management-commission income ───────────────────
+// Commission comes from the statements themselves (Era's commission column),
+// summed per month across groups that charge a management fee. Own units
+// (charges_commission=false, e.g. LaneHAUS) are internal money and excluded
+// from the total — shown separately for context.
+async function renderEarnings() {
+  const c = document.getElementById('content');
+  if (!listData || !groupsData) { c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>'; return; }
+  const groups = groupsData.groups || [];
+  const chargeable = new Set(groups.filter(g => g.charges_commission !== false).map(g => g.key));
+  const mlab = (p) => { const [y, m] = String(p).split('-').map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+
+  const months = {};   // period → {total, own, byGroup:{name:amt}}
+  for (const s of (listData.statements || [])) {
+    if (s.status === 'void') continue;
+    const m = (months[s.period] ||= { total: 0, own: 0, byGroup: {} });
+    const amt = Number(s.commission_total) || 0;
+    if (chargeable.has(s.group_key)) {
+      m.total += amt;
+      m.byGroup[s.statement_groups?.name || s.group_key] = (m.byGroup[s.statement_groups?.name || s.group_key] || 0) + amt;
+    } else {
+      m.own += amt;
+    }
+  }
+  const periods = Object.keys(months).sort().reverse();
+  const ytd = periods.reduce((a, p) => a + months[p].total, 0);
+  const best = periods.reduce((a, p) => months[p].total > (months[a]?.total ?? -1) ? p : a, periods[0]);
+  const maxV = Math.max(...periods.map(p => months[p].total), 1);
+
+  let html = `<div class="card"><h3>Management commission earnings</h3>
+    <div class="totgrid">
+      <div class="tot big"><div class="lab">2026 to date</div><div class="val">${IDR(ytd)}</div></div>
+      <div class="tot"><div class="lab">Average / month</div><div class="val">${IDR(periods.length ? ytd / periods.length : 0)}</div></div>
+      ${best ? `<div class="tot"><div class="lab">Best month</div><div class="val">${IDR(months[best].total)}</div><div style="font-size:.66rem;color:var(--muted);margin-top:3px">${esc(mlab(best))}</div></div>` : ''}
+    </div>
+    <p style="font-size:.72rem;color:var(--muted);margin-top:8px">From the commission column of every statement (drafts included — the fee is earned whether or not the statement is published yet). LaneHAUS is excluded: your own units, no management fee charged.</p>
+  </div>`;
+
+  html += `<div class="card"><h3>By month</h3><div class="tblwrap"><table class="lines">
+    <tr><th>Month</th><th></th><th class="num">Commission</th><th>Breakdown</th></tr>
+    ${periods.map(p => `<tr>
+      <td style="white-space:nowrap;font-weight:600">${esc(mlab(p))}</td>
+      <td style="width:34%;min-width:120px"><div style="height:9px;border-radius:5px;background:var(--surface2);overflow:hidden"><div style="height:100%;width:${Math.round(months[p].total / maxV * 100)}%;background:var(--accent);border-radius:5px"></div></div></td>
+      <td class="num" style="font-weight:700">${IDR(months[p].total)}</td>
+      <td style="font-size:.68rem;color:var(--muted)">${Object.entries(months[p].byGroup).sort((a, b) => b[1] - a[1]).map(([n, v]) => `${esc(n.replace(/HAUS Canggu – |Tropicana Valley – /, ''))} ${Math.round(v / 1e6 * 10) / 10}M`).join(' · ') || '—'}${months[p].own ? ` <span style="color:var(--paused-fg)">(+ LaneHAUS internal ${Math.round(months[p].own / 1e6 * 10) / 10}M)</span>` : ''}</td>
+    </tr>`).join('')}
+    <tr class="totrow"><td>Total</td><td></td><td class="num">${IDR(ytd)}</td><td></td></tr>
+  </table></div></div>`;
+
+  c.innerHTML = html;
+}
+
 // ── Properties / registry ────────────────────────────────────────────
 async function renderGroups() {
   const c = document.getElementById('content');

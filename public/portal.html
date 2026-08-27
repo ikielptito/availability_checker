@@ -859,6 +859,7 @@ async function probeStatements(){
   }catch(e){}
 }
 const stAcctEditing={};   // group key → true while its payout-account form is open
+const stDlOpen={};        // group key → true while its download range picker is open
 function initStatements(){
   const pane=document.getElementById('tab-statements');
   const sts=statementsCache||[];
@@ -899,8 +900,25 @@ function initStatements(){
           <div class="st-eyebrow">Samba Realty · managed</div>
           <div class="st-prop-name">${escapeHtml(g.name)}</div>
         </div>
-        ${rows.length?`<a class="st-xlsx" href="/api/statements?action=export-group&group=${encodeURIComponent(g.key)}">⬇ Financials (.xlsx)</a>`:''}
+        ${rows.length?`<button class="st-xlsx" style="cursor:pointer;font-family:inherit;background:none" onclick="stDlOpen['${escapeHtml(g.key)}']=!stDlOpen['${escapeHtml(g.key)}'];initStatements()">⬇ Statements (.xlsx)</button>`:''}
       </div>`;
+
+    // Banking-style download: pick the months (or all), get one workbook.
+    if(rows.length&&stDlOpen[g.key]){
+      const opts=rows.map(s=>s.period).sort();
+      html+=`<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:4px 24px 12px;font-size:.78rem;color:var(--muted)">
+        <span>From</span>
+        <select id="dlf-${escapeHtml(g.key)}" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-family:inherit">
+          ${opts.map((p,i)=>`<option value="${p}"${i===0?' selected':''}>${escapeHtml(mlab(p))}</option>`).join('')}
+        </select>
+        <span>to</span>
+        <select id="dlt-${escapeHtml(g.key)}" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-family:inherit">
+          ${opts.map((p,i)=>`<option value="${p}"${i===opts.length-1?' selected':''}>${escapeHtml(mlab(p))}</option>`).join('')}
+        </select>
+        <button onclick="downloadStatements('${escapeHtml(g.key)}')" style="border:none;border-radius:8px;background:var(--accent);color:#fff;padding:8px 14px;font-family:inherit;font-size:.76rem;font-weight:600;cursor:pointer">Download</button>
+        <span style="color:var(--muted)">one consolidated spreadsheet — summary, income, expenses, payments</span>
+      </div>`;
+    }
 
     if(!rows.length){
       html+=`<div class="st-none">Your first monthly statement is being prepared — it will appear here, and reach you on WhatsApp, as soon as it's published.</div>`;
@@ -945,6 +963,12 @@ function initStatements(){
     html+=`</div>`;
   }
   pane.innerHTML=html;
+}
+function downloadStatements(key){
+  const from=document.getElementById('dlf-'+key)?.value, to=document.getElementById('dlt-'+key)?.value;
+  let f=from, t=to;
+  if(f&&t&&f>t){ const x=f; f=t; t=x; }   // tolerate swapped ends
+  location.href=`/api/statements?action=export-group&group=${encodeURIComponent(key)}${f?'&from='+f:''}${t?'&to='+t:''}`;
 }
 async function savePayoutAccount(key){
   const msg=document.getElementById('pa-msg-'+key);
