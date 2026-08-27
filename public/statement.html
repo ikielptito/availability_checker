@@ -152,11 +152,24 @@ function render(d) {
         ${d.group?.owner_names ? `<span>For ${esc(d.group.owner_names)}</span>` : ''}
         ${paid ? `<span class="paidchip">✓ Paid ${esc(dstr(d.paid_at))}</span>` : partial ? `<span class="duechip">Partially paid · ${IDR(balance)} to follow</span>` : `<span class="duechip">Payout on its way</span>`}
       </div>
-      <div class="payout">
-        <div class="pl">Total payout to you</div>
-        <div class="pv">${IDR(t.payout)}</div>
-        <div class="ps">Rental income after platform commission and villa expenses${Number(t.adjustments) ? ' and adjustments' : ''}, ${esc(d.period_label || '')}.</div>
-      </div>
+      ${(() => {
+        // The hero figure is whatever matters MOST right now: what's still
+        // owed while payments are in flight, the settled total once paid,
+        // the deficit when a month closed negative.
+        const deficit = Number(t.payout) < 0;
+        const h = deficit
+          ? { label: 'This month closed in deficit', value: t.payout, sub: `Villa expenses exceeded rental income in ${esc(d.period_label || '')}. Samba Realty covers the shortfall — it carries into your next statement and is repaid from future rental revenue.` }
+          : paid
+            ? { label: 'Total payout to you — settled in full', value: t.payout, sub: `Paid in full on ${esc(dstr(d.paid_at))}. Rental income after platform commission and villa expenses${Number(t.adjustments) ? ' and adjustments' : ''}, ${esc(d.period_label || '')}.` }
+            : partial
+              ? { label: 'Balance owed to you', value: balance, sub: `${IDR(paidTotal)} of the ${IDR(t.payout)} total for ${esc(d.period_label || '')} has already been transferred — this is what's still on its way.` }
+              : { label: 'Total payout to you', value: t.payout, sub: `Rental income after platform commission and villa expenses${Number(t.adjustments) ? ' and adjustments' : ''}, ${esc(d.period_label || '')}.` };
+        return `<div class="payout">
+        <div class="pl">${h.label}</div>
+        <div class="pv">${IDR(h.value)}</div>
+        <div class="ps">${h.sub}</div>
+      </div>`;
+      })()}
     </div>`;
 
   // Bookings
