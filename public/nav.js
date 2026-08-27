@@ -613,7 +613,9 @@
       if (!vs.length) return;
       var el = document.getElementById('snav-viewings'); if (!el) return;
       var live = vs.filter(function (v) { return v.status === 'requested' || (v.status === 'confirmed' && v.scheduledAt && Date.parse(v.scheduledAt) > Date.now() - 3600e3); });
-      var shown = live.length ? live : vs.slice(0, 3);
+      var past = vs.filter(function (v) { return live.indexOf(v) === -1; })
+        .sort(function (a, b) { return Date.parse(b.scheduledAt || 0) - Date.parse(a.scheduledAt || 0); })
+        .slice(0, 4);
       var line = function (v) {
         var when = v.scheduledAt
           ? (function (t) { return t.toISOString().slice(0, 10) + ' ' + t.toISOString().slice(11, 16) + ' WITA'; })(new Date(Date.parse(v.scheduledAt) + 8 * 3600e3))
@@ -627,8 +629,21 @@
         return '<div style="padding:4px 0">' + esc(v.property || '?') + ' — ' + when + ' · ' + st
           + (v.gcal && v.status === 'confirmed' ? ' · <a href="' + v.gcal + '" target="_blank" rel="noopener">calendar 📅</a>' : '') + mayaLink + '</div>';
       };
+      var st2 = function (v) {
+        return v.status === 'completed' ? '<b style="color:#1B7A44">completed</b>'
+          : v.status === 'no_show' ? '<b style="color:#C0392B">no-show</b>'
+          : esc(v.status) + (v.outcomeNote ? ' — ' + esc(v.outcomeNote) : '');
+      };
+      var pastLine = function (v) {
+        var when = v.scheduledAt
+          ? new Date(Date.parse(v.scheduledAt) + 8 * 3600e3).toISOString().slice(0, 10)
+          : '';
+        return '<div style="padding:3px 0;color:#8a8478;font-size:0.78rem">' + esc(v.property || '?') + (when ? ' — ' + when : '') + ' · ' + st2(v) + '</div>';
+      };
       el.style.display = '';
-      el.innerHTML = '<label>Your viewings</label><div class="snav-link-box">' + shown.map(line).join('')
+      el.innerHTML = '<label>Your viewings</label><div class="snav-link-box">'
+        + (live.length ? live.map(line).join('') : '<div style="padding:4px 0;color:#8a8478">No upcoming viewings.</div>')
+        + (past.length ? '<div style="border-top:1px solid #DBD2C4;margin-top:6px;padding-top:5px"><span style="font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:#8a8478">Past</span>' + past.map(pastLine).join('') + '</div>' : '')
         + '<div style="color:#8a8478;font-size:0.72rem;margin-top:4px">Book or change a viewing by messaging Maya on WhatsApp.</div></div>';
     });
     ov.classList.add('open');
