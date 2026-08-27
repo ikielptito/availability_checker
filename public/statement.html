@@ -291,6 +291,8 @@ function render(d) {
       </div>
       ${Object.keys(hx.channels || {}).length ? `<div class="chmix">${Object.entries(hx.channels).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
         `<div class="chrow"><span>${esc(chLabel(k))}</span><span class="bar"><i style="width:${Math.round(v / chTotal * 100)}%"></i></span><span class="n">${v} nights</span></div>`).join('')}</div>` : ''}
+      ${bookings.reduce((a, b) => a + (Number(b.nights) || 0), 0) > (Number(d.hostex?.group?.nights_sold) || 0) * 1.2
+        ? `<div style="margin-top:12px;font-size:.68rem;color:var(--muted)">Long-stay rentals arranged directly (e.g. monthly tenants) may not appear in the booking calendar — the statement's booking lines above are the complete picture.</div>` : ''}
     </div>`;
   }
 
