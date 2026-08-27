@@ -1500,7 +1500,12 @@ function openModal(propId) {
   // confirms the slot with the villa contact — one-tap approval, calendar
   // invites, day-of reminders), "Chat" stays the direct line to the contact.
   const visitBtn=document.getElementById('modal-visit-btn');
-  visitBtn.href='https://wa.me/6287841441233?text='+encodeURIComponent('Hi Maya, I\'d like to schedule a viewing of '+info.name+'. Preferred day and time: ');
+  // The worked example in the prefill nudges agents into a parseable window
+  // ("Thu 28 Aug, 2pm") without the false precision of a date picker — the
+  // villa's availability is the contact's to confirm, not ours to imply.
+  const eg=new Date(Date.now()+(8+48)*3600e3);
+  const egTxt=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][eg.getUTCDay()]+' '+eg.getUTCDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][eg.getUTCMonth()]+', 2pm';
+  visitBtn.href='https://wa.me/6287841441233?text='+encodeURIComponent('Hi Maya, I\'d like to schedule a viewing of '+info.name+'. Preferred day and time (e.g. '+egTxt+'): ');
   visitBtn.innerHTML=icon('calendar','sm')+'<span>Visit</span>';
   visitBtn.onclick=()=>track('visit_schedule_click',propId,info.name);
   document.getElementById('modal').classList.add('open');
