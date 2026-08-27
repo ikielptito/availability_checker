@@ -154,6 +154,26 @@ function mockStatementsApi({ action, payload = {} }) {
     const st = find(payload.id);
     return { status: 200, body: { payments: (st?.payments || []).map(p => ({ ...p, proof_url: p.proof_path ? 'https://picsum.photos/seed/proof/700/900' : null })) } };
   }
+  if (action === 'statement_unit_nights') {
+    const group = mockGroups.find(g => g.key === payload.group_key);
+    if (!group) return { status: 404, body: { error: 'Unknown group' } };
+    const bySlug = {}; let unassigned = 0;
+    for (const st of mockStatements.filter(s => s.group_key === group.key && s.status !== 'void'
+        && (!payload.from || s.period >= payload.from) && (!payload.to || s.period <= payload.to))) {
+      for (const l of st.lines.filter(x => x.kind === 'booking')) {
+        if (/owner/i.test(l.platform || '') || (l.flags || []).includes('zero_amount')) continue;
+        const n = Number(l.nights) || 0;
+        if (!n) continue;
+        let slug = group.listing_slugs.length === 1 ? group.listing_slugs[0] : null;
+        if (!slug) for (const sl of group.listing_slugs) {
+          const d = sl.match(/-(\d+)$/)?.[1];
+          if (d && new RegExp(`unit\\s*0*${d}\\b`, 'i').test(l.unit_name || '')) { slug = sl; break; }
+        }
+        if (slug) bySlug[slug] = (bySlug[slug] || 0) + n; else unassigned += n;
+      }
+    }
+    return { status: 200, body: { bySlug, unassigned, from: payload.from, to: payload.to } };
+  }
   if (action === 'statement_export_data') {
     const group = mockGroups.find(g => g.key === payload.group_key);
     if (!group) return { status: 404, body: { error: 'Unknown group' } };

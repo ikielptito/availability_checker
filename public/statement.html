@@ -353,13 +353,13 @@ function render(d) {
     } else {
       const chTotal = Object.values(hx.channels || {}).reduce((a, b) => a + b, 0) || 1;
       html += `<div class="hxgrid">
-        <div class="hxc"><div class="kl">Occupancy${qm('occ')}</div><div class="kv">${hx.occupancy_pct}<small>%</small></div><div class="kc">of available nights${hx.owner_blocked ? ` · ${hx.owner_blocked} calendar-blocked night${hx.owner_blocked > 1 ? 's' : ''} excluded (own stays or direct rentals)` : ''}</div></div>
+        <div class="hxc"><div class="kl">Occupancy${qm('occ')}</div><div class="kv">${hx.occupancy_pct}<small>%</small></div><div class="kc">of available nights${hx.direct_nights ? ` · incl. ${hx.direct_nights} direct-rental night${hx.direct_nights > 1 ? 's' : ''}` : ''}${hx.owner_blocked ? ` · ${hx.owner_blocked} owner-stay night${hx.owner_blocked > 1 ? 's' : ''} excluded` : ''}</div></div>
         <div class="hxc"><div class="kl">Nights sold${qm('nights')}</div><div class="kv">${hx.nights_sold}</div><div class="kc">${RANGE === 'month' ? 'across the month' : 'across ' + esc(STATS[RANGE]?.label || '')}</div></div>
         <div class="hxc"><div class="kl">Reservations</div><div class="kv">${hx.reservations}</div><div class="kc">stays in the period</div></div>
         <div class="hxc"><div class="kl">Net nightly rate${qm('adr')}</div><div class="kv" style="font-size:1.15rem;line-height:1.3">${hx.adr ? IDR(hx.adr) : '—'}</div><div class="kc">average, after platform fees</div></div>
       </div>
-      ${tip('occ', 'Nights with a guest ÷ nights your villa was actually open for guests. Nights the calendar was blocked — your own stays, or direct rentals arranged off-calendar — don\'t count against you.')}
-      ${tip('nights', 'Guest nights from the booking calendar in this period. Long-stay tenants arranged directly may not appear here even though they\'re in your statement\'s booking lines.')}
+      ${tip('occ', 'Nights with a guest ÷ nights your villa was available for guests. Direct rentals recorded on your statement count as occupied even when they were arranged off the booking calendar; nights blocked for your own stays are excluded and never count against you.')}
+      ${tip('nights', 'Guest nights in this period — from the booking calendar plus direct rentals recorded on your statement (long-stay tenants are often arranged directly).')}
       ${tip('adr', 'Average earned per booked night after the booking platforms\' own fees (Airbnb, Booking.com, …) — before Samba\'s management fee and villa costs.')}
       ${Object.keys(hx.channels || {}).length ? `<div class="chmix">${Object.entries(hx.channels).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
         `<div class="chrow"><span>${esc(chLabel(k))}</span><span class="bar"><i style="width:${Math.round(v / chTotal * 100)}%"></i></span><span class="n">${v} nights</span></div>`).join('')}</div>` : ''}

@@ -17,7 +17,7 @@
 //     Hostex month aggregates the CRM snapshots into a statement at publish.
 
 import { verifyStatementToken, statementToken } from '../lib/tokens.js';
-import { buildMonthStats, buildRangeStats } from '../lib/month-stats.js';
+import { buildMonthStats, buildRangeStats, applyStatementNights } from '../lib/month-stats.js';
 import { buildStatementWorkbook, buildGroupWorkbook } from '../lib/statement-export.js';
 import { UNITS_BY_SLUG } from '../lib/catalog.js';
 import { loadHostexOwnerMap } from '../lib/owner-listings.js';
@@ -117,7 +117,11 @@ export default async function handler(req, res) {
       const units = String(req.query.slugs || '').split(',').map(s => s.trim()).filter(Boolean)
         .map(slug => ({ slug, hostexId: UNITS_BY_SLUG[slug]?.hostexId || null, name: UNITS_BY_SLUG[slug]?.name || null }));
       if (!units.length) return res.status(400).json({ error: 'Missing slugs' });
-      return res.status(200).json(await buildMonthStats(units, period));
+      const stats = await buildMonthStats(units, period);
+      // The CRM sends Era's recorded guest nights so direct rentals the
+      // calendar never saw count as occupied.
+      try { if (req.query.stmt_nights) applyStatementNights(stats, JSON.parse(String(req.query.stmt_nights))); } catch { /* best-effort */ }
+      return res.status(200).json(stats);
     }
 
     // ── Public tokenized statement (no login) ───────────────────────
@@ -161,6 +165,11 @@ export default async function handler(req, res) {
       const units = (group.listing_slugs || [])
         .map(slug => ({ slug, hostexId: UNITS_BY_SLUG[slug]?.hostexId || null, name: UNITS_BY_SLUG[slug]?.name || null }));
       const stats = await buildRangeStats(units, { from, to });
+      // Count Era-recorded direct rentals as occupied nights (live views).
+      try {
+        const un = await crm('statement_unit_nights', { group_key: parsed.groupKey, from, to });
+        if (un.status === 200) applyStatementNights(stats, un.body);
+      } catch { /* best-effort */ }
       res.setHeader('Cache-Control', 'no-store');
       return res.status(200).json({ range, from, to, label, ...stats });
     }
