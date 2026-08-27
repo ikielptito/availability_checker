@@ -740,6 +740,7 @@ async function renderGroups() {
         <input type="text" id="gan-${esc(g.key)}" value="${esc(a.account_name || '')}" placeholder="Account holder name">
         <input type="text" id="gac-${esc(g.key)}" value="${esc(a.account_number || '')}" placeholder="Account number">
         <button class="btn ghost" onclick="downloadGroupExcel('${esc(g.key)}')">⬇ Excel</button>
+        ${(a.iban || a.swift || a.routing_number || a.sort_code || a.bsb || a.country) ? `<div style="grid-column:1/-1;font-size:.68rem;color:var(--muted)">intl: ${['country', 'routing_number', 'sort_code', 'bsb', 'iban', 'swift', 'account_type', 'note'].filter(k => a[k]).map(k => `${k.replace(/_/g, ' ')} ${esc(String(a[k]))}`).join(' · ')} <span style="color:var(--paused-fg)">(owner edits full details in their portal)</span></div>` : ''}
       </div>
     </div>`; }).join('')}
   </div>`;

@@ -309,11 +309,12 @@ function render(d) {
   // actionable strip. Either attaches to the Payments section when it
   // exists, otherwise rides at the end of the payout-math section above.
   const acct = d.group?.payout_account;
-  const hasAcct = acct && (acct.bank || acct.account_number);
+  const hasAcct = acct && (acct.bank || acct.account_number || acct.iban);
+  const acctPrimary = acct ? String(acct.iban || acct.account_number || '') : '';
   const acctLine = hasAcct
     ? `<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px dashed var(--border);font-size:.76rem;color:var(--text-2)">
         <span style="font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600">Payouts to</span>
-        ${esc(acct.bank || '')} · ${esc(acct.account_name || '')} · <b style="font-variant-numeric:tabular-nums">···· ${esc(String(acct.account_number || '').slice(-4))}</b>
+        ${esc(acct.bank || '')}${acct.country && acct.country !== 'ID' ? ` (${esc(acct.country)})` : ''} · ${esc(acct.account_name || '')} · <b style="font-variant-numeric:tabular-nums">${acctPrimary.length > 4 ? '···· ' + esc(acctPrimary.slice(-4)) : esc(acctPrimary)}</b>
         <span style="color:var(--muted)">· change it in your <a href="https://sambarentals.com/portal" style="color:var(--accent)">Samba portal</a> or via Maya</span>
       </div>`
     : `<div style="margin-top:14px;background:var(--accent-soft);border-radius:11px;padding:12px 15px;font-size:.78rem;line-height:1.55;color:var(--text-2)">

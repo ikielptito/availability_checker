@@ -859,6 +859,28 @@ async function probeStatements(){
   }catch(e){}
 }
 const stAcctEditing={};   // group key → true while its payout-account form is open
+const stAcctCountry={};   // group key → country code chosen in the form
+// Country-specific payout fields, Wise/Stripe style: pick the account's
+// country and the right entry fields appear. Every country also gets a
+// free-text extras line (intermediary banks, branch codes, references…).
+const ACCT_SCHEMA={
+  ID:{label:'Indonesia',fields:[['bank','Bank','e.g. BCA, Permata'],['account_name','Account holder name',''],['account_number','Account number','']]},
+  US:{label:'United States',fields:[['account_name','Account holder name',''],['bank','Bank','e.g. Chase'],['routing_number','ACH routing number','9 digits'],['account_number','Account number',''],['account_type','Account type','']]},
+  GB:{label:'United Kingdom',fields:[['account_name','Account holder name',''],['sort_code','Sort code','e.g. 04-00-04'],['account_number','Account number','8 digits']]},
+  EU:{label:'Europe (IBAN / SEPA)',fields:[['account_name','Account holder name',''],['iban','IBAN','e.g. DE89 3704 0044 0532 0130 00'],['swift','BIC / SWIFT (optional)','']]},
+  AU:{label:'Australia',fields:[['account_name','Account holder name',''],['bsb','BSB','6 digits'],['account_number','Account number',''],['bank','Bank','']]},
+  SG:{label:'Singapore',fields:[['account_name','Account holder name',''],['bank','Bank','e.g. DBS'],['account_number','Account number',''],['swift','SWIFT (optional)','']]},
+  HK:{label:'Hong Kong',fields:[['account_name','Account holder name',''],['bank','Bank','e.g. HSBC'],['account_number','Account number','incl. 3-digit bank code'],['swift','SWIFT (optional)','']]},
+  OT:{label:'Other / international',fields:[['account_name','Account holder name',''],['bank','Bank name',''],['iban','IBAN (if you have one)',''],['account_number','Account number (if no IBAN)',''],['swift','SWIFT / BIC','']]},
+};
+const ACCT_ALL_KEYS=['bank','account_name','account_number','routing_number','sort_code','bsb','iban','swift','account_type','note'];
+function acctSummary(a){
+  if(!a||!(a.bank||a.account_number||a.iban)) return null;
+  const primary=a.iban||a.account_number||'';
+  const mask=primary.length>4?('···· '+primary.slice(-4)):primary;
+  const country=a.country&&a.country!=='ID'?` (${escapeHtml(a.country)})`:'';
+  return `${escapeHtml(a.bank||ACCT_SCHEMA[a.country]?.label||'')}${country} <span class="sep">·</span> ${escapeHtml(a.account_name||'')} <span class="sep">·</span> <b>${escapeHtml(mask)}</b>`;
+}
 const stDlOpen={};        // group key → true while its download range picker is open
 function initStatements(){
   const pane=document.getElementById('tab-statements');
@@ -938,12 +960,27 @@ function initStatements(){
     }
 
     if(stAcctEditing[g.key]){
+      const cc=stAcctCountry[g.key]||a.country||'ID';
+      const schema=ACCT_SCHEMA[cc]||ACCT_SCHEMA.OT;
+      const fld=(key,label,ph)=>{
+        const val=escapeHtml(a[key]||'');
+        if(key==='account_type') return `<label style="font-size:.68rem;color:var(--muted);display:block">${escapeHtml(label)}
+          <select id="pa-${key}-${escapeHtml(g.key)}" style="display:block;width:100%;margin-top:4px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-family:inherit">
+            <option value="checking"${a.account_type!=='savings'?' selected':''}>Checking</option>
+            <option value="savings"${a.account_type==='savings'?' selected':''}>Savings</option>
+          </select></label>`;
+        return `<label style="font-size:.68rem;color:var(--muted);display:block">${escapeHtml(label)}
+          <input type="text" id="pa-${key}-${escapeHtml(g.key)}" value="${val}" placeholder="${escapeHtml(ph)}" style="display:block;width:100%;margin-top:4px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-family:inherit;font-size:.84rem"></label>`;
+      };
       html+=`<div class="st-acct-form">
         <div class="lab">Payout account — where Samba Realty transfers your payout</div>
-        <div class="st-acct-grid">
-          <input type="text" id="pa-bank-${escapeHtml(g.key)}" value="${escapeHtml(a.bank||'')}" placeholder="Bank (e.g. BCA)">
-          <input type="text" id="pa-name-${escapeHtml(g.key)}" value="${escapeHtml(a.account_name||'')}" placeholder="Account holder name">
-          <input type="text" id="pa-num-${escapeHtml(g.key)}" value="${escapeHtml(a.account_number||'')}" placeholder="Account number">
+        <label style="font-size:.68rem;color:var(--muted);display:block;margin-bottom:10px">Account country
+          <select onchange="stAcctCountry['${escapeHtml(g.key)}']=this.value;initStatements()" style="display:block;width:100%;max-width:340px;margin-top:4px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-family:inherit">
+            ${Object.entries(ACCT_SCHEMA).map(([k,v])=>`<option value="${k}"${k===cc?' selected':''}>${escapeHtml(v.label)}</option>`).join('')}
+          </select></label>
+        <div class="st-acct-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+          ${schema.fields.map(f=>fld(...f)).join('')}
+          ${fld('note','Extra details (optional)','intermediary bank, branch, payment reference…')}
         </div>
         <div class="st-acct-actions">
           <button class="save" onclick="savePayoutAccount('${escapeHtml(g.key)}')">Save account</button>
@@ -952,12 +989,11 @@ function initStatements(){
         </div>
       </div>`;
     }else{
+      const summ=acctSummary(a);
       html+=`<div class="st-acct">
         <span class="lab">Payouts to</span>
-        ${hasAcct
-          ?`${escapeHtml(a.bank||'')} <span class="sep">·</span> ${escapeHtml(a.account_name||'')} <span class="sep">·</span> <b>${escapeHtml(maskedNum)}</b>`
-          :`<span style="color:var(--muted)">no account on file yet</span>`}
-        <button class="edit" onclick="stAcctEditing['${escapeHtml(g.key)}']=true;initStatements()">${hasAcct?'Edit':'＋ Add payout account'}</button>
+        ${summ||`<span style="color:var(--muted)">no account on file yet</span>`}
+        <button class="edit" onclick="stAcctEditing['${escapeHtml(g.key)}']=true;initStatements()">${summ?'Edit':'＋ Add payout account'}</button>
       </div>`;
     }
     html+=`</div>`;
@@ -973,11 +1009,11 @@ function downloadStatements(key){
 async function savePayoutAccount(key){
   const msg=document.getElementById('pa-msg-'+key);
   try{
-    const account={
-      bank:document.getElementById('pa-bank-'+key).value.trim(),
-      account_name:document.getElementById('pa-name-'+key).value.trim(),
-      account_number:document.getElementById('pa-num-'+key).value.trim(),
-    };
+    const account={country:stAcctCountry[key]||((statementGroupsCache.find(g=>g.key===key)||{}).payout_account||{}).country||'ID'};
+    for(const k of ACCT_ALL_KEYS){
+      const el=document.getElementById('pa-'+k+'-'+key);
+      account[k]=el?el.value.trim():'';   // absent-for-this-country fields clear
+    }
     const r=await fetch('/api/statements',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({action:'payout_account',payload:{group_key:key,account}})});
     const d=await r.json().catch(()=>({}));
