@@ -105,7 +105,29 @@ table.st tr.tot td{border-top:1px solid var(--border);border-bottom:none;font-we
 
 <script>
 'use strict';
-const IDR = (n) => 'IDR ' + Math.round(Number(n) || 0).toLocaleString('en-US');
+// ── Reference currency (display convenience ONLY — payouts are in IDR) ──
+const CURS = {
+  IDR: { sym: 'IDR ', dec: 0 }, USD: { sym: '$', dec: 2 }, EUR: { sym: '€', dec: 2 },
+  GBP: { sym: '£', dec: 2 }, AUD: { sym: 'A$', dec: 2 }, SGD: { sym: 'S$', dec: 2 },
+};
+let CUR = 'IDR', FX = null, DATA = null, HXSEL = 'group';
+try { const saved = localStorage.getItem('samba_stmt_cur'); if (saved && CURS[saved]) CUR = saved; } catch {}
+const conv = (n) => (CUR === 'IDR' || !FX?.rates?.[CUR]) ? (Number(n) || 0) : (Number(n) || 0) * FX.rates[CUR];
+const fmt = (n) => { const c = CURS[CUR] || CURS.IDR; return conv(n).toLocaleString('en-US', { minimumFractionDigits: c.dec, maximumFractionDigits: c.dec }); };
+const IDR = (n) => (CURS[CUR] || CURS.IDR).sym + fmt(n);
+const mval = (n) => fmt(n);
+function setCur(c) {
+  CUR = CURS[c] ? c : 'IDR';
+  try { localStorage.setItem('samba_stmt_cur', CUR); } catch {}
+  if (DATA) render(DATA);
+}
+function setHx(k) { HXSEL = k; if (DATA) render(DATA); }
+// Direct bookings are Samba bookings — say so on the owner's document.
+// (Owner stays keep Era's wording; those aren't Samba-sourced revenue.)
+const platformLabel = (p) => /direct/i.test(p || '') && !/owner/i.test(p || '') ? 'Samba' : (p || '—');
+// Channel keys inside already-frozen Hostex snapshots may carry pre-relabel
+// names ("Direct", "Hostex_direct") — normalize at display time.
+const chLabel = (k) => /direct|hostex/i.test(k) ? 'Samba' : k;
 const dstr = (iso) => iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 
 function fail(title, msg) {
@@ -126,6 +148,9 @@ async function boot() {
   } catch {
     return fail('Connection problem', 'Could not load your statement — check your connection and try again.');
   }
+  DATA = d;
+  FX = d.fx || null;
+  if (CUR !== 'IDR' && !FX?.rates?.[CUR]) CUR = 'IDR';   // saved choice no longer available
   render(d);
 }
 
@@ -151,7 +176,12 @@ function render(d) {
       <div class="subrow">
         ${d.group?.owner_names ? `<span>For ${esc(d.group.owner_names)}</span>` : ''}
         ${paid ? `<span class="paidchip">✓ Paid ${esc(dstr(d.paid_at))}</span>` : partial ? `<span class="duechip">Partially paid · ${IDR(balance)} to follow</span>` : `<span class="duechip">Payout on its way</span>`}
+        ${FX && Object.keys(FX.rates || {}).length ? `<span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:.72rem;color:var(--muted)">View in
+          <select onchange="setCur(this.value)" style="padding:5px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-family:inherit;font-size:.74rem">
+            ${['IDR', ...Object.keys(FX.rates)].map(c => `<option value="${c}"${c === CUR ? ' selected' : ''}>${c}</option>`).join('')}
+          </select></span>` : ''}
       </div>
+      ${CUR !== 'IDR' ? `<div style="margin-top:10px;font-size:.7rem;color:var(--muted);background:var(--surface2);border:1px dashed var(--border);border-radius:9px;padding:8px 12px">≈ Approximate ${esc(CUR)} amounts for reference only (rate as of ${esc(FX?.as_of || 'today')}). All payouts are made in IDR.</div>` : ''}
       ${(() => {
         // The hero figure is whatever matters MOST right now: what's still
         // owed while payments are in flight, the settled total once paid,
@@ -183,16 +213,16 @@ function render(d) {
       ${rows.map(b => `<tr>
         <td>${esc(b.guest_name || '—')}</td>
         <td>${esc(b.stay_dates || '—')}</td>
-        <td>${esc(b.platform || '—')}</td>
+        <td>${esc(platformLabel(b.platform))}</td>
         <td class="num">${b.nights != null ? esc(String(b.nights)) : '—'}</td>
-        <td class="num">${Math.round(Number(b.amount)).toLocaleString()}</td>
-        <td class="num">${Math.round(Number(b.commission)).toLocaleString()}</td>
-        <td class="num">${Math.round(Number(b.nett)).toLocaleString()}</td>
+        <td class="num">${mval(b.amount)}</td>
+        <td class="num">${mval(b.commission)}</td>
+        <td class="num">${mval(b.nett)}</td>
       </tr>`).join('')}
       <tr class="tot"><td colspan="4">Total</td>
-        <td class="num">${Math.round(rows.reduce((a, b) => a + (+b.amount || 0), 0)).toLocaleString()}</td>
-        <td class="num">${Math.round(rows.reduce((a, b) => a + (+b.commission || 0), 0)).toLocaleString()}</td>
-        <td class="num">${Math.round(rows.reduce((a, b) => a + (+b.nett || 0), 0)).toLocaleString()}</td></tr>
+        <td class="num">${mval(rows.reduce((a, b) => a + (+b.amount || 0), 0))}</td>
+        <td class="num">${mval(rows.reduce((a, b) => a + (+b.commission || 0), 0))}</td>
+        <td class="num">${mval(rows.reduce((a, b) => a + (+b.nett || 0), 0))}</td></tr>
     </table></div>`;
   }
   html += `</div>`;
@@ -202,8 +232,8 @@ function render(d) {
   if (!expenses.length) html += `<div style="color:var(--muted);font-size:.84rem">No expenses this month.</div>`;
   else html += `<div class="tblwrap"><table class="st">
     <tr><th>Date</th><th>Description</th><th class="num">Amount</th></tr>
-    ${expenses.map(e => `<tr><td style="white-space:nowrap">${esc(e.expense_date || '—')}</td><td>${esc(e.description || '—')}</td><td class="num">${Math.round(Number(e.amount)).toLocaleString()}</td></tr>`).join('')}
-    <tr class="tot"><td colspan="2">Total expenses</td><td class="num">${Math.round(expenses.reduce((a, e) => a + (+e.amount || 0), 0)).toLocaleString()}</td></tr>
+    ${expenses.map(e => `<tr><td style="white-space:nowrap">${esc(e.expense_date || '—')}</td><td>${esc(e.description || '—')}</td><td class="num">${mval(e.amount)}</td></tr>`).join('')}
+    <tr class="tot"><td colspan="2">Total expenses</td><td class="num">${mval(expenses.reduce((a, e) => a + (+e.amount || 0), 0))}</td></tr>
   </table></div>`;
   html += `</div>`;
 
@@ -226,11 +256,11 @@ function render(d) {
       <tr><th>Date</th><th class="num">Amount</th><th>Reference</th><th>Confirmation</th></tr>
       ${d.payments.map(p => `<tr>
         <td style="white-space:nowrap">${esc(dstr(p.paid_at))}</td>
-        <td class="num">${Math.round(Number(p.amount)).toLocaleString()}</td>
+        <td class="num">${mval(p.amount)}</td>
         <td>${esc(p.note || '—')}</td>
         <td>${p.proof_url ? `<a href="${esc(p.proof_url)}" target="_blank" rel="noopener">view ↗</a>` : '—'}</td>
       </tr>`).join('')}
-      <tr class="tot"><td>Total paid</td><td class="num">${Math.round(paidTotal).toLocaleString()}</td><td colspan="2">${paid ? 'Settled in full' : IDR(balance) + ' to follow'}</td></tr>
+      <tr class="tot"><td>Total paid</td><td class="num">${mval(paidTotal)}</td><td colspan="2">${paid ? 'Settled in full' : IDR(balance) + ' to follow'}</td></tr>
       </table></div></div>`;
   }
 
@@ -241,11 +271,18 @@ function render(d) {
        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">Payouts go to this account. To change it, update it in your Samba portal (sambarentals.com/portal → Statements) or reply to Maya.</div></div>`
     : `<div style="font-size:.84rem;color:var(--muted)">No payout account on file yet — add yours in your Samba portal (sambarentals.com/portal → Statements) or reply to Maya with your bank details.</div>`) + `</div>`;
 
-  // Hostex occupancy
-  const hx = d.hostex?.group;
+  // Hostex occupancy — multi-unit properties get a per-listing toggle
+  // (Combined is the default; each unit's own numbers one tap away).
+  const hxUnits = d.hostex?.units || {};
+  const unitKeys = Object.keys(hxUnits).filter(k => hxUnits[k] && !hxUnits[k].error);
+  const unitLabel = (k) => hxUnits[k]?.name?.replace(/^.*–\s*/, '') || k.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  if (HXSEL !== 'group' && !hxUnits[HXSEL]) HXSEL = 'group';
+  const hx = HXSEL === 'group' ? d.hostex?.group : hxUnits[HXSEL];
   if (hx) {
     const chTotal = Object.values(hx.channels || {}).reduce((a, b) => a + b, 0) || 1;
+    const chip = (key, label) => `<button onclick="setHx('${esc(key)}')" style="border:1px solid ${HXSEL === key ? 'var(--accent)' : 'var(--border)'};background:${HXSEL === key ? 'var(--accent)' : 'var(--surface)'};color:${HXSEL === key ? '#fff' : 'var(--text-2)'};border-radius:999px;padding:6px 13px;font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer">${esc(label)}</button>`;
     html += `<div class="pad"><div class="sec-h">Your month in numbers<small>from the booking calendar</small></div>
+      ${unitKeys.length > 1 ? `<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">${chip('group', 'Combined')}${unitKeys.map(k => chip(k, unitLabel(k))).join('')}</div>` : ''}
       <div class="hxgrid">
         <div class="hxc"><div class="kl">Occupancy</div><div class="kv">${hx.occupancy_pct}<small>%</small></div><div class="kc">of available nights</div></div>
         <div class="hxc"><div class="kl">Nights sold</div><div class="kv">${hx.nights_sold}</div><div class="kc">across the month</div></div>
@@ -253,7 +290,7 @@ function render(d) {
         <div class="hxc"><div class="kl">Net nightly rate</div><div class="kv" style="font-size:1.15rem;line-height:1.3">${hx.adr ? IDR(hx.adr) : '—'}</div><div class="kc">average, after platform fees</div></div>
       </div>
       ${Object.keys(hx.channels || {}).length ? `<div class="chmix">${Object.entries(hx.channels).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
-        `<div class="chrow"><span>${esc(k)}</span><span class="bar"><i style="width:${Math.round(v / chTotal * 100)}%"></i></span><span class="n">${v} nights</span></div>`).join('')}</div>` : ''}
+        `<div class="chrow"><span>${esc(chLabel(k))}</span><span class="bar"><i style="width:${Math.round(v / chTotal * 100)}%"></i></span><span class="n">${v} nights</span></div>`).join('')}</div>` : ''}
     </div>`;
   }
 

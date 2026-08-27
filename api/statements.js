@@ -115,7 +115,7 @@ export default async function handler(req, res) {
       const period = String(req.query.period || '');
       if (!/^\d{4}-\d{2}$/.test(period)) return res.status(400).json({ error: 'period must be YYYY-MM' });
       const units = String(req.query.slugs || '').split(',').map(s => s.trim()).filter(Boolean)
-        .map(slug => ({ slug, hostexId: UNITS_BY_SLUG[slug]?.hostexId || null }));
+        .map(slug => ({ slug, hostexId: UNITS_BY_SLUG[slug]?.hostexId || null, name: UNITS_BY_SLUG[slug]?.name || null }));
       if (!units.length) return res.status(400).json({ error: 'Missing slugs' });
       return res.status(200).json(await buildMonthStats(units, period));
     }
@@ -125,6 +125,9 @@ export default async function handler(req, res) {
       const parsed = verifyStatementToken(req.query.token || '');
       if (!parsed) return res.status(403).json({ error: 'Invalid statement link' });
       const { status, body } = await crm('statement_public', { group_key: parsed.groupKey, period: parsed.period });
+      // Reference FX rates for the page's currency picker — best-effort:
+      // the statement renders fine without them (picker just stays hidden).
+      if (status === 200) { try { body.fx = await getFx(); } catch { /* best-effort */ } }
       res.setHeader('Cache-Control', 'no-store');
       return res.status(status).json(body);
     }
@@ -197,6 +200,24 @@ export default async function handler(req, res) {
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
+}
+
+// Daily-ish IDR reference rates (open.er-api.com — keyless, generous limits),
+// cached for the lambda's lifetime. Display convenience ONLY: every payout is
+// made in IDR and the page says so whenever a conversion is shown.
+let _fx = null;
+async function getFx() {
+  if (_fx && Date.now() - _fx.fetched < 12 * 3600e3) return _fx.payload;
+  const r = await fetch('https://open.er-api.com/v6/latest/IDR');
+  const d = await r.json();
+  if (d?.result !== 'success' || !d.rates) return _fx?.payload || null;
+  const payload = {
+    base: 'IDR',
+    as_of: String(d.time_last_update_utc || '').replace(/ \d\d:.*$/, ''),
+    rates: Object.fromEntries(['USD', 'EUR', 'GBP', 'AUD', 'SGD'].map(c => [c, d.rates[c]]).filter(([, v]) => v)),
+  };
+  _fx = { payload, fetched: Date.now() };
+  return payload;
 }
 
 function sendXlsx(res, buf, filename) {
