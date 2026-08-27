@@ -688,7 +688,12 @@ function demoBlock(){
 // intro page and the sign-in popup lives there, so bounce there — carrying
 // view=new so that popup returns straight to the wizard. Only ?demo boots the
 // demo dashboard (reached from the "Explore the demo first" link on /home).
+let PORTAL_PREVIEW=null;   // signed admin preview token — read-only owner view
 (async function boot(){
+  // Admin read-only preview (/portal?preview=<token>): render the portal as
+  // that property's owner will see it — no session, nothing editable.
+  const previewQS = new URLSearchParams(location.search).get('preview');
+  if (previewQS) { enterPreview(previewQS); return; }
   // Owner invite link (/portal?invite=<token>): remember it across the
   // sign-in bounce so the claim runs the moment they're authenticated.
   const inviteQS = new URLSearchParams(location.search).get('invite');
@@ -712,6 +717,23 @@ function leaveDemoFor(owner){
   DEMO=false;
   const b=document.getElementById('demo-banner'); if(b) b.remove();
   enterApp(owner);
+}
+
+async function enterPreview(tok){
+  PORTAL_PREVIEW=tok;
+  document.getElementById('app').style.display='block';
+  // Only the Statements experience exists in preview — hide the rest.
+  document.querySelectorAll('.tabbar .tab').forEach(b=>{ if(b.dataset.tab!=='statements') b.style.display='none'; });
+  document.getElementById('add-btn').style.display='none';
+  document.getElementById('period-toggle').style.display='none';
+  await probeStatements();
+  const gname=(statementGroupsCache[0]&&(statementGroupsCache[0].owner_names||statementGroupsCache[0].name))||'this owner';
+  const bar=document.createElement('div');
+  bar.style.cssText='position:sticky;top:0;z-index:1200;background:#1c1917;color:#fff;font-size:.78rem;padding:9px 16px;text-align:center';
+  bar.innerHTML=`👁 Previewing the owner portal as <b>${escapeHtml(gname)}</b> — read-only. Close this tab to exit.`;
+  document.body.prepend(bar);
+  document.getElementById('tab-btn-statements').style.display='';
+  showTab('statements');
 }
 
 function enterApp(owner){
@@ -872,9 +894,9 @@ async function claimPendingInvite(){
 // this owner has at least one — marketplace-only owners never see it.
 let statementsCache=null, statementGroupsCache=[];
 async function probeStatements(){
-  if(DEMO) return;
+  if(DEMO&&!PORTAL_PREVIEW) return;
   try{
-    const r=await fetch('/api/statements?action=statements',{credentials:'include'});
+    const r=await fetch('/api/statements?action=statements'+(PORTAL_PREVIEW?'&preview='+encodeURIComponent(PORTAL_PREVIEW):''),{credentials:'include'});
     if(!r.ok) return;
     const d=await r.json();
     statementsCache=d.statements||[];
@@ -1017,7 +1039,7 @@ function initStatements(){
       html+=`<div class="st-acct">
         <span class="lab">Payouts to</span>
         ${summ||`<span style="color:var(--muted)">no account on file yet</span>`}
-        <button class="edit" onclick="stAcctEditing['${escapeHtml(g.key)}']=true;initStatements()">${summ?'Edit':'＋ Add payout account'}</button>
+        ${PORTAL_PREVIEW?'':`<button class="edit" onclick="stAcctEditing['${escapeHtml(g.key)}']=true;initStatements()">${summ?'Edit':'＋ Add payout account'}</button>`}
       </div>`;
     }
     html+=`</div>`;
@@ -1028,7 +1050,7 @@ function downloadStatements(key){
   const from=document.getElementById('dlf-'+key)?.value, to=document.getElementById('dlt-'+key)?.value;
   let f=from, t=to;
   if(f&&t&&f>t){ const x=f; f=t; t=x; }   // tolerate swapped ends
-  location.href=`/api/statements?action=export-group&group=${encodeURIComponent(key)}${f?'&from='+f:''}${t?'&to='+t:''}`;
+  location.href=`/api/statements?action=export-group&group=${encodeURIComponent(key)}${f?'&from='+f:''}${t?'&to='+t:''}${PORTAL_PREVIEW?'&preview='+encodeURIComponent(PORTAL_PREVIEW):''}`;
 }
 async function savePayoutAccount(key){
   const msg=document.getElementById('pa-msg-'+key);

@@ -741,6 +741,7 @@ async function renderGroups() {
         <input type="text" id="gac-${esc(g.key)}" value="${esc(a.account_number || '')}" placeholder="Account number">
         <button class="btn ghost" onclick="downloadGroupExcel('${esc(g.key)}')">⬇ Excel</button>
         <button class="btn ghost" title="Copy the owner's dashboard invite — they open it, sign in with Google, and their units link to that account automatically" onclick="copyInviteLink('${esc(g.key)}')">🔗 Invite link</button>
+        <button class="btn ghost" title="Open the owner portal exactly as this owner sees it (read-only)" onclick="openPreview('${esc(g.key)}')">👁 Preview</button>
         ${(a.iban || a.swift || a.routing_number || a.sort_code || a.bsb || a.country) ? `<div style="grid-column:1/-1;font-size:.68rem;color:var(--muted)">intl: ${['country', 'routing_number', 'sort_code', 'bsb', 'iban', 'swift', 'account_type', 'note'].filter(k => a[k]).map(k => `${k.replace(/_/g, ' ')} ${esc(String(a[k]))}`).join(' · ')} <span style="color:var(--paused-fg)">(owner edits full details in their portal)</span></div>` : ''}
       </div>
     </div>`; }).join('')}
@@ -765,6 +766,18 @@ async function downloadGroupExcel(key) {
 
 // Owner-onboarding invite: one URL to WhatsApp the owner. They open it,
 // sign in with any Google account, and the group's units claim themselves.
+// Open the owner portal exactly as this owner will see it — read-only.
+async function openPreview(key) {
+  try {
+    const r = await fetch(`/api/statements?action=preview-link&group=${encodeURIComponent(key)}`, {
+      headers: { Authorization: 'Bearer ' + adminPw },
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    window.open(d.url, '_blank');
+  } catch (e) { showToast('Could not open preview: ' + e.message, 'error'); }
+}
+
 async function copyInviteLink(key) {
   try {
     const r = await fetch(`/api/statements?action=invite-link&group=${encodeURIComponent(key)}`, {

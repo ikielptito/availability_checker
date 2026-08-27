@@ -16,7 +16,7 @@
 //   GET ?action=month-stats&slugs=&period=   service auth (sync secret) —
 //     Hostex month aggregates the CRM snapshots into a statement at publish.
 
-import { verifyStatementToken, statementToken, inviteToken, verifyInviteToken } from '../lib/tokens.js';
+import { verifyStatementToken, statementToken, inviteToken, verifyInviteToken, previewToken, verifyPreviewToken } from '../lib/tokens.js';
 import { buildMonthStats, buildRangeStats, applyStatementNights } from '../lib/month-stats.js';
 import { buildStatementWorkbook, buildGroupWorkbook } from '../lib/statement-export.js';
 import { UNITS_BY_SLUG } from '../lib/catalog.js';
@@ -219,10 +219,19 @@ export default async function handler(req, res) {
     }
 
     // ── Signed-in owner's statements (portal tab) ───────────────────
+    // Also serves the admin's read-only preview: a signed preview token
+    // scopes the response to one group, exactly as its owner will see it.
     if (action === 'statements') {
-      const owner = await sessionOwner(req, kvGet);
-      if (!owner) return res.status(401).json({ error: 'Not signed in' });
-      const groups = await ownerGroups(owner, kvGet, crm);
+      let groups;
+      const previewGroup = verifyPreviewToken(req.query.preview || '');
+      if (previewGroup) {
+        const groupsRes = await crm('statement_groups', {});
+        groups = (groupsRes.body?.groups || []).filter(g => g.key === previewGroup);
+      } else {
+        const owner = await sessionOwner(req, kvGet);
+        if (!owner) return res.status(401).json({ error: 'Not signed in' });
+        groups = await ownerGroups(owner, kvGet, crm);
+      }
       if (!groups.length) return res.status(200).json({ statements: [], groups: [] });
 
       const listRes = await crm('statement_list', {});
@@ -246,8 +255,19 @@ export default async function handler(req, res) {
       res.setHeader('Cache-Control', 'no-store');
       return res.status(200).json({
         statements: mine,
-        groups: groups.map(g => ({ key: g.key, name: g.name, payout_account: g.payout_account || null })),
+        groups: groups.map(g => ({ key: g.key, name: g.name, owner_names: g.owner_names || null, payout_account: g.payout_account || null })),
+        ...(previewGroup ? { preview: true } : {}),
       });
+    }
+
+    // ── Admin read-only portal preview link ─────────────────────────
+    if (action === 'preview-link') {
+      const auth = req.headers.authorization || '';
+      const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
+      if (!isAdmin) return res.status(401).json({ error: 'Unauthorized' });
+      const groupKey = String(req.query.group || '');
+      if (!groupKey) return res.status(400).json({ error: 'Missing group' });
+      return res.status(200).json({ url: `https://sambarentals.com/portal?preview=${previewToken(groupKey)}` });
     }
 
     // ── Owner invite link (admin) ───────────────────────────────────
@@ -279,7 +299,8 @@ export default async function handler(req, res) {
       const to = /^\d{4}-\d{2}$/.test(String(req.query.to || '')) ? String(req.query.to) : null;
       const auth = req.headers.authorization || '';
       const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
-      if (!isAdmin) {
+      const previewOk = verifyPreviewToken(req.query.preview || '') === groupKey;
+      if (!isAdmin && !previewOk) {
         const owner = await sessionOwner(req, kvGet);
         const groups = owner ? await ownerGroups(owner, kvGet, crm) : [];
         if (!groups.some(g => g.key === groupKey)) return res.status(owner ? 403 : 401).json({ error: owner ? 'Not your property' : 'Not signed in' });
