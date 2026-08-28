@@ -249,6 +249,14 @@ function render(d) {
           <b style="color:${pct >= 0 ? 'var(--green)' : 'var(--red)'}">${pct >= 0 ? '↑' : '↓'} ${Math.abs(pct)}%</b> payout
           ${occNow != null && occPrev != null ? ` · occupancy ${occPrev}% → ${occNow}%` : ''}</div>`;
       })()}
+      ${(() => {
+        // Amendments — corrections made after publishing, always visible.
+        const revs = Array.isArray(d.revisions) ? d.revisions : [];
+        if (!revs.length) return '';
+        return revs.map(r => `<div style="margin-top:10px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2,rgba(0,0,0,.03));font-size:.76rem;line-height:1.55;color:var(--text-2,#555)">
+          ↺ <b>Revised ${esc(dstr(r.at))}</b>${r.note ? ` — ${esc(r.note)}` : ''}${r.prev_payout != null && Math.abs(Number(r.prev_payout) - Number(r.new_payout ?? t.payout)) > 1 ? `<br><span style="opacity:.75">Payout corrected from ${IDR(r.prev_payout)} to ${IDR(r.new_payout ?? t.payout)}.</span>` : ''}
+        </div>`).join('');
+      })()}
     </div>`;
 
   // Bookings

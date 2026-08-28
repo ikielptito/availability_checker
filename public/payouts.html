@@ -357,7 +357,8 @@ async function renderDetail(id) {
 function drawDetail() {
   const c = document.getElementById('content');
   const s = det.statement, g = s.statement_groups || {};
-  const editable = s.status === 'draft';
+  const amending = Array.isArray(s.revisions) && s.revisions.some(r => r && r.open);
+  const editable = s.status === 'draft' || amending;
   const bookings = det.lines.filter(l => l.kind === 'booking');
   const expenses = det.lines.filter(l => l.kind === 'expense');
   const adjustments = det.lines.filter(l => l.kind === 'adjustment');
@@ -367,6 +368,8 @@ function drawDetail() {
 
   let html = `<div class="crumb"><a onclick="go('#/')">Statements</a> ›
     ${esc(g.name || s.group_key)} · ${esc(det.period_label)}</div>`;
+
+  if (amending) html += `<div class="banner amber">✏️ <div><b>Amending this published statement.</b> The owner can still open it while you edit, so finish promptly: correct the lines below, then <b>Save amendment</b> (they'll see a note of what changed) — or <b>Cancel</b> to restore everything exactly as it was.</div></div>`;
 
   if (s.source_changed) html += `<div class="banner amber">✏️ <div><b>Era's sheet changed</b> after ${s.status === 'draft' ? 'you edited this draft' : 'this statement was published'}.
     ${s.discrepancy ? esc(s.discrepancy.note || '') + (s.discrepancy.new_era_payout != null ? ` Sheet now says ${IDR(s.discrepancy.new_era_payout)}.` : '') : ''}
@@ -486,15 +489,31 @@ function drawDetail() {
       : `<div class="empty-state" style="padding:8px">None on file — the owner can add it in their portal, or you can under Properties.</div>`) + `</div>`;
   }
 
+  // Amendment history — every closed revision, owner-visible note included.
+  const closedRevs = (Array.isArray(s.revisions) ? s.revisions : []).filter(r => r && !r.open && r.at);
+  if (closedRevs.length) {
+    html += `<div class="card"><h3>Amendment history</h3>` + closedRevs.map(r =>
+      `<div style="font-size:.8rem;line-height:1.6;padding:6px 0;border-bottom:1px dashed var(--border)">↺ <b>${dstr(r.at)}</b> by ${esc(r.by || 'admin')} — ${esc(r.note || 'no note')}<br>
+       <span style="color:var(--muted)">payout ${IDR(r.prev?.payout_total)} → ${IDR(r.new?.payout_total)}</span></div>`
+    ).join('') + `</div>`;
+  }
+
   // Actions
   html += `<div class="card"><h3>Actions</h3><div class="actionsrow">`;
   if (s.status === 'draft') {
     html += `<button class="btn primary" onclick="askPublish()">Publish statement</button>`;
     if (s.has_manual_edits) html += `<button class="btn ghost" onclick="reparse()">⟳ Re-parse from sheet</button>`;
   }
+  if (amending) {
+    html += `<button class="btn primary" onclick="amendSave()">Save amendment</button>`;
+    html += `<button class="btn ghost" onclick="amendCancel()">Cancel amendment</button>`;
+  }
   if (s.status === 'published' || s.status === 'partial') {
     html += `<button class="btn green" onclick="askRecordPayment()">＋ Record payment</button>`;
     if (s.status === 'published' && !s.notified_at && !pays.length) html += `<button class="btn ghost" onclick="unpublish()">Unpublish</button>`;
+  }
+  if (['published', 'partial', 'paid'].includes(s.status) && !amending) {
+    html += `<button class="btn ghost" onclick="amendStart()">✏ Amend</button>`;
   }
   if (s.status !== 'draft') {
     html += `<a class="btn ghost" href="/st/${esc(det.token)}" target="_blank">Preview owner view ↗</a>`;
@@ -600,6 +619,69 @@ async function unpublish() {
   if (!confirm('Return this statement to draft?')) return;
   try {
     await api('statement_unpublish', { id: det.statement.id });
+    await refreshList(); renderDetail(det.statement.id);
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
+// ── Amendments: transparent corrections to a published statement ─────
+// Publishing freezes the numbers because the owner may already have seen
+// them. An amendment is the sanctioned way to change them afterwards: edit
+// the lines, then save with a note the owner reads on their statement. The
+// old figures stay in the record — nothing changes silently.
+function amendStart() {
+  const s = det.statement;
+  modal(`<h3>Amend ${esc(det.period_label)}?</h3>
+    <p>Current payout <b>${IDR(s.payout_total)}</b>. You'll be able to edit the lines, then save with a short note explaining what changed.</p>
+    <p style="color:var(--muted)">${s.notified_at ? 'The owner has already been notified of this statement, so the correction will be shown on it as a dated revision.' : 'The owner has not been notified yet.'} The statement stays visible to them while you edit, so finish in one sitting.</p>
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn primary" onclick="doAmendStart()">Start amendment</button></div>`);
+}
+async function doAmendStart() {
+  closeModal();
+  try {
+    await api('statement_amend_start', { id: det.statement.id });
+    renderDetail(det.statement.id);
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+function amendSave() {
+  const s = det.statement, g = s.statement_groups || {};
+  const rev = (s.revisions || []).find(r => r && r.open) || {};
+  const before = Number(rev.prev?.payout_total ?? s.payout_total);
+  const now = Number(s.payout_total);
+  const delta = Math.abs(now - before) > 1
+    ? `<p>Payout changes from <b>${IDR(before)}</b> to <b>${IDR(now)}</b>.</p>`
+    : `<p style="color:var(--muted)">The payout total is unchanged (${IDR(now)}).</p>`;
+  const who = g.notify && (g.owner_wa_nums || []).length ? esc(g.owner_names || 'the owner') : null;
+  modal(`<h3>Save amendment — ${esc(det.period_label)}</h3>
+    ${delta}
+    <label style="font-size:.72rem;color:var(--muted)">What changed? The owner sees this on their statement.</label>
+    <input type="text" id="amend-note" placeholder="e.g. Corrected the electricity expense for Unit 2" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);margin:4px 0 10px">
+    ${who ? `<label class="chk"><input type="checkbox" id="amend-notify" checked> Tell ${who} on WhatsApp that the statement was updated</label>`
+          : `<p style="color:var(--muted)">No WhatsApp notification ${g.notify ? '(no owner numbers set)' : '(notifications off for this property)'} — the revision note still shows on the statement.</p>`}
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Back</button>
+    <button class="btn primary" onclick="doAmendSave()">Save amendment</button></div>`);
+}
+async function doAmendSave() {
+  const note = (document.getElementById('amend-note')?.value || '').trim();
+  if (!note) { showToast('Add a short note — the owner needs to know what changed.', 'error'); return; }
+  const notify = document.getElementById('amend-notify')?.checked === true;
+  closeModal();
+  try {
+    const out = await api('statement_amend_finalize', { id: det.statement.id, note, notify_owner: notify });
+    showToast(`Amendment saved — payout is now ${IDR(out.payout_total)}` + (notify ? ', owner will be notified' : ''), 'success');
+    await refreshList(); renderDetail(det.statement.id);
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+function amendCancel() {
+  modal(`<h3>Discard this amendment?</h3>
+    <p>Every edit you've made reverts to the published numbers exactly as they were. Nothing is recorded.</p>
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Keep editing</button>
+    <button class="btn primary" onclick="doAmendCancel()">Discard changes</button></div>`);
+}
+async function doAmendCancel() {
+  closeModal();
+  try {
+    await api('statement_amend_cancel', { id: det.statement.id });
     await refreshList(); renderDetail(det.statement.id);
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }

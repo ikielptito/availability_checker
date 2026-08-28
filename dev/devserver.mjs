@@ -231,7 +231,8 @@ function mockStatementsApi({ action, payload = {} }) {
   if (action === 'statement_patch_line' || action === 'statement_add_line' || action === 'statement_delete_line') {
     const st = find(payload.id);
     if (!st) return { status: 404, body: { error: 'Statement not found' } };
-    if (st.status !== 'draft') return { status: 409, body: { error: `Statement is ${st.status} — lines are frozen` } };
+    const amending = Array.isArray(st.revisions) && st.revisions.some(r => r && r.open);
+    if (st.status !== 'draft' && !amending) return { status: 409, body: { error: `Statement is ${st.status} — lines are frozen (use Amend)` } };
     if (action === 'statement_patch_line') {
       const l = st.lines.find(x => x.id === +payload.line_id);
       if (l) { Object.assign(l, payload.fields || {}); l.edited = true; }
@@ -262,6 +263,41 @@ function mockStatementsApi({ action, payload = {} }) {
     st.status = 'draft'; st.published_at = null; st.hostex_snapshot = null;
     return { status: 200, body: { ok: true } };
   }
+  if (action === 'statement_amend_start') {
+    const st = find(payload.id);
+    if (!st) return { status: 404, body: { error: 'Statement not found' } };
+    if (!['published', 'partial', 'paid'].includes(st.status)) return { status: 400, body: { error: `only published statements can be amended — this one is ${st.status}` } };
+    st.revisions = st.revisions || [];
+    if (st.revisions.some(r => r.open)) return { status: 200, body: { ok: true, already_open: true } };
+    const prev = {}; for (const k of ['gross_total', 'commission_total', 'nett_total', 'expenses_total', 'adjustments_total', 'payout_total', 'era_payout_total']) prev[k] = st[k];
+    st.revisions.push({ open: true, started_at: new Date().toISOString(), by: payload.actor || 'admin', prev, prev_lines: JSON.parse(JSON.stringify(st.lines)) });
+    return { status: 200, body: { ok: true } };
+  }
+  if (action === 'statement_amend_finalize') {
+    const st = find(payload.id);
+    const rev = st?.revisions?.find(r => r.open);
+    if (!rev) return { status: 400, body: { error: 'no amendment in progress' } };
+    stTotals(st);
+    delete rev.prev_lines;
+    rev.open = false; rev.at = new Date().toISOString(); rev.by = payload.actor || 'admin';
+    rev.note = String(payload.note || '').slice(0, 300) || null;
+    rev.new = { gross_total: st.gross_total, commission_total: st.commission_total, nett_total: st.nett_total, expenses_total: st.expenses_total, adjustments_total: st.adjustments_total, payout_total: st.payout_total };
+    st.has_manual_edits = true;
+    if (payload.notify_owner) st.notified_at = null;
+    stRecomputePayments(st);
+    return { status: 200, body: { ok: true, payout_total: st.payout_total, prev_payout: rev.prev?.payout_total ?? null } };
+  }
+  if (action === 'statement_amend_cancel') {
+    const st = find(payload.id);
+    const idx = st?.revisions?.findIndex(r => r.open) ?? -1;
+    if (idx < 0) return { status: 400, body: { error: 'no amendment in progress' } };
+    const rev = st.revisions[idx];
+    st.lines = rev.prev_lines || st.lines;
+    Object.assign(st, rev.prev || {});
+    st.revisions.splice(idx, 1);
+    stRecomputePayments(st);
+    return { status: 200, body: { ok: true } };
+  }
   if (action === 'statement_mark_paid') {
     const st = find(payload.id);
     if (!st || !['published', 'partial'].includes(st.status)) return { status: 400, body: { error: 'cannot mark paid' } };
@@ -284,6 +320,7 @@ function mockStatementsApi({ action, payload = {} }) {
       period: st.period, period_label: monthLabel(st.period), status: st.status, currency: 'IDR',
       totals: { gross: st.gross_total, commission: st.commission_total, nett: st.nett_total, expenses: st.expenses_total, adjustments: st.adjustments_total, payout: st.payout_total, paid: st.paid_total || 0, balance: st.payout_total - (st.paid_total || 0) },
       paid_at: st.paid_at, published_at: st.published_at, hostex: st.hostex_snapshot,
+      revisions: (st.revisions || []).filter(r => !r.open && r.at).map(r => ({ at: r.at, note: r.note || null, prev_payout: r.prev?.payout_total ?? null, new_payout: r.new?.payout_total ?? null })),
       lines: st.lines,
       payments: (st.payments || []).map(p => ({ amount: p.amount, paid_at: p.paid_at, note: p.note, proof_url: p.proof_path ? 'https://picsum.photos/seed/proof/700/900' : null })),
     } };
