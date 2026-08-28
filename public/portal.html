@@ -271,6 +271,8 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .st-chart-cap{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:10px;font-size:.66rem;color:var(--muted);}
 .st-chart-cap .sw{display:inline-flex;align-items:center;gap:5px;margin-left:12px;}
 .st-chart-cap .dot{width:8px;height:8px;border-radius:3px;display:inline-block;}
+.st-cur{margin-left:auto;align-self:flex-start;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer;}
+.st-cur:hover{color:var(--text);border-color:var(--accent);}
 .st-prop{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;}
 .st-prop-head{display:flex;align-items:center;gap:14px;padding:20px 24px 14px;}
 .st-prop-head .hgroup{min-width:0;}
@@ -943,6 +945,7 @@ async function probeStatements(){
     const d=await r.json();
     statementsCache=d.statements||[];
     statementGroupsCache=d.groups||[];
+    if(d.fx) stFx=d.fx;
     if(statementsCache.length||statementGroupsCache.length) document.getElementById('tab-btn-statements').style.display='';
   }catch(e){}
 }
@@ -972,11 +975,20 @@ function acctSummary(a){
 const stDlOpen={};        // group key → true while its download range picker is open
 const stRowOpen={};       // "group.period" → true while that month is expanded
 function stToggleRow(rk){ stRowOpen[rk]=!stRowOpen[rk]; initStatements(); }
+// Reference currency — display convenience only, payouts are in IDR. Shares
+// the statement page's saved choice (samba_stmt_cur) and its server rates.
+const ST_CURS={IDR:{sym:'IDR ',dec:0},USD:{sym:'$',dec:2},EUR:{sym:'€',dec:2},GBP:{sym:'£',dec:2},AUD:{sym:'A$',dec:2},SGD:{sym:'S$',dec:2}};
+let stCur='IDR', stFx=null;
+try{const saved=localStorage.getItem('samba_stmt_cur');if(saved&&ST_CURS[saved])stCur=saved;}catch{}
+function stSetCur(c){ stCur=ST_CURS[c]?c:'IDR'; try{localStorage.setItem('samba_stmt_cur',stCur);}catch{} initStatements(); }
 function initStatements(){
   const pane=document.getElementById('tab-statements');
   const sts=statementsCache||[];
   const groups=statementGroupsCache||[];
-  const IDRf=n=>'IDR '+Math.round(Number(n)||0).toLocaleString('en-US');
+  // All amounts flow through IDRf, so the reference-currency choice converts
+  // the whole tab (dashboard, rows, expanded details) in one place.
+  const stConv=n=>(stCur==='IDR'||!stFx?.rates?.[stCur])?(Number(n)||0):(Number(n)||0)*stFx.rates[stCur];
+  const IDRf=n=>{const c=ST_CURS[stCur]||ST_CURS.IDR;return c.sym+stConv(n).toLocaleString('en-US',{minimumFractionDigits:c.dec,maximumFractionDigits:c.dec});};
   const mlab=p=>{const[y,m]=String(p).split('-').map(Number);return y&&m?new Date(Date.UTC(y,m-1,1)).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}):p;};
   const dlab=iso=>iso?new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
 
@@ -1021,15 +1033,18 @@ function initStatements(){
 
     html+=`<div class="st-dash">
       <div class="st-dash-metrics">
-        ${owed>0?`<div class="pf-cell"><span class="pf-v" style="color:var(--accent)">${IDRf(owed)}</span><span class="pf-l">On its way to you</span></div>`:''}
+        <div class="pf-cell"><span class="pf-v" style="color:${owed>0?'var(--accent)':'var(--muted)'}">${IDRf(owed)}</span><span class="pf-l">${owed>0?'On its way to you':'Balance owed — all settled'}</span></div>
         <div class="pf-cell"><span class="pf-v">${IDRf(paid)}</span><span class="pf-l">Paid to you</span></div>
         <div class="pf-cell"><span class="pf-v">${IDRf(gross)}</span><span class="pf-l">${escapeHtml(year)} rental revenue</span></div>
         ${avgOcc!=null?`<div class="pf-cell"><span class="pf-v">${avgOcc}<small>%</small></span><span class="pf-l">Avg occupancy</span></div>`:''}
         ${nights>0?`<div class="pf-cell"><span class="pf-v">${nights}</span><span class="pf-l">Nights hosted</span></div>`:''}
+        <select class="st-cur" onchange="stSetCur(this.value)" aria-label="Display currency">
+          ${Object.keys(ST_CURS).map(c=>`<option value="${c}"${c===stCur?' selected':''}>${c}</option>`).join('')}
+        </select>
       </div>
       <div class="st-chart">${bars}</div>
       <div class="st-chart-cap">
-        <span>Monthly payout to you</span>
+        <span>Monthly payout to you${stCur!=='IDR'?` · shown in ${escapeHtml(stCur)} for reference — payouts are made in IDR`:''}</span>
         <span><span class="sw"><span class="dot" style="background:#7d9877"></span> settled</span><span class="sw"><span class="dot" style="background:var(--accent);opacity:.85"></span> on its way</span></span>
       </div>
     </div>`;

@@ -347,9 +347,14 @@ export default async function handler(req, res) {
           };
         });
       res.setHeader('Cache-Control', 'no-store');
+      // Reference FX for the dashboard's currency picker — same server-cached
+      // rates the statement page uses; display-only, payouts stay IDR.
+      let fx = null;
+      try { fx = await getFx(); } catch { /* best-effort */ }
       return res.status(200).json({
         statements: mine,
         groups: groups.map(g => ({ key: g.key, name: g.name, owner_names: g.owner_names || null, payout_account: g.payout_account || null })),
+        ...(fx ? { fx } : {}),
         ...(previewGroup ? { preview: true } : {}),
       });
     }
