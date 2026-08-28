@@ -126,7 +126,9 @@ export default async function handler(req, res) {
       const inviteGroup = verifyInviteToken(payload?.invite || '') || null;
       const sendRes = await crm('statement_wa_login_code', { wa_num: phone, token: tok });
       if (sendRes.status === 403) {
-        return res.status(403).json({ error: 'This number isn’t linked to a Samba Realty property yet — message us on WhatsApp and we’ll set you up.' });
+        // A dead end otherwise: the owner has a perfectly good invite and no
+        // way through. Point them at Google, which always works.
+        return res.status(403).json({ error: 'We don’t have this number on file for your villa yet. Use “Continue with Google” instead, or message Ikiel and he’ll add it.' });
       }
       if (sendRes.status !== 200) return res.status(502).json({ error: sendRes.body?.error || 'Could not send the link — try again.' });
       await kvCmd('SET', `walogin:${tok}`, JSON.stringify({ phone, invite: inviteGroup, exp: Date.now() + 10 * 60 * 1000 }), 'EX', 600);
