@@ -315,15 +315,29 @@ export default async function handler(req, res) {
       const groups = groupsRes.body?.groups || [];
       const hostexMap = await loadHostexOwnerMap(kvGet);
       const custom = (await kvGet('custom_properties')) || {};
+      // "Claimed" has to mean the OWNER onboarded, not merely that some
+      // account holds the listing. Ikiel's own account holds several managed
+      // villas (admin assignment, testing, Hostex sync), and counting those
+      // would have Maya message an owner who has never seen the portal.
+      const adminEmails = new Set(
+        (process.env.ADMIN_OWNER_EMAILS || 'ikielptito@gmail.com')
+          .split(',').map(e => e.trim().toLowerCase()).filter(Boolean));
+      const isAdminAccount = async (sub) => {
+        if (!sub) return false;
+        const o = await kvGet(`owner:${sub}`);
+        return !!(o?.email && adminEmails.has(String(o.email).toLowerCase()));
+      };
       const claimed = [];
       const detail = {};
       for (const g of groups) {
         const slugs = g.listing_slugs || [];
-        const holders = slugs
+        const subs = [...new Set(slugs
           .map(s => hostexMap[s]?.ownerSub || custom[s]?.ownerSub || null)
-          .filter(Boolean);
-        detail[g.key] = { slugs: slugs.length, claimed_slugs: holders.length };
-        if (holders.length) claimed.push(g.key);
+          .filter(Boolean))];
+        const ownerSubs = [];
+        for (const sub of subs) if (!(await isAdminAccount(sub))) ownerSubs.push(sub);
+        detail[g.key] = { slugs: slugs.length, held: subs.length, by_owner: ownerSubs.length };
+        if (ownerSubs.length) claimed.push(g.key);
       }
       res.setHeader('Cache-Control', 'no-store');
       return res.status(200).json({ claimed, detail });
