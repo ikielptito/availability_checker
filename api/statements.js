@@ -412,7 +412,7 @@ export default async function handler(req, res) {
     // ── Admin diagnostic: why does a WhatsApp-signed-in owner see (or not
     // see) their statement groups? Auth: the caller's console key must be
     // accepted by the CRM (relayed check — the portal stores no console key).
-    if (action === 'wa-owner-debug' || action === 'admin-claim' || action === 'admin-assign') {
+    if (action === 'wa-owner-debug' || action === 'admin-claim' || action === 'admin-assign' || action === 'admin-release') {
       const key = req.headers['x-console-key'] || '';
       const check = await fetch(`${crmBase}/api/statements`, {
         method: 'POST',
@@ -460,6 +460,33 @@ export default async function handler(req, res) {
         const owned = (await kvGet(`owner_listings:${owner.sub}`)) || [];
         if (!owned.includes(slug)) { owned.push(slug); await kvSet(`owner_listings:${owner.sub}`, owned); }
         return res.status(200).json({ ok: true, slug, store, owner: { sub: owner.sub, name: owner.name, email } });
+      }
+
+      // admin-release: hand a listing back to nobody, so the owner's invite
+      // can claim it cleanly. ownerEmail must be cleared too — claimByEmail
+      // re-claims any listing whose email matches the signed-in account, so
+      // leaving it would silently re-take the villa on the next portal visit.
+      if (action === 'admin-release') {
+        const slug = String(req.query.slug || '');
+        if (!slug) return res.status(400).json({ error: 'slug required' });
+        let prevSub = null;
+        if (UNITS_BY_SLUG[slug]) {
+          const o = (await kvGet(`listing:${slug}`)) || { slug };
+          prevSub = o.ownerSub || null;
+          await kvSet(`listing:${slug}`, { ...o, slug, ownerSub: null, ownerEmail: null, updatedAt: Date.now() });
+        } else {
+          const all = (await kvGet('custom_properties')) || {};
+          if (!all[slug]) return res.status(404).json({ error: 'Unknown listing slug' });
+          prevSub = all[slug].ownerSub || null;
+          all[slug].ownerSub = null; all[slug].ownerEmail = null; all[slug].updatedAt = Date.now();
+          await kvSet('custom_properties', all);
+        }
+        if (prevSub) {
+          const owned = (await kvGet(`owner_listings:${prevSub}`)) || [];
+          const kept = owned.filter(x => x !== slug);
+          if (kept.length !== owned.length) await kvSet(`owner_listings:${prevSub}`, kept);
+        }
+        return res.status(200).json({ ok: true, slug, released_from: prevSub });
       }
 
       // ?listing=<slug> — who holds this listing right now? Exact catalog/
