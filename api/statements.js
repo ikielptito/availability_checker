@@ -207,11 +207,16 @@ export default async function handler(req, res) {
     }
 
     // Admin realm: forward statement_* actions to the CRM verbatim.
+    // STATEMENTS_ADMIN_PASSWORD is Era's scoped credential — it opens the
+    // payouts cockpit (this proxy + the payouts GET actions below) and
+    // nothing else in the admin; her actions are attributed as actor 'era'.
     const auth = req.headers.authorization || '';
     const pwd = process.env.DASHBOARD_PASSWORD || '';
     const adminPwd = process.env.ADMIN_PASSWORD || '';
+    const eraPwd = process.env.STATEMENTS_ADMIN_PASSWORD || '';
     if (!pwd && !adminPwd) return res.status(503).json({ error: 'Admin password not configured' });
-    if (!(pwd && auth === `Bearer ${pwd}`) && !(adminPwd && auth === `Bearer ${adminPwd}`)) {
+    const isEra = eraPwd && auth === `Bearer ${eraPwd}`;
+    if (!(pwd && auth === `Bearer ${pwd}`) && !(adminPwd && auth === `Bearer ${adminPwd}`) && !isEra) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     if (!sync) return res.status(503).json({ error: 'LISTING_SYNC_SECRET not configured' });
@@ -219,7 +224,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: `unsupported action: ${action}` });
     }
     try {
-      const { status, body } = await crm(action, { ...(payload || {}), actor: 'admin' });
+      const { status, body } = await crm(action, { ...(payload || {}), actor: isEra ? 'era' : 'admin' });
       return res.status(status).json(body);
     } catch (e) {
       return res.status(502).json({ error: 'CRM unreachable: ' + e.message });
@@ -463,7 +468,7 @@ export default async function handler(req, res) {
     // ── Admin read-only portal preview link ─────────────────────────
     if (action === 'preview-link') {
       const auth = req.headers.authorization || '';
-      const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
+      const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD, process.env.STATEMENTS_ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
       if (!isAdmin) return res.status(401).json({ error: 'Unauthorized' });
       const groupKey = String(req.query.group || '');
       if (!groupKey) return res.status(400).json({ error: 'Missing group' });
@@ -473,7 +478,7 @@ export default async function handler(req, res) {
     // ── Owner invite link (admin) ───────────────────────────────────
     if (action === 'invite-link') {
       const auth = req.headers.authorization || '';
-      const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
+      const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD, process.env.STATEMENTS_ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
       if (!isAdmin) return res.status(401).json({ error: 'Unauthorized' });
       const groupKey = String(req.query.group || '');
       if (!groupKey) return res.status(400).json({ error: 'Missing group' });
@@ -498,7 +503,7 @@ export default async function handler(req, res) {
       const from = /^\d{4}-\d{2}$/.test(String(req.query.from || '')) ? String(req.query.from) : null;
       const to = /^\d{4}-\d{2}$/.test(String(req.query.to || '')) ? String(req.query.to) : null;
       const auth = req.headers.authorization || '';
-      const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
+      const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD, process.env.STATEMENTS_ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
       const previewOk = verifyPreviewToken(req.query.preview || '') === groupKey;
       if (!isAdmin && !previewOk) {
         const owner = await sessionOwner(req, kvGet);
