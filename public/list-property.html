@@ -782,10 +782,14 @@ document.addEventListener('click', function (e) {
       var phone = phoneEl.value.trim();
       if (!phone) { phoneEl.focus(); return; }
       sendBtn.disabled = true; sendBtn.textContent = 'Sending…';
+      // A pending statement invite (stored by /portal before the sign-in
+      // bounce) rides along — the magic link opens in a new tab where
+      // sessionStorage is empty, so the server claims it at verify time.
+      var invite = null; try { invite = sessionStorage.getItem('samba_invite'); } catch (e) {}
       fetch('/api/statements', {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'wa_login_start', payload: { phone: phone } })
+        body: JSON.stringify({ action: 'wa_login_start', payload: { phone: phone, invite: invite } })
       }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, b: b }; }); })
         .then(function (res) {
           sendBtn.disabled = false; sendBtn.textContent = 'Resend link';

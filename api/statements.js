@@ -98,28 +98,8 @@ export default async function handler(req, res) {
       if (!owner) return res.status(401).json({ error: 'Not signed in' });
       const groupKey = verifyInviteToken(payload?.token || '');
       if (!groupKey) return res.status(403).json({ error: 'Invalid invite link' });
-      const groupsRes = await crm('statement_groups', {});
-      const group = (groupsRes.body?.groups || []).find(g => g.key === groupKey);
-      if (!group) return res.status(404).json({ error: 'Unknown property' });
-      const slugs = (group.listing_slugs || []).filter(s => UNITS_BY_SLUG[s]);
-      if (!slugs.length) return res.status(404).json({ error: 'No claimable listings' });
-      const overrides = await Promise.all(slugs.map(s => kvGet(`listing:${s}`)));
-      for (let i = 0; i < slugs.length; i++) {
-        const cur = overrides[i] || {};
-        if (cur.ownerSub && cur.ownerSub !== owner.sub) {
-          return res.status(409).json({ error: `${UNITS_BY_SLUG[slugs[i]].name} is already linked to another account — ask Samba to sort it out.` });
-        }
-      }
-      for (let i = 0; i < slugs.length; i++) {
-        const cur = overrides[i] || { slug: slugs[i] };
-        await kvSet(`listing:${slugs[i]}`, {
-          ...cur, slug: slugs[i],
-          ownerSub: owner.sub,
-          ownerEmail: (owner.email || cur.ownerEmail || '').toLowerCase() || null,
-          updatedAt: Date.now(),
-        });
-      }
-      return res.status(200).json({ ok: true, group: group.name, listings: slugs.map(s => UNITS_BY_SLUG[s].name) });
+      const out = await claimGroupListings(owner, groupKey, { kvGet, kvSet, crm });
+      return res.status(out.status).json(out.body);
     }
 
     // ── WhatsApp sign-in (owners without a Google account) ──────────
@@ -140,12 +120,16 @@ export default async function handler(req, res) {
       if (sends === 1) await kvCmd('EXPIRE', `waotp:rl:${phone}`, 3600);
       if (sends > 5) return res.status(429).json({ error: 'Too many sign-in links requested — try again in an hour.' });
       const tok = crypto.randomBytes(16).toString('hex');
+      // A pending invite rides along with the one-time token: the magic link
+      // opens in a fresh tab where sessionStorage is empty, so the claim must
+      // happen server-side at verify time.
+      const inviteGroup = verifyInviteToken(payload?.invite || '') || null;
       const sendRes = await crm('statement_wa_login_code', { wa_num: phone, token: tok });
       if (sendRes.status === 403) {
         return res.status(403).json({ error: 'This number isn’t linked to a Samba Realty property yet — message us on WhatsApp and we’ll set you up.' });
       }
       if (sendRes.status !== 200) return res.status(502).json({ error: sendRes.body?.error || 'Could not send the link — try again.' });
-      await kvCmd('SET', `walogin:${tok}`, JSON.stringify({ phone, exp: Date.now() + 10 * 60 * 1000 }), 'EX', 600);
+      await kvCmd('SET', `walogin:${tok}`, JSON.stringify({ phone, invite: inviteGroup, exp: Date.now() + 10 * 60 * 1000 }), 'EX', 600);
       return res.status(200).json({ ok: true });
     }
 
@@ -182,13 +166,24 @@ export default async function handler(req, res) {
       };
       await kvSet(`owner:${sub}`, owner);
 
+      // Pending invite carried through the WhatsApp round-trip: claim the
+      // group's listings now, server-side. A failed claim (e.g. another
+      // account already holds a unit) never blocks the sign-in itself.
+      let claimed = null;
+      if (rec.invite) {
+        try {
+          const out = await claimGroupListings(owner, rec.invite, { kvGet, kvSet, crm });
+          if (out.status === 200) claimed = out.body.group;
+        } catch { /* sign-in proceeds regardless */ }
+      }
+
       const token = crypto.randomBytes(32).toString('hex');
       const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days, same as Google sessions
       await kvCmd('SET', `session:${token}`, JSON.stringify({ sub, exp: Date.now() + SESSION_TTL * 1000 }), 'EX', SESSION_TTL);
       const proto = req.headers['x-forwarded-proto'];
       const secure = proto ? proto.split(',')[0].trim() === 'https' : !/^localhost|^127\.0\.0\.1/.test(req.headers.host || '');
       res.setHeader('Set-Cookie', `${SESSION_COOKIE}=${token}; HttpOnly;${secure ? ' Secure;' : ''} SameSite=Lax; Path=/; Max-Age=${SESSION_TTL}`);
-      return res.status(200).json({ owner: { sub, name: owner.name, wa: phone }, isNew: !existing });
+      return res.status(200).json({ owner: { sub, name: owner.name, wa: phone }, isNew: !existing, claimed });
     }
 
     // Owner-session realm: the signed-in owner saves their preferred payout
@@ -489,6 +484,40 @@ function readSessionToken(req) {
   const cookie = req.headers.cookie || '';
   const m = cookie.split(';').map(s => s.trim()).find(s => s.startsWith(`${SESSION_COOKIE}=`));
   return m ? decodeURIComponent(m.slice(SESSION_COOKIE.length + 1)) : null;
+}
+
+// Claim a statement group's catalog listings for an owner account. Shared by
+// the signed-in claim_invite action and the WhatsApp magic-link verify (which
+// carries a pending invite through the WhatsApp round-trip, because
+// sessionStorage does not survive into the new tab the link opens).
+async function claimGroupListings(owner, groupKey, { kvGet, kvSet, crm }) {
+  const groupsRes = await crm('statement_groups', {});
+  const group = (groupsRes.body?.groups || []).find(g => g.key === groupKey);
+  if (!group) return { status: 404, body: { error: 'Unknown property' } };
+  const slugs = (group.listing_slugs || []).filter(s => UNITS_BY_SLUG[s]);
+  if (!slugs.length) return { status: 404, body: { error: 'No claimable listings' } };
+  const overrides = await Promise.all(slugs.map(s => kvGet(`listing:${s}`)));
+  for (let i = 0; i < slugs.length; i++) {
+    const cur = overrides[i] || {};
+    if (cur.ownerSub && cur.ownerSub !== owner.sub) {
+      return { status: 409, body: { error: `${UNITS_BY_SLUG[slugs[i]].name} is already linked to another account — ask Samba to sort it out.` } };
+    }
+  }
+  for (let i = 0; i < slugs.length; i++) {
+    const cur = overrides[i] || { slug: slugs[i] };
+    await kvSet(`listing:${slugs[i]}`, {
+      ...cur, slug: slugs[i],
+      ownerSub: owner.sub,
+      ownerEmail: (owner.email || cur.ownerEmail || '').toLowerCase() || null,
+      updatedAt: Date.now(),
+    });
+  }
+  // The portal's My-properties list reads the owner_listings:{sub} index, not
+  // the per-slug overrides — without this the claimed units stay invisible.
+  const owned = (await kvGet(`owner_listings:${owner.sub}`)) || [];
+  const merged = [...new Set([...owned, ...slugs])];
+  if (merged.length !== owned.length) await kvSet(`owner_listings:${owner.sub}`, merged);
+  return { status: 200, body: { ok: true, group: group.name, listings: slugs.map(s => UNITS_BY_SLUG[s].name) } };
 }
 
 async function sessionOwner(req, kvGet) {
