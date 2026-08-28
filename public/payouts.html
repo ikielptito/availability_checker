@@ -39,7 +39,12 @@ body{font:var(--sb-body);background:var(--bg);color:var(--text);-webkit-font-smo
 .cmdbar .word{font:900 17px/1 var(--sb-font-display);letter-spacing:-.01em;white-space:nowrap;}
 .cmdbar .word small{font:600 10px/1 var(--sb-font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-top:3px;}
 body.embed .cmdbar .word{display:none;}
-.outbanner{display:inline-flex;align-items:center;gap:8px;font:600 12.5px/1.35 var(--sb-font-ui);padding:7px 13px;border-radius:999px;background:var(--red-bg);color:var(--red-fg);}
+.outbanner{display:inline-flex;align-items:center;gap:8px;font:600 12.5px/1.35 var(--sb-font-ui);padding:7px 13px;border-radius:999px;background:var(--red-bg);color:var(--red-fg);border:1px solid transparent;font-family:var(--sb-font-ui);}
+.outbanner.tappable{cursor:pointer;}
+.outbanner.tappable:hover{border-color:var(--red-fg);}
+.outbanner.on{background:var(--red-fg);color:#fff;}
+.fltclear{background:none;border:none;color:var(--accent);font:600 12.5px/1 var(--sb-font-ui);cursor:pointer;padding:6px 2px;}
+.fltclear:hover{text-decoration:underline;}
 .outbanner.clear{background:var(--live-bg);color:var(--green);}
 .btn-sync{margin-left:auto;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:9px 15px;font:600 13px/1 var(--sb-font-ui);cursor:pointer;white-space:nowrap;box-shadow:var(--sb-shadow-accent);}
 .btn-sync:hover{background:var(--sb-terracotta-600);}
@@ -192,7 +197,7 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
 <div id="app">
   <div class="cmdbar">
     <div class="word">SAMBA<small>Payouts</small></div>
-    <div class="outbanner clear" id="outbanner">…</div>
+    <button class="outbanner clear" id="outbanner" type="button" onclick="toggleOutstanding()">…</button>
     <button class="btn-sync" id="syncbtn" onclick="syncNow()">⟳ Sync from Era's sheets</button>
   </div>
   <div class="shell">
@@ -270,6 +275,7 @@ const dstr = (iso) => iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'nu
 let listData = null;      // statement_list payload
 let groupsData = null;    // statement_groups payload
 let groupFilter = '';
+let outstandingOnly = false;   // banner acts as a filter for what's still owed
 
 function go(h) { location.hash = h; }
 function route() {
@@ -307,9 +313,30 @@ async function refreshList() {
 function renderOutBanner() {
   const el = document.getElementById('outbanner');
   const o = listData?.outstanding || { count: 0, total: 0 };
-  if (o.count > 0) { el.className = 'outbanner'; el.textContent = `Outstanding: ${o.count} payout${o.count > 1 ? 's' : ''} · ${IDR(o.total)}`; }
-  else { el.className = 'outbanner clear'; el.textContent = 'All payouts settled'; }
+  if (o.count > 0) {
+    el.className = 'outbanner tappable' + (outstandingOnly ? ' on' : '');
+    el.textContent = `Outstanding: ${o.count} payout${o.count > 1 ? 's' : ''} · ${IDR(o.total)}`;
+    el.title = outstandingOnly ? 'Showing only what is still owed — tap to show everything' : 'Show only what is still owed';
+    el.disabled = false;
+  } else {
+    el.className = 'outbanner clear';
+    el.textContent = 'All payouts settled';
+    el.title = '';
+    el.disabled = true;
+    outstandingOnly = false;
+  }
 }
+// The banner doubles as the filter: tap it to see exactly what it counts.
+function toggleOutstanding() {
+  if (!(listData?.outstanding?.count > 0)) return;
+  outstandingOnly = !outstandingOnly;
+  if (outstandingOnly) groupFilter = '';
+  renderOutBanner();
+  if (location.hash && location.hash !== '#/') go('#/'); else renderList();
+}
+// What the banner counts: still owed, and only where we track settlement.
+const isOutstanding = (s) => ['published', 'partial'].includes(s.status)
+  && tracksPayments(s) && balanceOf(s) > 0;
 
 async function syncNow() {
   const btn = document.getElementById('syncbtn');
@@ -347,7 +374,9 @@ function renderList() {
   const c = document.getElementById('content');
   if (!listData) { c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>'; return; }
   const groups = groupsData?.groups || [];
-  const rows = (listData.statements || []).filter(s => !groupFilter || s.group_key === groupFilter);
+  const rows = (listData.statements || [])
+    .filter(s => !groupFilter || s.group_key === groupFilter)
+    .filter(s => !outstandingOnly || isOutstanding(s));
   const byPeriod = {};
   for (const s of rows) (byPeriod[s.period] ||= []).push(s);
   const periods = Object.keys(byPeriod).sort().reverse();
@@ -357,9 +386,13 @@ function renderList() {
       <option value="">All properties</option>
       ${groups.map(g => `<option value="${esc(g.key)}"${g.key === groupFilter ? ' selected' : ''}>${esc(g.name)}</option>`).join('')}
     </select>
+    ${outstandingOnly ? `<span class="pill outstanding"><span class="d"></span>Outstanding only</span>
+      <button class="fltclear" onclick="toggleOutstanding()">Show all statements</button>` : ''}
   </div>`;
   if (!rows.length) {
-    html += `<div class="empty-state">No statements yet. Hit <b>Sync from Era's sheets</b> to import the monthly reports${groups.length ? '' : ' (set up properties first)'}.</div>`;
+    html += outstandingOnly
+      ? `<div class="empty-state">Nothing outstanding for this filter. <button class="fltclear" onclick="toggleOutstanding()">Show all statements</button></div>`
+      : `<div class="empty-state">No statements yet. Hit <b>Sync from Era's sheets</b> to import the monthly reports${groups.length ? '' : ' (set up properties first)'}.</div>`;
   }
   for (const p of periods) {
     html += `<div class="periodhead"><h2>${esc(monthLabel(p))}</h2></div>`;
