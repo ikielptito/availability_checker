@@ -379,14 +379,49 @@ export default async function handler(req, res) {
         return res.status(out.status).json({ ...out.body, owner: { sub: owner.sub, name: owner.name, email: owner.email } });
       }
 
-      // ?listing=<slug> — who holds this catalog unit right now?
+      // admin-assign: link ONE listing (catalog unit or custom listing) to an
+      // existing owner account — ownership fields + the owner_listings index,
+      // immediately, no owner action needed.
+      if (action === 'admin-assign') {
+        const slug = String(req.query.slug || '');
+        const sub = String(req.query.sub || '');
+        const owner = sub ? await kvGet(`owner:${sub}`) : null;
+        if (!owner) return res.status(404).json({ error: 'No owner account with that sub' });
+        const email = (owner.email || '').toLowerCase() || null;
+        let store = null;
+        if (UNITS_BY_SLUG[slug]) {
+          const o = (await kvGet(`listing:${slug}`)) || { slug };
+          await kvSet(`listing:${slug}`, { ...o, slug, ownerSub: owner.sub, ownerEmail: email, updatedAt: Date.now() });
+          store = 'catalog';
+        } else {
+          const all = (await kvGet('custom_properties')) || {};
+          if (!all[slug]) return res.status(404).json({ error: 'Unknown listing slug' });
+          all[slug].ownerSub = owner.sub;
+          all[slug].ownerEmail = email;
+          all[slug].updatedAt = Date.now();
+          await kvSet('custom_properties', all);
+          store = 'custom';
+        }
+        const owned = (await kvGet(`owner_listings:${owner.sub}`)) || [];
+        if (!owned.includes(slug)) { owned.push(slug); await kvSet(`owner_listings:${owner.sub}`, owned); }
+        return res.status(200).json({ ok: true, slug, store, owner: { sub: owner.sub, name: owner.name, email } });
+      }
+
+      // ?listing=<slug> — who holds this listing right now? Exact catalog/
+      // custom lookup; on a custom-store miss, returns slugs containing the
+      // query so a half-remembered name still finds its listing.
       if (req.query.listing) {
         const slug = String(req.query.listing);
         const o = await kvGet(`listing:${slug}`);
-        const holder = o?.ownerSub ? await kvGet(`owner:${o.ownerSub}`) : null;
+        const all = (await kvGet('custom_properties')) || {};
+        const c = all[slug] || null;
+        const rec = c || o;
+        const holder = rec?.ownerSub ? await kvGet(`owner:${rec.ownerSub}`) : null;
         return res.status(200).json({
-          slug, ownerSub: o?.ownerSub || null, ownerEmail: o?.ownerEmail || null,
+          slug, store: c ? 'custom' : o ? 'catalog' : null,
+          ownerSub: rec?.ownerSub || null, ownerEmail: rec?.ownerEmail || null,
           holder: holder ? { name: holder.name, email: holder.email, wa: holder.wa || null } : null,
+          ...(rec ? {} : { matches: Object.keys(all).filter(k => k.includes(slug)).slice(0, 10) }),
         });
       }
       // ?scan=1 — list owner accounts (key, name, created) to identify who a
