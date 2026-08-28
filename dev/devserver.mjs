@@ -86,7 +86,17 @@ function mockMaintenanceApi({ action, payload = {} }) {
   }
   if (action === 'maint_detail') {
     const m = find(payload.id); if (!m) return { status: 404, body: { error: 'Item not found' } };
-    return { status: 200, body: { item: { ...withGroup(m), photo_urls: urls(m) } } };
+    return { status: 200, body: { item: { ...withGroup(m), photos: m.photos || [], photo_urls: urls(m) } } };
+  }
+  if (action === 'maint_photo_remove') {
+    const m = find(payload.id);
+    if (m) m.photos = (m.photos || []).filter(p => p !== payload.path);
+    return { status: 200, body: { ok: true, remaining: (m?.photos || []).length } };
+  }
+  if (action === 'maint_photo') {
+    const m = find(payload.id);
+    if (m) m.photos = [...(m.photos || []), `${payload.id}/${Date.now()}.jpg`];
+    return { status: 200, body: { ok: true } };
   }
   if (action === 'maint_patch') { const m = find(payload.id); if (m) Object.assign(m, payload.fields || {}); return { status: 200, body: { ok: true } }; }
   if (action === 'maint_delete') { const i = mockMaint.findIndex(x => x.id === +payload.id); if (i >= 0) mockMaint.splice(i, 1); return { status: 200, body: { ok: true } }; }
@@ -142,7 +152,7 @@ function mockMaintenanceApi({ action, payload = {} }) {
 // payouts.html, and /st/<token> + the portal Statements tab render.
 const mockGroups = [
   { key: 'haus-2-4', name: 'HAUS Canggu – Units 2 & 4', sheet_file_id: 'SHEET_HAUS24', listing_slugs: ['haus-2', 'haus-4'], owner_wa_nums: ['628111111111', '628122222222'], owner_names: 'Romina & Tim', notify: true, active: true, charges_commission: true },
-  { key: 'lanehaus', name: 'LaneHAUS – Units 1 & 3', sheet_file_id: 'SHEET_LANE', listing_slugs: ['lanehaus-1', 'lanehaus-3'], owner_wa_nums: [], owner_names: 'Ikiel & Guy', notify: false, active: true, charges_commission: false },
+  { key: 'lanehaus', name: 'LaneHAUS – Units 1 & 3', sheet_file_id: 'SHEET_LANE', listing_slugs: ['lanehaus-1', 'lanehaus-3'], owner_wa_nums: [], owner_names: 'Ikiel & Guy', notify: false, active: true, charges_commission: false, tracks_payments: false },
   { key: 'villa-saturno', name: 'Villa Saturno', sheet_file_id: 'SHEET_SAT', listing_slugs: ['villa-saturno'], owner_wa_nums: ['628133333333'], owner_names: 'Pedro', notify: true, active: true },
 ];
 let mockLineId = 100;
@@ -257,7 +267,9 @@ function mockStatementsApi({ action, payload = {} }) {
   if (action === 'statement_list') {
     const rows = mockStatements.map(stripLines);
     const out = rows.filter(s => s.status === 'published' || s.status === 'partial');
-    return { status: 200, body: { statements: rows, outstanding: { count: out.length, total: out.reduce((a, s) => a + Math.max(0, s.payout_total - (s.paid_total || 0)), 0) } } };
+    // Groups that settle privately never count as outstanding (mirrors the CRM).
+    const owed = out.filter(s => (mockGroups.find(g => g.key === s.group_key) || {}).tracks_payments !== false);
+    return { status: 200, body: { statements: rows, outstanding: { count: owed.length, total: owed.reduce((a, s) => a + Math.max(0, s.payout_total - (s.paid_total || 0)), 0) } } };
   }
   if (action === 'statement_detail') {
     const st = find(payload.id);

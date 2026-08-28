@@ -197,6 +197,7 @@ function render(d) {
   const partial = d.status === 'partial';
   const balance = Number(t.balance) || 0;
   const paidTotal = Number(t.paid) || 0;
+      const noSettleTop = d.group?.tracks_payments === false;
 
   let html = `<div class="sheet">
     <div class="mast">
@@ -208,7 +209,7 @@ function render(d) {
       <div class="title">${esc(d.group?.name || '')}</div>
       <div class="subrow">
         ${d.group?.owner_names ? `<span>For ${esc(d.group.owner_names)}</span>` : ''}
-        ${paid ? `<span class="paidchip">✓ Paid ${esc(dstr(d.paid_at))}</span>` : partial ? `<span class="duechip">Partially paid · ${IDR(balance)} to follow</span>` : `<span class="duechip">Payout on its way</span>`}
+        ${noSettleTop ? '' : paid ? `<span class="paidchip">✓ Paid ${esc(dstr(d.paid_at))}</span>` : partial ? `<span class="duechip">Partially paid · ${IDR(balance)} to follow</span>` : `<span class="duechip">Payout on its way</span>`}
         ${FX && Object.keys(FX.rates || {}).length ? `<span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:.72rem;color:var(--muted)">View in
           <select onchange="setCur(this.value)" style="padding:5px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-family:inherit;font-size:.74rem">
             ${['IDR', ...Object.keys(FX.rates)].map(c => `<option value="${c}"${c === CUR ? ' selected' : ''}>${c}</option>`).join('')}
@@ -220,7 +221,12 @@ function render(d) {
         // owed while payments are in flight, the settled total once paid,
         // the deficit when a month closed negative.
         const deficit = Number(t.payout) < 0;
-        const h = deficit
+        // A property settled privately (LaneHAUS) has no balance to show —
+        // the statement is a record of the month, not a bill.
+        const noSettle = d.group?.tracks_payments === false;
+        const h = noSettle
+          ? { label: 'Nett for the month', value: t.payout, sub: `Rental income after the Samba management fee and villa expenses${Number(t.adjustments) ? ' and adjustments' : ''}, ${esc(d.period_label || '')}. Settled separately.` }
+          : deficit
           ? { label: 'This month closed in deficit', value: t.payout, sub: `Villa expenses exceeded rental income in ${esc(d.period_label || '')}. Samba Realty covers the shortfall — it carries into your next statement and is repaid from future rental revenue.` }
           : paid
             ? { label: 'Total payout to you — settled in full', value: t.payout, sub: `Paid in full on ${esc(dstr(d.paid_at))}. Rental income after the Samba management fee and villa expenses${Number(t.adjustments) ? ' and adjustments' : ''}, ${esc(d.period_label || '')}.` }
@@ -330,8 +336,8 @@ function render(d) {
         Add your bank account in your <a href="https://sambarentals.com/portal" style="color:var(--accent);font-weight:600">Samba portal</a> — or simply reply to Maya on WhatsApp with your details.
       </div>`;
 
-  // Payments received
-  if ((d.payments || []).length) {
+  // Payments received (nothing to show where settlement happens privately)
+  if ((d.payments || []).length && d.group?.tracks_payments !== false) {
     html += `<div class="pad"><div class="sec-h">Payments${paid ? '' : ' so far'}</div>
       <div class="tblwrap"><table class="st">
       <tr><th>Date</th><th class="num">Amount</th><th>Reference</th><th>Confirmation</th></tr>

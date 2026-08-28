@@ -1028,8 +1028,9 @@ function initStatements(){
   // what they've earned, and how the villa is performing. The month chart
   // reads left-to-right like a bank app's spending graph.
   if(sts.length){
-    const paid=sts.reduce((a,s)=>a+(Number(s.paid_total)||0),0);
-    const owed=sts.reduce((a,s)=>a+(Number(s.balance)||0),0);
+    const tracked=sts.filter(s=>s.tracks_payments!==false);
+    const paid=tracked.reduce((a,s)=>a+(Number(s.paid_total)||0),0);
+    const owed=tracked.reduce((a,s)=>a+(Number(s.balance)||0),0);
     const year=sts.reduce((a,s)=>s.period>a?s.period:a,'').slice(0,4);
     const ytd=sts.filter(s=>s.period.startsWith(year));
     const gross=ytd.reduce((a,s)=>a+(Number(s.gross_total)||0),0);
@@ -1111,10 +1112,13 @@ function initStatements(){
       html+=`<div class="st-none">Your first monthly statement is being prepared — it will appear here, and reach you on WhatsApp, as soon as it's published.</div>`;
     }else{
       html+=`<div class="st-rows">`+rows.map(s=>{
-        const chip=s.status==='paid'?'<span class="st-chip paid">✓ Paid</span>'
+        const tracks=s.tracks_payments!==false;
+        const chip=!tracks?''
+          :s.status==='paid'?'<span class="st-chip paid">✓ Paid</span>'
           :s.status==='partial'?'<span class="st-chip partial">Partially paid</span>'
           :'<span class="st-chip due">On its way</span>';
-        const sub=s.status==='paid'?`paid ${dlab(s.paid_at)}`:s.status==='partial'?`${IDRf(s.balance)} to follow`:`published ${dlab(s.published_at)}`;
+        const sub=!tracks?`published ${dlab(s.published_at)}`
+          :s.status==='paid'?`paid ${dlab(s.paid_at)}`:s.status==='partial'?`${IDRf(s.balance)} to follow`:`published ${dlab(s.published_at)}`;
         const rk=s.group_key+'.'+s.period;
         const open=!!stRowOpen[rk];
         // Expanded: the month's arithmetic inline, bank-app style; the full
@@ -1130,8 +1134,8 @@ function initStatements(){
             <div class="dl"><span>Villa expenses</span><b>− ${IDRf(s.expenses_total)}</b></div>
             ${adj?`<div class="dl"><span>${adj<0?'Carried over from earlier months':'Adjustments'}</span><b>${adj<0?'− ':'+ '}${IDRf(Math.abs(adj))}</b></div>`:''}
             <div class="dl rule hero"><span>Your payout</span><b>${IDRf(s.payout_total)}</b></div>
-            ${paidAmt>0?`<div class="dl"><span>Paid to date</span><b>− ${IDRf(paidAmt)}</b></div>`:''}
-            ${s.balance>0&&paidAmt>0?`<div class="dl due hero"><span>Still on its way</span><b>${IDRf(s.balance)}</b></div>`:''}
+            ${tracks&&paidAmt>0?`<div class="dl"><span>Paid to date</span><b>− ${IDRf(paidAmt)}</b></div>`:''}
+            ${tracks&&s.balance>0&&paidAmt>0?`<div class="dl due hero"><span>Still on its way</span><b>${IDRf(s.balance)}</b></div>`:''}
           </div>
           <div class="st-det-foot">
             <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">Open full statement ↗</a>

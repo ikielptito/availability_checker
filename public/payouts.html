@@ -61,7 +61,10 @@ body.embed .cmdbar .word{display:none;}
 .mpill.no{background:var(--red-bg);color:var(--red-fg);}
 .mpill.urgent{background:#FCF3E3;color:#8A5A0B;}
 .mshots{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px;}
-.mshots img{width:74px;height:74px;object-fit:cover;border-radius:9px;border:1px solid var(--border);cursor:pointer;}
+.mshots img{width:74px;height:74px;object-fit:cover;border-radius:9px;border:1px solid var(--border);cursor:pointer;display:block;}
+.mshot{position:relative;display:inline-block;}
+.mshot-x{position:absolute;top:-6px;right:-6px;width:19px;height:19px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:10px;line-height:1;cursor:pointer;padding:0;}
+.mshot-x:hover{background:var(--red-bg);color:var(--red-fg);border-color:var(--red-fg);}
 .mrow{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:12px;}
 .mrow input,.mrow select{padding:8px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-family:inherit;font-size:.82rem;}
 .mmeta{font:500 11.5px/1.6 var(--sb-font-ui);color:var(--muted);margin-top:9px;}
@@ -323,14 +326,19 @@ async function syncNow() {
 
 // ── Statement list ───────────────────────────────────────────────────
 const balanceOf = (s) => Math.max(0, (Number(s.payout_total) || 0) - (Number(s.paid_total) || 0));
+// Some properties aren't settled month to month (LaneHAUS — privately
+// arranged between Ikiel and Guy). Their statements record the numbers and
+// say nothing about payment.
+const tracksPayments = (s) => (s.statement_groups?.tracks_payments) !== false;
 function pillsFor(s) {
   const pills = [];
   if (s.status === 'draft' && s.needs_review) pills.push('<span class="pill review"><span class="d"></span>Needs review</span>');
   else if (s.status === 'draft') pills.push('<span class="pill draft">Draft</span>');
-  if (s.status === 'published' && Number(s.payout_total) < 0) pills.push('<span class="pill void">Deficit — carries forward</span>');
+  if (s.status !== 'draft' && !tracksPayments(s)) pills.push('<span class="pill draft">Internal — settled privately</span>');
+  else if (s.status === 'published' && Number(s.payout_total) < 0) pills.push('<span class="pill void">Deficit — carries forward</span>');
   else if (s.status === 'published') pills.push('<span class="pill outstanding"><span class="d"></span>Unpaid</span>');
-  if (s.status === 'partial') pills.push(`<span class="pill review"><span class="d"></span>Partial · ${IDR(balanceOf(s))} due</span>`);
-  if (s.status === 'paid') pills.push('<span class="pill paid">Paid</span>');
+  if (tracksPayments(s) && s.status === 'partial') pills.push(`<span class="pill review"><span class="d"></span>Partial · ${IDR(balanceOf(s))} due</span>`);
+  if (tracksPayments(s) && s.status === 'paid') pills.push('<span class="pill paid">Paid</span>');
   if (s.status === 'void') pills.push('<span class="pill void">Void</span>');
   if (s.source_changed) pills.push('<span class="pill changed">⚠ Sheet changed</span>');
   return pills.join('');
@@ -413,7 +421,7 @@ function drawDetail() {
       <div class="tot"><div class="lab">Expenses</div><div class="val">− ${IDR(s.expenses_total)}</div></div>
       ${Number(s.adjustments_total) ? `<div class="tot"><div class="lab">Adjustments</div><div class="val">${IDR(s.adjustments_total)}</div></div>` : ''}
       <div class="tot big"><div class="lab">Total payout</div><div class="val">${IDR(s.payout_total)}</div></div>
-      ${s.status !== 'draft' ? `
+      ${s.status !== 'draft' && tracksPayments(s) ? `
       <div class="tot"><div class="lab">Paid to date</div><div class="val">${IDR(s.paid_total)}</div></div>
       <div class="tot" style="${balanceOf(s) > 0 ? 'background:var(--red-bg)' : ''}"><div class="lab">Balance due</div><div class="val" style="${balanceOf(s) > 0 ? 'color:var(--red-fg)' : ''}">${IDR(balanceOf(s))}</div></div>` : ''}
     </div>
@@ -482,7 +490,7 @@ function drawDetail() {
 
   // Payments ledger (published/partial/paid)
   const pays = det.payments || [];
-  if (s.status !== 'draft') {
+  if (s.status !== 'draft' && tracksPayments(s)) {
     html += `<div class="card"><h3>Payments</h3>`;
     if (!pays.length) html += `<div class="empty-state" style="padding:8px">No payments recorded yet.</div>`;
     else html += `<div class="tblwrap"><table class="lines">
@@ -506,7 +514,7 @@ function drawDetail() {
 
   // Payout account on file
   const acct = g.payout_account;
-  if (s.status !== 'draft') {
+  if (s.status !== 'draft' && tracksPayments(s)) {
     html += `<div class="card"><h3>Payout account</h3>` + (acct && (acct.bank || acct.account_number)
       ? `<div style="font-size:.82rem;line-height:1.7">${esc(acct.bank || '')} · ${esc(acct.account_name || '')} · <b>${esc(acct.account_number || '')}</b>${acct.note ? `<br><span style="color:var(--muted)">${esc(acct.note)}</span>` : ''}<br><span style="font-size:.7rem;color:var(--muted)">entered by ${esc(acct.updated_by || 'admin')} · edit under Properties</span></div>`
       : `<div class="empty-state" style="padding:8px">None on file — the owner can add it in their portal, or you can under Properties.</div>`) + `</div>`;
@@ -531,7 +539,7 @@ function drawDetail() {
     html += `<button class="btn primary" onclick="amendSave()">Save amendment</button>`;
     html += `<button class="btn ghost" onclick="amendCancel()">Cancel amendment</button>`;
   }
-  if (s.status === 'published' || s.status === 'partial') {
+  if ((s.status === 'published' || s.status === 'partial') && tracksPayments(s)) {
     html += `<button class="btn green" onclick="askRecordPayment()">＋ Record payment</button>`;
     if (s.status === 'published' && !s.notified_at && !pays.length) html += `<button class="btn ghost" onclick="unpublish()">Unpublish</button>`;
   }
@@ -995,7 +1003,12 @@ async function renderMaintenance() {
         <span class="mpill ${st.cls}">${esc(st.label)}</span>
       </div>
       ${it.description ? `<div class="mdesc">${esc(it.description)}</div>` : ''}
-      <div class="mshots" id="shots-${it.id}"></div>`;
+      <div class="mshots" id="shots-${it.id}"></div>
+      <div class="mrow" style="margin-top:8px">
+        <label class="btn ghost" style="cursor:pointer;font-size:.75rem">＋ Add photo
+          <input type="file" accept="image/*" style="display:none" onchange="maintAddPhoto(${it.id}, this)">
+        </label>
+      </div>`;
 
     if (it.status === 'new') {
       html += `<div class="mrow">
@@ -1045,12 +1058,38 @@ async function renderMaintenance() {
     maintApi('maint_detail', { id: it.id }).then(d => {
       const box = document.getElementById('shots-' + it.id);
       if (box && d.item?.photo_urls?.length) {
-        box.innerHTML = d.item.photo_urls.map(u => `<img src="${esc(u)}" onclick="window.open('${esc(u)}','_blank')" alt="">`).join('');
+        const paths = d.item.photos || [];
+        box.innerHTML = d.item.photo_urls.map((u, n) => `<span class="mshot">
+          <img src="${esc(u)}" onclick="window.open('${esc(u)}','_blank')" alt="">
+          <button class="mshot-x" title="Remove from this ticket" onclick="maintRemovePhoto(${it.id}, '${esc(paths[n] || '')}')">✕</button>
+        </span>`).join('');
       }
     }).catch(() => {});
   }
 }
 
+async function maintRemovePhoto(id, path) {
+  if (!path) return;
+  try {
+    await maintApi('maint_photo_remove', { id, path });
+    renderMaintenance();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function maintAddPhoto(id, input) {
+  const f = input.files && input.files[0];
+  if (!f) return;
+  try {
+    const b64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result).split(',')[1]);
+      r.onerror = rej; r.readAsDataURL(f);
+    });
+    await maintApi('maint_photo', { id, fileBase64: b64, contentType: f.type || 'image/jpeg' });
+    showToast('Photo added.', 'success');
+    renderMaintenance();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+  finally { input.value = ''; }
+}
 async function maintPublish(id) {
   const cost = document.getElementById('mcost-' + id)?.value.replace(/[^\d.]/g, '');
   const needs = document.getElementById('mmode-' + id)?.value === '1';

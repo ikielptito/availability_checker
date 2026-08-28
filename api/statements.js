@@ -368,7 +368,10 @@ export default async function handler(req, res) {
             adjustments_total: s.adjustments_total,
             payout_total: s.payout_total,
             paid_total: s.paid_total,
-            balance: Math.max(0, (Number(s.payout_total) || 0) - (Number(s.paid_total) || 0)),
+            // Privately-settled properties (LaneHAUS) owe nothing by design.
+            balance: s.statement_groups?.tracks_payments === false ? 0
+              : Math.max(0, (Number(s.payout_total) || 0) - (Number(s.paid_total) || 0)),
+            tracks_payments: s.statement_groups?.tracks_payments !== false,
             occupancy_pct: occ,
             nights_sold: nights,
             currency: s.currency,
@@ -386,7 +389,7 @@ export default async function handler(req, res) {
       try { fx = await getFx(); } catch { /* best-effort */ }
       return res.status(200).json({
         statements: mine,
-        groups: groups.map(g => ({ key: g.key, name: g.name, owner_names: g.owner_names || null, payout_account: g.payout_account || null })),
+        groups: groups.map(g => ({ key: g.key, name: g.name, owner_names: g.owner_names || null, payout_account: g.payout_account || null, tracks_payments: g.tracks_payments !== false })),
         ...(fx ? { fx } : {}),
         ...(previewGroup ? { preview: true } : {}),
       });
