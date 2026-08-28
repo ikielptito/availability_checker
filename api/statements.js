@@ -357,7 +357,7 @@ export default async function handler(req, res) {
     // ── Admin diagnostic: why does a WhatsApp-signed-in owner see (or not
     // see) their statement groups? Auth: the caller's console key must be
     // accepted by the CRM (relayed check — the portal stores no console key).
-    if (action === 'wa-owner-debug' || action === 'admin-claim') {
+    if (action === 'wa-owner-debug' || action === 'admin-claim' || action === 'admin-assign') {
       const key = req.headers['x-console-key'] || '';
       const check = await fetch(`${crmBase}/api/statements`, {
         method: 'POST',
