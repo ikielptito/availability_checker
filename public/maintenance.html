@@ -64,6 +64,7 @@ const TOKEN = (location.pathname.match(/^\/m\/(.+)$/) || [])[1] || '';
 let DATA = null, BUSY = false;
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const money = (n, cur) => n == null ? null : (cur || 'IDR') + ' ' + Math.round(Number(n) || 0).toLocaleString('en-US');
+const pname = (n) => String(n == null ? '' : n).replace(/\s*[–—]\s*/g, ' · ');
 const dstr = (s) => s ? new Date(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 
 async function load() {
@@ -80,7 +81,7 @@ async function load() {
 
 function render() {
   const d = DATA;
-  const where = d.unit_label ? `${d.group?.name || ''} · ${d.unit_label}` : (d.group?.name || '');
+  const where = d.unit_label ? `${pname(d.group?.name || '')} · ${d.unit_label}` : pname(d.group?.name || '');
   const waiting = d.status === 'pending_approval';
 
   const chip = d.status === 'done' ? '<span class="chip ok">Completed</span>'

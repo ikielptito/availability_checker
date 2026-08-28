@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>Campaign Command Center — Samba Rentals</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
+<title>Campaign Command Center · Samba Rentals</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23E2572B'/><text x='50' y='72' font-size='60' font-family='Georgia,serif' fill='%23fff' text-anchor='middle'>S</text></svg>">
 <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="/brand.css">
@@ -61,6 +61,9 @@ body.embed .cmdbar .word{display:none;}
 .rail a{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;color:var(--muted);text-decoration:none;font:500 13.5px/1 var(--sb-font-ui);}
 .rail a:hover{background:var(--surface2);color:var(--text);}
 .rail a.on{background:var(--surface);color:var(--accent);font-weight:600;box-shadow:var(--sb-shadow-xs);border:1px solid var(--sb-hairline);}
+.acctmark{font:600 9.5px/1 var(--sb-font-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--sb-terracotta-700,#9C4221);background:var(--sb-terracotta-050,#FBEDE7);padding:2px 6px;border-radius:8px;vertical-align:1px;}
+.rail svg.ico{width:17px;height:17px;flex:none;opacity:.85;}
+.rail a.on svg.ico{opacity:1;}
 .rail .ico{width:16px;text-align:center;}
 .content{flex:1;min-width:0;padding:18px 18px 80px;}
 @media(max-width:900px){
@@ -169,7 +172,7 @@ tr:last-child td{border-bottom:none;}
 .q-GREEN{background:var(--sb-success);} .q-YELLOW{background:var(--sb-warning);} .q-RED{background:var(--sb-error);} .q-UNKNOWN,.q-null{background:var(--sb-gray-300);}
 .st{font:600 10.5px/1 var(--sb-font-ui);border-radius:6px;padding:4px 7px;white-space:nowrap;}
 .st.replied{background:var(--live-bg);color:var(--live);}
-.st.read{background:#E3EDF9;color:#1D4ED8;}
+.st.read{background:#E8EBE1;color:#4E5940;}
 .st.delivered,.st.sent{background:var(--surface2);color:var(--muted);}
 .st.failed{background:var(--red-bg);color:var(--red-fg);}
 .filterchips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
@@ -268,9 +271,9 @@ tr:last-child td{border-bottom:none;}
   </div>
   <div class="shell">
     <nav class="rail" id="rail">
-      <a href="#/" data-view="overview"><span class="ico">◉</span>Overview</a>
-      <a href="#/audience" data-view="audience"><span class="ico">👥</span>Audience</a>
-      <a href="#/system" data-view="system"><span class="ico">⚙</span>System</a>
+      <a href="#/" data-view="overview"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="6.4"/><circle cx="10" cy="10" r="2.2"/></svg>Overview</a>
+      <a href="#/audience" data-view="audience"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.8" cy="7.6" r="2.8"/><path d="M3.2 16.4c0-2.5 2.1-4.2 4.6-4.2s4.6 1.7 4.6 4.2"/><path d="M13.4 6.2a2.6 2.6 0 0 1 0 5"/><path d="M14.4 12.6c1.6.5 2.6 1.9 2.6 3.8"/></svg>Audience</a>
+      <a href="#/system" data-view="system"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="2.7"/><path d="M10 2.6v2M10 15.4v2M2.6 10h2M15.4 10h2M4.8 4.8l1.4 1.4M13.8 13.8l1.4 1.4M15.2 4.8l-1.4 1.4M6.2 13.8l-1.4 1.4"/></svg>System</a>
     </nav>
     <main class="content" id="content">
       <div class="loading-state"><div class="spinner"></div>Loading command center…</div>
@@ -335,8 +338,8 @@ async function apiPost(action, payload) {
   return d;
 }
 
-const fmt = (n) => (n == null ? '—' : Number(n).toLocaleString('en-US'));
-const pct = (a, b) => (b > 0 ? Math.round(a / b * 100) + '%' : '—');
+const fmt = (n) => (n == null ? '–' : Number(n).toLocaleString('en-US'));
+const pct = (a, b) => (b > 0 ? Math.round(a / b * 100) + '%' : '–');
 
 // ── Command bar: WITA clock + quiet hours ────────────────────────────
 function tickClock() {
@@ -351,8 +354,8 @@ setInterval(tickClock, 20e3); tickClock();
 function renderCmdbar() {
   const s = center?.settings || {};
   const lamp = document.getElementById('lamp');
-  if (!s.enabled) { lamp.className = 'lamp off'; document.getElementById('lamp-text').textContent = 'KILL SWITCH ON — sending disabled'; }
-  else if (s.test_agents_only) { lamp.className = 'lamp test'; document.getElementById('lamp-text').textContent = 'TEST MODE — test agents only'; }
+  if (!s.enabled) { lamp.className = 'lamp off'; document.getElementById('lamp-text').textContent = 'KILL SWITCH ON · sending disabled'; }
+  else if (s.test_agents_only) { lamp.className = 'lamp test'; document.getElementById('lamp-text').textContent = 'TEST MODE · test agents only'; }
   else { lamp.className = 'lamp ok'; document.getElementById('lamp-text').textContent = 'Sending enabled'; }
   lamp.onclick = () => go('#/system');
   lamp.style.cursor = 'pointer';
@@ -395,7 +398,7 @@ async function loadCenter(force) {
   } catch (e) {
     if (e.message === 'unauthorized') return;
     document.getElementById('content').innerHTML =
-      `<div class="banner red">⚠ <div>Could not reach the campaign engine: ${esc(e.message)}. The CRM may be redeploying — <a style="cursor:pointer;text-decoration:underline" onclick="loadCenter(true)">retry</a>.</div></div>`;
+      `<div class="banner red"><div>Could not reach the campaign engine: ${esc(e.message)}. The CRM may be redeploying. <a style="cursor:pointer;text-decoration:underline" onclick="loadCenter(true)">retry</a>.</div></div>`;
   }
 }
 
@@ -410,7 +413,7 @@ function capChip(c) {
   if (!capSetting) return '';
   const key = capSetting.split('.').pop();
   const v = center?.settings?.[key];
-  if (v == null || v === 0 || v === '') return '<span class="chip warn">cap OFF — dormant</span>';
+  if (v == null || v === 0 || v === '') return '<span class="chip warn">cap OFF · dormant</span>';
   return `<span class="chip">cap ${esc(String(v))}/day</span>`;
 }
 function nextRunChip(c) {
@@ -452,7 +455,7 @@ function sparkline(c) {
 function miniFunnel(c) {
   const rows = [
     ['Sent', c.sent_count || 0, 'var(--sb-green-700)'],
-    ['Read', c.read_count || 0, 'var(--sb-info)'],
+    ['Read', c.read_count || 0, 'var(--sb-olive, #6F7A5A)'],
     ['Replied', c.reply_count || 0, 'var(--sb-success)'],
   ];
   if (c.goal === 'signup') rows.push(['Signups', c.conversion_count || 0, 'var(--accent)']);
@@ -491,7 +494,7 @@ function renderOverview() {
     <div class="kpis">
       <div class="kpi"><div class="lab">Reach · 30d</div><div class="val">${fmt(k.reach_30d)}</div><div class="sub">agents messaged</div></div>
       <div class="kpi"><div class="lab">Messages · 30d</div><div class="val">${fmt(k.sent_30d)}</div><div class="sub">outbound sends</div></div>
-      <div class="kpi"><div class="lab">Read rate · 30d</div><div class="val">${k.read_rate_30d != null ? k.read_rate_30d + '%' : '—'}</div><div class="sub">of status-tracked sends</div></div>
+      <div class="kpi"><div class="lab">Read rate · 30d</div><div class="val">${k.read_rate_30d != null ? k.read_rate_30d + '%' : '–'}</div><div class="sub">of status-tracked sends</div></div>
       <div class="kpi"><div class="lab">Replied · 30d</div><div class="val">${fmt(k.replied_30d)}</div><div class="sub">agents who wrote back</div></div>
       <div class="kpi"><div class="lab">Signups · 30d</div><div class="val">${fmt(k.conversions_30d)}</div><div class="sub">portal accounts from campaigns${center.portal ? ` · ${fmt(center.portal.signup?.done_total)} lifetime` : ''}</div></div>
       <div class="kpi"><div class="lab">Template health</div><div class="val" style="font-size:17px;padding-top:5px"><span class="dot" style="background:${worst[1]}"></span>${worst[0] === 'GREEN' ? 'Healthy' : worst[0] === 'YELLOW' ? 'Watch' : 'At risk'}</div><div class="sub">${live.length} approved templates · worst Meta quality</div></div>
@@ -499,7 +502,7 @@ function renderOverview() {
 
     <div class="grouphead"><h2>Always-on campaigns</h2><span class="n">${groups.always.length}</span></div>
     ${groups.always.length ? `<div class="board">${groups.always.map(card).join('')}</div>`
-      : '<div class="empty-state">No always-on campaigns registered — run the migration in the CRM.</div>'}
+      : '<div class="empty-state">No always-on campaigns registered. Run the migration in the CRM.</div>'}
 
     <div class="grouphead"><h2>One-off broadcasts</h2><span class="n">${groups.oneoff.length}</span>
       <span style="font:500 11px/1 var(--sb-font-ui);color:var(--muted)">last 10</span></div>
@@ -532,7 +535,7 @@ async function renderDetail(id) {
     try { detailCache[id] = await apiGet('view=detail&id=' + encodeURIComponent(id)); }
     catch (e) {
       if (e.message === 'unauthorized') return;
-      content.innerHTML = `<div class="crumb"><a onclick="go('#/')">← Overview</a></div><div class="banner red">⚠ <div>${esc(e.message)}</div></div>`;
+      content.innerHTML = `<div class="crumb"><a onclick="go('#/')">← Overview</a></div><div class="banner red"><div>${esc(e.message)}</div></div>`;
       return;
     }
   }
@@ -566,14 +569,14 @@ async function renderDetail(id) {
   const sent = c.sent_count || 0;
   const stages = [
     { label: 'Sent', value: sent, color: 'var(--sb-green-700)' },
-    { label: 'Delivered', value: c.delivered_count || 0, color: 'var(--sb-info)', stepText: 'delivered' },
+    { label: 'Delivered', value: c.delivered_count || 0, color: 'var(--sb-olive, #6F7A5A)', stepText: 'delivered' },
     { label: 'Read', value: c.read_count || 0, color: 'var(--accent)', stepText: 'of delivered read' },
     { label: 'Replied', value: c.reply_count || 0, color: 'var(--green)', stepText: 'of read replied' },
   ];
   if (c.goal === 'signup') stages.push({ label: 'Account created', value: c.conversion_count || 0, color: 'var(--sb-terracotta-700)', stepText: 'converted' });
 
   const tplRows = (d.templates || []).map(t => `
-    <tr><td>${esc(t.name)}</td><td>${fmt(t.sent)}</td><td>${t.read_rate != null ? t.read_rate + '%' : '—'}</td><td>${t.failed ? `<span class="st failed">${fmt(t.failed)}</span>` : '0'}</td></tr>`).join('');
+    <tr><td>${esc(t.name)}</td><td>${fmt(t.sent)}</td><td>${t.read_rate != null ? t.read_rate + '%' : '–'}</td><td>${t.failed ? `<span class="st failed">${fmt(t.failed)}</span>` : '0'}</td></tr>`).join('');
 
   const attribution = d.portal ? `
     <div class="card">
@@ -591,7 +594,7 @@ async function renderDetail(id) {
       <div>
         <h1>${esc(c.name)} ${statusPill(c)} <span class="chip">${c.kind === 'always_on' ? 'always-on' : c.kind === 'sequence' ? 'sequence' : 'one-off'}</span></h1>
         <div class="desc">${esc(c.context || '')}${c.schedule?.cron ? ` · <b>${esc(c.schedule.cron)}</b>` : ''}${c.schedule?.gate ? ` · ${esc(c.schedule.gate)}` : ''}</div>
-        ${isDormantArmed ? `<div class="banner amber" style="margin-top:10px">⚠ <div>Built but dormant — its daily cap is unset, so the cron skips it. ${c.key === 'account_invite' ? inviteTemplateNote() : 'Arm it to start the daily sweep.'}</div></div>` : ''}
+        ${isDormantArmed ? `<div class="banner amber" style="margin-top:10px"><div>Built but dormant: its daily cap is unset, so the cron skips it. ${c.key === 'account_invite' ? inviteTemplateNote() : 'Arm it to start the daily sweep.'}</div></div>` : ''}
       </div>
       <div class="dctrl">${controls}</div>
     </div>
@@ -619,7 +622,7 @@ async function renderDetail(id) {
           ${(d.failures || []).length ? (d.failures || []).map(f => `
             <div style="display:flex;justify-content:space-between;gap:10px;font-size:.78rem;padding:7px 0;border-bottom:1px solid var(--sb-hairline)">
               <span>${esc(f.reason)}</span><b>${fmt(f.count)}</b></div>`).join('')
-            : '<div class="empty-state">No failed sends in the last 90 days 🎉</div>'}
+            : '<div class="empty-state">No failed sends in the last 90 days</div>'}
         </div>
       </div>
     </div>
@@ -647,8 +650,8 @@ function inviteTemplateNote() {
   const tpl = (center.templates || []).find(t => t.name === 'samba_account_invite_v1');
   if (!tpl) return 'Its template (samba_account_invite_v1) is not on the WABA yet.';
   return tpl.status === 'APPROVED'
-    ? 'Template approved ✓ — arming starts the daily sweep.'
-    : `Its Meta template is <b>${esc(tpl.status)}</b> — arming waits for approval; the sweep skips until then.`;
+    ? 'Template approved. Arming starts the daily sweep.'
+    : `Its Meta template is <b>${esc(tpl.status)}</b>, so arming waits for approval and the sweep skips until then.`;
 }
 function summarizeDetail(det) {
   try {
@@ -670,10 +673,10 @@ function drawRecipients() {
     return true;
   }).slice(0, 200);
   document.getElementById('recip-body').innerHTML = rows.length ? rows.map(r => `
-    <tr><td>${esc(r.name)}${r.portal_account ? ' <span title="has portal account">👤</span>' : ''}</td>
+    <tr><td>${esc(r.name)}${r.portal_account ? ' <span class="acctmark" title="Has a portal account">portal</span>' : ''}</td>
     <td style="color:var(--muted)">${esc(r.tier)}</td>
     <td><span class="st ${esc(r.status)}">${esc(r.status)}</span></td>
-    <td style="color:var(--muted)">${r.portal_views != null ? `${fmt(r.portal_views)} views · ${fmt(r.portal_wa_clicks)} clicks` : '—'}</td>
+    <td style="color:var(--muted)">${r.portal_views != null ? `${fmt(r.portal_views)} views · ${fmt(r.portal_wa_clicks)} clicks` : '–'}</td>
     <td style="color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.error || '')}">${esc((r.error || '').slice(0, 60))}</td></tr>`).join('')
     : '<tr><td colspan="5" class="empty-state">No recipients match.</td></tr>';
 }
@@ -738,7 +741,7 @@ async function ctrl(id, op, value) {
   const run = async () => {
     try {
       await apiPost('campaign_control', { id, op, value });
-      showToast(op === 'pause' ? 'Paused' : op === 'resume' ? 'Resumed' : op === 'set_cap' ? 'Cap updated' : op === 'arm' ? 'Armed — starts on the next 9am WITA pass' : 'Done', 'success');
+      showToast(op === 'pause' ? 'Paused' : op === 'resume' ? 'Resumed' : op === 'set_cap' ? 'Cap updated' : op === 'arm' ? 'Armed. Starts on the next 9am WITA pass' : 'Done', 'success');
       delete detailCache[id];
       await loadCenter();
     } catch (e) { showToast('Failed: ' + e.message, 'error'); }
@@ -751,7 +754,7 @@ async function ctrl(id, op, value) {
 function armModal(id, name) {
   openModal(`
     <h3>Arm “${esc(name)}”</h3>
-    <p>Sets the daily cap and flips the campaign live — the sweep starts on the next 9am WITA cron pass and works through its queue at this rate.</p>
+    <p>Sets the daily cap and flips the campaign live. The sweep starts on the next 9am WITA cron pass and works through its queue at this rate.</p>
     <label style="font:600 12.5px/1.4 var(--sb-font-ui)">Daily cap</label>
     <input type="number" id="arm-cap" value="10" min="1" max="50">
     <div class="row"><button class="btn" onclick="closeModal()">Not now</button>
@@ -793,8 +796,8 @@ function wizStep1() {
   return `<div class="card" style="max-width:560px">
     <div class="field"><label>Campaign name</label>
       <input type="text" id="wz-name" value="${esc(w.name)}" placeholder="e.g. September re-engagement" oninput="wiz.name=this.value">
-      <div class="hint">Shows on the board and in the audit trail — name the intent, not the date.</div></div>
-    <div class="field"><label>Goal — which outcome counts as conversion</label>
+      <div class="hint">Shows on the board and in the audit trail. Name the intent, not the date.</div></div>
+    <div class="field"><label>Goal: which outcome counts as conversion</label>
       <div class="optrow">${[['reply', 'Reply', 'agent writes back'], ['signup', 'Account signup', 'portal account created'], ['click', 'Portal visit', 'tracked link opened'], ['enquiry', 'Enquiry', 'client enquiry sent']].map(([v, lab, sub]) =>
         `<div class="opt ${w.goal === v ? 'on' : ''}" onclick="wiz.goal='${v}';renderWizard()">${lab}<small>${sub}</small></div>`).join('')}</div></div>
     <div class="field"><label>When</label>
@@ -803,7 +806,7 @@ function wizStep1() {
         <div class="opt ${w.when === 'at' ? 'on' : ''}" onclick="wiz.when='at';renderWizard()">Schedule<small>fires on the cron after the time</small></div>
       </div>
       ${w.when === 'at' ? `<div style="margin-top:10px"><input type="datetime-local" id="wz-at" value="${esc(w.scheduled_at)}" onchange="wiz.scheduled_at=this.value">
-        <div class="hint">Times are your local clock. The daily cron (9:00 WITA) launches anything past due — schedule for the morning window; quiet hours are 21:00–09:00 WITA.</div></div>` : ''}</div>
+        <div class="hint">Times are your local clock. The daily cron (9:00 WITA) launches anything past due. Schedule for the morning window; quiet hours are 21:00–09:00 WITA.</div></div>` : ''}</div>
     ${wizNav(false)}</div>`;
 }
 function tierChip(v, lab) {
@@ -822,7 +825,7 @@ function wizStep2() {
           const on = w.filter.frequency.includes(v);
           return `<button class="fchip ${on ? 'on' : ''}" onclick="toggleArr(wiz.filter.frequency,'${v}');renderWizard()">${l}</button>`;
         }).join('')}</div>
-        <div class="hint">Paused agents are always excluded — that's a suppression, not a filter.</div></div>
+        <div class="hint">Paused agents are always excluded. That's a suppression, not a filter.</div></div>
       <div class="field"><label>Replied within the last…</label>
         <select onchange="wiz.filter.last_reply_days=this.value;renderWizard()">
           ${[['', 'any time (or never)'], ['7', '7 days'], ['30', '30 days'], ['90', '90 days']].map(([v, l]) => `<option value="${v}" ${String(w.filter.last_reply_days) === v ? 'selected' : ''}>${l}</option>`).join('')}
@@ -872,10 +875,10 @@ function refreshAudience() {
           ${wf('− outside filters', b.filtered_out, 'cut')}
           ${wf('Eligible', b.eligible, 'elig')}
         </div>
-        ${p.over_cap ? `<div class="banner amber" style="margin-top:14px">⚠ <div>${fmt(b.eligible)} is over the ${p.max_recipients}-per-launch ceiling — narrow the filter by ${fmt(p.over_cap)}.</div></div>` : ''}
+        ${p.over_cap ? `<div class="banner amber" style="margin-top:14px"><div>${fmt(b.eligible)} is over the ${p.max_recipients}-per-launch ceiling. Narrow the filter by ${fmt(p.over_cap)}.</div></div>` : ''}
         ${(p.sample || []).length ? `<div style="margin-top:14px;font-size:.7rem;color:var(--muted);line-height:1.7"><b style="color:var(--text-2)">Sample:</b> ${p.sample.map(s => esc(s.name)).join(', ')}</div>` : ''}`;
     } catch (e) {
-      if (panel) panel.innerHTML = `<div class="banner red">⚠ <div>${esc(e.message)}</div></div>`;
+      if (panel) panel.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`;
     }
   }, 300);
 }
@@ -894,11 +897,11 @@ function wizStep3() {
   const tpls = (center.templates || []).filter(t => !/^maya_/.test(t.name));
   return `<div class="card" style="max-width:640px">
     <div class="filterchips">
-      <button class="fchip ${w.mode === 'template' ? 'on' : ''}" onclick="wiz.mode='template';renderWizard()">Meta template — reaches everyone</button>
-      <button class="fchip ${w.mode === 'text' ? 'on' : ''}" onclick="wiz.mode='text';renderWizard()">Free text — 24h window only</button>
+      <button class="fchip ${w.mode === 'template' ? 'on' : ''}" onclick="wiz.mode='template';renderWizard()">Meta template · reaches everyone</button>
+      <button class="fchip ${w.mode === 'text' ? 'on' : ''}" onclick="wiz.mode='text';renderWizard()">Free text · 24h window only</button>
     </div>
     ${w.mode === 'text' ? `
-      <div class="banner amber">⚠ <div>Free text only reaches agents who wrote in within 24h — <b>${fmt(inW)} of ${fmt(elig)}</b> eligible are in-window right now. Everyone else is skipped at send time.</div></div>
+      <div class="banner amber"><div>Free text only reaches agents who wrote in within 24h. <b>${fmt(inW)} of ${fmt(elig)}</b> eligible are in-window right now. Everyone else is skipped at send time.</div></div>
       <div class="field"><label>Message</label>
         <textarea oninput="wiz.message=this.value" placeholder="Hi {name}, …">${esc(w.message)}</textarea>
         <div class="hint">{name} → the agent's first name. Keep it short, personal, and give an easy out.</div></div>
@@ -923,12 +926,11 @@ function wizStep4() {
   const w = wiz;
   if (w.result) {
     return `<div class="card" style="max-width:560px;text-align:center;padding:36px">
-      <div style="font-size:40px">${w.result.failed ? '⚠️' : '🎉'}</div>
       <h2 style="font:700 20px/1.3 var(--sb-font-display);margin:12px 0 6px">${w.result.scheduled_for ? 'Scheduled' : 'Launched'}</h2>
       <p style="font-size:.85rem;color:var(--muted);line-height:1.6">${w.result.scheduled_for
         ? 'Fires on the first cron pass after ' + new Date(w.result.scheduled_for).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
         : `${fmt(w.result.sent)} sent · ${fmt(w.result.skipped)} skipped by guardrails · ${fmt(w.result.failed)} failed`}</p>
-      ${(w.result.errors || []).length ? `<div class="banner red" style="text-align:left;margin-top:12px">⚠ <div>${w.result.errors.map(esc).join('<br>')}</div></div>` : ''}
+      ${(w.result.errors || []).length ? `<div class="banner red" style="text-align:left;margin-top:12px"><div>${w.result.errors.map(esc).join('<br>')}</div></div>` : ''}
       <button class="btn primary" style="margin-top:16px" onclick="wiz=null;detailCache={};loadCenter();go('#/')">Back to overview</button></div>`;
   }
   const d = w.draft;
@@ -942,14 +944,14 @@ function wizStep4() {
       <div class="review-row"><span class="k">Recipients (server-resolved)</span><span class="v">${fmt(d.recipients)}</span></div>
       <div class="review-row"><span class="k">In 24h window</span><span class="v">${fmt(d.in_window)}</span></div>
       ${d.estimate_usd ? `<div class="review-row"><span class="k">Est. template cost</span><span class="v">~$${d.estimate_usd.toFixed(2)}</span></div>` : ''}
-      ${d.test_agents_only ? '<div class="banner amber" style="margin-top:12px">⚠ <div><b>Test mode is ON</b> — only test agents will actually receive this.</div></div>' : ''}
+      ${d.test_agents_only ? '<div class="banner amber" style="margin-top:12px"><div><b>Test mode is ON</b>. Only test agents will actually receive this.</div></div>' : ''}
       <div style="margin-top:10px;font-size:.7rem;color:var(--muted);line-height:1.7"><b style="color:var(--text-2)">Sample:</b> ${(d.sample || []).map(esc).join(', ')}</div>
       ${d.recipients > 50 ? `
         <div class="field" style="margin-top:14px"><label>Type the recipient count (${fmt(d.recipients)}) to confirm</label>
         <input type="number" id="wz-confirm-n" placeholder="${d.recipients}"></div>` : ''}
       <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
         <button class="btn" onclick="wiz.draft=null;wiz.step=3;renderWizard()">← Back</button>
-        <button class="btn primary" id="wz-launch" onclick="executeLaunch()" ${w.launching ? 'disabled' : ''}>${w.launching ? 'Sending…' : (w.when === 'at' && w.scheduled_at ? '🕘 Confirm schedule' : '🚀 Launch to ' + fmt(d.recipients) + ' agents')}</button></div>`
+        <button class="btn primary" id="wz-launch" onclick="executeLaunch()" ${w.launching ? 'disabled' : ''}>${w.launching ? 'Sending…' : (w.when === 'at' && w.scheduled_at ? 'Confirm schedule' : 'Launch to ' + fmt(d.recipients) + ' agents')}</button></div>`
     : `
       <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
         <button class="btn" onclick="wiz.step=3;renderWizard()">← Back</button>
@@ -966,8 +968,8 @@ function wizNext() {
   }
   if (w.step === 2) {
     if (!w.preview) { showToast('Wait for the audience count.', 'error'); return; }
-    if (!w.preview.breakdown.eligible) { showToast('Audience is empty — widen the filters.', 'error'); return; }
-    if (w.preview.over_cap) { showToast('Audience is over the 200 ceiling — narrow it first.', 'error'); return; }
+    if (!w.preview.breakdown.eligible) { showToast('Audience is empty. Widen the filters.', 'error'); return; }
+    if (w.preview.over_cap) { showToast('Audience is over the 200 ceiling. Narrow it first.', 'error'); return; }
   }
   if (w.step === 3) {
     if (w.mode === 'template' && !w.template_name) { showToast('Pick a template.', 'error'); return; }
@@ -1019,15 +1021,15 @@ async function renderAudience() {
           <div class="wf-row"><span style="text-transform:capitalize">${t}</span>
           <span class="bar"><i style="width:${Math.round((tiers[t] || 0) / maxT * 100)}%;background:${t === 'champion' || t === 'active' ? 'var(--sb-success)' : t === 'dormant' ? 'var(--sb-gray-300)' : 'var(--sb-sage)'}"></i></span>
           <b>${fmt(tiers[t] || 0)}</b></div>`).join('')}</div>
-        <div class="funnel-note" style="text-align:left">Tiers drive who gets the daily event-alert stream — dormant agents only see the Monday digest. Tune per-agent in the Maya console.</div>
+        <div class="funnel-note" style="text-align:left">Tiers drive who gets the daily event-alert stream. Dormant agents only see the Monday digest. Tune per-agent in the Maya console.</div>
       </div>
       <div class="card">
         <div class="card-title">Suppressions <span class="aux">never receive campaigns</span></div>
-        ${[['Opted out', sup.opted_out, 'said stop — legally and reputationally final unless they return'],
-           ['Dead numbers', sup.dead_numbers, 'not on WhatsApp / chronic delivery failures — auto-cleared if they write in'],
+        ${[['Opted out', sup.opted_out, 'said stop, legally and reputationally final unless they return'],
+           ['Dead numbers', sup.dead_numbers, 'not on WhatsApp / chronic delivery failures, auto-cleared if they write in'],
            ['Meta-capped (24h)', sup.meta_capped, 'Meta throttled marketing to them today; retrying risks a block'],
-           ['Monthly-only', sup.monthly_only, 'asked for less — digest at most every ~4 weeks'],
-           ['Auto-responders', sup.auto_responders, 'robot inboxes detected — they look engaged but nobody is reading']]
+           ['Monthly-only', sup.monthly_only, 'asked for less, digest at most every ~4 weeks'],
+           ['Auto-responders', sup.auto_responders, 'robot inboxes detected, they look engaged but nobody is reading']]
           .map(([lab, v, sub]) => `<div class="switchrow"><div><div class="sw-lab">${lab}</div><div class="sw-sub">${sub}</div></div><div class="bignum" style="font-size:22px">${fmt(v)}</div></div>`).join('')}
       </div>
     </div>
@@ -1048,7 +1050,7 @@ async function renderAudience() {
       <div class="funnel-note" style="text-align:left">${fmt(b.in_window)} of the reachable are inside the 24h free-text window right now.</div>`;
   } catch (e) {
     const el = document.getElementById('aud-panel');
-    if (el) el.innerHTML = `<div class="banner red">⚠ <div>${esc(e.message)}</div></div>`;
+    if (el) el.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`;
   }
 }
 
@@ -1065,7 +1067,7 @@ function renderSystem() {
             <button class="btn ${s.enabled ? 'danger' : 'primary'}" onclick="masterSwitch(${s.enabled ? "'kill_all'" : "'enable_sending'"})">${s.enabled ? 'KILL SWITCH' : 'Enable sending'}</button>
           </div>
           <div class="switchrow">
-            <div><div class="sw-lab">Test agents only</div><div class="sw-sub">Every send is restricted to is_test contacts — the safe way to rehearse a campaign end-to-end.</div></div>
+            <div><div class="sw-lab">Test agents only</div><div class="sw-sub">Every send is restricted to is_test contacts. The safe way to rehearse a campaign end-to-end.</div></div>
             <button class="btn ${s.test_agents_only ? '' : ''}" onclick="masterSwitch('test_mode', ${s.test_agents_only ? 'false' : 'true'})">${s.test_agents_only ? 'Turn OFF' : 'Turn ON'}</button>
           </div>
           <div class="switchrow">
@@ -1076,11 +1078,11 @@ function renderSystem() {
         <div class="card">
           <div class="card-title">How sending works <span class="aux">read-only guardrails</span></div>
           <ul class="explain">
-            <li><b>Quiet hours</b> — Maya-initiated outreach only between 09:00–21:00 WITA. Inbound replies are answered any time.</li>
-            <li><b>3 waves</b> — the morning broadcast splits into cohorts at 9:00 / 9:20 / 9:40 WITA to protect the Meta quality rating.</li>
-            <li><b>High-signal bar</b> — an event alert needs ≥3 genuine improvements or it rolls into the Monday digest.</li>
-            <li><b>Frequency caps</b> — 72h between alerts, 6h hard idempotency, tier-muted stream (dormant = digest only).</li>
-            <li><b>Auto-suppression</b> — dead numbers, Meta 131049 caps, opt-outs and auto-responders are excluded everywhere, automatically.</li>
+            <li><b>Quiet hours</b>: Maya-initiated outreach only between 09:00–21:00 WITA. Inbound replies are answered any time.</li>
+            <li><b>3 waves</b>: the morning broadcast splits into cohorts at 9:00 / 9:20 / 9:40 WITA to protect the Meta quality rating.</li>
+            <li><b>High-signal bar</b>: an event alert needs ≥3 genuine improvements or it rolls into the Monday digest.</li>
+            <li><b>Frequency caps</b>: 72h between alerts, 6h hard idempotency, tier-muted stream (dormant = digest only).</li>
+            <li><b>Auto-suppression</b>: dead numbers, Meta 131049 caps, opt-outs and auto-responders are excluded everywhere, automatically.</li>
             <li><b>200-recipient ceiling</b> per one-off launch, ~1.2s spacing, executed server-side.</li>
           </ul>
         </div>
@@ -1101,7 +1103,7 @@ function renderSystem() {
           <div class="table-scroll"><table><thead><tr><th>Template</th><th>Status</th><th>Quality</th></tr></thead><tbody>
             ${tpls.map(t => `<tr><td style="font-size:.72rem">${esc(t.name)}</td>
               <td><span class="st ${t.status === 'APPROVED' ? 'replied' : t.status === 'REJECTED' ? 'failed' : 'sent'}">${esc(t.status)}</span></td>
-              <td><span class="qdot q-${esc(t.quality || 'null')}"></span>${esc(t.quality || '—')}</td></tr>`).join('')}
+              <td><span class="qdot q-${esc(t.quality || 'null')}"></span>${esc(t.quality || '–')}</td></tr>`).join('')}
           </tbody></table></div>
           <div class="funnel-note" style="text-align:left">RED quality risks Meta pausing the template. Rotate copy (create a _vN+1) before it gets there.</div>
         </div>
@@ -1113,7 +1115,7 @@ function masterSwitch(op, value) {
   const word = danger ? 'KILL' : op === 'enable_sending' ? 'ENABLE' : (value ? 'TEST' : 'LIVE');
   openModal(`
     <h3>${danger ? 'Stop all sending?' : op === 'enable_sending' ? 'Enable sending?' : value ? 'Restrict to test agents?' : 'Go live for everyone?'}</h3>
-    <p>${danger ? 'Every sweep and broadcast stops on its next check. Nothing is lost — campaigns keep their state and resume when re-enabled.'
+    <p>${danger ? 'Every sweep and broadcast stops on its next check. Nothing is lost. Campaigns keep their state and resume when re-enabled.'
       : op === 'enable_sending' ? 'Live campaigns resume on the next cron pass.'
       : value ? 'Only is_test contacts receive anything until this is turned off.'
       : 'All eligible agents receive campaign sends again.'}</p>

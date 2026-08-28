@@ -997,6 +997,7 @@ function acctSummary(a){
   const country=a.country&&a.country!=='ID'?` (${escapeHtml(a.country)})`:'';
   return `${escapeHtml(a.bank||ACCT_SCHEMA[a.country]?.label||'')}${country} <span class="sep">·</span> ${escapeHtml(a.account_name||'')} <span class="sep">·</span> <b>${escapeHtml(mask)}</b>`;
 }
+const pname=(n)=>String(n==null?'':n).replace(/\s*[–—]\s*/g,' · ');
 const stDlOpen={};        // group key → true while its download range picker is open
 const stRowOpen={};       // "group.period" → true while that month is expanded
 function stToggleRow(rk){ stRowOpen[rk]=!stRowOpen[rk]; initStatements(); }
@@ -1086,7 +1087,7 @@ function initStatements(){
       <div class="st-prop-head">
         <div class="hgroup">
           <div class="st-eyebrow">Samba Realty · managed</div>
-          <div class="st-prop-name">${escapeHtml(g.name)}</div>
+          <div class="st-prop-name">${escapeHtml(pname(g.name))}</div>
         </div>
         ${rows.length?`<button class="st-xlsx" style="cursor:pointer;font-family:inherit;background:none" onclick="stDlOpen['${escapeHtml(g.key)}']=!stDlOpen['${escapeHtml(g.key)}'];initStatements()">Download statements (.xlsx)</button>`:''}
       </div>`;
@@ -1260,7 +1261,7 @@ function initMaintenance(){
   }
   for(const it of items){
     const st=MT_STATUS[it.status]||{cls:'done',label:it.status};
-    const where=it.unit_label?`${it.group_name} · ${it.unit_label}`:it.group_name;
+    const where=it.unit_label?`${pname(it.group_name)} · ${it.unit_label}`:pname(it.group_name);
     const cost=it.actual_cost??it.estimated_cost;
     html+=`<div class="mt-card">
       <div class="mt-head">

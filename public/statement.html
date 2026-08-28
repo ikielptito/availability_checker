@@ -206,7 +206,7 @@ function render(d) {
     </div>
     <div class="pad">
       <div class="eyebrow">${esc(d.period_label || d.period)}</div>
-      <div class="title">${esc(d.group?.name || '')}</div>
+      <div class="title">${esc(pname(d.group?.name || ''))}</div>
       <div class="subrow">
         ${d.group?.owner_names ? `<span>For ${esc(d.group.owner_names)}</span>` : ''}
         ${noSettleTop ? '' : paid ? `<span class="paidchip">✓ Paid ${esc(dstr(d.paid_at))}</span>` : partial ? `<span class="duechip">Partially paid · ${IDR(balance)} to follow</span>` : `<span class="duechip">Payout on its way</span>`}
@@ -270,7 +270,7 @@ function render(d) {
   if (!bookings.length) html += `<div style="color:var(--muted);font-size:.84rem">No bookings this month.</div>`;
   for (const u of units) {
     const rows = bookings.filter(b => (b.unit_name || '') === u);
-    if (u) html += `<div class="unit-h">${esc(u)}</div>`;
+    if (u) html += `<div class="unit-h">${esc(pname(u))}</div>`;
     html += `<div class="tblwrap"><table class="st">
       <tr><th>Guest</th><th>Dates</th><th>Platform</th><th class="num">Nights</th><th class="num">Amount</th><th class="num">Mgmt fee</th><th class="num">Nett to you</th></tr>
       ${rows.map(b => `<tr>
