@@ -357,7 +357,7 @@ export default async function handler(req, res) {
     // ── Admin diagnostic: why does a WhatsApp-signed-in owner see (or not
     // see) their statement groups? Auth: the caller's console key must be
     // accepted by the CRM (relayed check — the portal stores no console key).
-    if (action === 'wa-owner-debug') {
+    if (action === 'wa-owner-debug' || action === 'admin-claim') {
       const key = req.headers['x-console-key'] || '';
       const check = await fetch(`${crmBase}/api/statements`, {
         method: 'POST',
@@ -365,6 +365,18 @@ export default async function handler(req, res) {
         body: JSON.stringify({ action: 'statement_groups', payload: {} }),
       });
       if (check.status !== 200) return res.status(401).json({ error: 'Unauthorized' });
+
+      // admin-claim: link a statement group's listings to an existing owner
+      // account without the owner doing anything — the server-side equivalent
+      // of them opening their invite link while signed in.
+      if (action === 'admin-claim') {
+        const sub = String(req.query.sub || '');
+        const groupKey = String(req.query.group || '');
+        const owner = sub ? await kvGet(`owner:${sub}`) : null;
+        if (!owner) return res.status(404).json({ error: 'No owner account with that sub' });
+        const out = await claimGroupListings(owner, groupKey, { kvGet, kvSet, crm });
+        return res.status(out.status).json({ ...out.body, owner: { sub: owner.sub, name: owner.name, email: owner.email } });
+      }
       // ?scan=1 — list owner accounts (key, name, created) to identify who a
       // confused sign-in actually created. Admin-gated; small keyspace.
       if (req.query.scan === '1') {
