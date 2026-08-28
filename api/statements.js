@@ -359,6 +359,29 @@ export default async function handler(req, res) {
       });
     }
 
+    // ── Admin diagnostic: why does a WhatsApp-signed-in owner see (or not
+    // see) their statement groups? Auth: the caller's console key must be
+    // accepted by the CRM (relayed check — the portal stores no console key).
+    if (action === 'wa-owner-debug') {
+      const key = req.headers['x-console-key'] || '';
+      const check = await fetch(`${crmBase}/api/statements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-console-key': String(key) },
+        body: JSON.stringify({ action: 'statement_groups', payload: {} }),
+      });
+      if (check.status !== 200) return res.status(401).json({ error: 'Unauthorized' });
+      const phone = String(req.query.phone || '').replace(/\D/g, '');
+      const owner = await kvGet(`owner:wa:${phone}`);
+      let groups = null, err = null;
+      try {
+        groups = (await ownerGroups(owner || { sub: `wa:${phone}`, wa: phone }, kvGet, crm)).map(g => g.key);
+      } catch (e) { err = e.message; }
+      return res.status(200).json({
+        ownerExists: !!owner, ownerSub: owner?.sub || null, ownerWa: owner?.wa || null,
+        ownerName: owner?.name || null, groups, err,
+      });
+    }
+
     // ── Admin read-only portal preview link ─────────────────────────
     if (action === 'preview-link') {
       const auth = req.headers.authorization || '';
