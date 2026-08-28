@@ -368,14 +368,26 @@ export default async function handler(req, res) {
 
       // admin-claim: link a statement group's listings to an existing owner
       // account without the owner doing anything — the server-side equivalent
-      // of them opening their invite link while signed in.
+      // of them opening their invite link while signed in. force=1 reassigns
+      // units another account already holds (admin override).
       if (action === 'admin-claim') {
         const sub = String(req.query.sub || '');
         const groupKey = String(req.query.group || '');
         const owner = sub ? await kvGet(`owner:${sub}`) : null;
         if (!owner) return res.status(404).json({ error: 'No owner account with that sub' });
-        const out = await claimGroupListings(owner, groupKey, { kvGet, kvSet, crm });
+        const out = await claimGroupListings(owner, groupKey, { kvGet, kvSet, crm }, { force: req.query.force === '1' });
         return res.status(out.status).json({ ...out.body, owner: { sub: owner.sub, name: owner.name, email: owner.email } });
+      }
+
+      // ?listing=<slug> — who holds this catalog unit right now?
+      if (req.query.listing) {
+        const slug = String(req.query.listing);
+        const o = await kvGet(`listing:${slug}`);
+        const holder = o?.ownerSub ? await kvGet(`owner:${o.ownerSub}`) : null;
+        return res.status(200).json({
+          slug, ownerSub: o?.ownerSub || null, ownerEmail: o?.ownerEmail || null,
+          holder: holder ? { name: holder.name, email: holder.email, wa: holder.wa || null } : null,
+        });
       }
       // ?scan=1 — list owner accounts (key, name, created) to identify who a
       // confused sign-in actually created. Admin-gated; small keyspace.
@@ -502,7 +514,7 @@ function readSessionToken(req) {
 // the signed-in claim_invite action and the WhatsApp magic-link verify (which
 // carries a pending invite through the WhatsApp round-trip, because
 // sessionStorage does not survive into the new tab the link opens).
-async function claimGroupListings(owner, groupKey, { kvGet, kvSet, crm }) {
+async function claimGroupListings(owner, groupKey, { kvGet, kvSet, crm }, { force = false } = {}) {
   const groupsRes = await crm('statement_groups', {});
   const group = (groupsRes.body?.groups || []).find(g => g.key === groupKey);
   if (!group) return { status: 404, body: { error: 'Unknown property' } };
@@ -511,8 +523,18 @@ async function claimGroupListings(owner, groupKey, { kvGet, kvSet, crm }) {
   const overrides = await Promise.all(slugs.map(s => kvGet(`listing:${s}`)));
   for (let i = 0; i < slugs.length; i++) {
     const cur = overrides[i] || {};
-    if (cur.ownerSub && cur.ownerSub !== owner.sub) {
+    if (!force && cur.ownerSub && cur.ownerSub !== owner.sub) {
       return { status: 409, body: { error: `${UNITS_BY_SLUG[slugs[i]].name} is already linked to another account — ask Samba to sort it out.` } };
+    }
+  }
+  // On a forced reassignment, drop the units from the previous holder's
+  // owner_listings index so they don't keep a phantom entry.
+  if (force) {
+    const prevSubs = [...new Set(overrides.map(o => o?.ownerSub).filter(s => s && s !== owner.sub))];
+    for (const prev of prevSubs) {
+      const prevOwned = (await kvGet(`owner_listings:${prev}`)) || [];
+      const kept = prevOwned.filter(s => !slugs.includes(s));
+      if (kept.length !== prevOwned.length) await kvSet(`owner_listings:${prev}`, kept);
     }
   }
   for (let i = 0; i < slugs.length; i++) {
