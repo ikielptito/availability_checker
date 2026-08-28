@@ -271,6 +271,26 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .st-chart-cap{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:10px;font-size:.66rem;color:var(--muted);}
 .st-chart-cap .sw{display:inline-flex;align-items:center;gap:5px;margin-left:12px;}
 .st-chart-cap .dot{width:8px;height:8px;border-radius:3px;display:inline-block;}
+.mt-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:12px;box-shadow:var(--shadow);}
+.mt-head{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+.mt-title{font-family:var(--rep-serif);font-weight:500;font-size:1.25rem;line-height:1.2;color:var(--text);}
+.mt-where{font-size:.76rem;color:var(--muted);margin-top:4px;}
+.mt-pill{flex-shrink:0;font-size:.64rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:5px 10px;border-radius:20px;white-space:nowrap;}
+.mt-pill.wait{background:var(--accent-soft);color:var(--accent);}
+.mt-pill.ok{background:#e2ede0;color:var(--green);}
+.mt-pill.done{background:var(--surface2);color:var(--muted);}
+.mt-pill.no{background:var(--sb-error-bg,#fbe9e7);color:var(--red);}
+.mt-desc{font-size:.88rem;line-height:1.6;color:var(--text-2);margin-top:10px;}
+.mt-cost{margin-top:12px;font-size:.86rem;}
+.mt-cost b{font-variant-numeric:tabular-nums;}
+.mt-shots{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.mt-shots img{width:92px;height:92px;object-fit:cover;border-radius:10px;border:1px solid var(--border);cursor:pointer;}
+.mt-acts{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px;}
+.mt-btn{border:none;border-radius:999px;padding:10px 20px;font-family:inherit;font-size:.84rem;font-weight:650;cursor:pointer;}
+.mt-btn.go{background:var(--accent);color:#fff;}
+.mt-btn.no{background:var(--surface2);color:var(--text-2);border:1px solid var(--border);}
+.mt-btn:disabled{opacity:.55;cursor:default;}
+.mt-meta{font-size:.76rem;color:var(--muted);margin-top:10px;line-height:1.6;}
 .st-cur{margin-left:auto;align-self:flex-start;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer;}
 .st-cur:hover{color:var(--text);border-color:var(--accent);}
 .st-prop{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;}
@@ -429,6 +449,7 @@ body.wiz-open #snav-tabs{display:none !important;}
         <button class="tab active" data-tab="properties" onclick="showTab('properties')">My properties</button>
         <button class="tab" data-tab="reports" onclick="showTab('reports')">Weekly reports</button>
         <button class="tab" data-tab="statements" id="tab-btn-statements" style="display:none" onclick="showTab('statements')">Statements</button>
+        <button class="tab" data-tab="maintenance" id="tab-btn-maintenance" style="display:none" onclick="showTab('maintenance')">Maintenance</button>
         <button class="tab" data-tab="viewings" onclick="showTab('viewings')">Viewings</button>
       </div>
       <div class="spacer"></div>
@@ -447,6 +468,7 @@ body.wiz-open #snav-tabs{display:none !important;}
       <div id="report-body"></div>
     </div>
     <div id="tab-statements" style="display:none"></div>
+    <div id="tab-maintenance" style="display:none"></div>
     <div id="tab-viewings" style="display:none"></div>
     <div class="portal-foot"><a href="/home">How it works</a> · <a href="/terms">Terms of service</a> · <a href="/privacy">Privacy policy</a> · <a href="/refund">Refund &amp; cancellation policy</a></div>
   </div>
@@ -771,6 +793,7 @@ async function enterPreview(tok){
   document.getElementById('add-btn').style.display='none';
   document.getElementById('period-toggle').style.display='none';
   await probeStatements();
+  await probeMaintenance();
   const gname=(statementGroupsCache[0]&&(statementGroupsCache[0].owner_names||statementGroupsCache[0].name))||'this owner';
   const bar=document.createElement('div');
   bar.style.cssText='position:sticky;top:0;z-index:1200;background:#1c1917;color:#fff;font-size:.78rem;padding:9px 16px;text-align:center';
@@ -783,7 +806,7 @@ async function enterPreview(tok){
 function enterApp(owner){
   currentOwnerData=owner;
   document.getElementById('app').style.display='block';
-  claimPendingInvite().then(()=>{ loadProperties(); probeStatements(); });
+  claimPendingInvite().then(()=>{ loadProperties(); probeStatements(); probeMaintenance(); });
   loadConfig();
   // Deep-link from the "List a property" sub-tab → open the add form.
   // Skipped in the demo: it fires for real once the owner signs in.
@@ -903,12 +926,14 @@ function showTab(name){
   document.getElementById('tab-properties').style.display=name==='properties'?'':'none';
   document.getElementById('tab-reports').style.display=name==='reports'?'':'none';
   document.getElementById('tab-statements').style.display=name==='statements'?'':'none';
+  document.getElementById('tab-maintenance').style.display=name==='maintenance'?'':'none';
   document.getElementById('tab-viewings').style.display=name==='viewings'?'':'none';
   const onProps=name==='properties';
   document.getElementById('period-toggle').style.display=onProps?'':'none';
   document.getElementById('add-btn').style.display=onProps?'':'none';
   if(name==='reports') initReports();
   if(name==='statements') initStatements();
+  if(name==='maintenance') initMaintenance();
   if(name==='viewings') initViewings();
 }
 
@@ -1189,6 +1214,90 @@ async function savePayoutAccount(key){
     showToast('Payout account saved — future payouts go there.');
     probeStatements();
   }catch(e){ if(msg){msg.textContent='Could not save: '+e.message; msg.style.color='var(--red)';} }
+}
+
+// ── MAINTENANCE TAB ──
+// Repairs at the owner's villas: what Era has reported, what needs their
+// approval, and what's been done. Approving here is the same action the
+// WhatsApp link performs.
+let maintCache=null;
+async function probeMaintenance(){
+  if(DEMO&&!PORTAL_PREVIEW) return;
+  try{
+    const r=await fetch('/api/maintenance?action=items'+(PORTAL_PREVIEW?'&preview='+encodeURIComponent(PORTAL_PREVIEW):''),{credentials:'include'});
+    if(!r.ok) return;
+    const d=await r.json();
+    maintCache=d.items||[];
+    if(maintCache.length) document.getElementById('tab-btn-maintenance').style.display='';
+  }catch(e){}
+}
+const MT_STATUS={
+  pending_approval:{cls:'wait',label:'Needs your approval'},
+  scheduled:{cls:'ok',label:'Scheduled'},
+  approved:{cls:'ok',label:'Approved'},
+  declined:{cls:'no',label:'Declined'},
+  done:{cls:'done',label:'✓ Completed'},
+};
+function initMaintenance(){
+  const pane=document.getElementById('tab-maintenance');
+  const items=maintCache||[];
+  const IDRf=n=>'IDR '+Math.round(Number(n)||0).toLocaleString('en-US');
+  const dl=iso=>iso?new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'';
+  if(!items.length){
+    pane.innerHTML='<div class="rep-empty"><h3>Nothing to report</h3><p>Repairs and maintenance at your villa appear here. We\'ll message you if anything needs your approval.</p></div>';
+    return;
+  }
+  const waiting=items.filter(i=>i.status==='pending_approval');
+  let html='';
+  if(waiting.length){
+    html+=`<div class="st-strip" style="margin-bottom:14px"><div class="pf-cell">
+      <span class="pf-v" style="color:var(--accent)">${waiting.length}</span>
+      <span class="pf-l">${waiting.length>1?'items need':'item needs'} your approval</span></div></div>`;
+  }
+  for(const it of items){
+    const st=MT_STATUS[it.status]||{cls:'done',label:it.status};
+    const where=it.unit_label?`${it.group_name} · ${it.unit_label}`:it.group_name;
+    const cost=it.actual_cost??it.estimated_cost;
+    html+=`<div class="mt-card">
+      <div class="mt-head">
+        <div style="flex:1;min-width:180px">
+          <div class="mt-title">${escapeHtml(it.title)}</div>
+          <div class="mt-where">${escapeHtml(where)} · reported ${escapeHtml(dl(it.reported_at))}</div>
+        </div>
+        <span class="mt-pill ${st.cls}">${escapeHtml(st.label)}</span>
+      </div>
+      ${it.description?`<div class="mt-desc">${escapeHtml(it.description)}</div>`:''}
+      ${(it.photo_urls||[]).length?`<div class="mt-shots">${it.photo_urls.map(u=>`<img src="${escapeHtml(u)}" onclick="window.open('${escapeHtml(u)}','_blank')" alt="">`).join('')}</div>`:''}
+      ${cost!=null?`<div class="mt-cost">${it.actual_cost!=null?'Final cost':'Estimated cost'}: <b>${IDRf(cost)}</b><div class="mt-meta">Appears as an expense on the monthly statement for the month the work is done.</div></div>`:''}`;
+    if(it.status==='pending_approval'&&!PORTAL_PREVIEW){
+      html+=`<div class="mt-acts">
+        <button class="mt-btn go" onclick="mtDecide(${it.id},'approve')">Approve the repair</button>
+        <button class="mt-btn no" onclick="mtDecide(${it.id},'decline')">Not right now</button>
+      </div><div class="mt-meta" id="mt-msg-${it.id}"></div>`;
+    } else if(it.status==='approved'){
+      html+=`<div class="mt-meta">Approved ${escapeHtml(dl(it.approved_at))} — we'll let you know when it's finished.</div>`;
+    } else if(it.status==='done'){
+      html+=`<div class="mt-meta">Completed ${escapeHtml(dl(it.completed_at))}${it.completion_note?' — '+escapeHtml(it.completion_note):''}</div>`;
+    }
+    html+='</div>';
+  }
+  pane.innerHTML=html;
+}
+async function mtDecide(id,decision){
+  const msg=document.getElementById('mt-msg-'+id);
+  document.querySelectorAll('.mt-btn').forEach(b=>b.disabled=true);
+  if(msg) msg.textContent='Sending…';
+  try{
+    const r=await fetch('/api/maintenance',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'decide',payload:{id,decision}})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.error||'HTTP '+r.status);
+    showToast(decision==='approve'?'Approved — Era has been told.':'Noted — Era has been told.');
+    await probeMaintenance(); initMaintenance();
+  }catch(e){
+    document.querySelectorAll('.mt-btn').forEach(b=>b.disabled=false);
+    if(msg) msg.textContent='Could not send: '+e.message;
+  }
 }
 
 // ── VIEWINGS TAB ──

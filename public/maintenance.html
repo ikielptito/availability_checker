@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maintenance request · Samba</title>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="/brand.css">
+<script src="/shared.js"></script>
+<style>
+/* Same serif document family as the monthly statement — an owner opening
+   this from WhatsApp should feel they're in the same place. */
+:root{--accent-soft:var(--sb-terracotta-050);--green:var(--sb-success-fg);--red:var(--sb-error-fg);--yellow:#B8860B;--st-serif:'Iowan Old Style',Georgia,'Times New Roman',serif;}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;padding:clamp(14px,4vw,40px) 14px 60px;}
+.brand{max-width:720px;margin:0 auto 18px;display:flex;align-items:center;gap:9px;}
+.brand .mark{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--st-serif);font-weight:600;font-size:15px;}
+.brand .wm{font-family:var(--st-serif);font-size:1.15rem;letter-spacing:.02em;}
+.brand .wm small{display:block;font-size:.56rem;letter-spacing:.18em;text-transform:uppercase;color:var(--yellow);font-weight:600;margin-top:1px;}
+.loading,.empty{max-width:720px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:56px 24px;text-align:center;color:var(--muted);font-size:.9rem;}
+.sheet{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;max-width:720px;margin:0 auto;}
+.mast{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:16px 26px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.mast .rl{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--yellow);font-weight:600;}
+.mast .rr{text-align:right;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.pad{padding:26px 28px;}
+.pad+.pad{border-top:1px solid var(--border);}
+.eyebrow{font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:9px;}
+.title{font-family:var(--st-serif);font-weight:500;font-size:1.9rem;line-height:1.1;letter-spacing:-.01em;}
+.where{color:var(--muted);font-size:.86rem;margin-top:8px;}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:.7rem;font-weight:700;padding:5px 12px;border-radius:999px;margin-top:12px;}
+.chip.wait{background:var(--accent-soft);color:var(--accent);}
+.chip.ok{background:#e2ede0;color:var(--green);}
+.chip.no{background:var(--sb-error-bg,#fbe9e7);color:var(--red);}
+.chip.urgent{background:#FCF3E3;color:#8A5A0B;}
+.desc{margin-top:16px;font-size:.94rem;line-height:1.65;color:var(--text-2);}
+.cost{margin-top:20px;background:var(--surface2);border:1px solid var(--border);border-radius:13px;padding:18px 20px;}
+.cost .cl{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.cost .cv{font-family:var(--st-serif);font-size:2.1rem;line-height:1;font-variant-numeric:tabular-nums;}
+.cost .cs{margin-top:9px;font-size:.76rem;color:var(--muted);}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:6px;}
+.shots a{display:block;border-radius:11px;overflow:hidden;border:1px solid var(--border);aspect-ratio:4/3;background:var(--surface2);}
+.shots img{width:100%;height:100%;object-fit:cover;display:block;}
+.sec-h{font-family:var(--st-serif);font-weight:500;font-size:1.2rem;margin-bottom:12px;}
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+.btn{border:none;border-radius:999px;padding:13px 26px;font-family:inherit;font-size:.92rem;font-weight:650;cursor:pointer;}
+.btn.go{background:var(--accent);color:#fff;}
+.btn.no{background:var(--surface2);color:var(--text-2);border:1px solid var(--border);}
+.btn:disabled{opacity:.55;cursor:default;}
+.note{margin-top:14px;font-size:.78rem;color:var(--muted);line-height:1.6;}
+.msg{margin-top:14px;font-size:.86rem;line-height:1.6;}
+.msg.err{color:var(--red);}
+.decl{width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:11px;background:var(--surface);color:var(--text);font-family:inherit;font-size:.9rem;margin:10px 0;}
+@media(max-width:560px){.pad{padding:20px 18px;}.title{font-size:1.6rem;}.acts .btn{flex:1;}}
+</style>
+</head>
+<body>
+<div class="brand"><div class="mark">S</div><div class="wm">Samba<small>Realty · Maintenance</small></div></div>
+<div id="root"><div class="loading">Loading…</div></div>
+<script>
+'use strict';
+const TOKEN = (location.pathname.match(/^\/m\/(.+)$/) || [])[1] || '';
+let DATA = null, BUSY = false;
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const money = (n, cur) => n == null ? null : (cur || 'IDR') + ' ' + Math.round(Number(n) || 0).toLocaleString('en-US');
+const dstr = (s) => s ? new Date(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+
+async function load() {
+  try {
+    const r = await fetch('/api/maintenance?action=public&token=' + encodeURIComponent(TOKEN));
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'This link is no longer valid.');
+    DATA = await r.json();
+    render();
+  } catch (e) {
+    document.getElementById('root').innerHTML =
+      '<div class="empty"><h3 style="font-family:var(--st-serif);color:var(--text);margin:0 0 8px">Link not available</h3><p>' + esc(e.message) + '</p></div>';
+  }
+}
+
+function render() {
+  const d = DATA;
+  const where = d.unit_label ? `${d.group?.name || ''} · ${d.unit_label}` : (d.group?.name || '');
+  const waiting = d.status === 'pending_approval';
+
+  const chip = d.status === 'done' ? '<span class="chip ok">✓ Completed</span>'
+    : d.status === 'approved' ? '<span class="chip ok">✓ Approved — work scheduled</span>'
+    : d.status === 'declined' ? '<span class="chip no">Declined</span>'
+    : waiting ? '<span class="chip wait">Awaiting your approval</span>'
+    : '<span class="chip ok">Scheduled — no action needed</span>';
+
+  let html = `<div class="sheet">
+    <div class="mast"><div class="rl">Maintenance request</div>
+      <div class="rr">Reported ${esc(dstr(d.reported_at))}</div></div>
+    <div class="pad">
+      <div class="eyebrow">${esc(where)}</div>
+      <div class="title">${esc(d.title)}</div>
+      ${d.urgency === 'urgent' ? '<div class="where"><span class="chip urgent">⚠ Marked urgent</span></div>' : ''}
+      <div>${chip}</div>
+      ${d.description ? `<div class="desc">${esc(d.description)}</div>` : ''}`;
+
+  if (d.estimated_cost != null || d.actual_cost != null) {
+    const showActual = d.status === 'done' && d.actual_cost != null;
+    html += `<div class="cost">
+      <div class="cl">${showActual ? 'Final cost' : 'Estimated cost'}</div>
+      <div class="cv">${esc(money(showActual ? d.actual_cost : d.estimated_cost, d.currency))}</div>
+      <div class="cs">${showActual
+        ? 'This will appear as an expense on your next monthly statement.'
+        : 'An estimate from Samba Realty. It will appear as an expense on the monthly statement for the month the work is done.'}</div>
+    </div>`;
+  }
+  html += `</div>`;
+
+  if ((d.photo_urls || []).length) {
+    html += `<div class="pad"><div class="sec-h">Photos</div><div class="shots">` +
+      d.photo_urls.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="Maintenance photo" loading="lazy"></a>`).join('') +
+      `</div></div>`;
+  }
+
+  if (waiting) {
+    html += `<div class="pad">
+      <div class="sec-h">Do you approve this repair?</div>
+      <div class="acts">
+        <button class="btn go" id="yes" onclick="decide('approve')">Approve the repair</button>
+        <button class="btn no" onclick="showDecline()">Not right now</button>
+      </div>
+      <div id="declbox" style="display:none">
+        <textarea class="decl" id="declnote" rows="2" placeholder="Anything you'd like Era to know? (optional)"></textarea>
+        <div class="acts"><button class="btn no" onclick="decide('decline')">Send decline</button></div>
+      </div>
+      <div class="note">Era will be told either way. If you'd rather talk it through, just reply to Maya on WhatsApp.</div>
+      <div class="msg" id="msg"></div>
+    </div>`;
+  } else if (d.status === 'approved') {
+    html += `<div class="pad"><div class="msg">You approved this on ${esc(dstr(d.approved_at))}. Era is arranging the work and you'll get a message here when it's finished.</div></div>`;
+  } else if (d.status === 'done') {
+    html += `<div class="pad"><div class="msg">Completed ${esc(dstr(d.completed_at))}.${d.completion_note ? ' ' + esc(d.completion_note) : ''}</div></div>`;
+  } else if (d.status === 'declined') {
+    html += `<div class="pad"><div class="msg">You declined this on ${esc(dstr(d.declined_at))}.${d.decline_note ? ' “' + esc(d.decline_note) + '”' : ''} Era has been told. Reply to Maya on WhatsApp if you change your mind.</div></div>`;
+  }
+
+  html += `</div>`;
+  document.getElementById('root').innerHTML = html;
+}
+
+function showDecline() { document.getElementById('declbox').style.display = 'block'; }
+
+async function decide(decision) {
+  if (BUSY) return; BUSY = true;
+  const msg = document.getElementById('msg');
+  document.querySelectorAll('.btn').forEach(b => b.disabled = true);
+  if (msg) { msg.className = 'msg'; msg.textContent = 'Sending…'; }
+  try {
+    const note = document.getElementById('declnote')?.value || '';
+    const r = await fetch('/api/maintenance', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'decide', payload: { token: TOKEN, decision, note } }),
+    });
+    const b = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(b.error || 'Something went wrong.');
+    await load();
+  } catch (e) {
+    BUSY = false;
+    document.querySelectorAll('.btn').forEach(b => b.disabled = false);
+    if (msg) { msg.className = 'msg err'; msg.textContent = e.message; }
+  }
+}
+load();
+</script>
+</body>
+</html>

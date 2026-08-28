@@ -48,6 +48,24 @@ body.embed .cmdbar .word{display:none;}
 .shell{display:flex;align-items:flex-start;max-width:1240px;margin:0 auto;}
 .rail{width:184px;flex:none;position:sticky;top:64px;padding:18px 10px 18px 18px;display:flex;flex-direction:column;gap:2px;}
 .rail a{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;color:var(--muted);text-decoration:none;font:500 13.5px/1 var(--sb-font-ui);}
+.railbadge{margin-left:auto;background:var(--sb-terracotta-600,#C05621);color:#fff;font:700 10px/1 var(--sb-font-ui);padding:3px 7px;border-radius:999px;}
+.mcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow);}
+.mhead{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+.mtitle{font:600 15px/1.3 var(--sb-font-ui);color:var(--text);}
+.mwhere{font:500 12px/1.4 var(--sb-font-ui);color:var(--muted);margin-top:3px;}
+.mpill{font:700 10px/1 var(--sb-font-ui);letter-spacing:.04em;text-transform:uppercase;padding:5px 9px;border-radius:999px;white-space:nowrap;}
+.mpill.new{background:var(--amber-bg);color:var(--amber-fg);}
+.mpill.wait{background:var(--sb-terracotta-050,#FDF1EC);color:var(--sb-terracotta-700,#9C4221);}
+.mpill.ok{background:#e2ede0;color:var(--sb-success-fg,#3f6d43);}
+.mpill.done{background:var(--surface2);color:var(--muted);}
+.mpill.no{background:var(--red-bg);color:var(--red-fg);}
+.mpill.urgent{background:#FCF3E3;color:#8A5A0B;}
+.mshots{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px;}
+.mshots img{width:74px;height:74px;object-fit:cover;border-radius:9px;border:1px solid var(--border);cursor:pointer;}
+.mrow{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:12px;}
+.mrow input,.mrow select{padding:8px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-family:inherit;font-size:.82rem;}
+.mmeta{font:500 11.5px/1.6 var(--sb-font-ui);color:var(--muted);margin-top:9px;}
+.mdesc{font:400 13px/1.6 var(--sb-font-ui);color:var(--text-2);margin-top:9px;}
 .rail a:hover{background:var(--surface2);color:var(--text);}
 .rail a.on{background:var(--surface);color:var(--accent);font-weight:600;box-shadow:var(--sb-shadow-xs);border:1px solid var(--sb-hairline);}
 .rail .ico{width:16px;text-align:center;}
@@ -177,6 +195,7 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
   <div class="shell">
     <nav class="rail" id="rail">
       <a href="#/" data-view="list"><span class="ico">🧾</span>Statements</a>
+      <a href="#/maintenance" data-view="maintenance"><span class="ico">🔧</span>Maintenance<span class="railbadge" id="maint-badge" style="display:none"></span></a>
       <a href="#/earnings" data-view="earnings"><span class="ico">📈</span>Earnings</a>
       <a href="#/groups" data-view="groups"><span class="ico">🏠</span>Properties</a>
     </nav>
@@ -252,11 +271,14 @@ let groupFilter = '';
 function go(h) { location.hash = h; }
 function route() {
   const h = location.hash || '#/';
-  const view = h.startsWith('#/statement/') ? 'detail' : h === '#/groups' ? 'groups' : h === '#/earnings' ? 'earnings' : 'list';
+  const view = h.startsWith('#/statement/') ? 'detail'
+    : h.startsWith('#/maintenance') ? 'maintenance'
+    : h === '#/groups' ? 'groups' : h === '#/earnings' ? 'earnings' : 'list';
   document.querySelectorAll('.rail a').forEach(a => a.classList.toggle('on', a.dataset.view === (view === 'detail' ? 'list' : view)));
   if (view === 'list') renderList();
   else if (view === 'groups') renderGroups();
   else if (view === 'earnings') renderEarnings();
+  else if (view === 'maintenance') renderMaintenance();
   else renderDetail(parseInt(h.slice('#/statement/'.length), 10));
 }
 window.addEventListener('hashchange', route);
@@ -265,6 +287,7 @@ async function boot() {
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   await refreshList();
+  refreshMaint().catch(() => {});   // badge only — never blocks the first paint
   route();
 }
 async function refreshList() {
@@ -899,6 +922,181 @@ async function saveGroup(key) {
     showToast('Saved ✓', 'success');
     renderGroups();
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
+// ── Maintenance ──────────────────────────────────────────────────────
+// Era's working surface: the review pile at the top (things Maya filed from
+// her photos, waiting on a cost estimate), then everything in flight.
+let maintData = null;
+
+async function maintApi(action, payload) {
+  const r = await fetch('/api/maintenance', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminPw },
+    body: JSON.stringify({ action, payload: payload || {} }),
+  });
+  if (r.status === 401) { showGate('Session expired. Please log in again.'); throw new Error('unauthorized'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+  return d;
+}
+
+async function refreshMaint() {
+  maintData = await maintApi('maint_list', {});
+  const badge = document.getElementById('maint-badge');
+  const n = (maintData.needsReview || 0) + (maintData.openWork || 0);
+  if (badge) { badge.textContent = n; badge.style.display = n ? '' : 'none'; }
+  return maintData;
+}
+
+const MSTATUS = {
+  new:              { cls: 'new',  label: 'Needs your review' },
+  pending_approval: { cls: 'wait', label: 'Waiting on owner' },
+  scheduled:        { cls: 'ok',   label: 'Scheduled' },
+  approved:         { cls: 'ok',   label: 'Approved — do the work' },
+  declined:         { cls: 'no',   label: 'Owner declined' },
+  done:             { cls: 'done', label: 'Done' },
+};
+
+async function renderMaintenance() {
+  const c = document.getElementById('content');
+  c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading maintenance…</div>';
+  try { await refreshMaint(); }
+  catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red">${esc(e.message)}</div>`; return; }
+
+  const items = maintData.items || [];
+  const order = ['new', 'approved', 'scheduled', 'pending_approval', 'declined', 'done'];
+  const sorted = [...items].sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status) || new Date(b.created_at) - new Date(a.created_at));
+
+  let html = `<div class="crumb">Maintenance</div>`;
+  html += `<div class="banner ${maintData.needsReview ? 'amber' : 'calm'}" style="margin-bottom:14px">🔧 <div>
+    <b>${maintData.needsReview || 0}</b> waiting for your review ·
+    <b>${maintData.awaitingOwner || 0}</b> with the owner ·
+    <b>${maintData.openWork || 0}</b> approved and not yet done
+    <div style="margin-top:5px;font-size:.76rem">Send Maya a photo on WhatsApp with the villa and what's wrong — it appears here automatically.</div>
+  </div></div>`;
+
+  if (!sorted.length) {
+    html += `<div class="empty-state" style="padding:34px">Nothing logged yet. Send Maya a photo of an issue and it lands here.</div>`;
+    c.innerHTML = html; return;
+  }
+
+  for (const it of sorted) {
+    const st = MSTATUS[it.status] || { cls: 'done', label: it.status };
+    const g = it.statement_groups || {};
+    const where = it.unit_label ? `${g.name || it.group_key} · ${it.unit_label}` : (g.name || it.group_key);
+    html += `<div class="mcard">
+      <div class="mhead">
+        <div style="flex:1;min-width:200px">
+          <div class="mtitle">${esc(it.title)}</div>
+          <div class="mwhere">${esc(where)} · reported ${esc(dstr(it.reported_at))}${it.reported_by_name ? ' by ' + esc(it.reported_by_name) : ''}</div>
+        </div>
+        ${it.urgency === 'urgent' ? '<span class="mpill urgent">⚠ Urgent</span>' : ''}
+        <span class="mpill ${st.cls}">${esc(st.label)}</span>
+      </div>
+      ${it.description ? `<div class="mdesc">${esc(it.description)}</div>` : ''}
+      <div class="mshots" id="shots-${it.id}"></div>`;
+
+    if (it.status === 'new') {
+      html += `<div class="mrow">
+        <span style="font-size:.76rem;color:var(--muted)">Estimated cost</span>
+        <input type="text" id="mcost-${it.id}" placeholder="e.g. 850000" value="${it.estimated_cost ?? ''}" style="width:130px">
+        <select id="mmode-${it.id}">
+          <option value="1">Ask the owner to approve</option>
+          <option value="0">Routine — just tell them</option>
+        </select>
+        <button class="btn primary" onclick="maintPublish(${it.id})">Publish &amp; notify</button>
+        <button class="btn ghost" onclick="maintDelete(${it.id})">Not an issue</button>
+      </div>`;
+    }
+    if (it.status === 'approved' || it.status === 'scheduled') {
+      html += `<div class="mrow">
+        <button class="btn green" onclick="maintComplete(${it.id})">✓ Mark done</button>
+        <span style="font-size:.76rem;color:var(--muted)">Next check-in ${it.next_followup_at ? esc(dstr(it.next_followup_at)) : '—'}${it.promised_date ? ` (you said ${esc(dstr(it.promised_date))})` : ''}</span>
+      </div>`;
+    }
+    if (it.status === 'pending_approval') {
+      html += `<div class="mrow">
+        <a class="btn ghost" href="/m/${esc(it.token || '')}" target="_blank">Preview owner view ↗</a>
+        <button class="btn ghost" onclick="maintApproveFor(${it.id})">Owner approved (by phone)</button>
+      </div>`;
+    }
+    if (it.status === 'declined') {
+      html += `<div class="mmeta">Declined ${esc(dstr(it.declined_at))}${it.decline_note ? ` — “${esc(it.decline_note)}”` : ''}</div>`;
+    }
+    if (it.status === 'done') {
+      html += `<div class="mmeta">Completed ${esc(dstr(it.completed_at))}${it.actual_cost != null ? ` · ${IDR(it.actual_cost)}` : ''}${it.completion_note ? ` — ${esc(it.completion_note)}` : ''}</div>`;
+    }
+    const cost = it.actual_cost ?? it.estimated_cost;
+    if (cost != null && it.status !== 'new') {
+      html += `<div class="mmeta">${it.actual_cost != null ? 'Final' : 'Estimate'}: <b>${IDR(cost)}</b> · ${it.requires_approval ? 'owner approval required' : 'routine, no approval needed'}</div>`;
+    }
+    if ((it.thread || []).length) {
+      const last = it.thread[it.thread.length - 1];
+      html += `<div class="mmeta">💬 ${esc(last.who || 'Era')}: “${esc(last.text)}”</div>`;
+    }
+    html += `</div>`;
+  }
+  c.innerHTML = html;
+  // Photos need signed URLs — fetch each item's detail lazily so the list
+  // isn't blocked on signing every image.
+  for (const it of sorted) {
+    if (!(it.photos || []).length) continue;
+    maintApi('maint_detail', { id: it.id }).then(d => {
+      const box = document.getElementById('shots-' + it.id);
+      if (box && d.item?.photo_urls?.length) {
+        box.innerHTML = d.item.photo_urls.map(u => `<img src="${esc(u)}" onclick="window.open('${esc(u)}','_blank')" alt="">`).join('');
+      }
+    }).catch(() => {});
+  }
+}
+
+async function maintPublish(id) {
+  const cost = document.getElementById('mcost-' + id)?.value.replace(/[^\d.]/g, '');
+  const needs = document.getElementById('mmode-' + id)?.value === '1';
+  if (needs && !cost) { showToast('Add an estimated cost before asking the owner to approve.', 'error'); return; }
+  try {
+    await maintApi('maint_publish', { id, requires_approval: needs, estimated_cost: cost ? Number(cost) : null });
+    showToast(needs ? 'Published — Maya will ask the owner to approve.' : 'Published — Maya will let the owner know.', 'success');
+    renderMaintenance();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function maintComplete(id) {
+  modal(`<h3>Mark this repair done?</h3>
+    <p>Maya will tell the owner it's finished.</p>
+    <label style="font-size:.72rem;color:var(--muted)">Final cost (optional — leave blank to keep the estimate)</label>
+    <input type="text" id="mdone-cost" placeholder="e.g. 850000" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);margin:4px 0 10px">
+    <label style="font-size:.72rem;color:var(--muted)">Note for the owner (optional)</label>
+    <input type="text" id="mdone-note" placeholder="e.g. Repainted and touched up the trim" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);margin:4px 0 10px">
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn green" onclick="doMaintComplete(${id})">Mark done</button></div>`);
+}
+async function doMaintComplete(id) {
+  const cost = document.getElementById('mdone-cost')?.value.replace(/[^\d.]/g, '');
+  const note = document.getElementById('mdone-note')?.value.trim();
+  closeModal();
+  try {
+    await maintApi('maint_complete', { id, note: note || null, actual_cost: cost ? Number(cost) : undefined });
+    showToast('Marked done — Maya will tell the owner.', 'success');
+    renderMaintenance();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function maintApproveFor(id) {
+  try {
+    await maintApi('maint_approve', { id, by: 'owner (confirmed by phone)' });
+    showToast('Marked approved.', 'success');
+    renderMaintenance();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function maintDelete(id) {
+  modal(`<h3>Remove this item?</h3><p>It disappears completely — use this for duplicates or false alarms.</p>
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Keep it</button>
+    <button class="btn primary" onclick="doMaintDelete(${id})">Remove</button></div>`);
+}
+async function doMaintDelete(id) {
+  closeModal();
+  try { await maintApi('maint_delete', { id }); renderMaintenance(); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
 
 // ── Boot ─────────────────────────────────────────────────────────────

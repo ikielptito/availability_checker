@@ -42,6 +42,101 @@ const mockCampaigns = [
 ];
 const mockSettings = { enabled: true, test_agents_only: false, intro_sweep_daily_cap: 0, account_invite_daily_cap: 0, viewings_announce_daily_cap: 0, carousel_enabled: true };
 
+import { maintenanceToken } from '../lib/tokens.js';
+
+// ── mock Maintenance engine (kaya-agent-crm /api/maintenance) ────────
+let mockMaintId = 40;
+const mockMaint = [
+  { id: 41, group_key: 'haus-2-4', slug: 'haus-2', unit_label: 'haus-2', title: 'Bathroom wall paint touch-up',
+    description: 'Paint flaking above the shower in the guest bathroom.', photos: ['41/a.jpg'], status: 'new',
+    requires_approval: true, estimated_cost: null, actual_cost: null, currency: 'IDR', urgency: 'normal',
+    reported_by_wa: '6281246357778', reported_by_name: 'Era', reported_at: dayISO(1), created_at: dayISO(1),
+    thread: [{ at: dayISO(1), who: 'Era', text: 'Haus unit 2 bathroom wall needs paint touch up' }],
+    followup_count: 0, next_followup_at: null, promised_date: null },
+  { id: 42, group_key: 'lanehaus', slug: 'lanehaus-1', unit_label: 'lanehaus-1', title: 'Broken kitchen chair',
+    description: 'One of the four dining chairs has a cracked leg.', photos: [], status: 'pending_approval',
+    requires_approval: true, estimated_cost: 450000, actual_cost: null, currency: 'IDR', urgency: 'normal',
+    reported_by_name: 'Era', reported_at: dayISO(4), created_at: dayISO(4), published_at: dayISO(3),
+    notified_at: dayISO(3), thread: [], followup_count: 0, next_followup_at: null },
+  { id: 43, group_key: 'villa-saturno', slug: 'villa-saturno', unit_label: null, title: 'Pool pump service',
+    description: null, photos: [], status: 'approved', requires_approval: true, estimated_cost: 1200000,
+    currency: 'IDR', urgency: 'normal', reported_by_name: 'Era', reported_at: dayISO(9), created_at: dayISO(9),
+    published_at: dayISO(8), notified_at: dayISO(8), approved_at: dayISO(6), approved_by: 'owner (link)',
+    staff_notified_at: dayISO(6), followup_count: 2, next_followup_at: dayISO(-1), promised_date: null,
+    thread: [{ at: dayISO(2), who: 'Era', text: 'waiting for the part' }] },
+  { id: 44, group_key: 'haus-2-4', slug: 'haus-4', unit_label: 'haus-4', title: 'Aircon filter clean',
+    description: null, photos: [], status: 'done', requires_approval: false, estimated_cost: 250000,
+    actual_cost: 250000, currency: 'IDR', urgency: 'low', reported_by_name: 'Era', reported_at: dayISO(20),
+    created_at: dayISO(20), published_at: dayISO(19), notified_at: dayISO(19), completed_at: dayISO(12),
+    completion_note: 'Filters cleaned on both units.', done_notified_at: dayISO(12), thread: [], followup_count: 1 },
+];
+function mockMaintenanceApi({ action, payload = {} }) {
+  const find = (id) => mockMaint.find(m => m.id === +id);
+  const withGroup = (m) => ({ ...m, statement_groups: mockGroups.find(g => g.key === m.group_key) || null,
+    token: maintenanceToken(m.group_key, m.id) });
+  const urls = (m) => (m.photos || []).map((_, i) => `https://picsum.photos/seed/m${m.id}-${i}/600/450`);
+
+  if (action === 'maint_list') {
+    const items = mockMaint.map(withGroup);
+    return { status: 200, body: { items,
+      needsReview: items.filter(i => i.status === 'new').length,
+      awaitingOwner: items.filter(i => i.status === 'pending_approval').length,
+      openWork: items.filter(i => ['approved', 'scheduled'].includes(i.status)).length,
+      counts: {} } };
+  }
+  if (action === 'maint_detail') {
+    const m = find(payload.id); if (!m) return { status: 404, body: { error: 'Item not found' } };
+    return { status: 200, body: { item: { ...withGroup(m), photo_urls: urls(m) } } };
+  }
+  if (action === 'maint_patch') { const m = find(payload.id); if (m) Object.assign(m, payload.fields || {}); return { status: 200, body: { ok: true } }; }
+  if (action === 'maint_delete') { const i = mockMaint.findIndex(x => x.id === +payload.id); if (i >= 0) mockMaint.splice(i, 1); return { status: 200, body: { ok: true } }; }
+  if (action === 'maint_create') {
+    const m = { id: ++mockMaintId, status: 'new', photos: [], thread: [], followup_count: 0, currency: 'IDR',
+      requires_approval: true, created_at: new Date().toISOString(), reported_at: new Date().toISOString(), ...payload };
+    mockMaint.unshift(m); return { status: 200, body: { ok: true, item: m } };
+  }
+  if (action === 'maint_publish') {
+    const m = find(payload.id); if (!m) return { status: 404, body: { error: 'Item not found' } };
+    m.requires_approval = payload.requires_approval !== undefined ? !!payload.requires_approval : m.requires_approval;
+    if (payload.estimated_cost !== undefined) m.estimated_cost = payload.estimated_cost;
+    m.status = m.requires_approval ? 'pending_approval' : 'scheduled';
+    m.published_at = new Date().toISOString(); m.notified_at = null;
+    if (!m.requires_approval) m.next_followup_at = dayISO(-3);
+    return { status: 200, body: { ok: true, status: m.status } };
+  }
+  if (action === 'maint_approve') {
+    const m = find(payload.id); if (!m) return { status: 404, body: { error: 'Item not found' } };
+    m.status = 'approved'; m.approved_at = new Date().toISOString(); m.approved_by = payload.by || 'owner';
+    m.staff_notified_at = null; m.next_followup_at = dayISO(-3);
+    return { status: 200, body: { ok: true } };
+  }
+  if (action === 'maint_decline') {
+    const m = find(payload.id); if (!m) return { status: 404, body: { error: 'Item not found' } };
+    m.status = 'declined'; m.declined_at = new Date().toISOString(); m.decline_note = payload.note || null;
+    m.staff_notified_at = null; return { status: 200, body: { ok: true } };
+  }
+  if (action === 'maint_complete') {
+    const m = find(payload.id); if (!m) return { status: 404, body: { error: 'Item not found' } };
+    m.status = 'done'; m.completed_at = new Date().toISOString(); m.completion_note = payload.note || null;
+    if (payload.actual_cost !== undefined) m.actual_cost = payload.actual_cost;
+    m.done_notified_at = null; m.next_followup_at = null; return { status: 200, body: { ok: true } };
+  }
+  if (action === 'maint_public') {
+    const m = mockMaint.find(x => x.id === +(payload.item_id ?? payload.id) && x.group_key === payload.group_key);
+    if (!m || m.status === 'new') return { status: 404, body: { error: 'No maintenance item for that link' } };
+    const g = mockGroups.find(x => x.key === m.group_key) || {};
+    return { status: 200, body: { ...m, group: { key: g.key, name: g.name, owner_names: g.owner_names }, photo_urls: urls(m) } };
+  }
+  if (action === 'maint_owner_items') {
+    const keys = payload.group_keys || [];
+    return { status: 200, body: { items: mockMaint.filter(m => keys.includes(m.group_key) && m.status !== 'new').map(m => ({
+      ...m, group_name: (mockGroups.find(g => g.key === m.group_key) || {}).name || m.group_key,
+      photo_urls: urls(m), url: `/m/${maintenanceToken(m.group_key, m.id)}` })) } };
+  }
+  if (action === 'maint_reporters') return { status: 200, body: { reporters: [{ wa_num: '6281246357778', name: 'Era', role: 'manager', active: true }] } };
+  return { status: 400, body: { error: 'unsupported action: ' + action } };
+}
+
 // ── mock Owner Statements engine (kaya-agent-crm /api/statements) ─────
 // Stateful enough that edit → publish → mark-paid visibly works in
 // payouts.html, and /st/<token> + the portal Statements tab render.
@@ -527,6 +622,12 @@ globalThis.fetch = async (url, opts = {}) => {
     const out = mockCampaignsApi(body);
     return { ok: out.status === 200, status: out.status, json: async () => out.body };
   }
+  if (u.includes('/__crm_mock/api/maintenance')) {
+    const body = JSON.parse(opts.body || '{}');
+    __crmCalls.push({ kind: 'maintenance', body });
+    const out = mockMaintenanceApi(body);
+    return { ok: out.status === 200, status: out.status, json: async () => out.body };
+  }
   if (u.includes('/__crm_mock/api/statements')) {
     const body = JSON.parse(opts.body || '{}');
     __crmCalls.push({ kind: 'statements', body });
@@ -670,6 +771,11 @@ const server = http.createServer(async (req, res) => {
     // /st/<token> → listing-page in statement mode (matches vercel.json rewrite).
     if (u.pathname.startsWith('/st/')) {
       const fakeReq = { method: 'GET', headers: req.headers, query: { statement: u.pathname.slice(4) }, body: null };
+      return void await handlers['listing-page'].default(fakeReq, shimRes(res));
+    }
+    // /m/<token> → listing-page in maintenance mode (matches vercel.json).
+    if (u.pathname.startsWith('/m/')) {
+      const fakeReq = { method: 'GET', headers: req.headers, query: { maintenance: u.pathname.slice(3) }, body: null };
       return void await handlers['listing-page'].default(fakeReq, shimRes(res));
     }
     let file;

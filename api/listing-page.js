@@ -11,6 +11,7 @@
 // still runs after the OG tags are read by the scraper.
 
 import { verifyReportToken, verifyStatementToken } from '../lib/tokens.js';
+let _maintHtmlCache = null, _maintHtmlCacheAt = 0;
 
 let _htmlCache = null;
 let _htmlCacheAt = 0;
@@ -60,6 +61,11 @@ async function serve(req, res) {
   // owners of managed villas. Financial page: no-store, minimal OG.
   const statementToken = (req.query?.statement || '').toString();
   if (statementToken) return serveStatement(req, res, { proto, host, token: statementToken });
+
+  // /m/<groupKey>.<id>~<sig> — a maintenance item Maya sent the owner, where
+  // they approve or decline the work. No-store, noindex, same stance.
+  const maintToken = (req.query?.maintenance || '').toString();
+  if (maintToken) return serveMaintenance(req, res, { proto, host, token: maintToken });
 
   const slug = (req.query?.slug || '').toLowerCase();
 
@@ -277,6 +283,32 @@ async function serveStatement(req, res, { proto, host, token }) {
     <meta name="twitter:description" content="${esc(desc)}">
   `.trim();
   const html = _statementHtmlCache.replace(/<title>[\s\S]*?<\/title>/, tags);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(200).send(html);
+}
+
+async function serveMaintenance(req, res, { proto, host }) {
+  if (!_maintHtmlCache || Date.now() - _maintHtmlCacheAt > TEMPLATE_TTL_MS) {
+    const tr = await fetch(`${proto}://${host}/maintenance.html`);
+    if (!tr.ok) throw new Error(`maintenance.html fetch ${tr.status}`);
+    _maintHtmlCache = await tr.text();
+    _maintHtmlCacheAt = Date.now();
+  }
+  const title = 'Maintenance request · Samba Realty';
+  const desc = 'A maintenance item at your villa, with photos and an estimate.';
+  const tags = `
+    <title>${esc(title)}</title>
+    <meta name="description" content="${esc(desc)}">
+    <meta name="robots" content="noindex">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Samba">
+    <meta property="og:title" content="${esc(title)}">
+    <meta property="og:description" content="${esc(desc)}">
+    <meta property="og:image" content="${FALLBACK_OG}">
+    <meta name="twitter:card" content="summary">
+  `.trim();
+  const html = _maintHtmlCache.replace(/<title>[\s\S]*?<\/title>/, tags);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
   return res.status(200).send(html);

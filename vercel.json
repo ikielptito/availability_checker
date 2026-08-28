@@ -1,27 +1,97 @@
 {
   "rewrites": [
-    { "source": "/api/gdrive", "destination": "/api/media?source=drive" },
-    { "source": "/api/properties", "destination": "/api/media?source=hostex-properties" },
-    { "source": "/api/photos", "destination": "/api/media?source=hostex-photos" },
-    { "source": "/api/translate", "destination": "/api/track?action=translate" },
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/admin", "destination": "/admin.html" },
-    { "source": "/campaigns", "destination": "/campaigns.html" },
-    { "source": "/payouts", "destination": "/payouts.html" },
-    { "source": "/home", "destination": "/list-property.html" },
-    { "source": "/for-agents", "destination": "/for-agents.html" },
-    { "source": "/viewings", "destination": "/viewings.html" },
-    { "source": "/list-property", "destination": "/list-property.html" },
-    { "source": "/portal", "destination": "/portal.html" },
-    { "source": "/terms", "destination": "/terms.html" },
-    { "source": "/privacy", "destination": "/privacy.html" },
-    { "source": "/refund", "destination": "/refund.html" },
-    { "source": "/r/(.*)", "destination": "/api/listing-page?report=$1" },
-    { "source": "/st/(.*)", "destination": "/api/listing-page?statement=$1" },
-    { "source": "/l/(.*)", "destination": "/api/listing-page?slug=$1" },
-    { "source": "/a/(.*)", "destination": "/api/listing-page?agent=$1" },
-    { "source": "/s/(.*)", "destination": "/api/listing-page?list=$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/gdrive",
+      "destination": "/api/media?source=drive"
+    },
+    {
+      "source": "/api/properties",
+      "destination": "/api/media?source=hostex-properties"
+    },
+    {
+      "source": "/api/photos",
+      "destination": "/api/media?source=hostex-photos"
+    },
+    {
+      "source": "/api/translate",
+      "destination": "/api/track?action=translate"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/campaigns",
+      "destination": "/campaigns.html"
+    },
+    {
+      "source": "/payouts",
+      "destination": "/payouts.html"
+    },
+    {
+      "source": "/home",
+      "destination": "/list-property.html"
+    },
+    {
+      "source": "/for-agents",
+      "destination": "/for-agents.html"
+    },
+    {
+      "source": "/viewings",
+      "destination": "/viewings.html"
+    },
+    {
+      "source": "/list-property",
+      "destination": "/list-property.html"
+    },
+    {
+      "source": "/portal",
+      "destination": "/portal.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/refund",
+      "destination": "/refund.html"
+    },
+    {
+      "source": "/r/(.*)",
+      "destination": "/api/listing-page?report=$1"
+    },
+    {
+      "source": "/st/(.*)",
+      "destination": "/api/listing-page?statement=$1"
+    },
+    {
+      "source": "/m/(.*)",
+      "destination": "/api/listing-page?maintenance=$1"
+    },
+    {
+      "source": "/l/(.*)",
+      "destination": "/api/listing-page?slug=$1"
+    },
+    {
+      "source": "/a/(.*)",
+      "destination": "/api/listing-page?agent=$1"
+    },
+    {
+      "source": "/s/(.*)",
+      "destination": "/api/listing-page?list=$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
   "functions": {
     "api/listing-page.js": {
