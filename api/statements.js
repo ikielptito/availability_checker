@@ -301,6 +301,34 @@ export default async function handler(req, res) {
       return res.status(200).json({ range, from, to, label, ...stats });
     }
 
+    // ── Which property groups have an onboarded owner? ──────────────
+    // Service-authed (sync secret). The portal's KV is the authority on who
+    // actually holds an account, and Maya must not message an owner who has
+    // never been introduced to the portal — so both sweeps ask here first
+    // and hold their queue until the owner claims. The moment they do, the
+    // next daily pass delivers whatever was waiting.
+    if (action === 'claimed-groups') {
+      if (!sync || (req.headers.authorization || '') !== `Bearer ${sync}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const groupsRes = await crm('statement_groups', {});
+      const groups = groupsRes.body?.groups || [];
+      const hostexMap = await loadHostexOwnerMap(kvGet);
+      const custom = (await kvGet('custom_properties')) || {};
+      const claimed = [];
+      const detail = {};
+      for (const g of groups) {
+        const slugs = g.listing_slugs || [];
+        const holders = slugs
+          .map(s => hostexMap[s]?.ownerSub || custom[s]?.ownerSub || null)
+          .filter(Boolean);
+        detail[g.key] = { slugs: slugs.length, claimed_slugs: holders.length };
+        if (holders.length) claimed.push(g.key);
+      }
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json({ claimed, detail });
+    }
+
     // ── Signed-in owner's statements (portal tab) ───────────────────
     // Also serves the admin's read-only preview: a signed preview token
     // scopes the response to one group, exactly as its owner will see it.
