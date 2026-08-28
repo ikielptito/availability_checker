@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>Owner Payouts — Samba Rentals</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💸</text></svg>">
+<title>Owner Payouts · Samba Rentals</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'></text></svg>">
 <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="/brand.css">
@@ -76,6 +76,8 @@ body.embed .cmdbar .word{display:none;}
 .mdesc{font:400 13px/1.6 var(--sb-font-ui);color:var(--text-2);margin-top:9px;}
 .rail a:hover{background:var(--surface2);color:var(--text);}
 .rail a.on{background:var(--surface);color:var(--accent);font-weight:600;box-shadow:var(--sb-shadow-xs);border:1px solid var(--sb-hairline);}
+.rail svg.ico{width:17px;height:17px;flex:none;opacity:.85;}
+.rail a.on svg.ico{opacity:1;}
 .rail .ico{width:16px;text-align:center;}
 .content{flex:1;min-width:0;padding:18px 18px 80px;}
 @media(max-width:900px){
@@ -202,10 +204,10 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
   </div>
   <div class="shell">
     <nav class="rail" id="rail">
-      <a href="#/" data-view="list"><span class="ico">🧾</span>Statements</a>
-      <a href="#/maintenance" data-view="maintenance"><span class="ico">🔧</span>Maintenance<span class="railbadge" id="maint-badge" style="display:none"></span></a>
-      <a href="#/earnings" data-view="earnings"><span class="ico">📈</span>Earnings</a>
-      <a href="#/groups" data-view="groups"><span class="ico">🏠</span>Properties</a>
+      <a href="#/" data-view="list"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.8h7l3 3v11.4H5z"/><path d="M12 2.8v3h3"/><path d="M7.6 9.5h4.8M7.6 12.4h4.8"/></svg>Statements</a>
+      <a href="#/maintenance" data-view="maintenance"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.6 3.6a3.6 3.6 0 0 0-4.9 4.4l-4.2 4.2a1.4 1.4 0 0 0 0 2l1.9 1.9a1.4 1.4 0 0 0 2 0l4.2-4.2a3.6 3.6 0 0 0 4.4-4.9l-2.2 2.2-2-.6-.6-2z"/></svg>Maintenance<span class="railbadge" id="maint-badge" style="display:none"></span></a>
+      <a href="#/earnings" data-view="earnings"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 16.2h14"/><path d="M4.6 12.4l3.6-4 3 2.6 4.2-5.2"/></svg>Earnings</a>
+      <a href="#/groups" data-view="groups"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.2 8.6L10 3.2l6.8 5.4"/><path d="M5 10v6.8h10V10"/><path d="M8.4 16.8v-4h3.2v4"/></svg>Properties</a>
     </nav>
     <main class="content" id="content">
       <div class="loading-state"><div class="spinner"></div>Loading statements…</div>
@@ -269,7 +271,7 @@ const monthLabel = (period) => {
   const [y, m] = String(period).split('-').map(Number);
   return y && m ? new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }) : period;
 };
-const dstr = (iso) => iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+const dstr = (iso) => iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '–';
 
 // ── Router ───────────────────────────────────────────────────────────
 let listData = null;      // statement_list payload
@@ -306,7 +308,7 @@ async function refreshList() {
   } catch (e) {
     if (e.message === 'unauthorized') return;
     document.getElementById('content').innerHTML =
-      `<div class="banner red">⚠ <div>Could not reach the statements engine: ${esc(e.message)}. The CRM may be redeploying — <a style="cursor:pointer;text-decoration:underline" onclick="refreshList().then(route)">retry</a>.</div></div>`;
+      `<div class="banner red"><div>Could not reach the statements engine: ${esc(e.message)}. The CRM may be redeploying. <a style="cursor:pointer;text-decoration:underline" onclick="refreshList().then(route)">retry</a>.</div></div>`;
     throw e;
   }
 }
@@ -316,7 +318,7 @@ function renderOutBanner() {
   if (o.count > 0) {
     el.className = 'outbanner tappable' + (outstandingOnly ? ' on' : '');
     el.textContent = `Outstanding: ${o.count} payout${o.count > 1 ? 's' : ''} · ${IDR(o.total)}`;
-    el.title = outstandingOnly ? 'Showing only what is still owed — tap to show everything' : 'Show only what is still owed';
+    el.title = outstandingOnly ? 'Showing only what is still owed. Tap to show everything' : 'Show only what is still owed';
     el.disabled = false;
   } else {
     el.className = 'outbanner clear';
@@ -345,7 +347,7 @@ async function syncNow() {
     const out = await api('statement_sync', {});
     const c = (out.groups || []).reduce((a, g) => ({ created: a.created + (g.created || 0), updated: a.updated + (g.updated || 0), disc: a.disc + (g.discrepancies || 0), kept: a.kept + (g.kept_edits || 0) }), { created: 0, updated: 0, disc: 0, kept: 0 });
     const errs = (out.groups || []).filter(g => g.error);
-    showToast(`Sync done — ${c.created} new, ${c.updated} updated${c.kept ? `, ${c.kept} kept your edits` : ''}${c.disc ? `, ⚠ ${c.disc} changed after publish` : ''}${errs.length ? ` · ${errs.length} error(s)` : ''}`, errs.length || c.disc ? 'error' : 'success');
+    showToast(`Sync done: ${c.created} new, ${c.updated} updated${c.kept ? `, ${c.kept} kept your edits` : ''}${c.disc ? `, ${c.disc} changed after publish` : ''}${errs.length ? ` · ${errs.length} error(s)` : ''}`, errs.length || c.disc ? 'error' : 'success');
     await refreshList(); route();
   } catch (e) { if (e.message !== 'unauthorized') showToast('Sync failed: ' + e.message, 'error'); }
   btn.disabled = false; btn.textContent = "⟳ Sync from Era's sheets";
@@ -361,13 +363,13 @@ function pillsFor(s) {
   const pills = [];
   if (s.status === 'draft' && s.needs_review) pills.push('<span class="pill review"><span class="d"></span>Needs review</span>');
   else if (s.status === 'draft') pills.push('<span class="pill draft">Draft</span>');
-  if (s.status !== 'draft' && !tracksPayments(s)) pills.push('<span class="pill draft">Internal — settled privately</span>');
-  else if (s.status === 'published' && Number(s.payout_total) < 0) pills.push('<span class="pill void">Deficit — carries forward</span>');
+  if (s.status !== 'draft' && !tracksPayments(s)) pills.push('<span class="pill draft">Internal · settled privately</span>');
+  else if (s.status === 'published' && Number(s.payout_total) < 0) pills.push('<span class="pill void">Deficit · carries forward</span>');
   else if (s.status === 'published') pills.push('<span class="pill outstanding"><span class="d"></span>Unpaid</span>');
   if (tracksPayments(s) && s.status === 'partial') pills.push(`<span class="pill review"><span class="d"></span>Partial · ${IDR(balanceOf(s))} due</span>`);
   if (tracksPayments(s) && s.status === 'paid') pills.push('<span class="pill paid">Paid</span>');
   if (s.status === 'void') pills.push('<span class="pill void">Void</span>');
-  if (s.source_changed) pills.push('<span class="pill changed">⚠ Sheet changed</span>');
+  if (s.source_changed) pills.push('<span class="pill changed">Sheet changed</span>');
   return pills.join('');
 }
 function renderList() {
@@ -415,7 +417,7 @@ async function renderDetail(id) {
   const c = document.getElementById('content');
   c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading statement…</div>';
   try { det = await api('statement_detail', { id }); }
-  catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red">⚠ <div>${esc(e.message)}</div></div>`; return; }
+  catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`; return; }
   drawDetail();
 }
 function drawDetail() {
@@ -433,11 +435,11 @@ function drawDetail() {
   let html = `<div class="crumb"><a onclick="go('#/')">Statements</a> ›
     ${esc(g.name || s.group_key)} · ${esc(det.period_label)}</div>`;
 
-  if (amending) html += `<div class="banner amber">✏️ <div><b>Amending this published statement.</b> The owner can still open it while you edit, so finish promptly: correct the lines below, then <b>Save amendment</b> (they'll see a note of what changed) — or <b>Cancel</b> to restore everything exactly as it was.</div></div>`;
+  if (amending) html += `<div class="banner amber"><div><b>Amending this published statement.</b> The owner can still open it while you edit, so finish promptly: correct the lines below, then <b>Save amendment</b> (they'll see a note of what changed), or <b>Cancel</b> to restore everything exactly as it was.</div></div>`;
 
-  if (s.source_changed) html += `<div class="banner amber">✏️ <div><b>Era's sheet changed</b> after ${s.status === 'draft' ? 'you edited this draft' : 'this statement was published'}.
+  if (s.source_changed) html += `<div class="banner amber"><div><b>Era's sheet changed</b> after ${s.status === 'draft' ? 'you edited this draft' : 'this statement was published'}.
     ${s.discrepancy ? esc(s.discrepancy.note || '') + (s.discrepancy.new_era_payout != null ? ` Sheet now says ${IDR(s.discrepancy.new_era_payout)}.` : '') : ''}
-    ${s.status === 'draft' ? '<a style="cursor:pointer;text-decoration:underline" onclick="reparse()">Re-parse from sheet (discards your edits)</a>' : 'The published numbers are frozen — add a corrected statement next month or contact the owner.'}</div></div>`;
+    ${s.status === 'draft' ? '<a style="cursor:pointer;text-decoration:underline" onclick="reparse()">Re-parse from sheet (discards your edits)</a>' : 'The published numbers are frozen. Add a corrected statement next month, or contact the owner.'}</div></div>`;
 
   // Totals
   const eraDelta = s.era_payout_total != null && Math.abs(s.era_payout_total - s.payout_total) > 1;
@@ -446,7 +448,7 @@ function drawDetail() {
   // deficit months Ikiel fronted. Say so calmly instead of crying wolf.
   const carryExplains = eraDelta && Number(s.adjustments_total)
     && Math.abs((Number(s.era_payout_total) || 0) + (Number(s.adjustments_total) || 0) - (Number(s.payout_total) || 0)) <= 1;
-  html += `<div class="card"><h3>${esc(g.name || s.group_key)} — ${esc(det.period_label)} ${pillsFor(s)}</h3>
+  html += `<div class="card"><h3>${esc(g.name || s.group_key)} · ${esc(det.period_label)} ${pillsFor(s)}</h3>
     <div class="totgrid">
       <div class="tot"><div class="lab">Gross revenue</div><div class="val">${IDR(s.gross_total)}</div></div>
       <div class="tot"><div class="lab">Mgmt fee (yours)</div><div class="val">${IDR(s.commission_total)}</div></div>
@@ -458,8 +460,8 @@ function drawDetail() {
       <div class="tot"><div class="lab">Paid to date</div><div class="val">${IDR(s.paid_total)}</div></div>
       <div class="tot" style="${balanceOf(s) > 0 ? 'background:var(--red-bg)' : ''}"><div class="lab">Balance due</div><div class="val" style="${balanceOf(s) > 0 ? 'color:var(--red-fg)' : ''}">${IDR(balanceOf(s))}</div></div>` : ''}
     </div>
-    ${carryExplains ? `<div class="banner calm" style="margin:10px 0 0">↩ <div>Era's sheet shows <b>${IDR(s.era_payout_total)}</b> for the month on its own. A carry-over of <b>${IDR(s.adjustments_total)}</b> from earlier deficit months (fronted by you) brings the actual payout to <b>${IDR(s.payout_total)}</b>. Nothing to fix — the sheet doesn't track carry-overs; this system does.</div></div>`
-      : eraDelta ? `<div class="banner amber" style="margin:10px 0 0">⚠ <div>Era's sheet says <b>${IDR(s.era_payout_total)}</b> — the parsed lines compute <b>${IDR(s.payout_total)}</b>. Fix the lines below or trust the computed number.</div></div>` : ''}
+    ${carryExplains ? `<div class="banner calm" style="margin:10px 0 0"><div>Era's sheet shows <b>${IDR(s.era_payout_total)}</b> for the month on its own. A carry-over of <b>${IDR(s.adjustments_total)}</b> from earlier deficit months (fronted by you) brings the actual payout to <b>${IDR(s.payout_total)}</b>. Nothing to fix: the sheet doesn't track carry-overs, this system does.</div></div>`
+      : eraDelta ? `<div class="banner amber" style="margin:10px 0 0"><div>Era's sheet says <b>${IDR(s.era_payout_total)}</b>, but the parsed lines compute <b>${IDR(s.payout_total)}</b>. Fix the lines below or trust the computed number.</div></div>` : ''}
   </div>`;
 
   // Reconciliation
@@ -467,7 +469,7 @@ function drawDetail() {
     html += `<div class="card"><h3>Reconciliation</h3>` +
       checks.map(ch => `<div class="rc"><span class="${ch.ok ? 'ok' : 'bad'}">${ch.ok ? '✓' : '✗'}</span>
         <span>${esc(ch.name.replace(/_/g, ' '))}</span>
-        <span class="nums">${ch.expected != null ? Number(ch.expected).toLocaleString() : '—'} vs ${ch.actual != null ? Number(ch.actual).toLocaleString() : '—'}</span></div>`).join('') +
+        <span class="nums">${ch.expected != null ? Number(ch.expected).toLocaleString() : '–'} vs ${ch.actual != null ? Number(ch.actual).toLocaleString() : '–'}</span></div>`).join('') +
       unparsed.map(u => `<div class="rc"><span class="bad">?</span><span>Row ${u.row} not understood: ${esc((u.cells || []).join(' | '))}</span></div>`).join('') +
       `</div>`;
   }
@@ -475,7 +477,7 @@ function drawDetail() {
   // Booking tables per unit
   for (const u of units) {
     const rows = bookings.filter(b => (b.unit_name || '') === u);
-    html += `<div class="card"><h3>Bookings${u ? ' — ' + esc(u) : ''}</h3><div class="tblwrap"><table class="lines">
+    html += `<div class="card"><h3>Bookings${u ? ' · ' + esc(u) : ''}</h3><div class="tblwrap"><table class="lines">
       <tr><th>Guest</th><th>Dates</th><th>Platform</th><th class="num">Nights</th><th class="num">Amount</th><th class="num">Mgmt fee</th><th class="num">Nett</th>${editable ? '<th></th>' : ''}</tr>
       ${rows.map(l => lineRow(l, editable, ['guest_name', 'stay_dates', 'platform', 'nights', 'amount', 'commission', 'nett'])).join('')}
       <tr class="totrow"><td colspan="3">Total</td><td class="num">${rows.reduce((a, l) => a + (Number(l.nights) || 0), 0)}</td>
@@ -483,11 +485,11 @@ function drawDetail() {
         <td class="num">${IDR(rows.reduce((a, l) => a + (Number(l.commission) || 0), 0))}</td>
         <td class="num">${IDR(rows.reduce((a, l) => a + (Number(l.nett) || 0), 0))}</td>${editable ? '<td></td>' : ''}</tr>
     </table></div>
-    ${editable ? `<div class="addrow"><button class="btn ghost" onclick="addLine('booking', ${JSON.stringify(u).replace(/"/g, '&quot;')})">＋ Add booking</button></div>` : ''}</div>`;
+    ${editable ? `<div class="addrow"><button class="btn ghost" onclick="addLine('booking', ${JSON.stringify(u).replace(/"/g, '&quot;')})">+ Add booking</button></div>` : ''}</div>`;
   }
   if (!units.length && editable) {
     html += `<div class="card"><h3>Bookings</h3><div class="empty-state">No bookings parsed.</div>
-      <div class="addrow"><button class="btn ghost" onclick="addLine('booking','')">＋ Add booking</button></div></div>`;
+      <div class="addrow"><button class="btn ghost" onclick="addLine('booking','')">+ Add booking</button></div></div>`;
   }
 
   // Expenses
@@ -496,22 +498,22 @@ function drawDetail() {
     ${expenses.map(l => lineRow(l, editable, ['expense_date', 'description', 'amount'])).join('')}
     <tr class="totrow"><td colspan="2">Total expenses</td><td class="num">${IDR(expenses.reduce((a, l) => a + (Number(l.amount) || 0), 0))}</td>${editable ? '<td></td>' : ''}</tr>
   </table></div>
-  ${editable ? `<div class="addrow"><button class="btn ghost" onclick="addLine('expense','')">＋ Add expense</button></div>` : ''}</div>`;
+  ${editable ? `<div class="addrow"><button class="btn ghost" onclick="addLine('expense','')">+ Add expense</button></div>` : ''}</div>`;
 
   // Adjustments
   if (adjustments.length || editable) {
-    html += `<div class="card"><h3>Adjustments <span style="font:500 11px/1 var(--sb-font-ui);color:var(--muted)">signed — positive increases the payout</span></h3>
+    html += `<div class="card"><h3>Adjustments <span style="font:500 11px/1 var(--sb-font-ui);color:var(--muted)">signed: positive increases the payout</span></h3>
       ${adjustments.length ? `<div class="tblwrap"><table class="lines">
         <tr><th>Description</th><th class="num">Amount</th>${editable ? '<th></th>' : ''}</tr>
         ${adjustments.map(l => lineRow(l, editable, ['description', 'amount'])).join('')}
       </table></div>` : '<div class="empty-state" style="padding:8px">None.</div>'}
-      ${editable ? `<div class="addrow"><button class="btn ghost" onclick="addLine('adjustment','')">＋ Add adjustment</button></div>` : ''}</div>`;
+      ${editable ? `<div class="addrow"><button class="btn ghost" onclick="addLine('adjustment','')">+ Add adjustment</button></div>` : ''}</div>`;
   }
 
   // Hostex snapshot (frozen at publish)
   const hx = s.hostex_snapshot;
   if (hx?.group) {
-    html += `<div class="card"><h3>Hostex — ${esc(det.period_label)} <span style="font:500 11px/1 var(--sb-font-ui);color:var(--muted)">frozen at publish</span></h3>
+    html += `<div class="card"><h3>Hostex · ${esc(det.period_label)} <span style="font:500 11px/1 var(--sb-font-ui);color:var(--muted)">frozen at publish</span></h3>
       <div class="hx">
         <div class="cell"><b>${hx.group.occupancy_pct}%</b>occupancy</div>
         <div class="cell"><b>${hx.group.nights_sold}</b>nights sold</div>
@@ -533,11 +535,11 @@ function drawDetail() {
         return `<tr${returned ? ' style="opacity:.6"' : ''}>
         <td style="white-space:nowrap">${dstr(p.paid_at)}</td>
         <td class="num"${returned ? ' style="text-decoration:line-through"' : ''}>${IDR(p.amount)}</td>
-        <td>${esc(p.note || '—')}${returned ? ` <span class="rowflag">↩ returned by bank${p.return_note ? ' — ' + esc(p.return_note) : ''}</span>` : ''}</td>
-        <td>${p.proof_url ? `<a href="${esc(p.proof_url)}" target="_blank">view ↗</a>` : '—'}</td>
+        <td>${esc(p.note || '–')}${returned ? ` <span class="rowflag">↩ returned by bank${p.return_note ? ': ' + esc(p.return_note) : ''}</span>` : ''}</td>
+        <td>${p.proof_url ? `<a href="${esc(p.proof_url)}" target="_blank">view ↗</a>` : '–'}</td>
         <td>${returned
           ? `<button class="btn ghost" style="padding:5px 9px;font-size:.68rem" onclick="paymentReturned(${p.id}, true)">undo</button>`
-          : `<button class="btn ghost" style="padding:5px 9px;font-size:.68rem" title="The bank bounced this transfer — keep it in the ledger but restore the owed balance" onclick="paymentReturned(${p.id}, false)">↩ Returned</button>`}</td>
+          : `<button class="btn ghost" style="padding:5px 9px;font-size:.68rem" title="The bank bounced this transfer. Keep it in the ledger but restore the owed balance" onclick="paymentReturned(${p.id}, false)">↩ Returned</button>`}</td>
         <td><button class="del" title="Delete payment" onclick="deletePayment(${p.id})">✕</button></td>
       </tr>`; }).join('')}
       <tr class="totrow"><td>Paid to date</td><td class="num">${IDR(s.paid_total)}</td><td colspan="4">${balanceOf(s) > 0 ? 'Balance due ' + IDR(balanceOf(s)) : 'Settled in full'}</td></tr>
@@ -550,14 +552,14 @@ function drawDetail() {
   if (s.status !== 'draft' && tracksPayments(s)) {
     html += `<div class="card"><h3>Payout account</h3>` + (acct && (acct.bank || acct.account_number)
       ? `<div style="font-size:.82rem;line-height:1.7">${esc(acct.bank || '')} · ${esc(acct.account_name || '')} · <b>${esc(acct.account_number || '')}</b>${acct.note ? `<br><span style="color:var(--muted)">${esc(acct.note)}</span>` : ''}<br><span style="font-size:.7rem;color:var(--muted)">entered by ${esc(acct.updated_by || 'admin')} · edit under Properties</span></div>`
-      : `<div class="empty-state" style="padding:8px">None on file — the owner can add it in their portal, or you can under Properties.</div>`) + `</div>`;
+      : `<div class="empty-state" style="padding:8px">None on file. The owner can add it in their portal, or you can under Properties.</div>`) + `</div>`;
   }
 
   // Amendment history — every closed revision, owner-visible note included.
   const closedRevs = (Array.isArray(s.revisions) ? s.revisions : []).filter(r => r && !r.open && r.at);
   if (closedRevs.length) {
     html += `<div class="card"><h3>Amendment history</h3>` + closedRevs.map(r =>
-      `<div style="font-size:.8rem;line-height:1.6;padding:6px 0;border-bottom:1px dashed var(--border)">↺ <b>${dstr(r.at)}</b> by ${esc(r.by || 'admin')} — ${esc(r.note || 'no note')}<br>
+      `<div style="font-size:.8rem;line-height:1.6;padding:6px 0;border-bottom:1px dashed var(--border)"><b>${dstr(r.at)}</b> by ${esc(r.by || 'admin')} · ${esc(r.note || 'no note')}<br>
        <span style="color:var(--muted)">payout ${IDR(r.prev?.payout_total)} → ${IDR(r.new?.payout_total)}</span></div>`
     ).join('') + `</div>`;
   }
@@ -573,15 +575,15 @@ function drawDetail() {
     html += `<button class="btn ghost" onclick="amendCancel()">Cancel amendment</button>`;
   }
   if ((s.status === 'published' || s.status === 'partial') && tracksPayments(s)) {
-    html += `<button class="btn green" onclick="askRecordPayment()">＋ Record payment</button>`;
+    html += `<button class="btn green" onclick="askRecordPayment()">+ Record payment</button>`;
     if (s.status === 'published' && !s.notified_at && !pays.length) html += `<button class="btn ghost" onclick="unpublish()">Unpublish</button>`;
   }
   if (['published', 'partial', 'paid'].includes(s.status) && !amending) {
-    html += `<button class="btn ghost" onclick="amendStart()">✏ Amend</button>`;
+    html += `<button class="btn ghost" onclick="amendStart()">Amend</button>`;
   }
   if (s.status !== 'draft') {
     html += `<a class="btn ghost" href="/st/${esc(det.token)}" target="_blank">Preview owner view ↗</a>`;
-    html += `<a class="btn ghost" href="/api/statements?action=export&token=${esc(det.token)}">⬇ Excel</a>`;
+    html += `<a class="btn ghost" href="/api/statements?action=export&token=${esc(det.token)}">Excel</a>`;
   }
   html += `</div>`;
   if (s.status === 'published' || s.status === 'partial') {
@@ -659,13 +661,13 @@ function askPublish() {
   const prevBal = prev ? (Number(prev.payout_total) || 0) - (Number(prev.paid_total) || 0) : 0;
   const hasCarry = (det.lines || []).some(l => l.kind === 'adjustment' && /minus|carr(y|ied)|deficit/i.test(l.description || ''));
   const carryNote = prevBal < -1 && !hasCarry
-    ? `<p style="color:var(--amber-fg)">↩ Last month closed <b>${IDR(-prevBal)}</b> in deficit — it will be carried into this payout on publish (final payout ≈ <b>${IDR(Number(s.payout_total) + prevBal)}</b>).</p>` : '';
-  modal(`<h3>Publish ${esc(g.name || s.group_key)} — ${esc(det.period_label)}?</h3>
+    ? `<p style="color:var(--amber-fg)">↩ Last month closed <b>${IDR(-prevBal)}</b> in deficit, so it will be carried into this payout on publish (final payout ≈ <b>${IDR(Number(s.payout_total) + prevBal)}</b>).</p>` : '';
+  modal(`<h3>Publish ${esc(g.name || s.group_key)} · ${esc(det.period_label)}?</h3>
     <p>Total payout <b>${IDR(s.payout_total)}</b>. Publishing freezes the numbers, snapshots Hostex occupancy, and makes the statement visible to the owner.</p>
     ${carryNote}
-    ${s.needs_review ? `<p style="color:var(--amber-fg)">⚠ This statement has unresolved review flags — publish only if you've checked the numbers.</p>` : ''}
+    ${s.needs_review ? `<p style="color:var(--amber-fg)">This statement has unresolved review flags. Publish only if you've checked the numbers.</p>` : ''}
     ${who ? `<label class="chk"><input type="checkbox" id="pub-notify" checked> Notify ${who} via Maya on WhatsApp</label>`
-          : `<p style="color:var(--muted)">No WhatsApp notification ${g.notify ? '(no owner numbers set — add them under Properties)' : '(notifications off for this property)'}.</p>`}
+          : `<p style="color:var(--muted)">No WhatsApp notification ${g.notify ? '(no owner numbers set; add them under Properties)' : '(notifications off for this property)'}.</p>`}
     <div class="row"><button class="btn ghost" onclick="closeModal()">Cancel</button>
     <button class="btn primary" onclick="doPublish()">Publish</button></div>`);
 }
@@ -674,7 +676,7 @@ async function doPublish() {
   closeModal();
   try {
     await api('statement_publish', { id: det.statement.id, notify_owner: notify });
-    showToast('Published' + (notify ? ' — Maya will notify the owner' : ''), 'success');
+    showToast('Published' + (notify ? '. Maya will notify the owner' : ''), 'success');
     await refreshList();
     renderDetail(det.statement.id);
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
@@ -716,23 +718,23 @@ function amendSave() {
     ? `<p>Payout changes from <b>${IDR(before)}</b> to <b>${IDR(now)}</b>.</p>`
     : `<p style="color:var(--muted)">The payout total is unchanged (${IDR(now)}).</p>`;
   const who = g.notify && (g.owner_wa_nums || []).length ? esc(g.owner_names || 'the owner') : null;
-  modal(`<h3>Save amendment — ${esc(det.period_label)}</h3>
+  modal(`<h3>Save amendment · ${esc(det.period_label)}</h3>
     ${delta}
     <label style="font-size:.72rem;color:var(--muted)">What changed? The owner sees this on their statement.</label>
     <input type="text" id="amend-note" placeholder="e.g. Corrected the electricity expense for Unit 2" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);margin:4px 0 10px">
     ${who ? `<label class="chk"><input type="checkbox" id="amend-notify" checked> Tell ${who} on WhatsApp that the statement was updated</label>`
-          : `<p style="color:var(--muted)">No WhatsApp notification ${g.notify ? '(no owner numbers set)' : '(notifications off for this property)'} — the revision note still shows on the statement.</p>`}
+          : `<p style="color:var(--muted)">No WhatsApp notification ${g.notify ? '(no owner numbers set)' : '(notifications off for this property)'}. The revision note still shows on the statement.</p>`}
     <div class="row"><button class="btn ghost" onclick="closeModal()">Back</button>
     <button class="btn primary" onclick="doAmendSave()">Save amendment</button></div>`);
 }
 async function doAmendSave() {
   const note = (document.getElementById('amend-note')?.value || '').trim();
-  if (!note) { showToast('Add a short note — the owner needs to know what changed.', 'error'); return; }
+  if (!note) { showToast('Add a short note: the owner needs to know what changed.', 'error'); return; }
   const notify = document.getElementById('amend-notify')?.checked === true;
   closeModal();
   try {
     const out = await api('statement_amend_finalize', { id: det.statement.id, note, notify_owner: notify });
-    showToast(`Amendment saved — payout is now ${IDR(out.payout_total)}` + (notify ? ', owner will be notified' : ''), 'success');
+    showToast(`Amendment saved. Payout is now ${IDR(out.payout_total)}` + (notify ? ', owner will be notified' : ''), 'success');
     await refreshList(); renderDetail(det.statement.id);
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
@@ -752,8 +754,8 @@ async function doAmendCancel() {
 
 function askRecordPayment() {
   const bal = balanceOf(det.statement);
-  modal(`<h3>Record payment — ${esc(det.period_label)}</h3>
-    <p>Balance due: <b>${IDR(bal)}</b>. Enter what you transferred — a partial amount keeps the statement open with the remaining balance.</p>
+  modal(`<h3>Record payment · ${esc(det.period_label)}</h3>
+    <p>Balance due: <b>${IDR(bal)}</b>. Enter what you transferred. A partial amount keeps the statement open with the remaining balance.</p>
     <label style="font-size:.72rem;color:var(--muted)">Amount (IDR)</label>
     <input type="text" id="pay-amount" value="${bal}" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);margin:4px 0 10px;font-variant-numeric:tabular-nums">
     <label style="font-size:.72rem;color:var(--muted)">Note / transfer reference (optional)</label>
@@ -776,7 +778,7 @@ async function doRecordPayment() {
       payload.fileBase64 = base64; payload.contentType = type;
     }
     const out = await api('statement_record_payment', payload);
-    showToast(out.status === 'paid' ? 'Payment recorded — settled in full ✓' : `Payment recorded — ${IDR(out.balance)} still due`, 'success');
+    showToast(out.status === 'paid' ? 'Payment recorded. Settled in full' : `Payment recorded. ${IDR(out.balance)} still due`, 'success');
     await refreshList();
     renderDetail(det.statement.id);
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
@@ -789,7 +791,7 @@ async function paymentReturned(paymentId, undo) {
   }
   try {
     const out = await api('statement_payment_returned', { id: det.statement.id, payment_id: paymentId, note, undo });
-    showToast(undo ? 'Payment restored ✓' : `Marked returned — ${IDR(out.balance)} owed again. Double-check the payout account with the owner before retrying.`, undo ? 'success' : 'error');
+    showToast(undo ? 'Payment restored' : `Marked returned. ${IDR(out.balance)} owed again. Double-check the payout account with the owner before retrying.`, undo ? 'success' : 'error');
     await refreshList();
     renderDetail(det.statement.id);
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
@@ -853,7 +855,7 @@ async function renderEarnings() {
       <div class="tot"><div class="lab">Average / month</div><div class="val">${IDR(periods.length ? ytd / periods.length : 0)}</div></div>
       ${best ? `<div class="tot"><div class="lab">Best month</div><div class="val">${IDR(months[best].total)}</div><div style="font-size:.66rem;color:var(--muted);margin-top:3px">${esc(mlab(best))}</div></div>` : ''}
     </div>
-    <p style="font-size:.72rem;color:var(--muted);margin-top:8px">From the commission column of every statement (drafts included — the fee is earned whether or not the statement is published yet). LaneHAUS is excluded: your own units, no management fee charged.</p>
+    <p style="font-size:.72rem;color:var(--muted);margin-top:8px">From the commission column of every statement (drafts included: the fee is earned whether or not the statement is published yet). LaneHAUS is excluded: your own units, no management fee charged.</p>
   </div>`;
 
   html += `<div class="card"><h3>By month</h3><div class="tblwrap"><table class="lines">
@@ -862,7 +864,7 @@ async function renderEarnings() {
       <td style="white-space:nowrap;font-weight:600">${esc(mlab(p))}</td>
       <td style="width:34%;min-width:120px"><div style="height:9px;border-radius:5px;background:var(--surface2);overflow:hidden"><div style="height:100%;width:${Math.round(months[p].total / maxV * 100)}%;background:var(--accent);border-radius:5px"></div></div></td>
       <td class="num" style="font-weight:700">${IDR(months[p].total)}</td>
-      <td style="font-size:.68rem;color:var(--muted)">${Object.entries(months[p].byGroup).sort((a, b) => b[1] - a[1]).map(([n, v]) => `${esc(n.replace(/HAUS Canggu – |Tropicana Valley – /, ''))} ${Math.round(v / 1e6 * 10) / 10}M`).join(' · ') || '—'}${months[p].own ? ` <span style="color:var(--paused-fg)">(+ LaneHAUS internal ${Math.round(months[p].own / 1e6 * 10) / 10}M)</span>` : ''}</td>
+      <td style="font-size:.68rem;color:var(--muted)">${Object.entries(months[p].byGroup).sort((a, b) => b[1] - a[1]).map(([n, v]) => `${esc(n.replace(/HAUS Canggu – |Tropicana Valley – /, ''))} ${Math.round(v / 1e6 * 10) / 10}M`).join(' · ') || '–'}${months[p].own ? ` <span style="color:var(--paused-fg)">(+ LaneHAUS internal ${Math.round(months[p].own / 1e6 * 10) / 10}M)</span>` : ''}</td>
     </tr>`).join('')}
     <tr class="totrow"><td>Total</td><td></td><td class="num">${IDR(ytd)}</td><td></td></tr>
   </table></div></div>`;
@@ -875,7 +877,7 @@ async function renderGroups() {
   const c = document.getElementById('content');
   c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading properties…</div>';
   try { groupsData = await api('statement_groups'); }
-  catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red">⚠ <div>${esc(e.message)}</div></div>`; return; }
+  catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`; return; }
   const groups = groupsData.groups || [];
   c.innerHTML = `<div class="card"><h3>Properties &amp; owners</h3>
     <p style="font-size:.75rem;color:var(--muted);margin-bottom:10px">Owner WhatsApp numbers (digits only, comma-separated, e.g. <b>628123456789</b>) are who Maya notifies when a statement is published. “Notify” off = never message (e.g. your own units).</p>
@@ -892,9 +894,9 @@ async function renderGroups() {
         <input type="text" id="gab-${esc(g.key)}" value="${esc(a.bank || '')}" placeholder="Payout bank (e.g. BCA)">
         <input type="text" id="gan-${esc(g.key)}" value="${esc(a.account_name || '')}" placeholder="Account holder name">
         <input type="text" id="gac-${esc(g.key)}" value="${esc(a.account_number || '')}" placeholder="Account number">
-        <button class="btn ghost" onclick="downloadGroupExcel('${esc(g.key)}')">⬇ Excel</button>
-        <button class="btn ghost" title="Copy the owner's dashboard invite — they open it, sign in with Google, and their units link to that account automatically" onclick="copyInviteLink('${esc(g.key)}')">🔗 Invite link</button>
-        <button class="btn ghost" title="Open the owner portal exactly as this owner sees it (read-only)" onclick="openPreview('${esc(g.key)}')">👁 Preview</button>
+        <button class="btn ghost" onclick="downloadGroupExcel('${esc(g.key)}')">Excel</button>
+        <button class="btn ghost" title="Copy the owner's dashboard invite. They open it, sign in with Google, and their units link to that account automatically" onclick="copyInviteLink('${esc(g.key)}')">Invite link</button>
+        <button class="btn ghost" title="Open the owner portal exactly as this owner sees it (read-only)" onclick="openPreview('${esc(g.key)}')">Preview</button>
         ${(a.iban || a.swift || a.routing_number || a.sort_code || a.bsb || a.country) ? `<div style="grid-column:1/-1;font-size:.68rem;color:var(--muted)">intl: ${['country', 'routing_number', 'sort_code', 'bsb', 'iban', 'swift', 'account_type', 'note'].filter(k => a[k]).map(k => `${k.replace(/_/g, ' ')} ${esc(String(a[k]))}`).join(' · ')} <span style="color:var(--paused-fg)">(owner edits full details in their portal)</span></div>` : ''}
       </div>
     </div>`; }).join('')}
@@ -938,7 +940,7 @@ async function copyInviteLink(key) {
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
-    try { await navigator.clipboard.writeText(d.url); showToast('Invite link copied — send it to the owner on WhatsApp', 'success'); }
+    try { await navigator.clipboard.writeText(d.url); showToast('Invite link copied. Send it to the owner on WhatsApp', 'success'); }
     catch { prompt('Copy the invite link:', d.url); }
   } catch (e) { showToast('Could not build invite link: ' + e.message, 'error'); }
 }
@@ -960,7 +962,7 @@ async function saveGroup(key) {
       },
     });
     groupsData = null;
-    showToast('Saved ✓', 'success');
+    showToast('Saved', 'success');
     renderGroups();
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
@@ -994,7 +996,7 @@ const MSTATUS = {
   new:              { cls: 'new',  label: 'Needs your review' },
   pending_approval: { cls: 'wait', label: 'Waiting on owner' },
   scheduled:        { cls: 'ok',   label: 'Scheduled' },
-  approved:         { cls: 'ok',   label: 'Approved — do the work' },
+  approved:         { cls: 'ok',   label: 'Approved · do the work' },
   declined:         { cls: 'no',   label: 'Owner declined' },
   done:             { cls: 'done', label: 'Done' },
 };
@@ -1010,11 +1012,11 @@ async function renderMaintenance() {
   const sorted = [...items].sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status) || new Date(b.created_at) - new Date(a.created_at));
 
   let html = `<div class="crumb">Maintenance</div>`;
-  html += `<div class="banner ${maintData.needsReview ? 'amber' : 'calm'}" style="margin-bottom:14px">🔧 <div>
+  html += `<div class="banner ${maintData.needsReview ? 'amber' : 'calm'}" style="margin-bottom:14px"><div>
     <b>${maintData.needsReview || 0}</b> waiting for your review ·
     <b>${maintData.awaitingOwner || 0}</b> with the owner ·
     <b>${maintData.openWork || 0}</b> approved and not yet done
-    <div style="margin-top:5px;font-size:.76rem">Send Maya a photo on WhatsApp with the villa and what's wrong — it appears here automatically.</div>
+    <div style="margin-top:5px;font-size:.76rem">Send Maya a photo on WhatsApp with the villa and what's wrong. It appears here automatically.</div>
   </div></div>`;
 
   if (!sorted.length) {
@@ -1032,13 +1034,13 @@ async function renderMaintenance() {
           <div class="mtitle">${esc(it.title)}</div>
           <div class="mwhere">${esc(where)} · reported ${esc(dstr(it.reported_at))}${it.reported_by_name ? ' by ' + esc(it.reported_by_name) : ''}</div>
         </div>
-        ${it.urgency === 'urgent' ? '<span class="mpill urgent">⚠ Urgent</span>' : ''}
+        ${it.urgency === 'urgent' ? '<span class="mpill urgent">Urgent</span>' : ''}
         <span class="mpill ${st.cls}">${esc(st.label)}</span>
       </div>
       ${it.description ? `<div class="mdesc">${esc(it.description)}</div>` : ''}
       <div class="mshots" id="shots-${it.id}"></div>
       <div class="mrow" style="margin-top:8px">
-        <label class="btn ghost" style="cursor:pointer;font-size:.75rem">＋ Add photo
+        <label class="btn ghost" style="cursor:pointer;font-size:.75rem">+ Add photo
           <input type="file" accept="image/*" style="display:none" onchange="maintAddPhoto(${it.id}, this)">
         </label>
       </div>`;
@@ -1049,7 +1051,7 @@ async function renderMaintenance() {
         <input type="text" id="mcost-${it.id}" placeholder="e.g. 850000" value="${it.estimated_cost ?? ''}" style="width:130px">
         <select id="mmode-${it.id}">
           <option value="1">Ask the owner to approve</option>
-          <option value="0">Routine — just tell them</option>
+          <option value="0">Routine: just tell them</option>
         </select>
         <button class="btn primary" onclick="maintPublish(${it.id})">Publish &amp; notify</button>
         <button class="btn ghost" onclick="maintDelete(${it.id})">Not an issue</button>
@@ -1057,8 +1059,8 @@ async function renderMaintenance() {
     }
     if (it.status === 'approved' || it.status === 'scheduled') {
       html += `<div class="mrow">
-        <button class="btn green" onclick="maintComplete(${it.id})">✓ Mark done</button>
-        <span style="font-size:.76rem;color:var(--muted)">Next check-in ${it.next_followup_at ? esc(dstr(it.next_followup_at)) : '—'}${it.promised_date ? ` (you said ${esc(dstr(it.promised_date))})` : ''}</span>
+        <button class="btn green" onclick="maintComplete(${it.id})">Mark done</button>
+        <span style="font-size:.76rem;color:var(--muted)">Next check-in ${it.next_followup_at ? esc(dstr(it.next_followup_at)) : '–'}${it.promised_date ? ` (you said ${esc(dstr(it.promised_date))})` : ''}</span>
       </div>`;
     }
     if (it.status === 'pending_approval') {
@@ -1068,10 +1070,10 @@ async function renderMaintenance() {
       </div>`;
     }
     if (it.status === 'declined') {
-      html += `<div class="mmeta">Declined ${esc(dstr(it.declined_at))}${it.decline_note ? ` — “${esc(it.decline_note)}”` : ''}</div>`;
+      html += `<div class="mmeta">Declined ${esc(dstr(it.declined_at))}${it.decline_note ? ` · “${esc(it.decline_note)}”` : ''}</div>`;
     }
     if (it.status === 'done') {
-      html += `<div class="mmeta">Completed ${esc(dstr(it.completed_at))}${it.actual_cost != null ? ` · ${IDR(it.actual_cost)}` : ''}${it.completion_note ? ` — ${esc(it.completion_note)}` : ''}</div>`;
+      html += `<div class="mmeta">Completed ${esc(dstr(it.completed_at))}${it.actual_cost != null ? ` · ${IDR(it.actual_cost)}` : ''}${it.completion_note ? ` · ${esc(it.completion_note)}` : ''}</div>`;
     }
     const cost = it.actual_cost ?? it.estimated_cost;
     if (cost != null && it.status !== 'new') {
@@ -1079,7 +1081,7 @@ async function renderMaintenance() {
     }
     if ((it.thread || []).length) {
       const last = it.thread[it.thread.length - 1];
-      html += `<div class="mmeta">💬 ${esc(last.who || 'Era')}: “${esc(last.text)}”</div>`;
+      html += `<div class="mmeta">${esc(last.who || 'Era')}: “${esc(last.text)}”</div>`;
     }
     html += `</div>`;
   }
@@ -1129,14 +1131,14 @@ async function maintPublish(id) {
   if (needs && !cost) { showToast('Add an estimated cost before asking the owner to approve.', 'error'); return; }
   try {
     await maintApi('maint_publish', { id, requires_approval: needs, estimated_cost: cost ? Number(cost) : null });
-    showToast(needs ? 'Published — Maya will ask the owner to approve.' : 'Published — Maya will let the owner know.', 'success');
+    showToast(needs ? 'Published. Maya will ask the owner to approve.' : 'Published. Maya will let the owner know.', 'success');
     renderMaintenance();
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
 async function maintComplete(id) {
   modal(`<h3>Mark this repair done?</h3>
     <p>Maya will tell the owner it's finished.</p>
-    <label style="font-size:.72rem;color:var(--muted)">Final cost (optional — leave blank to keep the estimate)</label>
+    <label style="font-size:.72rem;color:var(--muted)">Final cost (optional: leave blank to keep the estimate)</label>
     <input type="text" id="mdone-cost" placeholder="e.g. 850000" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);margin:4px 0 10px">
     <label style="font-size:.72rem;color:var(--muted)">Note for the owner (optional)</label>
     <input type="text" id="mdone-note" placeholder="e.g. Repainted and touched up the trim" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);margin:4px 0 10px">
@@ -1149,7 +1151,7 @@ async function doMaintComplete(id) {
   closeModal();
   try {
     await maintApi('maint_complete', { id, note: note || null, actual_cost: cost ? Number(cost) : undefined });
-    showToast('Marked done — Maya will tell the owner.', 'success');
+    showToast('Marked done. Maya will tell the owner.', 'success');
     renderMaintenance();
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
@@ -1161,7 +1163,7 @@ async function maintApproveFor(id) {
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
 async function maintDelete(id) {
-  modal(`<h3>Remove this item?</h3><p>It disappears completely — use this for duplicates or false alarms.</p>
+  modal(`<h3>Remove this item?</h3><p>It disappears completely. Use this for duplicates or false alarms.</p>
     <div class="row"><button class="btn ghost" onclick="closeModal()">Keep it</button>
     <button class="btn primary" onclick="doMaintDelete(${id})">Remove</button></div>`);
 }

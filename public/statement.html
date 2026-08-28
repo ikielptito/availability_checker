@@ -107,7 +107,7 @@ table.st tr.tot td{border-top:1px solid var(--border);border-bottom:none;font-we
 <div id="root"></div>
 
 <div class="foot-cta" id="footcta" style="display:none">
-  Questions about this statement? Reply to Maya on WhatsApp — she'll get you an answer.<br>
+  Questions about this statement? Reply to Maya on WhatsApp. She'll get you an answer.<br>
   This is a private link for you; the numbers are frozen as published by Samba Realty.
 </div>
 
@@ -154,7 +154,7 @@ const tip = (id, text) => `<div class="tipnote" id="tip-${id}">${text}</div>`;
 
 // Direct bookings are Samba bookings — say so on the owner's document.
 // (Owner stays keep Era's wording; those aren't Samba-sourced revenue.)
-const platformLabel = (p) => /direct/i.test(p || '') && !/owner/i.test(p || '') ? 'Samba' : (p || '—');
+const platformLabel = (p) => /direct/i.test(p || '') && !/owner/i.test(p || '') ? 'Samba' : (p || '–');
 // Channel keys inside already-frozen Hostex snapshots may carry pre-relabel
 // names ("Direct", "Hostex_direct") — normalize at display time.
 const chLabel = (k) => /direct|hostex/i.test(k) ? 'Samba' : k;
@@ -175,9 +175,9 @@ async function boot() {
   try {
     const r = await fetch('/api/statements?action=public-statement&token=' + encodeURIComponent(token));
     d = await r.json();
-    if (!r.ok) return fail(r.status === 403 ? 'Invalid statement link' : 'Statement unavailable', 'Please open the exact link Maya sent you on WhatsApp — or reply to her there and she\'ll send a fresh one.');
+    if (!r.ok) return fail(r.status === 403 ? 'Invalid statement link' : 'Statement unavailable', 'Please open the exact link Maya sent you on WhatsApp, or reply to her there and she\'ll send a fresh one.');
   } catch {
-    return fail('Connection problem', 'Could not load your statement — check your connection and try again.');
+    return fail('Connection problem', 'Could not load your statement. Check your connection and try again.');
   }
   DATA = d;
   TOKEN = token;
@@ -227,14 +227,14 @@ function render(d) {
         const h = noSettle
           ? { label: 'Nett for the month', value: t.payout, sub: `Rental income after the Samba management fee and villa expenses${Number(t.adjustments) ? ' and adjustments' : ''}, ${esc(d.period_label || '')}. Settled separately.` }
           : deficit
-          ? { label: 'This month closed in deficit', value: t.payout, sub: `Villa expenses exceeded rental income in ${esc(d.period_label || '')}. Samba Realty covers the shortfall — it carries into your next statement and is repaid from future rental revenue.` }
+          ? { label: 'This month closed in deficit', value: t.payout, sub: `Villa expenses exceeded rental income in ${esc(d.period_label || '')}. Samba Realty covers the shortfall. It carries into your next statement and is repaid from future rental revenue.` }
           : paid
-            ? { label: 'Total payout to you — settled in full', value: t.payout, sub: `Paid in full on ${esc(dstr(d.paid_at))}. Rental income after the Samba management fee and villa expenses${Number(t.adjustments) ? ' and adjustments' : ''}, ${esc(d.period_label || '')}.` }
+            ? { label: 'Total payout to you · settled in full', value: t.payout, sub: `Paid in full on ${esc(dstr(d.paid_at))}. Rental income after the Samba management fee and villa expenses${Number(t.adjustments) ? ' and adjustments' : ''}, ${esc(d.period_label || '')}.` }
             : partial
-              ? { label: 'Balance owed to you', value: balance, sub: `${IDR(paidTotal)} of the ${IDR(t.payout)} total for ${esc(d.period_label || '')} has already been transferred — this is what's still on its way.` }
+              ? { label: 'Balance owed to you', value: balance, sub: `${IDR(paidTotal)} of the ${IDR(t.payout)} total for ${esc(d.period_label || '')} has already been transferred. This is what's still on its way.` }
               : { label: 'Total payout to you', value: t.payout, sub: `Rental income after the Samba management fee and villa expenses${Number(t.adjustments) ? ' and adjustments' : ''}, ${esc(d.period_label || '')}.` };
         const heroTip = deficit
-          ? 'This month\'s expenses were bigger than its rental income. You never owe Samba a transfer — the shortfall is covered by Samba Realty and automatically deducted from your next months\' payouts until recovered.'
+          ? 'This month\'s expenses were bigger than its rental income. You never owe Samba a transfer. The shortfall is covered by Samba Realty and automatically deducted from your next months\' payouts until recovered.'
           : partial
             ? 'Your payout can arrive in more than one transfer. This figure is the remaining amount still to be transferred; every payment already made is listed in the Payments section below, with its date and reference.'
             : 'Your rental income for the month after Samba\'s management fee and the villa\'s running costs. The full calculation is in "How your payout adds up" below.';
@@ -260,7 +260,7 @@ function render(d) {
         const revs = Array.isArray(d.revisions) ? d.revisions : [];
         if (!revs.length) return '';
         return revs.map(r => `<div style="margin-top:10px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2,rgba(0,0,0,.03));font-size:.76rem;line-height:1.55;color:var(--text-2,#555)">
-          ↺ <b>Revised ${esc(dstr(r.at))}</b>${r.note ? ` — ${esc(r.note)}` : ''}${r.prev_payout != null && Math.abs(Number(r.prev_payout) - Number(r.new_payout ?? t.payout)) > 1 ? `<br><span style="opacity:.75">Payout corrected from ${IDR(r.prev_payout)} to ${IDR(r.new_payout ?? t.payout)}.</span>` : ''}
+          <b>Revised ${esc(dstr(r.at))}</b>${r.note ? ` · ${esc(r.note)}` : ''}${r.prev_payout != null && Math.abs(Number(r.prev_payout) - Number(r.new_payout ?? t.payout)) > 1 ? `<br><span style="opacity:.75">Payout corrected from ${IDR(r.prev_payout)} to ${IDR(r.new_payout ?? t.payout)}.</span>` : ''}
         </div>`).join('');
       })()}
     </div>`;
@@ -274,10 +274,10 @@ function render(d) {
     html += `<div class="tblwrap"><table class="st">
       <tr><th>Guest</th><th>Dates</th><th>Platform</th><th class="num">Nights</th><th class="num">Amount</th><th class="num">Mgmt fee</th><th class="num">Nett to you</th></tr>
       ${rows.map(b => `<tr>
-        <td>${esc(b.guest_name || '—')}</td>
-        <td>${esc(b.stay_dates || '—')}</td>
+        <td>${esc(b.guest_name || '–')}</td>
+        <td>${esc(b.stay_dates || '–')}</td>
         <td>${esc(platformLabel(b.platform))}</td>
-        <td class="num">${b.nights != null ? esc(String(b.nights)) : '—'}</td>
+        <td class="num">${b.nights != null ? esc(String(b.nights)) : '–'}</td>
         <td class="num">${mval(b.amount)}</td>
         <td class="num">${mval(b.commission)}</td>
         <td class="num">${mval(b.nett)}</td>
@@ -295,7 +295,7 @@ function render(d) {
   if (!expenses.length) html += `<div style="color:var(--muted);font-size:.84rem">No expenses this month.</div>`;
   else html += `<div class="tblwrap"><table class="st">
     <tr><th>Date</th><th>Description</th><th class="num">Amount</th></tr>
-    ${expenses.map(e => `<tr><td style="white-space:nowrap">${esc(e.expense_date || '—')}</td><td>${esc(e.description || '—')}</td><td class="num">${mval(e.amount)}</td></tr>`).join('')}
+    ${expenses.map(e => `<tr><td style="white-space:nowrap">${esc(e.expense_date || '–')}</td><td>${esc(e.description || '–')}</td><td class="num">${mval(e.amount)}</td></tr>`).join('')}
     <tr class="tot"><td colspan="2">Total expenses</td><td class="num">${mval(expenses.reduce((a, e) => a + (+e.amount || 0), 0))}</td></tr>
   </table></div>`;
   html += `</div>`;
@@ -303,15 +303,15 @@ function render(d) {
   // The math
   html += `<div class="pad"><div class="sec-h">How your payout adds up</div>
     <div class="mathline"><span class="mk">Rental income (gross)${qm('gross')}</span><span class="mv">${IDR(t.gross)}</span></div>
-    ${tip('gross', 'Everything guests paid for stays this month, per booking, before any fees — each booking is itemized in the Bookings section above.')}
+    ${tip('gross', 'Everything guests paid for stays this month, per booking, before any fees. Each booking is itemized in the Bookings section above.')}
     <div class="mathline"><span class="mk">Samba Realty management fee${qm('fee')}</span><span class="mv">− ${IDR(t.commission)}</span></div>
-    ${tip('fee', `Samba Realty's fee for fully managing your villa — guest communication, check-ins, housekeeping coordination, and these statements${Number(t.gross) > 0 ? ` (${Math.round(Number(t.commission) / Number(t.gross) * 100)}% of gross rental income per your agreement)` : ''}. It is not Airbnb's or Booking.com's platform fee.`)}
+    ${tip('fee', `Samba Realty's fee for fully managing your villa: guest communication, check-ins, housekeeping coordination, and these statements${Number(t.gross) > 0 ? ` (${Math.round(Number(t.commission) / Number(t.gross) * 100)}% of gross rental income per your agreement)` : ''}. It is not Airbnb's or Booking.com's platform fee.`)}
     <div class="mathline"><span class="mk">Nett rental income${qm('nett')}</span><span class="mv">${IDR(t.nett)}</span></div>
-    ${tip('nett', 'Gross rental income minus the Samba management fee — your share of the month\'s rental revenue before villa costs.')}
+    ${tip('nett', 'Gross rental income minus the Samba management fee. Your share of the month\'s rental revenue before villa costs.')}
     <div class="mathline"><span class="mk">Villa expenses${qm('exp')}</span><span class="mv">− ${IDR(t.expenses)}</span></div>
-    ${tip('exp', 'Running costs Era paid on your behalf this month — utilities, cleaning, laundry, repairs. Every item is listed with its date in the Villa expenses section above.')}
+    ${tip('exp', 'Running costs Era paid on your behalf this month: utilities, cleaning, laundry, repairs. Every item is listed with its date in the Villa expenses section above.')}
     ${adjustments.length ? adjustments.map((a, i) => `<div class="mathline"><span class="mk">${esc(a.description || 'Adjustment')}${i === 0 ? qm('adj') : ''}</span><span class="mv">${Number(a.amount) < 0 ? '− ' + IDR(-a.amount) : '+ ' + IDR(a.amount)}</span></div>`).join('') : ''}
-    ${adjustments.length ? tip('adj', 'Amounts rolled in from other months — most commonly a previous month\'s deficit (covered by Samba at the time) being recovered from this month\'s revenue.') : ''}
+    ${adjustments.length ? tip('adj', 'Amounts rolled in from other months. Most commonly a previous month\'s deficit (covered by Samba at the time) being recovered from this month\'s revenue.') : ''}
     <div class="mathline grand"><span class="mk">Total payout${qm('payout')}</span><span class="mv">${IDR(t.payout)}</span></div>
     ${tip('payout', 'What lands in your account for this month: nett rental income, minus villa expenses, plus or minus any adjustments. Once transferred in full, this statement shows as Paid.')}
     ${paidTotal > 0 && !paid ? `<div class="mathline"><span class="mk">Paid so far</span><span class="mv">− ${IDR(paidTotal)}</span></div>
@@ -333,7 +333,7 @@ function render(d) {
       </div>`
     : `<div style="margin-top:14px;background:var(--accent-soft);border-radius:11px;padding:12px 15px;font-size:.78rem;line-height:1.55;color:var(--text-2)">
         <b style="color:var(--accent)">Where should we send your payouts?</b>
-        Add your bank account in your <a href="https://sambarentals.com/portal" style="color:var(--accent);font-weight:600">Samba portal</a> — or simply reply to Maya on WhatsApp with your details.
+        Add your bank account in your <a href="https://sambarentals.com/portal" style="color:var(--accent);font-weight:600">Samba portal</a>, or simply reply to Maya on WhatsApp with your details.
       </div>`;
 
   // Payments received (nothing to show where settlement happens privately)
@@ -344,8 +344,8 @@ function render(d) {
       ${d.payments.map(p => `<tr>
         <td style="white-space:nowrap">${esc(dstr(p.paid_at))}</td>
         <td class="num">${mval(p.amount)}</td>
-        <td>${esc(p.note || '—')}</td>
-        <td>${p.proof_url ? `<a href="${esc(p.proof_url)}" target="_blank" rel="noopener">view ↗</a>` : '—'}</td>
+        <td>${esc(p.note || '–')}</td>
+        <td>${p.proof_url ? `<a href="${esc(p.proof_url)}" target="_blank" rel="noopener">view ↗</a>` : '–'}</td>
       </tr>`).join('')}
       <tr class="tot"><td>Total paid</td><td class="num">${mval(paidTotal)}</td><td colspan="2">${paid ? 'Settled in full' : IDR(balance) + ' to follow'}</td></tr>
       </table></div>${acctLine}</div>`;
@@ -377,7 +377,7 @@ function render(d) {
       ${unitKeys.length > 1 ? `<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">${chip(HXSEL === 'group', "setHx('group')", 'Combined')}${unitKeys.map(k => chip(HXSEL === k, `setHx('${esc(k)}')`, unitLabel(k))).join('')}</div>` : ''}`;
     if (!hx) {
       html += STATS[RANGE] === false
-        ? `<div style="font-size:.8rem;color:var(--muted)">Live calendar data is unavailable right now — try again shortly.</div>`
+        ? `<div style="font-size:.8rem;color:var(--muted)">Live calendar data is unavailable right now. Try again shortly.</div>`
         : `<div style="font-size:.8rem;color:var(--muted)">Loading live calendar data…</div>`;
     } else {
       const chTotal = Object.values(hx.channels || {}).reduce((a, b) => a + b, 0) || 1;
@@ -385,23 +385,23 @@ function render(d) {
         <div class="hxc"><div class="kl">Occupancy${qm('occ')}</div><div class="kv">${hx.occupancy_pct}<small>%</small></div><div class="kc">of available nights${hx.direct_nights ? ` · incl. ${hx.direct_nights} direct-rental night${hx.direct_nights > 1 ? 's' : ''}` : ''}${hx.owner_blocked ? ` · ${hx.owner_blocked} owner-stay night${hx.owner_blocked > 1 ? 's' : ''} excluded` : ''}</div></div>
         <div class="hxc"><div class="kl">Nights sold${qm('nights')}</div><div class="kv">${hx.nights_sold}</div><div class="kc">${RANGE === 'month' ? 'across the month' : 'across ' + esc(STATS[RANGE]?.label || '')}</div></div>
         <div class="hxc"><div class="kl">Reservations</div><div class="kv">${hx.reservations}</div><div class="kc">stays in the period</div></div>
-        <div class="hxc"><div class="kl">Net nightly rate${qm('adr')}</div><div class="kv" style="font-size:1.15rem;line-height:1.3">${hx.adr ? IDR(hx.adr) : '—'}</div><div class="kc">average, after platform fees</div></div>
+        <div class="hxc"><div class="kl">Net nightly rate${qm('adr')}</div><div class="kv" style="font-size:1.15rem;line-height:1.3">${hx.adr ? IDR(hx.adr) : '–'}</div><div class="kc">average, after platform fees</div></div>
       </div>
       ${tip('occ', 'Nights with a guest ÷ nights your villa was available for guests. Direct rentals recorded on your statement count as occupied even when they were arranged off the booking calendar; nights blocked for your own stays are excluded and never count against you.')}
-      ${tip('nights', 'Guest nights in this period — from the booking calendar plus direct rentals recorded on your statement (long-stay tenants are often arranged directly).')}
-      ${tip('adr', 'Average earned per booked night after the booking platforms\' own fees (Airbnb, Booking.com, …) — before Samba\'s management fee and villa costs.')}
+      ${tip('nights', 'Guest nights in this period: from the booking calendar plus direct rentals recorded on your statement (long-stay tenants are often arranged directly).')}
+      ${tip('adr', 'Average earned per booked night after the booking platforms\' own fees (Airbnb, Booking.com, …), before Samba\'s management fee and villa costs.')}
       ${Object.keys(hx.channels || {}).length ? `<div class="chmix">${Object.entries(hx.channels).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
         `<div class="chrow"><span>${esc(chLabel(k))}</span><span class="bar"><i style="width:${Math.round(v / chTotal * 100)}%"></i></span><span class="n">${v} nights</span></div>`).join('')}</div>` : ''}
-      ${RANGE !== 'month' ? `<div style="margin-top:12px;font-size:.68rem;color:var(--muted)">Live calendar data for ${esc(STATS[RANGE]?.label || '')} — unlike this statement's frozen figures, it updates as bookings land.</div>` : ''}
+      ${RANGE !== 'month' ? `<div style="margin-top:12px;font-size:.68rem;color:var(--muted)">Live calendar data for ${esc(STATS[RANGE]?.label || '')}. Unlike this statement's frozen figures, it updates as bookings land.</div>` : ''}
       ${RANGE === 'month' && bookings.reduce((a, b) => a + (Number(b.nights) || 0), 0) > (Number(d.hostex?.group?.nights_sold) || 0) * 1.2
-        ? `<div style="margin-top:12px;font-size:.68rem;color:var(--muted)">Long-stay rentals arranged directly (e.g. monthly tenants) may not appear in the booking calendar — the statement's booking lines above are the complete picture.</div>` : ''}`;
+        ? `<div style="margin-top:12px;font-size:.68rem;color:var(--muted)">Long-stay rentals arranged directly (e.g. monthly tenants) may not appear in the booking calendar. The statement's booking lines above are the complete picture.</div>` : ''}`;
     }
     // Forward outlook: what's already on the books for next month.
     const nx = STATS.next?.group;
     if (nx && nx.nights_sold > 0) {
       html += `<div style="margin-top:14px;background:var(--accent-soft);border-radius:11px;padding:13px 16px;font-size:.8rem;color:var(--text-2)">
-        <b style="color:var(--accent)">Coming up — ${esc(STATS.next.label)}:</b> ${nx.nights_sold} night${nx.nights_sold > 1 ? 's' : ''} already booked${nx.net ? ` · ≈ ${IDR(nx.net)} on the books` : ''}${nx.occupancy_pct ? ` (${nx.occupancy_pct}% so far)` : ''}${qm('outlook')}
-        ${tip('outlook', 'Confirmed future bookings already in the calendar for next month — live data that grows as new bookings land. Next month\'s statement will show the final numbers.')}</div>`;
+        <b style="color:var(--accent)">Coming up · ${esc(STATS.next.label)}:</b> ${nx.nights_sold} night${nx.nights_sold > 1 ? 's' : ''} already booked${nx.net ? ` · ≈ ${IDR(nx.net)} on the books` : ''}${nx.occupancy_pct ? ` (${nx.occupancy_pct}% so far)` : ''}${qm('outlook')}
+        ${tip('outlook', 'Confirmed future bookings already in the calendar for next month. Live data that grows as new bookings land. Next month\'s statement will show the final numbers.')}</div>`;
     }
     html += `</div>`;
   }
@@ -409,7 +409,7 @@ function render(d) {
   const token = (location.pathname.match(/\/st\/(.+)$/) || [])[1] || '';
   html += `<div class="foot">
     <div class="fmeta">Published ${esc(dstr(d.published_at))} · Samba Realty, Bali<br>Figures are final as published; later calendar changes don't alter this statement.</div>
-    <a href="/api/statements?action=export&token=${esc(token)}" style="display:inline-flex;align-items:center;gap:7px;background:var(--accent);color:#fff;text-decoration:none;border-radius:10px;padding:10px 16px;font-size:.8rem;font-weight:600">⬇ Download Excel (.xlsx)</a>
+    <a href="/api/statements?action=export&token=${esc(token)}" style="display:inline-flex;align-items:center;gap:7px;background:var(--accent);color:#fff;text-decoration:none;border-radius:10px;padding:10px 16px;font-size:.8rem;font-weight:600">Download Excel (.xlsx)</a>
   </div></div>`;
 
   document.getElementById('loading').style.display = 'none';

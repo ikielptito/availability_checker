@@ -797,7 +797,7 @@ async function enterPreview(tok){
   const gname=(statementGroupsCache[0]&&(statementGroupsCache[0].owner_names||statementGroupsCache[0].name))||'this owner';
   const bar=document.createElement('div');
   bar.style.cssText='position:sticky;top:0;z-index:1200;background:#1c1917;color:#fff;font-size:.78rem;padding:9px 16px;text-align:center';
-  bar.innerHTML=`👁 Previewing the owner portal as <b>${escapeHtml(gname)}</b> — read-only. Close this tab to exit.`;
+  bar.innerHTML=`Previewing the owner portal as <b>${escapeHtml(gname)}</b> · read-only. Close this tab to exit.`;
   document.body.prepend(bar);
   document.getElementById('tab-btn-statements').style.display='';
   showTab('statements');
@@ -1088,7 +1088,7 @@ function initStatements(){
           <div class="st-eyebrow">Samba Realty · managed</div>
           <div class="st-prop-name">${escapeHtml(g.name)}</div>
         </div>
-        ${rows.length?`<button class="st-xlsx" style="cursor:pointer;font-family:inherit;background:none" onclick="stDlOpen['${escapeHtml(g.key)}']=!stDlOpen['${escapeHtml(g.key)}'];initStatements()">⬇ Statements (.xlsx)</button>`:''}
+        ${rows.length?`<button class="st-xlsx" style="cursor:pointer;font-family:inherit;background:none" onclick="stDlOpen['${escapeHtml(g.key)}']=!stDlOpen['${escapeHtml(g.key)}'];initStatements()">Download statements (.xlsx)</button>`:''}
       </div>`;
 
     // Banking-style download: pick the months (or all), get one workbook.
