@@ -641,6 +641,11 @@ async function claimGroupListings(owner, groupKey, { kvGet, kvSet, crm }, { forc
   const owned = (await kvGet(`owner_listings:${owner.sub}`)) || [];
   const merged = [...new Set([...owned, ...slugs])];
   if (merged.length !== owned.length) await kvSet(`owner_listings:${owner.sub}`, merged);
+  // Tell Ikiel on Telegram: this is the moment their queued statements and
+  // maintenance requests become sendable. Best-effort, never blocks the claim.
+  crm('statement_owner_claimed', {
+    group_key: groupKey, owner_email: owner.email || null, owner_name: owner.name || null,
+  }).catch(() => {});
   return { status: 200, body: { ok: true, group: group.name, listings: slugs.map(s => UNITS_BY_SLUG[s].name) } };
 }
 
