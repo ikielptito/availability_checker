@@ -773,6 +773,15 @@ const server = http.createServer(async (req, res) => {
       const fakeReq = { method: 'GET', headers: req.headers, query: { statement: u.pathname.slice(4) }, body: null };
       return void await handlers['listing-page'].default(fakeReq, shimRes(res));
     }
+    // Dev-only: ?devpw=1 pre-seeds the admin password so headless captures
+    // (guide screenshots) can reach the logged-in cockpit. Never shipped.
+    if (u.pathname === '/payouts' && u.searchParams.get('devpw') === '1') {
+      const html = fs.readFileSync(path.join(ROOT, 'public', 'payouts.html'), 'utf8')
+        .replace('<script src="/shared.js"></script>',
+          `<script>sessionStorage.setItem('admin_pw', ${JSON.stringify(process.env.DASHBOARD_PASSWORD)});</script>\n<script src="/shared.js"></script>`);
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      return void res.end(html);
+    }
     // /m/<token> → listing-page in maintenance mode (matches vercel.json).
     if (u.pathname.startsWith('/m/')) {
       const fakeReq = { method: 'GET', headers: req.headers, query: { maintenance: u.pathname.slice(3) }, body: null };
