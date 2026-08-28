@@ -370,6 +370,25 @@ export default async function handler(req, res) {
         body: JSON.stringify({ action: 'statement_groups', payload: {} }),
       });
       if (check.status !== 200) return res.status(401).json({ error: 'Unauthorized' });
+      // ?scan=1 — list owner accounts (key, name, created) to identify who a
+      // confused sign-in actually created. Admin-gated; small keyspace.
+      if (req.query.scan === '1') {
+        const keys = [];
+        let cursor = '0';
+        for (let i = 0; i < 20; i++) {
+          const out = await kvCmd('SCAN', cursor, 'MATCH', 'owner:*', 'COUNT', '200');
+          if (!Array.isArray(out)) break;
+          cursor = String(out[0]);
+          keys.push(...(out[1] || []));
+          if (cursor === '0') break;
+        }
+        const owners = await Promise.all(keys.map(async (k) => {
+          const o = await kvGet(k);
+          return { key: k, name: o?.name || null, email: o?.email || null, wa: o?.wa || null, createdAt: o?.createdAt || null };
+        }));
+        owners.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+        return res.status(200).json({ count: owners.length, owners: owners.slice(0, 25) });
+      }
       const phone = String(req.query.phone || '').replace(/\D/g, '');
       const owner = await kvGet(`owner:wa:${phone}`);
       let groups = null, err = null;
