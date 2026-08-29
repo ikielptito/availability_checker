@@ -558,6 +558,12 @@ function exec(cmd) {
   }
 }
 
+// Seed one owned catalog unit so the admin's owner card has something real to
+// render (Rushika signed in with WhatsApp, so she has no email).
+store.set('owner:wa:61433733473', JSON.stringify({ sub: 'wa:61433733473', name: 'Rushika', wa: '61433733473', email: null }));
+store.set('listing:haus-5', JSON.stringify({ slug: 'haus-5', ownerSub: 'wa:61433733473', ownerEmail: null, reportContacts: [{ name: 'Co-owner', wa: '61400111222' }] }));
+store.set('owner_listings:wa:61433733473', JSON.stringify(['haus-5']));
+
 const HOSTEX_PROPS = [
   { id: 11621510, name: 'HAUS Canggu – Unit 1', property_type: 'Apartment', cover: { large_url: 'https://picsum.photos/seed/h1/400/300' } },
   { id: 11621511, name: 'HAUS Canggu – Unit 2', property_type: 'Apartment', cover: { large_url: 'https://picsum.photos/seed/h2/400/300' } },
@@ -690,7 +696,7 @@ globalThis.fetch = async (url, opts = {}) => {
   }
   if (u.includes('/api/listings')) {
     const res = shimRes();
-    await handlers.listings.default({ method: 'GET', headers: {}, query: {} }, res);
+    await handlers.listings.default({ method: 'GET', headers: req.headers, query: Object.fromEntries(u.searchParams), body: null }, res);
     return { ok: true, json: async () => res._data };
   }
   return realFetch(url, opts);
@@ -787,7 +793,7 @@ const server = http.createServer(async (req, res) => {
     }
     // Dev-only: ?devpw=1 pre-seeds the admin password so headless captures
     // (guide screenshots) can reach the logged-in cockpit. Never shipped.
-    if ((u.pathname === '/payouts' || u.pathname === '/campaigns') && u.searchParams.get('devpw') === '1') {
+    if (['/payouts', '/campaigns', '/admin'].includes(u.pathname) && u.searchParams.get('devpw') === '1') {
       const html = fs.readFileSync(path.join(ROOT, 'public', u.pathname.slice(1) + '.html'), 'utf8')
         .replace('<script src="/shared.js"></script>',
           `<script>sessionStorage.setItem('admin_pw', ${JSON.stringify(process.env.DASHBOARD_PASSWORD)});</script>\n<script src="/shared.js"></script>`);

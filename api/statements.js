@@ -444,13 +444,20 @@ export default async function handler(req, res) {
     // see) their statement groups? Auth: the caller's console key must be
     // accepted by the CRM (relayed check — the portal stores no console key).
     if (action === 'wa-owner-debug' || action === 'admin-claim' || action === 'admin-assign' || action === 'admin-release' || action === 'admin-delete-listing' || action === 'admin-invite-wa') {
-      const key = req.headers['x-console-key'] || '';
-      const check = await fetch(`${crmBase}/api/statements`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-console-key': String(key) },
-        body: JSON.stringify({ action: 'statement_groups', payload: {} }),
-      });
-      if (check.status !== 200) return res.status(401).json({ error: 'Unauthorized' });
+      // Two ways in: the admin panel's password (it has no console key), or a
+      // console key relayed to the CRM for command-line use.
+      const bearer = req.headers.authorization || '';
+      const byPassword = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD, process.env.STATEMENTS_ADMIN_PASSWORD]
+        .filter(Boolean).some(p => bearer === `Bearer ${p}`);
+      if (!byPassword) {
+        const key = req.headers['x-console-key'] || '';
+        const check = await fetch(`${crmBase}/api/statements`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-console-key': String(key) },
+          body: JSON.stringify({ action: 'statement_groups', payload: {} }),
+        });
+        if (check.status !== 200) return res.status(401).json({ error: 'Unauthorized' });
+      }
 
       // admin-claim: link a statement group's listings to an existing owner
       // account without the owner doing anything — the server-side equivalent

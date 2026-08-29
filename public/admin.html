@@ -60,6 +60,10 @@ body{font-family:'Satoshi',-apple-system,sans-serif;background:var(--bg);color:v
 .field-input:focus,.field-textarea:focus{border-color:var(--accent);}
 .field-textarea{line-height:1.5;}
 .field-hint{font-size:0.65rem;color:var(--muted);}
+.owner-card{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:4px;}
+.owner-card.empty{color:var(--muted);font-size:0.78rem;}
+.owner-who{font-size:0.86rem;font-weight:600;color:var(--text);}
+.owner-meta{font-size:0.7rem;color:var(--muted);margin-top:3px;}
 
 /* DRIVE PREVIEW / COVER PICKER */
 .drive-row{display:flex;gap:12px;align-items:flex-start;}
@@ -369,7 +373,7 @@ function renderVisitsTab(d) {
     <div class="section-head">
       <div><h2>Visits</h2><div class="hint">Viewing appointments Maya coordinates — confirmed slots get calendar invites both ways and a reminder on the day</div></div>
       <div style="display:flex;gap:10px">
-        ${d.ics_url ? `<button class="review-btn" onclick="navigator.clipboard.writeText('${d.ics_url}');showToast('Calendar URL copied — Google Calendar → Other calendars → + → From URL')">📅 Copy calendar URL</button>` : ''}
+        ${d.ics_url ? `<button class="review-btn" onclick="navigator.clipboard.writeText('${d.ics_url}');showToast('Calendar URL copied. Google Calendar → Other calendars → + → From URL')">Copy calendar URL</button>` : ''}
         <button class="review-btn" onclick="loadVisitsTab()">↻ Refresh</button>
       </div>
     </div>
@@ -430,7 +434,7 @@ function renderApprovalsTab(listings) {
   if (countEl) countEl.textContent = pending.length ? String(pending.length) : '';
   const head = `<div class="section-head"><div><h2>Pending approvals</h2><div class="hint">Owner-submitted listings awaiting review</div></div></div>`;
   if (!pending.length) {
-    document.getElementById('tab-approvals').innerHTML = head + '<div class="empty-hint">Nothing waiting for review. 🎉</div>';
+    document.getElementById('tab-approvals').innerHTML = head + '<div class="empty-hint">Nothing waiting for review.</div>';
     return;
   }
   document.getElementById('tab-approvals').innerHTML = head + pending.map(approvalCard).join('');
@@ -621,7 +625,7 @@ function listingItem(l) {
   const meta = [l.unitType, l.tag, price].filter(Boolean).join(' · ');
   const thumb = l.coverPhotoId
     ? `<img class="row-thumb" src="https://lh3.googleusercontent.com/d/${esc(l.coverPhotoId)}=w112-h112" loading="lazy" alt="" onerror="this.remove()">`
-    : `<div class="row-thumb empty">${l.folder ? '📷' : '–'}</div>`;
+    : `<div class="row-thumb empty">${l.folder ? '' : '–'}</div>`;
   // statusBadge only means something for custom listings — Hostex units can
   // carry ownerSub (claimed via the owner portal) but never have a status.
   const badges = (l.custom ? '<span class="custom-badge">custom</span>' + statusBadge(l) : '')
@@ -719,20 +723,37 @@ function defaultCard(l) {
             <label class="field-label">WhatsApp number</label>
             <input class="field-input xr-wa" value="${esc(rc.wa || '')}" placeholder="628…" />
           </div>
-          <button class="btn-ghost" style="align-self:end;margin-bottom:2px" onclick="this.closest('[data-xrow]').remove()">Remove</button>
+          <button type="button" class="review-btn" style="align-self:end;margin-bottom:2px" onclick="this.closest('[data-xrow]').remove()">Remove</button>
         </div>`).join('')}</div>
-      <button class="btn-ghost" onclick="addReportContact('${l.slug}')">+ Add another report recipient</button>
+      <button type="button" class="review-btn" onclick="addReportContact('${l.slug}')">+ Add another recipient</button>
 
       <div class="section-label">Owner portal access</div>
+      ${l.ownerSub ? `
+      <div class="owner-card">
+        <div>
+          <div class="owner-who">${esc((l.ownerAccount && l.ownerAccount.name) || l.ownerEmail || 'Linked account')}</div>
+          <div class="owner-meta">${esc([(l.ownerAccount && l.ownerAccount.email) || l.ownerEmail || '', (l.ownerAccount && l.ownerAccount.wa) ? 'WhatsApp ' + l.ownerAccount.wa : ''].filter(Boolean).join(' · ') || 'account linked')}</div>
+        </div>
+        <button type="button" class="review-btn reject" onclick="releaseOwner('${l.slug}')">Unassign</button>
+      </div>` : `
       <div class="field-row">
         <div class="field-group">
           <label class="field-label">Owner email <span class="field-hint">(listing appears in their portal after Google sign-in)</span></label>
           <input class="field-input" id="${l.slug}-ownerEmail" value="${esc(l.ownerEmail || '')}" placeholder="owner@example.com" />
         </div>
         <div class="field-group" style="display:flex;align-items:flex-end">
-          <button type="button" class="review-btn" onclick="assignOwner('${l.slug}')">Assign owner</button>
+          <button type="button" class="review-btn" onclick="assignOwner('${l.slug}')">Assign by email</button>
         </div>
       </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Or invite by WhatsApp <span class="field-hint">(Maya sends a link; tapping it creates their account with this villa already linked)</span></label>
+          <input class="field-input" id="${l.slug}-ownerWaInvite" placeholder="6281234567890" />
+        </div>
+        <div class="field-group" style="display:flex;align-items:flex-end">
+          <button type="button" class="review-btn" onclick="inviteOwnerWa('${l.slug}')">Send invite</button>
+        </div>
+      </div>`}
 
       <div class="section-label">Photos</div>
       <div class="field-group">
@@ -935,9 +956,19 @@ function customCard(l, isNew) {
             <label class="field-label">WhatsApp number</label>
             <input class="field-input xr-wa" value="${esc(rc.wa || '')}" placeholder="628…" />
           </div>
-          <button class="btn-ghost" style="align-self:end;margin-bottom:2px" onclick="this.closest('[data-xrow]').remove()">Remove</button>
+          <button type="button" class="review-btn" style="align-self:end;margin-bottom:2px" onclick="this.closest('[data-xrow]').remove()">Remove</button>
         </div>`).join('')}</div>
-      <button class="btn-ghost" onclick="addReportContact('${slug}')">+ Add another report recipient</button>
+      <button type="button" class="review-btn" onclick="addReportContact('${slug}')">+ Add another recipient</button>
+
+      <div class="section-label">Owner</div>
+      ${l.ownerSub ? `
+      <div class="owner-card">
+        <div>
+          <div class="owner-who">${esc((l.ownerAccount && l.ownerAccount.name) || l.ownerEmail || 'Linked account')}</div>
+          <div class="owner-meta">${esc([(l.ownerAccount && l.ownerAccount.email) || l.ownerEmail || '', (l.ownerAccount && l.ownerAccount.wa) ? 'WhatsApp ' + l.ownerAccount.wa : ''].filter(Boolean).join(' · ') || 'account linked')}</div>
+        </div>
+        <button type="button" class="review-btn reject" onclick="releaseOwner('${slug}')">Unassign</button>
+      </div>` : `<div class="owner-card empty">No owner account linked yet.</div>`}
 
       <div class="section-label">Photos</div>
       <div class="field-group">
@@ -1143,7 +1174,7 @@ function addReportContact(slug) {
     + '<input class="field-input xr-name" placeholder="e.g. co-owner, manager" /></div>'
     + '<div class="field-group"><label class="field-label">WhatsApp number</label>'
     + '<input class="field-input xr-wa" placeholder="628…" /></div>'
-    + '<button class="btn-ghost" style="align-self:end;margin-bottom:2px" onclick="this.closest(\'[data-xrow]\').remove()">Remove</button>';
+    + '<button type="button" class="review-btn" style="align-self:end;margin-bottom:2px" onclick="this.closest(\'[data-xrow]\').remove()">Remove</button>';
   box.appendChild(row);
 }
 
@@ -1613,6 +1644,36 @@ document.addEventListener('pointerup', () => { coverDrag = null; });
 // Assign (or clear) the portal owner of a Hostex catalog unit. The listing
 // shows up in that owner's portal after they sign in with the matching
 // Google account. Uses the same assign-owner action custom listings use.
+
+// Hand a villa to its owner with nothing but a WhatsApp number: Maya sends a
+// link, and tapping it creates their account with this listing already
+// attached. Owners never see an empty portal and never re-list their villa.
+async function inviteOwnerWa(slug) {
+  const el = document.getElementById(slug + '-ownerWaInvite');
+  const phone = (el?.value || '').replace(/[^0-9]/g, '');
+  if (phone.length < 8) { showToast('Enter the full number with country code', 'error'); return; }
+  try {
+    const r = await fetch(`/api/statements?action=admin-invite-wa&slug=${encodeURIComponent(slug)}&phone=${encodeURIComponent(phone)}`, {
+      headers: { Authorization: 'Bearer ' + adminPw },
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    showToast('Invite sent on WhatsApp. It works for 7 days.', 'success');
+  } catch (e) { showToast(e.message, 'error'); }
+}
+async function releaseOwner(slug) {
+  if (!confirm('Unassign this owner? The listing goes back to unclaimed and their invite will work again.')) return;
+  try {
+    const r = await fetch(`/api/statements?action=admin-release&slug=${encodeURIComponent(slug)}`, {
+      headers: { Authorization: 'Bearer ' + adminPw },
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    showToast('Owner unassigned', 'success');
+    loadListings();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
 async function assignOwner(slug) {
   const ownerEmail = document.getElementById(slug + '-ownerEmail').value.trim();
   try {

@@ -209,6 +209,18 @@ export default async function handler(req, res) {
       const customListings = customAll.map(c => ({ ...c, custom: true }));
       const out = [...listings, ...customListings];
       await fillCovers(out);
+      // Resolve the holding account so the admin can see WHO owns a listing,
+      // not just an empty email box. Owners who signed in with WhatsApp have
+      // no email at all, so the sub is the only link back to a person.
+      const subs = [...new Set(out.map(l => l.ownerSub).filter(Boolean))];
+      if (subs.length) {
+        const accounts = {};
+        await Promise.all(subs.map(async (sub) => {
+          const o = await kvGet(`owner:${sub}`);
+          if (o) accounts[sub] = { name: o.name || null, email: o.email || null, wa: o.wa || null };
+        }));
+        for (const l of out) if (l.ownerSub && accounts[l.ownerSub]) l.ownerAccount = accounts[l.ownerSub];
+      }
       return res.status(200).json({ listings: out });
     }
 
