@@ -1101,6 +1101,11 @@ async function saveProperty(req, res, owner, { kvGet, kvSet, kvDel }) {
     if (data.waContactName !== undefined) override.waContactName = cleanStr(data.waContactName);
     if (data.reportContactName !== undefined) override.reportContactName = cleanStr(data.reportContactName);
     if (data.reportWaNumber !== undefined) override.reportWaNumber = cleanStr(data.reportWaNumber).replace(/[^0-9]/g, '');
+    if (Array.isArray(data.reportContacts)) {
+      override.reportContacts = data.reportContacts
+        .map(x => ({ name: cleanStr(x && x.name).slice(0, 60), wa: cleanStr(x && x.wa).replace(/[^0-9]/g, '') }))
+        .filter(x => x.wa).slice(0, 5);
+    }
     override.updatedAt = Date.now();
     await kvSet(`listing:${hostexSlug}`, override);
     return res.status(200).json({ ok: true, slug: hostexSlug, status: 'live', hostex: true });
@@ -1337,6 +1342,9 @@ function buildOwnerListing(slug, data, existing, ownerSub, status) {
     // waNumber (often a manager). Both receive Maya's weekly report.
     reportContactName: data.reportContactName !== undefined ? cleanStr(data.reportContactName) : (existing?.reportContactName || ''),
     reportWaNumber: data.reportWaNumber !== undefined ? cleanStr(data.reportWaNumber).replace(/[^0-9]/g, '') : (existing?.reportWaNumber || ''),
+    reportContacts: Array.isArray(data.reportContacts)
+      ? data.reportContacts.map(x => ({ name: cleanStr(x && x.name).slice(0, 60), wa: cleanStr(x && x.wa).replace(/[^0-9]/g, '') })).filter(x => x.wa).slice(0, 5)
+      : (existing?.reportContacts || []),
     bedrooms: bed || existing?.bedrooms || undefined,
     bathrooms: bath || existing?.bathrooms || undefined,
     // Provided → use it (availability can now come in with an intake);

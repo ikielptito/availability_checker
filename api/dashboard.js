@@ -613,11 +613,21 @@ async function handleOwnerSync(req, res) {
       if (waNumber) {
         owners.push({ ...base, waNumber, waContactName: c.waContactName || '', role: 'ops' });
       }
-      if (reportWa && reportWa !== waNumber) {
+      // Weekly reports can go to several people (owner + spouse + manager).
+      // Legacy single fields are treated as the first entry.
+      const extra = Array.isArray(c.reportContacts) ? c.reportContacts : [];
+      const contacts = [
+        { name: c.reportContactName || '', wa: reportWa },
+        ...extra.map(x => ({ name: (x && x.name) || '', wa: normalizeWaNumber(x && x.wa) })),
+      ];
+      const seen = new Set([waNumber].filter(Boolean));
+      for (const ct of contacts) {
+        if (!ct.wa || seen.has(ct.wa)) continue;
+        seen.add(ct.wa);
         owners.push({
-          ...base, waNumber: reportWa,
-          waContactName: c.reportContactName || '',
-          ownerName: c.reportContactName || base.ownerName,
+          ...base, waNumber: ct.wa,
+          waContactName: ct.name || '',
+          ownerName: ct.name || base.ownerName,
           role: 'report',
         });
       }

@@ -148,7 +148,7 @@ export default async function handler(req, res) {
       // the group registry so the portal greets "Romina & Tim", not a number.
       const sub = `wa:${phone}`;
       const existing = await kvGet(`owner:${sub}`);
-      let name = existing?.name || null;
+      let name = existing?.name || rec.name || null;
       if (!name) {
         const groupsRes = await crm('statement_groups', {});
         const g = (groupsRes.body?.groups || []).find(x => (x.owner_wa_nums || []).some(n => String(n).replace(/\D/g, '') === phone));
@@ -172,6 +172,27 @@ export default async function handler(req, res) {
       // group's listings now, server-side. A failed claim (e.g. another
       // account already holds a unit) never blocks the sign-in itself.
       let claimed = null;
+      // Invited to one specific villa (admin assigned it by WhatsApp number).
+      if (rec.listing) {
+        try {
+          const cur = (await kvGet(`listing:${rec.listing}`)) || {};
+          const custom = UNITS_BY_SLUG[rec.listing] ? null : ((await kvGet('custom_properties')) || {});
+          const held = UNITS_BY_SLUG[rec.listing] ? cur.ownerSub : custom?.[rec.listing]?.ownerSub;
+          if (!held || held === sub) {
+            if (UNITS_BY_SLUG[rec.listing]) {
+              await kvSet(`listing:${rec.listing}`, { ...cur, slug: rec.listing, ownerSub: sub, updatedAt: Date.now() });
+              claimed = UNITS_BY_SLUG[rec.listing].name;
+            } else {
+              custom[rec.listing].ownerSub = sub;
+              custom[rec.listing].updatedAt = Date.now();
+              await kvSet('custom_properties', custom);
+              claimed = custom[rec.listing].name || rec.listing;
+            }
+            const owned = (await kvGet(`owner_listings:${sub}`)) || [];
+            if (!owned.includes(rec.listing)) await kvSet(`owner_listings:${sub}`, [...owned, rec.listing]);
+          }
+        } catch { /* sign-in proceeds regardless */ }
+      }
       if (rec.invite) {
         try {
           const out = await claimGroupListings(owner, rec.invite, { kvGet, kvSet, crm });
@@ -422,7 +443,7 @@ export default async function handler(req, res) {
     // ── Admin diagnostic: why does a WhatsApp-signed-in owner see (or not
     // see) their statement groups? Auth: the caller's console key must be
     // accepted by the CRM (relayed check — the portal stores no console key).
-    if (action === 'wa-owner-debug' || action === 'admin-claim' || action === 'admin-assign' || action === 'admin-release' || action === 'admin-delete-listing') {
+    if (action === 'wa-owner-debug' || action === 'admin-claim' || action === 'admin-assign' || action === 'admin-release' || action === 'admin-delete-listing' || action === 'admin-invite-wa') {
       const key = req.headers['x-console-key'] || '';
       const check = await fetch(`${crmBase}/api/statements`, {
         method: 'POST',
@@ -497,6 +518,28 @@ export default async function handler(req, res) {
           if (kept.length !== owned.length) await kvSet(`owner_listings:${prevSub}`, kept);
         }
         return res.status(200).json({ ok: true, slug, released_from: prevSub });
+      }
+
+      // admin-invite-wa: hand a villa to its owner using nothing but their
+      // WhatsApp number. Maya sends the tap-to-open link; the account is
+      // created and the listing linked in one step, so the owner never sees
+      // an empty portal and never has to be told which button to press.
+      if (action === 'admin-invite-wa') {
+        const slug = String(req.query.slug || '');
+        const phone = String(req.query.phone || '').replace(/\D/g, '').replace(/^0+/, '');
+        const name = String(req.query.name || '').slice(0, 60);
+        if (!slug || phone.length < 8) return res.status(400).json({ error: 'slug and a full phone number are required' });
+        const isCatalog = !!UNITS_BY_SLUG[slug];
+        if (!isCatalog) {
+          const all = (await kvGet('custom_properties')) || {};
+          if (!all[slug]) return res.status(404).json({ error: 'Unknown listing slug' });
+        }
+        const tok = crypto.randomBytes(16).toString('hex');
+        await kvCmd('SET', `walogin:${tok}`,
+          JSON.stringify({ phone, listing: slug, name, exp: Date.now() + 7 * 24 * 3600 * 1000 }), 'EX', 7 * 24 * 3600);
+        const sendRes = await crm('statement_wa_login_code', { wa_num: phone, token: tok, allow_unregistered: true });
+        if (sendRes.status !== 200) return res.status(502).json({ error: sendRes.body?.error || 'Could not send the invite' });
+        return res.status(200).json({ ok: true, slug, phone, link: `https://sambarentals.com/portal?wa_login=${tok}` });
       }
 
       // admin-delete-listing: remove an owner-submitted listing (a duplicate

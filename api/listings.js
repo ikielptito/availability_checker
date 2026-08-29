@@ -491,6 +491,9 @@ export default async function handler(req, res) {
         // Dedicated weekly-report contact (usually the owner when waNumber is
         // a manager). Maya's weekly report goes to BOTH numbers when they differ.
         reportContactName: cleanStr(data.reportContactName),
+        reportContacts: Array.isArray(data.reportContacts)
+          ? data.reportContacts.map(x => ({ name: cleanStr(x && x.name).slice(0, 60), wa: cleanStr(x && x.wa).replace(/[^0-9]/g, '') })).filter(x => x.wa).slice(0, 5)
+          : [],
         reportWaNumber: cleanStr(data.reportWaNumber).replace(/[^0-9]/g, ''),
         bookedRanges: Array.isArray(data.bookedRanges) ? cleanRanges(data.bookedRanges) : existing.bookedRanges || [],
         hidden: !!data.hidden,
@@ -549,6 +552,11 @@ export default async function handler(req, res) {
       waContactName: typeof data.waContactName === 'string' ? data.waContactName.trim() : existing.waContactName || '',
       // Dedicated weekly-report contact — see the custom branch above.
       reportContactName: typeof data.reportContactName === 'string' ? data.reportContactName.trim() : existing.reportContactName || '',
+      reportContacts: Array.isArray(data.reportContacts)
+        ? data.reportContacts
+            .map(x => ({ name: cleanStr(x && x.name).slice(0, 60), wa: cleanStr(x && x.wa).replace(/[^0-9]/g, '') }))
+            .filter(x => x.wa).slice(0, 5)
+        : (existing.reportContacts || []),
       reportWaNumber: typeof data.reportWaNumber === 'string' ? data.reportWaNumber.replace(/[^0-9]/g, '') : existing.reportWaNumber || '',
       // Ownership fields are set by assign-owner + the portal claim flow —
       // carried over verbatim so an admin content edit can never wipe them

@@ -709,6 +709,19 @@ function defaultCard(l) {
           <input class="field-input" id="${l.slug}-reportWaNumber" value="${esc(l.reportWaNumber || '')}" placeholder="628…" />
         </div>
       </div>
+      <div id="${l.slug}-extra-contacts">${(l.reportContacts || []).map((rc, i) => `
+        <div class="field-row" data-xrow="${i}">
+          <div class="field-group">
+            <label class="field-label">Also send to (name)</label>
+            <input class="field-input xr-name" value="${esc(rc.name || '')}" placeholder="e.g. co-owner, manager" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">WhatsApp number</label>
+            <input class="field-input xr-wa" value="${esc(rc.wa || '')}" placeholder="628…" />
+          </div>
+          <button class="btn-ghost" style="align-self:end;margin-bottom:2px" onclick="this.closest('[data-xrow]').remove()">Remove</button>
+        </div>`).join('')}</div>
+      <button class="btn-ghost" onclick="addReportContact('${l.slug}')">+ Add another report recipient</button>
 
       <div class="section-label">Owner portal access</div>
       <div class="field-row">
@@ -912,6 +925,19 @@ function customCard(l, isNew) {
           <input class="field-input" id="${slug}-reportWaNumber" value="${esc(l.reportWaNumber || '')}" placeholder="628…" />
         </div>
       </div>
+      <div id="${slug}-extra-contacts">${(l.reportContacts || []).map((rc, i) => `
+        <div class="field-row" data-xrow="${i}">
+          <div class="field-group">
+            <label class="field-label">Also send to (name)</label>
+            <input class="field-input xr-name" value="${esc(rc.name || '')}" placeholder="e.g. co-owner, manager" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">WhatsApp number</label>
+            <input class="field-input xr-wa" value="${esc(rc.wa || '')}" placeholder="628…" />
+          </div>
+          <button class="btn-ghost" style="align-self:end;margin-bottom:2px" onclick="this.closest('[data-xrow]').remove()">Remove</button>
+        </div>`).join('')}</div>
+      <button class="btn-ghost" onclick="addReportContact('${slug}')">+ Add another report recipient</button>
 
       <div class="section-label">Photos</div>
       <div class="field-group">
@@ -1094,6 +1120,33 @@ function kebab(s) {
   return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 }
 
+
+// Weekly reports can go to more than one person (owner + co-owner + manager).
+// Each row becomes its own recipient; the CRM already groups by number.
+function readReportContacts(slug) {
+  const box = document.getElementById(slug + '-extra-contacts');
+  if (!box) return [];
+  return [...box.querySelectorAll('[data-xrow]')].map(r => ({
+    name: (r.querySelector('.xr-name')?.value || '').trim(),
+    wa: (r.querySelector('.xr-wa')?.value || '').replace(/[^0-9]/g, ''),
+  })).filter(c => c.wa).slice(0, 5);
+}
+function addReportContact(slug) {
+  const box = document.getElementById(slug + '-extra-contacts');
+  if (!box) return;
+  if (box.querySelectorAll('[data-xrow]').length >= 4) return;
+  const i = Date.now();
+  const row = document.createElement('div');
+  row.className = 'field-row';
+  row.setAttribute('data-xrow', String(i));
+  row.innerHTML = '<div class="field-group"><label class="field-label">Also send to (name)</label>'
+    + '<input class="field-input xr-name" placeholder="e.g. co-owner, manager" /></div>'
+    + '<div class="field-group"><label class="field-label">WhatsApp number</label>'
+    + '<input class="field-input xr-wa" placeholder="628…" /></div>'
+    + '<button class="btn-ghost" style="align-self:end;margin-bottom:2px" onclick="this.closest(\'[data-xrow]\').remove()">Remove</button>';
+  box.appendChild(row);
+}
+
 function parseRanges(text) {
   const out = [];
   text.split('\n').forEach(line => {
@@ -1135,6 +1188,7 @@ async function saveCustom(cardSlug, isNew) {
     waNumber: document.getElementById(cardSlug + '-waNumber').value,
     reportContactName: document.getElementById(cardSlug + '-reportContactName').value,
     reportWaNumber: document.getElementById(cardSlug + '-reportWaNumber').value,
+    reportContacts: readReportContacts(cardSlug),
     bookedRanges: parseRanges(document.getElementById(cardSlug + '-ranges').value),
     icalUrl: document.getElementById(cardSlug + '-icalUrl').value.trim(),
     coverPhotoId: document.getElementById(cardSlug + '-coverPhotoId').value,
