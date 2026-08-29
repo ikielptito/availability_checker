@@ -11,7 +11,7 @@
 //   POST { action: 'decide' }       approve/decline, authorised by that same
 //     signed token OR by the owner's session.
 
-import { verifyMaintenanceToken, verifyPreviewToken } from '../lib/tokens.js';
+import { verifyMaintenanceToken, verifyPreviewToken, verifyTukangToken } from '../lib/tokens.js';
 import { UNITS_BY_SLUG } from '../lib/catalog.js';
 import { loadHostexOwnerMap } from '../lib/owner-listings.js';
 
@@ -119,6 +119,18 @@ export default async function handler(req, res) {
       const parsed = verifyMaintenanceToken(req.query.token || '');
       if (!parsed) return res.status(403).json({ error: 'Invalid maintenance link' });
       const { status, body } = await crm('maint_public', { group_key: parsed.groupKey, item_id: parsed.id });
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(status).json(body);
+    }
+
+    // ── The tukang's job sheet, /j/<token> ──────────────────────────
+    // Read-only by design. The owner's /m/ link can approve spending; this
+    // one can do nothing but show the tradesman what he is being asked to
+    // fix, so a forwarded link is harmless.
+    if (action === 'job') {
+      const itemId = verifyTukangToken(req.query.token || '');
+      if (!itemId) return res.status(403).json({ error: 'Link tidak berlaku' });
+      const { status, body } = await crm('maint_job', { item_id: itemId });
       res.setHeader('Cache-Control', 'no-store');
       return res.status(status).json(body);
     }

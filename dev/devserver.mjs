@@ -42,7 +42,7 @@ const mockCampaigns = [
 ];
 const mockSettings = { enabled: true, test_agents_only: false, intro_sweep_daily_cap: 0, account_invite_daily_cap: 0, viewings_announce_daily_cap: 0, carousel_enabled: true };
 
-import { maintenanceToken } from '../lib/tokens.js';
+import { maintenanceToken, tukangToken } from '../lib/tokens.js';
 
 // ── mock Maintenance engine (kaya-agent-crm /api/maintenance) ────────
 let mockMaintId = 40;
@@ -70,10 +70,169 @@ const mockMaint = [
     created_at: dayISO(20), published_at: dayISO(19), notified_at: dayISO(19), completed_at: dayISO(12),
     completion_note: 'Filters cleaned on both units.', done_notified_at: dayISO(12), thread: [], followup_count: 1 },
 ];
+// ── mock Staff registry (kaya-agent-crm /api/staff) ──────────────────
+// Deliberately seeded a person short of full coverage: haus-1 and the
+// Tropicana A units have no housekeeper here, so the coverage warning in
+// the Team tab is visible offline instead of only in production.
+let mockStaffId = 8;
+const mockStaff = [
+  { id: 1, name: 'Gede Baglug', wa_num: '6285847163053', roles: ['housekeeper'], trades: [], slugs: ['tropicana-b2', 'tropicana-b3', 'tropicana-b5', 'tropicana-b6'], pay_type: 'salaried', monthly_rate: null, can_report: true, active: true, notes: null },
+  { id: 2, name: 'Naomi', wa_num: '6282341079324', roles: ['housekeeper'], trades: [], slugs: ['villa-saturno'], pay_type: 'salaried', monthly_rate: null, can_report: true, active: true, notes: null },
+  { id: 3, name: 'Ita', wa_num: '6285704892074', roles: ['housekeeper'], trades: [], slugs: ['tropicana-b4'], pay_type: 'salaried', monthly_rate: null, can_report: true, active: true, notes: null },
+  { id: 4, name: 'Ana', wa_num: '6281237692282', roles: ['housekeeper'], trades: [], slugs: ['lanehaus-1', 'lanehaus-3'], pay_type: 'salaried', monthly_rate: null, can_report: true, active: true, notes: null },
+  { id: 5, name: 'Putu', wa_num: '6287862135047', roles: ['housekeeper'], trades: [], slugs: ['haus-2', 'haus-4', 'haus-5'], pay_type: 'salaried', monthly_rate: null, can_report: true, active: true, notes: null },
+  { id: 6, name: 'Dian', wa_num: '6281236744565', roles: ['pool', 'tukang'], trades: ['pool', 'plumbing', 'electrical', 'paint'], slugs: [], pay_type: 'salaried', monthly_rate: null, can_report: true, active: true, notes: 'Pool across the portfolio; also plumbing, small electrical and paint touch-ups.' },
+  { id: 7, name: 'Wayan', wa_num: '6282236164194', roles: ['pool'], trades: ['pool'], slugs: ['villa-saturno', 'astanine'], pay_type: 'salaried', monthly_rate: null, can_report: true, active: true, notes: null },
+  { id: 8, name: 'BTC Electric', wa_num: '6282339711019', roles: ['tukang'], trades: ['aircon', 'electrical'], slugs: [], pay_type: 'per_job', monthly_rate: null, can_report: true, active: true, notes: 'Buana Teknik Chiamando. Vendor, invoiced per job, never on payroll.' },
+];
+function mockStaffApi({ action, payload = {} }) {
+  // Mirrors normalizeWa in the CRM's lib/staff.js, so the "0813…" duplicate
+  // case is reproducible offline.
+  const digits = (s) => {
+    const d = String(s || '').replace(/\D/g, '');
+    if (!d) return '';
+    if (d.startsWith('620')) return '62' + d.slice(3);
+    if (d.startsWith('0')) return '62' + d.slice(1);
+    if (/^8(1|2|3|7|9)\d{8,10}$/.test(d)) return '62' + d;
+    return d;
+  };
+  if (action === 'staff_list') {
+    let out = mockStaff.filter(s => !payload.active_only || s.active);
+    if (payload.role) out = out.filter(s => (s.roles || []).includes(payload.role));
+    return { status: 200, body: { staff: out } };
+  }
+  if (action === 'staff_upsert') {
+    const id = payload.id ? +payload.id : null;
+    const wa = digits(payload.wa_num);
+    let row = id ? mockStaff.find(s => s.id === id) : mockStaff.find(s => s.wa_num === wa);
+    const merged = !id && !!row;
+    const previousName = merged ? row.name : null;
+    if (!row) {
+      if (!payload.name) return { status: 500, body: { error: 'Name is required' } };
+      if (wa.length < 9) return { status: 500, body: { error: 'That WhatsApp number looks too short' } };
+      row = { id: ++mockStaffId, can_report: true, active: true, monthly_rate: null, notes: null };
+      mockStaff.push(row);
+    }
+    for (const k of ['name', 'roles', 'trades', 'slugs', 'pay_type', 'notes']) {
+      if (payload[k] == null) continue;
+      // On a merge, lists are unioned: a blank quick-add form must not wipe
+      // the villas someone is already assigned to.
+      row[k] = merged && Array.isArray(payload[k])
+        ? [...new Set([...(row[k] || []), ...payload[k]])]
+        : payload[k];
+    }
+    if (wa) row.wa_num = wa;
+    if (payload.active != null) row.active = !!payload.active;
+    return { status: 200, body: { ok: true, created: !id && !merged, merged, previous_name: previousName, staff: row } };
+  }
+  if (action === 'staff_deactivate') {
+    const row = mockStaff.find(s => s.id === +payload.id);
+    if (row) row.active = false;
+    return { status: 200, body: { ok: true, staff: row || null } };
+  }
+  if (action === 'staff_for_slug') {
+    const staff = mockStaff.filter(s => s.active
+      && (!payload.role || (s.roles || []).includes(payload.role))
+      && (!(s.slugs || []).length || (s.slugs || []).includes(payload.slug)));
+    return { status: 200, body: { staff } };
+  }
+  return { status: 400, body: { error: `Unknown action: ${action}` } };
+}
+
+// ── mock Housekeeping (kaya-agent-crm /api/housekeeping) ─────────────
+// The schedule is derived with the REAL planTasks rules against a fake
+// calendar, so what renders offline is what production would produce rather
+// than a hand-written list that can drift from the scheduler.
+import { planTasks } from '../../kaya-agent-crm/lib/housekeeping.js';
+import { UNITS as CATALOG_UNITS } from '../lib/catalog.js';
+
+const hkToday = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+const hkPlus = (d, n) => new Date(Date.parse(d) + n * 86400e3).toISOString().slice(0, 10);
+let mockHkTasks = null;
+let mockHkId = 0;
+
+function mockHkBuild() {
+  const today = hkToday();
+  const stay = (ci, co, vac = null) => ({
+    check_in: ci, check_out: co,
+    nights: Math.round((Date.parse(co) - Date.parse(ci)) / 86400e3),
+    vacant_days_before: vac,
+  });
+  // A portfolio with one of each situation, so every rule shows up.
+  const units = [
+    { slug: 'haus-1', stays: [stay(hkPlus(today, -40), hkPlus(today, 2))] },            // leaving soon
+    { slug: 'haus-2', stays: [stay(hkPlus(today, -5), hkPlus(today, 40))] },            // long tenancy
+    { slug: 'haus-4', stays: [stay(hkPlus(today, -60), hkPlus(today, -30)),
+                              stay(hkPlus(today, 3), hkPlus(today, 60), 33)] },         // arriving after a gap
+    { slug: 'villa-saturno', stays: [stay(hkPlus(today, -50), hkPlus(today, -25))] },   // empty a while
+    { slug: 'tropicana-b4', stays: [] },                                                // never booked
+  ];
+  const planned = planTasks({ today, units, lastInspection: { 'haus-2': hkPlus(today, -6) } });
+  const cover = (slug) => mockStaff.find(s => s.active && (s.roles || []).includes('housekeeper') && (s.slugs || []).includes(slug));
+  return planned.map(t => {
+    const who = cover(t.slug);
+    return {
+      id: ++mockHkId, slug: t.slug, task_date: t.task_date, kind: t.kind,
+      status: t.task_date < hkToday() ? 'done' : 'planned',
+      assigned_staff_id: who?.id ?? null, staff: who || null,
+      same_day: !!t.same_day, guest_out_date: t.guest_out_date ?? null,
+      guest_in_date: t.guest_in_date ?? null, notified_at: null, notes: null, photos: [],
+    };
+  });
+}
+
+function mockHousekeepingApi({ action, payload = {} }) {
+  if (!mockHkTasks) mockHkTasks = mockHkBuild();
+  const names = Object.fromEntries(CATALOG_UNITS.map(u => [u.slug, u.name.replace(/\s*[–—]\s*/g, ' · ')]));
+  if (action === 'hk_schedule') {
+    const today = hkToday();
+    // Sorted the way PostgREST's order=task_date.asc,slug.asc returns it.
+    const tasks = mockHkTasks
+      .map(t => ({ ...t, staff: t.assigned_staff_id ? mockStaff.find(s => s.id === t.assigned_staff_id) || null : null }))
+      .sort((a, b) => a.task_date.localeCompare(b.task_date) || a.slug.localeCompare(b.slug));
+    return { status: 200, body: { from: today, to: hkPlus(today, 21), today, tasks, names,
+      unassigned: tasks.filter(t => !t.assigned_staff_id).length } };
+  }
+  if (action === 'hk_generate') {
+    const before = mockHkTasks.length;
+    mockHkTasks = mockHkBuild();
+    return { status: 200, body: { planned: mockHkTasks.length, created: Math.max(0, mockHkTasks.length - before), today: hkToday() } };
+  }
+  if (action === 'hk_patch') {
+    const t = mockHkTasks.find(x => x.id === +payload.id);
+    if (t) Object.assign(t, payload.fields || {});
+    return { status: 200, body: { ok: true, task: t || null } };
+  }
+  if (action === 'hk_status') {
+    const t = mockHkTasks.find(x => x.id === +payload.id);
+    if (t) t.status = payload.status;
+    return { status: 200, body: { ok: true } };
+  }
+  if (action === 'hk_inspections') return { status: 200, body: { inspections: [] } };
+  if (action === 'hk_owner_inspection') {
+    // One villa deliberately has no round this week, so the report renders
+    // correctly both with and without the section.
+    if (payload.slug === 'haus-1') return { status: 200, body: { inspection: null } };
+    return { status: 200, body: { inspection: {
+      inspected_on: hkPlus(hkToday(), -2),
+      findings: null,
+      photo_urls: ['a', 'b', 'c', 'd'].map(s => `https://picsum.photos/seed/insp-${payload.slug}-${s}/600/450`),
+      photo_count: 6,
+      repairs: payload.slug === 'villa-saturno' ? [
+        { title: 'Damp patch on the guest bedroom ceiling', status: 'pending_approval', cost: 1800000, currency: 'IDR' },
+        { title: 'Cracked tile by the pool steps', status: 'done', cost: 450000, currency: 'IDR' },
+      ] : [],
+    } } };
+  }
+  return { status: 400, body: { error: `Unknown action: ${action}` } };
+}
+
 function mockMaintenanceApi({ action, payload = {} }) {
   const find = (id) => mockMaint.find(m => m.id === +id);
   const withGroup = (m) => ({ ...m, statement_groups: mockGroups.find(g => g.key === m.group_key) || null,
-    token: maintenanceToken(m.group_key, m.id) });
+    staff: m.assigned_staff_id ? mockStaff.find(s => s.id === m.assigned_staff_id) || null : null,
+    token: maintenanceToken(m.group_key, m.id),
+    job_token: m.assigned_staff_id ? tukangToken(m.id) : null });
   const urls = (m) => (m.photos || []).map((_, i) => `https://picsum.photos/seed/m${m.id}-${i}/600/450`);
 
   if (action === 'maint_list') {
@@ -97,6 +256,53 @@ function mockMaintenanceApi({ action, payload = {} }) {
     const m = find(payload.id);
     if (m) m.photos = [...(m.photos || []), `${payload.id}/${Date.now()}.jpg`];
     return { status: 200, body: { ok: true } };
+  }
+  // ── Tukang dispatch ─────────────────────────────────────────────
+  if (action === 'maint_assign') {
+    const m = find(payload.id); if (!m) return { status: 404, body: { error: 'item not found' } };
+    if (!['approved', 'scheduled'].includes(m.status)) {
+      return { status: 500, body: { error: `only approved work can be assigned (this one is ${m.status})` } };
+    }
+    const s = mockStaff.find(x => x.id === +payload.staff_id);
+    if (!s) return { status: 500, body: { error: 'no such person in the team register' } };
+    Object.assign(m, {
+      assigned_staff_id: s.id, assigned_at: new Date().toISOString(), visit_status: 'offered',
+      visit_at: null, tukang_notified_at: null, tukang_replied_at: null, visit_reminded_at: null,
+      arrival_check_at: null, completion_check_at: null, era_dispatch_update_at: null, era_dispatch_state: null,
+    });
+    m.thread = [...(m.thread || []), { at: new Date().toISOString(), who: payload.actor || 'admin', text: `Assigned to ${s.name}` }];
+    return { status: 200, body: { ok: true, staff: s } };
+  }
+  if (action === 'maint_unassign') {
+    const m = find(payload.id); if (!m) return { status: 404, body: { error: 'item not found' } };
+    Object.assign(m, { assigned_staff_id: null, assigned_at: null, visit_status: null, visit_at: null });
+    return { status: 200, body: { ok: true } };
+  }
+  if (action === 'maint_confirm_visit') {
+    const m = find(payload.id); if (!m) return { status: 404, body: { error: 'item not found' } };
+    if (!['offered', 'confirmed'].includes(m.visit_status)) {
+      return { status: 409, body: { error: 'that job is no longer waiting to be scheduled' } };
+    }
+    m.visit_status = 'confirmed';
+    m.visit_at = new Date(payload.at).toISOString();
+    m.era_dispatch_update_at = null;
+    return { status: 200, body: { ok: true, visit_at: m.visit_at } };
+  }
+  if (action === 'maint_job') {
+    const m = find(payload.item_id ?? payload.id);
+    if (!m || !m.assigned_staff_id) return { status: 404, body: { error: 'No job for that link' } };
+    const g = mockGroups.find(x => x.key === m.group_key);
+    const s = mockStaff.find(x => x.id === m.assigned_staff_id);
+    const wita = m.visit_at ? new Date(Date.parse(m.visit_at) + 8 * 3600e3) : null;
+    return { status: 200, body: {
+      id: m.id, title: m.title, description: m.description,
+      place: m.unit_label ? `${g?.name || m.group_key} (${m.unit_label})` : (g?.name || m.group_key),
+      urgency: m.urgency, currency: m.currency, budget: m.estimated_cost,
+      photo_urls: urls(m), visit_status: m.visit_status, visit_at: m.visit_at,
+      // Indonesian, matching witaLabelId in the CRM: the tukang reads this.
+      visit_label: wita ? `${new Date(wita.toISOString().slice(0, 10) + 'T00:00:00Z').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}, pukul ${wita.toISOString().slice(11, 16)} WITA` : null,
+      assigned_to: s?.name || null, reported_at: m.reported_at,
+    } };
   }
   if (action === 'maint_patch') { const m = find(payload.id); if (m) Object.assign(m, payload.fields || {}); return { status: 200, body: { ok: true } }; }
   if (action === 'maint_delete') { const i = mockMaint.findIndex(x => x.id === +payload.id); if (i >= 0) mockMaint.splice(i, 1); return { status: 200, body: { ok: true } }; }
@@ -646,6 +852,18 @@ globalThis.fetch = async (url, opts = {}) => {
     const out = mockMaintenanceApi(body);
     return { ok: out.status === 200, status: out.status, json: async () => out.body };
   }
+  if (u.includes('/__crm_mock/api/staff')) {
+    const body = JSON.parse(opts.body || '{}');
+    __crmCalls.push({ kind: 'staff', body });
+    const out = mockStaffApi(body);
+    return { ok: out.status === 200, status: out.status, json: async () => out.body };
+  }
+  if (u.includes('/__crm_mock/api/housekeeping')) {
+    const body = JSON.parse(opts.body || '{}');
+    __crmCalls.push({ kind: 'housekeeping', body });
+    const out = mockHousekeepingApi(body);
+    return { ok: out.status === 200, status: out.status, json: async () => out.body };
+  }
   if (u.includes('/__crm_mock/api/statements')) {
     const body = JSON.parse(opts.body || '{}');
     __crmCalls.push({ kind: 'statements', body });
@@ -799,6 +1017,11 @@ const server = http.createServer(async (req, res) => {
           `<script>sessionStorage.setItem('admin_pw', ${JSON.stringify(process.env.DASHBOARD_PASSWORD)});</script>\n<script src="/shared.js"></script>`);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       return void res.end(html);
+    }
+    // /j/<token> → listing-page in job mode (matches vercel.json).
+    if (u.pathname.startsWith('/j/')) {
+      const fakeReq = { method: 'GET', headers: req.headers, query: { job: u.pathname.slice(3) }, body: null };
+      return void await handlers['listing-page'].default(fakeReq, shimRes(res));
     }
     // /m/<token> → listing-page in maintenance mode (matches vercel.json).
     if (u.pathname.startsWith('/m/')) {

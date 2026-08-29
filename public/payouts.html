@@ -182,6 +182,34 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
 .modal p{font-size:.82rem;color:var(--text-2);line-height:1.55;margin-bottom:14px;}
 .modal .row{display:flex;gap:9px;justify-content:flex-end;margin-top:16px;}
 .modal label.chk{display:flex;align-items:center;gap:8px;font-size:.8rem;margin:10px 0;}
+
+/* Team */
+.stfrow{display:grid;grid-template-columns:1.15fr 1.5fr 1.5fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--sb-hairline);}
+.stfrow:last-child{border-bottom:none;}
+.stfrow.off{opacity:.5;}
+.stfrow .who{font:700 13px/1.3 var(--sb-font-display);letter-spacing:-.01em;}
+.stfrow .who small{display:block;font:500 11px/1.5 var(--sb-font-ui);color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums;}
+.tag{display:inline-block;font:600 10.5px/1 var(--sb-font-ui);padding:4px 8px;border-radius:7px;background:var(--surface2);color:var(--text-2);margin:0 4px 4px 0;white-space:nowrap;}
+.tag.role{background:var(--sb-terracotta-050);color:var(--sb-terracotta-700);}
+.tag.job{background:var(--amber-bg);color:var(--amber-fg);}
+.tag.all{background:var(--live-bg);color:var(--green);}
+.stfnone{font-size:.74rem;color:var(--muted);}
+.stfacts{display:flex;gap:6px;justify-content:flex-end;}
+.stfacts .btn{padding:7px 11px;font-size:11.5px;}
+@media(max-width:860px){.stfrow{grid-template-columns:1fr;gap:6px;}.stfacts{justify-content:flex-start;}}
+.fld{margin-bottom:12px;}
+.fld label{display:block;font:600 10px/1 var(--sb-font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.fld input[type=text],.fld select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font:500 13px/1.3 var(--sb-font-ui);}
+.fld .hint{font:500 11px/1.5 var(--sb-font-ui);color:var(--muted);margin-top:5px;}
+.opts{display:flex;flex-wrap:wrap;gap:6px;}
+.opts label{display:inline-flex;align-items:center;gap:5px;font:500 12px/1 var(--sb-font-ui);color:var(--text-2);
+  background:var(--surface2);border:1px solid transparent;border-radius:8px;padding:7px 10px;cursor:pointer;text-transform:none;letter-spacing:0;margin:0;}
+.opts label:has(input:checked){background:var(--sb-terracotta-050);border-color:var(--sb-terracotta-200,#f0cdbd);color:var(--sb-terracotta-700);font-weight:600;}
+.opts input{accent-color:var(--accent);}
+.modal.wide{width:min(560px,94vw);max-height:88vh;overflow-y:auto;}
+/* Fourteen villas and seven trades make this form taller than the screen.
+   Keep Save reachable without scrolling to the end of the villa list. */
+.modal.wide .row{position:sticky;bottom:-24px;background:var(--surface);padding:14px 0;margin-top:6px;border-top:1px solid var(--sb-hairline);}
 </style>
 </head>
 <body>
@@ -208,6 +236,8 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
       <a href="#/maintenance" data-view="maintenance"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.6 3.6a3.6 3.6 0 0 0-4.9 4.4l-4.2 4.2a1.4 1.4 0 0 0 0 2l1.9 1.9a1.4 1.4 0 0 0 2 0l4.2-4.2a3.6 3.6 0 0 0 4.4-4.9l-2.2 2.2-2-.6-.6-2z"/></svg>Maintenance<span class="railbadge" id="maint-badge" style="display:none"></span></a>
       <a href="#/earnings" data-view="earnings"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 16.2h14"/><path d="M4.6 12.4l3.6-4 3 2.6 4.2-5.2"/></svg>Earnings</a>
       <a href="#/groups" data-view="groups"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.2 8.6L10 3.2l6.8 5.4"/><path d="M5 10v6.8h10V10"/><path d="M8.4 16.8v-4h3.2v4"/></svg>Properties</a>
+      <a href="#/cleaning" data-view="cleaning"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.2" width="14" height="12.6" rx="2"/><path d="M3 8h14M7 2.8v2.8M13 2.8v2.8"/><path d="M7.4 11.6l1.5 1.5 3.2-3.2"/></svg>Cleaning<span class="railbadge" id="hk-badge" style="display:none"></span></a>
+      <a href="#/staff" data-view="staff"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.6" cy="6.6" r="2.6"/><path d="M2.6 16.4c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6"/><path d="M13.4 4.4a2.6 2.6 0 0 1 0 4.9"/><path d="M14.6 12.2c1.7.5 2.8 1.9 2.8 4.2"/></svg>Team</a>
     </nav>
     <main class="content" id="content">
       <div class="loading-state"><div class="spinner"></div>Loading statements…</div>
@@ -287,12 +317,15 @@ function route() {
   const h = location.hash || '#/';
   const view = h.startsWith('#/statement/') ? 'detail'
     : h.startsWith('#/maintenance') ? 'maintenance'
-    : h === '#/groups' ? 'groups' : h === '#/earnings' ? 'earnings' : 'list';
+    : h === '#/groups' ? 'groups' : h === '#/earnings' ? 'earnings' : h === '#/staff' ? 'staff'
+    : h === '#/cleaning' ? 'cleaning' : 'list';
   document.querySelectorAll('.rail a').forEach(a => a.classList.toggle('on', a.dataset.view === (view === 'detail' ? 'list' : view)));
   if (view === 'list') renderList();
   else if (view === 'groups') renderGroups();
   else if (view === 'earnings') renderEarnings();
   else if (view === 'maintenance') renderMaintenance();
+  else if (view === 'staff') renderStaff();
+  else if (view === 'cleaning') renderCleaning();
   else renderDetail(parseInt(h.slice('#/statement/'.length), 10));
 }
 window.addEventListener('hashchange', route);
@@ -645,8 +678,10 @@ async function reparse() {
 }
 
 // ── Publish / paid / proof ───────────────────────────────────────────
-function modal(html) {
-  document.getElementById('modal').innerHTML = html;
+function modal(html, opts) {
+  const m = document.getElementById('modal');
+  m.className = 'modal' + (opts && opts.wide ? ' wide' : '');
+  m.innerHTML = html;
   document.getElementById('modal-back').classList.add('show');
 }
 function closeModal() { document.getElementById('modal-back').classList.remove('show'); }
@@ -1007,7 +1042,11 @@ const MSTATUS = {
 async function renderMaintenance() {
   const c = document.getElementById('content');
   c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading maintenance…</div>';
-  try { await refreshMaint(); }
+  try {
+    // The team register feeds the "send this to" dropdown on approved work.
+    // A failure there must not hide the tickets, so it is allowed to fail.
+    await Promise.all([refreshMaint(), refreshStaff().catch(() => {})]);
+  }
   catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red">${esc(e.message)}</div>`; return; }
 
   const items = maintData.items || [];
@@ -1061,6 +1100,7 @@ async function renderMaintenance() {
       </div>`;
     }
     if (it.status === 'approved' || it.status === 'scheduled') {
+      html += dispatchRow(it);
       html += `<div class="mrow">
         <button class="btn green" onclick="maintComplete(${it.id})">Mark done</button>
         <span style="font-size:.76rem;color:var(--muted)">Next check-in ${it.next_followup_at ? esc(dstr(it.next_followup_at)) : '–'}${it.promised_date ? ` (you said ${esc(dstr(it.promised_date))})` : ''}</span>
@@ -1089,6 +1129,7 @@ async function renderMaintenance() {
     html += `</div>`;
   }
   c.innerHTML = html;
+  wireDispatchPickers(sorted);
   // Photos need signed URLs — fetch each item's detail lazily so the list
   // isn't blocked on signing every image.
   for (const it of sorted) {
@@ -1104,6 +1145,120 @@ async function renderMaintenance() {
       }
     }).catch(() => {});
   }
+}
+
+// ── Tukang dispatch ──────────────────────────────────────────────────
+// The row that turns an approved repair into someone's morning. Era picks a
+// tradesman; Maya sends him the job with the photos and chases him from
+// there, telling Era what happened at each step so she never has to ask.
+const VISIT_STATE = {
+  offered:   ['wait', 'Sent · waiting for his reply'],
+  confirmed: ['ok',   'Confirmed'],
+  arrived:   ['ok',   'He is at the property'],
+  done:      ['ok',   'He says it is finished'],
+  declined:  ['no',   'He cannot take it · reassign'],
+};
+// What kind of tradesman this repair needs, from the words in the ticket.
+// Only used to order the dropdown, so a wrong guess costs a scroll.
+const TRADE_HINTS = [
+  ['aircon',     /\b(ac|a\/c|aircon|air con|air-con|pendingin|kulkas|fridge|freezer)\b/i],
+  ['plumbing',   /\b(leak|leaking|bocor|pipe|pipa|drain|saluran|tap|kran|faucet|shower|toilet|wc|sink|wastafel|water heater|pemanas|clog|mampet)\b/i],
+  ['electrical', /\b(electric\w*|listrik|wiring|kabel|socket|stopkontak|switch|saklar|light|lampu|bulb|breaker|mcb|short|korslet)\b/i],
+  ['pool',       /\b(pool|kolam|pump|pompa|filter|chlorine|kaporit)\b/i],
+  ['paint',      /\b(paint|painting|cat|touch[- ]?up|repaint|mould|mold|jamur|damp|lembab)\b/i],
+  ['carpentry',  /\b(door|pintu|window|jendela|wardrobe|lemari|cabinet|kabinet|chair|kursi|table|meja|shelf|rak|wood|kayu|hinge|engsel|lock|kunci)\b/i],
+];
+// Scored, not first-match. A paint job described as "flaking above the
+// shower" mentions plumbing words without being plumbing, so the title (what
+// the job IS) counts double and the description (where it is) counts once.
+// A tie falls to the earlier entry above, and no match at all just leaves
+// the dropdown alphabetical.
+function tradeFor(it) {
+  const title = String(it.title || ''), desc = String(it.description || '');
+  let best = null, bestScore = 0;
+  for (const [trade, re] of TRADE_HINTS) {
+    const score = (re.test(title) ? 2 : 0) + (re.test(desc) ? 1 : 0);
+    if (score > bestScore) { best = trade; bestScore = score; }
+  }
+  return best;
+}
+
+function dispatchRow(it) {
+  const st = it.visit_status ? VISIT_STATE[it.visit_status] : null;
+  if (it.assigned_staff_id && st) {
+    const who = it.staff?.name || 'the tukang';
+    const when = it.visit_at ? visitLabel(it.visit_at) : null;
+    return `<div class="mrow" style="align-items:baseline">
+      <span class="mpill ${st[0]}">${esc(st[1])}</span>
+      <span style="font-size:.78rem">${esc(who)}${when ? ' · ' + esc(when) : ''}</span>
+      ${it.job_token ? `<a class="btn ghost" href="/j/${esc(it.job_token)}" target="_blank">His job sheet</a>` : ''}
+      ${it.visit_status === 'offered' || it.visit_status === 'confirmed'
+        ? `<button class="btn ghost" onclick="dispatchSetTime(${it.id})">${it.visit_at ? 'Change the time' : 'Set a time'}</button>` : ''}
+      <button class="btn ghost" onclick="dispatchClear(${it.id})">Reassign</button>
+    </div>`;
+  }
+  const trade = tradeFor(it);
+  return `<div class="mrow" style="align-items:baseline">
+    <span style="font-size:.76rem;color:var(--muted)">Send this to</span>
+    ${staffPickerHtml('tk-' + it.id, { role: 'tukang', trade, slug: it.slug, itemId: it.id, placeholder: 'Choose a tukang…' })}
+    <span style="font-size:.72rem;color:var(--muted)">${trade ? 'Looks like ' + esc(TRADE_LABEL[trade].toLowerCase()) + ' work' : ''}</span>
+  </div>`;
+}
+
+const visitLabel = (iso) => {
+  const d = new Date(Date.parse(iso) + 8 * 3600e3);
+  const day = new Date(d.toISOString().slice(0, 10) + 'T00:00:00Z')
+    .toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  return `${day}, ${d.toISOString().slice(11, 16)} WITA`;
+};
+
+// Fill every dispatch picker after the list paints, and dispatch on choice.
+function wireDispatchPickers(items) {
+  for (const it of items) {
+    const sel = document.getElementById('tk-' + it.id);
+    if (!sel) continue;
+    const opts = { role: 'tukang', trade: tradeFor(it), slug: it.slug, itemId: it.id, placeholder: 'Choose a tukang…' };
+    staffFillPicker(sel, opts);
+    sel.addEventListener('change', () => {
+      if (!sel.value || sel.value === '__new__') return;    // quick-add handles its own case
+      dispatchAssign(it.id, sel.value);
+    });
+  }
+}
+
+async function dispatchAssign(id, staffId) {
+  try {
+    const out = await maintApi('maint_assign', { id, staff_id: Number(staffId) });
+    showToast(`Sent to ${out.staff?.name || 'them'}. Maya will confirm a time and keep you posted.`, 'success');
+    renderMaintenance();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function dispatchClear(id) {
+  try { await maintApi('maint_unassign', { id }); renderMaintenance(); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+// For when Era agrees a time on the phone instead of through Maya.
+function dispatchSetTime(id) {
+  const d = new Date(Date.now() + 8 * 3600e3 + 86400e3);
+  modal(`<h3>When is he coming?</h3>
+    <p>Use this when you agreed a time by phone. Maya will remind him that morning and check afterwards that the work got done.</p>
+    <div class="fld"><label>Date and time in Bali</label>
+      <input type="datetime-local" id="dv-at" value="${d.toISOString().slice(0, 11)}09:00"
+        style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font:500 13px/1.3 var(--sb-font-ui)"></div>
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn primary" onclick="doDispatchSetTime(${id})">Save the time</button></div>`);
+}
+async function doDispatchSetTime(id) {
+  const v = document.getElementById('dv-at')?.value;
+  if (!v) return;
+  closeModal();
+  try {
+    // The picker gives local wall-clock; Era's wall clock is WITA, so stamp
+    // the offset explicitly rather than letting the browser's zone decide.
+    await maintApi('maint_confirm_visit', { id, at: `${v}:00+08:00` });
+    showToast('Time saved. Maya will remind him that morning.', 'success');
+    renderMaintenance();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
 
 async function maintRemovePhoto(id, path) {
@@ -1174,6 +1329,376 @@ async function doMaintDelete(id) {
   closeModal();
   try { await maintApi('maint_delete', { id }); renderMaintenance(); }
   catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
+// ── Cleaning ─────────────────────────────────────────────────────────
+// The schedule, derived from the booking calendar every hour and sent to the
+// housekeepers each morning. Era's job here is exceptions: reassign when
+// someone is off, move a visit, mark one done or skipped.
+let hkData = null;
+
+const HK_KIND = {
+  turnover:      ['Turnover', 'a tenant left'],
+  during_stay:   ['During the stay', 'a long tenancy'],
+  pre_arrival:   ['Before arrival', 'after a vacancy'],
+  vacant_upkeep: ['Upkeep', 'empty villa'],
+  inspection:    ['Inspection', 'photos for the owner report'],
+};
+const HK_STATUS = {
+  planned:   ['wait', 'Planned'],
+  notified:  ['ok',   'Sent'],
+  confirmed: ['ok',   'Confirmed'],
+  done:      ['done', 'Done'],
+  skipped:   ['no',   'Skipped'],
+};
+
+async function hkApi(action, payload) {
+  const r = await fetch('/api/housekeeping', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminPw },
+    body: JSON.stringify({ action, payload: payload || {} }),
+  });
+  if (r.status === 401) { showGate('Session expired. Please log in again.'); throw new Error('unauthorized'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+  return d;
+}
+
+const hkName = (slug) => (hkData?.names || {})[slug] || unitName(slug);
+const hkDay = (d) => new Date(d + 'T00:00:00Z')
+  .toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+
+async function renderCleaning() {
+  const c = document.getElementById('content');
+  c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading the schedule…</div>';
+  try { [hkData] = await Promise.all([hkApi('hk_schedule', {}), refreshStaff().catch(() => {})]); }
+  catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`; return; }
+
+  // Sorted here as well as in the query: the view groups consecutive dates
+  // under one heading, so anything out of order silently prints the same day
+  // twice and reads as two different days.
+  const tasks = [...(hkData.tasks || [])].sort((a, b) =>
+    a.task_date.localeCompare(b.task_date) || String(a.slug).localeCompare(String(b.slug)));
+  const today = hkData.today;
+  const badge = document.getElementById('hk-badge');
+  const todayCount = tasks.filter(t => t.task_date === today && t.status !== 'done' && t.status !== 'skipped').length;
+  if (badge) { badge.textContent = todayCount; badge.style.display = todayCount ? '' : 'none'; }
+
+  let html = `<div class="crumb">Cleaning</div>`;
+  html += `<div class="banner ${hkData.unassigned ? 'amber' : 'calm'}"><div>
+    <b>${todayCount}</b> today · <b>${tasks.length}</b> in the next three weeks${hkData.unassigned ? ` · <b>${hkData.unassigned}</b> with nobody assigned` : ''}
+    <div style="margin-top:5px;font-size:.76rem">Built from the booking calendar every hour. Each housekeeper gets her day in the morning and her week on Monday.</div>
+  </div></div>`;
+  html += `<div class="actionsrow" style="margin-bottom:14px">
+    <button class="btn ghost" onclick="hkGenerate()">Rebuild from the calendar</button>
+  </div>`;
+
+  if (!tasks.length) {
+    html += `<div class="empty-state" style="padding:34px">Nothing scheduled. If this looks wrong, rebuild from the calendar: the villas may have no bookings, or the Hostex feed may be unreachable.</div>`;
+    c.innerHTML = html; return;
+  }
+
+  let lastDate = null;
+  for (const t of tasks) {
+    if (t.task_date !== lastDate) {
+      lastDate = t.task_date;
+      const rel = t.task_date === today ? ' · today' : '';
+      html += `<div class="periodhead"><h2>${esc(hkDay(t.task_date))}${rel}</h2></div>`;
+    }
+    const [kindCls, kindWhy] = [HK_KIND[t.kind]?.[0] || t.kind, HK_KIND[t.kind]?.[1] || ''];
+    const [stCls, stLabel] = HK_STATUS[t.status] || ['wait', t.status];
+    html += `<div class="strow" style="cursor:default">
+      <div class="nm">${esc(hkName(t.slug))}
+        <small>${esc(kindCls)}${kindWhy ? ' · ' + esc(kindWhy) : ''}${t.same_day ? ' · next tenant arrives the same day' : ''}</small></div>
+      <div style="min-width:150px">
+        <select class="flt" id="hk-who-${t.id}" onchange="hkReassign(${t.id}, this.value)"></select>
+      </div>
+      <span class="pill ${stCls}">${esc(stLabel)}</span>
+      <div class="stfacts">
+        ${t.status !== 'done' ? `<button class="btn ghost" onclick="hkStatus(${t.id}, 'done')">Done</button>` : ''}
+        ${t.status !== 'skipped' ? `<button class="btn ghost" onclick="hkStatus(${t.id}, 'skipped')">Skip</button>` : ''}
+      </div>
+    </div>`;
+  }
+  c.innerHTML = html;
+
+  // The same picker as everywhere else, so a stand-in cleaner can be added
+  // without leaving the schedule.
+  for (const t of tasks) {
+    const sel = document.getElementById('hk-who-' + t.id);
+    if (!sel) continue;
+    staffFillPicker(sel, { role: 'housekeeper', slug: t.slug, placeholder: 'Nobody assigned' });
+    if (t.assigned_staff_id) sel.value = String(t.assigned_staff_id);
+  }
+}
+
+async function hkGenerate() {
+  try {
+    const out = await hkApi('hk_generate', {});
+    showToast(out.skipped ? out.skipped
+      : `${out.created || 0} new task${out.created === 1 ? '' : 's'} from ${out.planned || 0} planned visits.`,
+      out.skipped || out.error ? 'error' : 'success');
+    renderCleaning();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function hkReassign(id, staffId) {
+  if (staffId === '__new__') return;    // the quick-add form handles this
+  try {
+    await hkApi('hk_patch', { id, fields: { assigned_staff_id: staffId ? Number(staffId) : null } });
+    showToast('Reassigned.', 'success');
+    renderCleaning();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function hkStatus(id, status) {
+  try { await hkApi('hk_status', { id, status }); renderCleaning(); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
+// ── Team ─────────────────────────────────────────────────────────────
+// The staff registry. Maintenance dispatch, housekeeping schedules and
+// payroll all read this one list, so a person is corrected here once
+// instead of in three places that quietly drift apart.
+let staffData = null;   // { staff: [], units: [] }
+
+const ROLES  = ['housekeeper', 'pool', 'gardener', 'tukang', 'manager'];
+const TRADES = ['aircon', 'electrical', 'plumbing', 'carpentry', 'pool', 'paint', 'general'];
+const ROLE_LABEL = { housekeeper: 'Housekeeper', pool: 'Pool', gardener: 'Gardener', tukang: 'Tukang', manager: 'Manager' };
+const TRADE_LABEL = { aircon: 'AC', electrical: 'Electrical', plumbing: 'Plumbing', carpentry: 'Carpentry', pool: 'Pool', paint: 'Paint', general: 'General' };
+
+async function staffApi(action, payload) {
+  const r = await fetch('/api/staff', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminPw },
+    body: JSON.stringify({ action, payload: payload || {} }),
+  });
+  if (r.status === 401) { showGate('Session expired. Please log in again.'); throw new Error('unauthorized'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+  return d;
+}
+
+async function refreshStaff(force) {
+  if (staffData && !force) return staffData;
+  staffData = await staffApi('staff_list', {});
+  return staffData;
+}
+
+// Not every slug is a catalog unit: Astanine is Ikiel's own villa, it carries
+// staff but has no listing, so it is stored as a plain slug.
+const unitName = (slug) => {
+  const u = (staffData?.units || []).find(x => x.slug === slug);
+  if (u) return pname(u.name);
+  return String(slug || '').replace(/[-_]+/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+};
+// A trade that just restates the role ("Pool" on the pool man) is noise.
+const realTrades = (p) => (p.trades || []).filter(t => !(p.roles || []).includes(t));
+// Era reads numbers off her phone, where they are spaced. Showing 11 bare
+// digits makes checking one against a contact card needlessly hard.
+function waPretty(n) {
+  const d = String(n || '').replace(/\D/g, '');
+  if (!d.startsWith('62') || d.length < 9) return d;
+  const rest = d.slice(2);
+  const parts = [rest.slice(0, 3)];
+  for (let i = 3; i < rest.length; i += 4) parts.push(rest.slice(i, i + 4));
+  return '+62 ' + parts.join('-');
+}
+
+async function renderStaff() {
+  const c = document.getElementById('content');
+  c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading the team…</div>';
+  try { await refreshStaff(true); }
+  catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`; return; }
+
+  const people = staffData.staff || [];
+  const units = staffData.units || [];
+  const live = people.filter(p => p.active);
+
+  let html = `<div class="crumb">Team</div>`;
+  html += `<div class="banner calm"><div>
+    <b>${live.length}</b> active · <b>${live.filter(p => (p.roles || []).includes('housekeeper')).length}</b> housekeeping ·
+    <b>${live.filter(p => (p.roles || []).includes('tukang')).length}</b> repairs
+    <div style="margin-top:5px;font-size:.76rem">Everyone Maya can message. A person here can send her maintenance photos, be assigned a repair, and appear on the cleaning schedule.</div>
+  </div></div>`;
+
+  // Coverage first: the useful question is not "who works here" but "is any
+  // villa uncovered", and that is invisible in a plain list of people.
+  const gaps = units.filter(u => !live.some(p => (p.roles || []).includes('housekeeper') && (p.slugs || []).includes(u.slug)));
+  html += `<div class="card"><h3>Housekeeping by villa</h3>`;
+  if (gaps.length) {
+    html += `<div class="banner amber" style="margin-bottom:12px"><div>No housekeeper is assigned to ${gaps.map(u => esc(pname(u.name))).join(', ')}. Cleaning tasks for those units will have nobody to notify.</div></div>`;
+  }
+  html += units.map(u => {
+    const who = live.filter(p => (p.roles || []).includes('housekeeper') && (p.slugs || []).includes(u.slug));
+    return `<div class="rc"><span>${esc(pname(u.name))}</span>
+      <span class="nums">${who.length ? who.map(p => esc(p.name)).join(', ') : '<span class="bad">nobody yet</span>'}</span></div>`;
+  }).join('') + `</div>`;
+
+  html += `<div class="card"><h3>People
+    <button class="btn primary" style="margin-left:auto" onclick="staffEdit(null)">Add someone</button></h3>`;
+  if (!people.length) {
+    html += `<div class="empty-state">Nobody in the register yet. Add Era's housekeepers and the tukang you call, and Maya can start messaging them.</div>`;
+  } else {
+    const order = (p) => Math.min(...((p.roles || []).map(r => ROLES.indexOf(r)).filter(i => i >= 0).concat([99])));
+    const sorted = [...people].sort((a, b) =>
+      Number(b.active) - Number(a.active) || order(a) - order(b) || String(a.name).localeCompare(String(b.name)));
+    for (const p of sorted) {
+      const roles = (p.roles || []).map(r => `<span class="tag role">${esc(ROLE_LABEL[r] || r)}</span>`).join('');
+      const trades = realTrades(p).map(t => `<span class="tag job">${esc(TRADE_LABEL[t] || t)}</span>`).join('');
+      const slugs = (p.slugs || []);
+      const where = slugs.length
+        ? slugs.map(s => `<span class="tag">${esc(unitName(s))}</span>`).join('')
+        : `<span class="tag all">Every villa</span>`;
+      html += `<div class="stfrow${p.active ? '' : ' off'}">
+        <div class="who">${esc(p.name)}<small>${esc(waPretty(p.wa_num))}${p.pay_type === 'per_job' ? ' · vendor, paid per job' : ''}${p.active ? '' : ' · inactive'}</small></div>
+        <div>${roles || '<span class="stfnone">no role set</span>'}${trades}</div>
+        <div>${where}</div>
+        <div class="stfacts">
+          <button class="btn ghost" onclick="staffEdit(${p.id})">Edit</button>
+          ${p.active ? `<button class="btn ghost" onclick="staffDeactivate(${p.id})">Remove</button>` : ''}
+        </div>
+      </div>`;
+      if (p.notes) html += `<div class="stfnone" style="margin:-6px 0 10px">${esc(p.notes)}</div>`;
+    }
+  }
+  html += `</div>`;
+  c.innerHTML = html;
+}
+
+// The one form, used by the Team tab and by quick-add from any picker.
+function staffFormHtml(p, opts) {
+  const o = opts || {};
+  const sel = p || {};
+  const roles = sel.roles || (o.role ? [o.role] : []);
+  const trades = sel.trades || [];
+  const slugs = sel.slugs || (o.slug ? [o.slug] : []);
+  const units = staffData?.units || [];
+  const box = (name, val, label, checked) =>
+    `<label><input type="checkbox" name="${name}" value="${esc(val)}"${checked ? ' checked' : ''}>${esc(label)}</label>`;
+  return `<h3>${p ? 'Edit ' + esc(p.name) : 'Add someone to the team'}</h3>
+    <p>${p ? 'Changes apply the next time Maya messages them.' : 'Only a name and a WhatsApp number are needed. The rest can wait.'}</p>
+    <div class="fld"><label>Name</label>
+      <input type="text" id="sf-name" value="${esc(sel.name || '')}" placeholder="e.g. Gede"></div>
+    <div class="fld"><label>WhatsApp number</label>
+      <input type="text" id="sf-wa" value="${esc(sel.wa_num ? waPretty(sel.wa_num) : '')}" placeholder="+62 858-4716-3053">
+      <div class="hint">Any format. Maya matches on the digits.</div></div>
+    <div class="fld"><label>What they do</label>
+      <div class="opts">${ROLES.map(r => box('sf-role', r, ROLE_LABEL[r], roles.includes(r))).join('')}</div></div>
+    <div class="fld"><label>Repairs they handle</label>
+      <div class="opts">${TRADES.map(t => box('sf-trade', t, TRADE_LABEL[t], trades.includes(t))).join('')}</div>
+      <div class="hint">Only for a tukang. It decides who is suggested first on a repair.</div></div>
+    <div class="fld"><label>Villas they cover</label>
+      <div class="opts">${units.map(u => box('sf-slug', u.slug, pname(u.name), slugs.includes(u.slug))).join('')}</div>
+      <div class="hint">Leave all unticked for someone who works across every villa, like the pool man or a tukang.</div></div>
+    <div class="fld"><label>How they are paid</label>
+      <select id="sf-pay">
+        <option value="salaried"${sel.pay_type !== 'per_job' ? ' selected' : ''}>Monthly salary · appears on payroll</option>
+        <option value="per_job"${sel.pay_type === 'per_job' ? ' selected' : ''}>Per job · invoices as a maintenance cost</option>
+      </select>
+      <div class="hint">A per-job vendor never reaches the payroll run: their bills are already charged to the villa as a repair.</div></div>
+    <div class="row">
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" id="sf-save" onclick="staffSave(${sel.id || 'null'}, ${o.pickerId ? `'${esc(o.pickerId)}'` : 'null'})">${p ? 'Save' : 'Add'}</button>
+    </div>`;
+}
+
+function staffEdit(id) {
+  const p = id ? (staffData?.staff || []).find(x => x.id === id) : null;
+  modal(staffFormHtml(p, {}), { wide: true });
+}
+
+async function staffSave(id, pickerId) {
+  const picked = (name) => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(el => el.value);
+  const body = {
+    id: id || undefined,
+    name: document.getElementById('sf-name').value.trim(),
+    wa_num: document.getElementById('sf-wa').value.trim(),
+    roles: picked('sf-role'),
+    trades: picked('sf-trade'),
+    slugs: picked('sf-slug'),
+    pay_type: document.getElementById('sf-pay').value,
+  };
+  if (!body.name) { showToast('A name is needed.', 'error'); return; }
+  if (!body.wa_num.replace(/\D/g, '')) { showToast('A WhatsApp number is needed.', 'error'); return; }
+  const btn = document.getElementById('sf-save');
+  if (btn) btn.disabled = true;
+  try {
+    const out = await staffApi('staff_upsert', body);
+    closeModal();
+    showToast(out.merged ? `That number was already ${out.previous_name || 'someone'}'s, so their record was updated instead of adding a second one.`
+      : out.created ? 'Added to the team.' : 'Saved.', 'success');
+    await refreshStaff(true);
+    // Quick-add from a picker: select the new person there rather than
+    // making Era find them in a list she has just left.
+    if (pickerId && out.staff) {
+      const sel = document.getElementById(pickerId);
+      if (sel) { staffFillPicker(sel); sel.value = String(out.staff.id); sel.dispatchEvent(new Event('change', { bubbles: true })); }
+      return;
+    }
+    if ((location.hash || '') === '#/staff') renderStaff();
+  } catch (e) {
+    if (btn) btn.disabled = false;
+    if (e.message !== 'unauthorized') showToast(e.message, 'error');
+  }
+}
+
+async function staffDeactivate(id) {
+  const p = (staffData?.staff || []).find(x => x.id === id);
+  modal(`<h3>Remove ${esc(p?.name || 'this person')} from the team?</h3>
+    <p>They stop appearing on schedules and Maya stops messaging them. Their name stays on past repairs and payroll runs, and you can add them back at any time.</p>
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Keep them</button>
+    <button class="btn primary" onclick="doStaffDeactivate(${id})">Remove</button></div>`);
+}
+async function doStaffDeactivate(id) {
+  closeModal();
+  try { await staffApi('staff_deactivate', { id }); await refreshStaff(true); renderStaff(); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
+// ── Staff picker ─────────────────────────────────────────────────────
+// Anywhere a person is chosen, the list ends with "Add someone new" so Era
+// can register the man standing in front of her without leaving the ticket.
+// Used by the Team tab today; tukang dispatch and the cleaning schedule
+// call the same helper.
+function staffPickerHtml(pickerId, opts) {
+  const o = opts || {};
+  return `<select id="${esc(pickerId)}" class="flt" onchange="staffPickerChanged(this, ${JSON.stringify(o).replace(/"/g, '&quot;')})">
+    <option value="">${esc(o.placeholder || 'Choose someone…')}</option>
+  </select>`;
+}
+// Filled from staffData so the caller does not have to wait on a fetch to
+// paint its row.
+function staffFillPicker(sel, opts) {
+  const o = opts || (sel._staffOpts || {});
+  sel._staffOpts = o;
+  const keep = sel.value;
+  const people = (staffData?.staff || []).filter(p =>
+    p.active && (!o.role || (p.roles || []).includes(o.role)));
+  // Coverage and trade are a SORT, never a filter. Filtering by villa would
+  // empty the dropdown for a unit nobody covers, and hide every possible
+  // stand-in on the morning a housekeeper calls in sick — precisely when
+  // Era needs the list most.
+  const covers = (p) => !!(o.slug && (p.slugs || []).includes(o.slug));
+  const score = (p) => (covers(p) ? -2 : 0) + (o.trade && (p.trades || []).includes(o.trade) ? -1 : 0);
+  people.sort((a, b) => score(a) - score(b) || String(a.name).localeCompare(String(b.name)));
+  sel.innerHTML = `<option value="">${o.placeholder || 'Choose someone…'}</option>`
+    // Full trade list here, including one that repeats the role: in the
+    // roster "Pool · Pool" is noise, but in a dropdown for a pool repair it
+    // is the reason this person is at the top. And when a villa is not
+    // normally theirs, say so, so a stand-in is a deliberate choice rather
+    // than a mis-click.
+    + people.map(p => {
+        const t = p.trades || [];
+        const why = t.length ? ' · ' + t.map(x => TRADE_LABEL[x] || x).join(', ')
+          : (o.slug && !covers(p) ? ' · not their villa' : '');
+        return `<option value="${p.id}">${esc(p.name)}${esc(why)}</option>`;
+      }).join('')
+    + `<option value="__new__">+ Add someone new…</option>`;
+  if (keep) sel.value = keep;
+}
+function staffPickerChanged(sel, opts) {
+  if (sel.value !== '__new__') return;
+  sel.value = '';
+  modal(staffFormHtml(null, { ...(opts || {}), pickerId: sel.id }), { wide: true });
 }
 
 // ── Boot ─────────────────────────────────────────────────────────────

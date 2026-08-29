@@ -12,6 +12,7 @@
 
 import { verifyReportToken, verifyStatementToken } from '../lib/tokens.js';
 let _maintHtmlCache = null, _maintHtmlCacheAt = 0;
+let _jobHtmlCache = null, _jobHtmlCacheAt = 0;
 
 let _htmlCache = null;
 let _htmlCacheAt = 0;
@@ -66,6 +67,11 @@ async function serve(req, res) {
   // they approve or decline the work. No-store, noindex, same stance.
   const maintToken = (req.query?.maintenance || '').toString();
   if (maintToken) return serveMaintenance(req, res, { proto, host, token: maintToken });
+
+  // /j/<id>~<sig> — the job sheet a tukang opens from WhatsApp. Read-only,
+  // Indonesian, and scoped to one job: no owner, no money owed, no approval.
+  const jobToken = (req.query?.job || '').toString();
+  if (jobToken) return serveJob(req, res, { proto, host, token: jobToken });
 
   const slug = (req.query?.slug || '').toLowerCase();
 
@@ -309,6 +315,31 @@ async function serveMaintenance(req, res, { proto, host }) {
     <meta name="twitter:card" content="summary">
   `.trim();
   const html = _maintHtmlCache.replace(/<title>[\s\S]*?<\/title>/, tags);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(200).send(html);
+}
+
+async function serveJob(req, res, { proto, host }) {
+  if (!_jobHtmlCache || Date.now() - _jobHtmlCacheAt > TEMPLATE_TTL_MS) {
+    const tr = await fetch(`${proto}://${host}/job.html`);
+    if (!tr.ok) throw new Error(`job.html fetch ${tr.status}`);
+    _jobHtmlCache = await tr.text();
+    _jobHtmlCacheAt = Date.now();
+  }
+  // Indonesian: this page is read by the tukang, not by an owner.
+  const title = 'Perbaikan · Samba Realty';
+  const tags = `
+    <title>${esc(title)}</title>
+    <meta name="robots" content="noindex">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Samba">
+    <meta property="og:title" content="${esc(title)}">
+    <meta property="og:description" content="Detail pekerjaan perbaikan, lengkap dengan foto.">
+    <meta property="og:image" content="${FALLBACK_OG}">
+    <meta name="twitter:card" content="summary">
+  `.trim();
+  const html = _jobHtmlCache.replace(/<title>[\s\S]*?<\/title>/, tags);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
   return res.status(200).send(html);

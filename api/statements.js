@@ -324,6 +324,30 @@ export default async function handler(req, res) {
       return res.status(200).json({ range, from, to, label, ...stats });
     }
 
+    // ── Stays, with their edges intact ──────────────────────────────
+    // Service-authed (sync secret). The CRM's housekeeping scheduler asks
+    // when guests leave and arrive; only the portal holds the Hostex token
+    // and the catalog, so the read lives here. Cached briefly because the
+    // scheduler runs hourly and the feed is 14 paginated fetches.
+    if (action === 'turnovers') {
+      if (!sync || (req.headers.authorization || '') !== `Bearer ${sync}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const from = String(req.query.from || '');
+      const to = String(req.query.to || '');
+      const cacheKey = `turnovers:${from}:${to}`;
+      const cached = await kvGet(cacheKey);
+      if (cached && cached.at && Date.now() - cached.at < 30 * 60e3) {
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json({ ...cached.data, cached: true });
+      }
+      const { buildTurnovers } = await import('../lib/turnovers.js');
+      const data = await buildTurnovers({ from, to });
+      await kvSet(cacheKey, { at: Date.now(), data });
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json(data);
+    }
+
     // ── Which property groups have an onboarded owner? ──────────────
     // Service-authed (sync secret). The portal's KV is the authority on who
     // actually holds an account, and Maya must not message an owner who has

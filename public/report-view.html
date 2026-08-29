@@ -70,6 +70,9 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 .rep-ffill .fn{font-size:0.82rem;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;}
 .rep-conv{margin-top:9px;font-size:0.76rem;color:var(--muted);}
 .rep-conv b{color:var(--green);}
+.rep-shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;margin:14px 0;}
+.rep-shots a{display:block;border-radius:11px;overflow:hidden;border:1px solid var(--border);aspect-ratio:4/3;background:var(--surface2);}
+.rep-shots img{width:100%;height:100%;object-fit:cover;display:block;}
 .rep-cols{display:grid;grid-template-columns:1fr;gap:16px;}
 @media(min-width:560px){.rep-cols{grid-template-columns:1fr 1fr;}}
 .rep-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:17px;}
@@ -178,6 +181,31 @@ function repBookings(d){
     <p class="rep-conv">${up.adr?`Confirmed stays ahead average <b>${fmtMoney(up.adr,bk.currency)}</b> a night across <b>${up.nights}</b> nights. `:''}Figures come straight from your booking channels (Airbnb, direct and others) and show what you receive after channel fees.${cancelNote}</p>
   </div>`;
 }
+/* The fortnightly inspection round. Only rendered in the weeks one happened,
+   which is the point: an owner should see the evidence on the week it was
+   collected, not a permanent banner claiming diligence. A round that found
+   nothing still appears — "we looked and it is fine" is the reassurance. */
+function repInspection(d){
+  const ins=d.inspection;
+  if(!ins)return '';
+  const when=new Date(ins.inspected_on+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  const shots=(ins.photo_urls||[]).map(u=>`<a class="rep-shot" href="${escapeHtml(u)}" target="_blank" rel="noopener"><img src="${escapeHtml(u)}" alt="Inspection photo" loading="lazy"></a>`).join('');
+  const more=ins.photo_count>(ins.photo_urls||[]).length?`<p class="rep-conv">${ins.photo_count} photos were taken in total.</p>`:'';
+  const repairs=(ins.repairs||[]).map(r=>{
+    const done=r.status==='done';
+    const state=done?'Repaired':r.status==='pending_approval'?'Waiting for your approval':r.status==='declined'?'You declined this':'Being repaired';
+    return `<div class="rep-line"><span class="lk">${escapeHtml(r.title)}</span><span class="lv">${escapeHtml(state)}</span></div>`;
+  }).join('');
+  const body=repairs
+    ? `<div class="rep-card"><h4>What we found</h4>${repairs}<p style="margin:12px 0 0;color:var(--text-2);font-size:0.8rem;line-height:1.5">Anything needing work becomes a maintenance request you approve before we spend a rupiah.</p></div>`
+    : `<div class="rep-card"><h4>What we found</h4><p style="margin:0;color:var(--text-2);font-size:0.82rem;line-height:1.6">Nothing needing attention.${ins.findings?' '+escapeHtml(ins.findings):''}</p></div>`;
+  return `<div class="rep-pad"><div class="rep-sec-h">Inspection round</div>
+    <p class="rep-conv" style="margin-top:0">We walked through your villa on <b>${when}</b>, checking for damp, mould, leaks and anything worn or broken.</p>
+    ${shots?`<div class="rep-shots">${shots}</div>`:''}
+    ${more}
+    ${body}
+  </div>`;
+}
 function repChart(daily){
   const max=Math.max(...daily.map(x=>x.views),1);
   const bars=daily.map((x,i)=>{
@@ -267,6 +295,7 @@ function renderReport(d){
     <div class="rep-pad"><div class="rep-sec-h">From view to enquiry</div>${funnel}</div>
     <div class="rep-pad"><div class="rep-sec-h">Your reach across the network</div>${reachCards}</div>
     ${occSection}
+    ${repInspection(d)}
     ${benchSection}
     <div class="rep-pad"><div class="rep-sec-h">Suggested next steps</div><div class="rep-recs">${recs}</div></div>
     ${d.strength&&d.strength.score<85?`<div class="rep-pad"><div class="rep-strength">Listing strength <b>${d.strength.score}%</b>. To reach more agents: ${escapeHtml(d.strength.tips.join(' · '))}. <a href="https://sambarentals.com/portal">Improve it in the portal →</a></div></div>`:''}

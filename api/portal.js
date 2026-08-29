@@ -984,13 +984,45 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
     metrics, funnel, occupancy, benchmark, agentsReached: agentsReached.now,
   });
 
+  // The fortnightly inspection round, when one falls in this week. A
+  // housekeeper walks the villa, photographs it, and anything she flags
+  // becomes a maintenance item through the normal approval path. Showing it
+  // here is the whole argument for the schedule: it turns a cleaning cost
+  // into visible evidence that someone is looking after the place. Degrades
+  // to null so the section simply does not render.
+  const inspection = await weekInspection(slug, days[7], days[13]).catch(() => null);
+
   return res.status(200).json({
     slug, name: prop.name || slug, area: prop.tag || prop.area || '', unitType: prop.unitType || '',
     listedAt: prop.createdAt || null, ownerName: (owner && owner.name) || prop.waContactName || '',
     week: { from: days[7], to: days[13] },
     metrics, daily, funnel, agentsReached, benchmark, occupancy, bookings, maya, strength,
+    inspection,
     nextActions: actions,
   });
+}
+
+// ── The fortnightly inspection, for the weekly report ───────────────
+// Photos come back as signed URLs minted by the CRM, valid for the life of
+// the page view: the bucket stays private, and an owner who forwards the
+// report is not handing anyone permanent access to their villa's interior.
+// Staff names are deliberately absent — the owner is buying the outcome.
+async function weekInspection(slug, from, to) {
+  const sync = process.env.LISTING_SYNC_SECRET;
+  if (!sync) return null;
+  const crmBase = process.env.CRM_BASE_URL || 'https://kaya-agent-crm.vercel.app';
+  // Hard timeout: this runs on every weekly-report render, including the
+  // public /r/ links owners open from WhatsApp. A slow or redeploying CRM
+  // must cost the report a section, never the whole page.
+  const r = await fetch(`${crmBase}/api/housekeeping`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sync}` },
+    body: JSON.stringify({ action: 'hk_owner_inspection', payload: { slug, from, to } }),
+    signal: AbortSignal.timeout(4000),
+  });
+  if (!r.ok) return null;
+  const d = await r.json().catch(() => null);
+  return d?.inspection || null;
 }
 
 // ── Bookings & revenue from the Hostex reservation feed ─────────────

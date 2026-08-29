@@ -77,6 +77,10 @@
       "destination": "/api/listing-page?maintenance=$1"
     },
     {
+      "source": "/j/(.*)",
+      "destination": "/api/listing-page?job=$1"
+    },
+    {
       "source": "/l/(.*)",
       "destination": "/api/listing-page?slug=$1"
     },
