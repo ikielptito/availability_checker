@@ -338,8 +338,16 @@ export default async function handler(req, res) {
           .filter(Boolean))];
         const ownerSubs = [];
         for (const sub of subs) if (!(await isAdminAccount(sub))) ownerSubs.push(sub);
-        detail[g.key] = { slugs: slugs.length, held: subs.length, by_owner: ownerSubs.length };
-        if (ownerSubs.length) claimed.push(g.key);
+        // An owner who signed in with WhatsApp has a real account keyed by
+        // their number, and sees their statements through it, but may never
+        // have claimed a listing. That is still onboarded.
+        let byWa = false;
+        for (const n of (g.owner_wa_nums || [])) {
+          const digits = String(n).replace(/\D/g, '');
+          if (digits && await kvGet(`owner:wa:${digits}`)) { byWa = true; break; }
+        }
+        detail[g.key] = { slugs: slugs.length, held: subs.length, by_owner: ownerSubs.length, wa_account: byWa };
+        if (ownerSubs.length || byWa) claimed.push(g.key);
       }
       res.setHeader('Cache-Control', 'no-store');
       return res.status(200).json({ claimed, detail });
