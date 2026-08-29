@@ -207,6 +207,17 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
 .opts label:has(input:checked){background:var(--sb-terracotta-050);border-color:var(--sb-terracotta-200,#f0cdbd);color:var(--sb-terracotta-700);font-weight:600;}
 .opts input{accent-color:var(--accent);}
 .modal.wide{width:min(560px,94vw);max-height:88vh;overflow-y:auto;}
+.carewrap{margin:4px 0 8px;}
+.careline{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--sb-hairline);}
+.careline:last-child{border-bottom:none;}
+.careline .cn{flex:1;min-width:0;font:600 12.5px/1.3 var(--sb-font-ui);}
+.careline .cd{display:flex;gap:3px;flex:none;}
+.daybox{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;
+  background:var(--surface2);color:var(--muted);font:600 10.5px/1 var(--sb-font-ui);cursor:pointer;user-select:none;}
+.daybox input{position:absolute;opacity:0;width:0;height:0;}
+.daybox:has(input:checked){background:var(--accent);color:#fff;}
+@media(max-width:520px){.careline{flex-direction:column;align-items:flex-start;gap:5px;}}
+
 /* Fourteen villas and seven trades make this form taller than the screen.
    Keep Save reachable without scrolling to the end of the villa list. */
 .modal.wide .row{position:sticky;bottom:-24px;background:var(--surface);padding:14px 0;margin-top:6px;border-top:1px solid var(--sb-hairline);}
@@ -1339,9 +1350,8 @@ let hkData = null;
 
 const HK_KIND = {
   turnover:      ['Turnover', 'a tenant left'],
-  during_stay:   ['During the stay', 'a long tenancy'],
+  regular:       ['Regular clean', 'twice a week'],
   pre_arrival:   ['Before arrival', 'after a vacancy'],
-  vacant_upkeep: ['Upkeep', 'empty villa'],
   inspection:    ['Inspection', 'photos for the owner report'],
 };
 const HK_STATUS = {
@@ -1390,6 +1400,7 @@ async function renderCleaning() {
     <div style="margin-top:5px;font-size:.76rem">Built from the booking calendar every hour. Each housekeeper gets her day in the morning and her week on Monday.</div>
   </div></div>`;
   html += `<div class="actionsrow" style="margin-bottom:14px">
+    <button class="btn ghost" onclick="hkCareEdit()">Cleaning days</button>
     <button class="btn ghost" onclick="hkGenerate()">Rebuild from the calendar</button>
   </div>`;
 
@@ -1429,6 +1440,57 @@ async function renderCleaning() {
     if (!sel) continue;
     staffFillPicker(sel, { role: 'housekeeper', slug: t.slug, placeholder: 'Nobody assigned' });
     if (t.assigned_staff_id) sel.value = String(t.assigned_staff_id);
+  }
+}
+
+// Which weekdays each villa is cleaned on. Two a week is the service, but
+// the DAYS differ per villa deliberately: putting all four Tropicanas on
+// Monday and Thursday would give Gede two impossible mornings and four idle
+// days. Postgres day numbering, 0 = Sunday.
+const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+async function hkCareEdit() {
+  let care = [];
+  try { care = (await hkApi('hk_care', {})).care || []; }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); return; }
+
+  const byslug = Object.fromEntries(care.map(c => [c.slug, c]));
+  const units = (staffData?.units || []).map(u => u.slug);
+  const rows = (units.length ? units : care.map(c => c.slug)).map(slug => {
+    const days = byslug[slug]?.clean_days || [];
+    const toggles = DOW.map((d, i) =>
+      `<label class="daybox"><input type="checkbox" data-slug="${esc(slug)}" value="${i}"${days.includes(i) ? ' checked' : ''}>${d[0]}</label>`).join('');
+    return `<div class="careline"><span class="cn">${esc(hkName(slug))}</span><span class="cd">${toggles}</span></div>`;
+  }).join('');
+
+  modal(`<h3>Cleaning days</h3>
+    <p>The twice-weekly clean each villa gets, whether or not anyone is staying. Spread the days so one housekeeper is not doing four villas on one morning.</p>
+    <div class="carewrap">${rows}</div>
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn primary" id="care-save" onclick="hkCareSave()">Save</button></div>`, { wide: true });
+}
+
+async function hkCareSave() {
+  const bySlug = {};
+  document.querySelectorAll('.carewrap input[type=checkbox]').forEach(el => {
+    (bySlug[el.dataset.slug] ||= []);
+    if (el.checked) bySlug[el.dataset.slug].push(Number(el.value));
+  });
+  const btn = document.getElementById('care-save');
+  if (btn) btn.disabled = true;
+  try {
+    for (const [slug, clean_days] of Object.entries(bySlug)) {
+      await hkApi('hk_care_patch', { slug, clean_days });
+    }
+    closeModal();
+    // Changing the days only alters visits nobody has been told about, so a
+    // rebuild here is safe and makes the effect immediately visible.
+    const out = await hkApi('hk_replan', {});
+    showToast(`Saved. Schedule rebuilt: ${out.created || 0} visits.`, 'success');
+    renderCleaning();
+  } catch (e) {
+    if (btn) btn.disabled = false;
+    if (e.message !== 'unauthorized') showToast(e.message, 'error');
   }
 }
 

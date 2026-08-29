@@ -150,6 +150,13 @@ const hkToday = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 1
 const hkPlus = (d, n) => new Date(Date.parse(d) + n * 86400e3).toISOString().slice(0, 10);
 let mockHkTasks = null;
 let mockHkId = 0;
+// Real per-villa cleaning days, mirroring the property_care seed.
+const mockCare = {
+  'haus-1': [1, 4], 'haus-2': [2, 5], 'haus-4': [3, 6], 'haus-5': [1, 4],
+  'lanehaus-1': [1, 4], 'lanehaus-3': [2, 5], 'villa-saturno': [1, 4],
+  'tropicana-a4': [1, 4], 'tropicana-a5': [2, 5], 'tropicana-b4': [3, 6],
+  'tropicana-b2': [1, 4], 'tropicana-b3': [2, 5], 'tropicana-b5': [3, 6], 'tropicana-b6': [1, 4],
+};
 
 function mockHkBuild() {
   const today = hkToday();
@@ -167,12 +174,12 @@ function mockHkBuild() {
     { slug: 'villa-saturno', stays: [stay(hkPlus(today, -50), hkPlus(today, -25))] },   // empty a while
     { slug: 'tropicana-b4', stays: [] },                                                // never booked
   ];
-  const planned = planTasks({ today, units, lastInspection: { 'haus-2': hkPlus(today, -6) } });
+  const planned = planTasks({ today, units, careDays: mockCare, lastInspection: { 'haus-2': hkPlus(today, -6) } });
   const cover = (slug) => mockStaff.find(s => s.active && (s.roles || []).includes('housekeeper') && (s.slugs || []).includes(slug));
   return planned.map(t => {
     const who = cover(t.slug);
     return {
-      id: ++mockHkId, slug: t.slug, task_date: t.task_date, kind: t.kind,
+      id: ++mockHkId, slug: t.slug, task_date: t.task_date, origin_date: t.origin_date, kind: t.kind,
       status: t.task_date < hkToday() ? 'done' : 'planned',
       assigned_staff_id: who?.id ?? null, staff: who || null,
       same_day: !!t.same_day, guest_out_date: t.guest_out_date ?? null,
@@ -209,6 +216,17 @@ function mockHousekeepingApi({ action, payload = {} }) {
     return { status: 200, body: { ok: true } };
   }
   if (action === 'hk_inspections') return { status: 200, body: { inspections: [] } };
+  if (action === 'hk_care') {
+    return { status: 200, body: { care: Object.entries(mockCare).map(([slug, clean_days]) => ({ slug, clean_days, active: true })) } };
+  }
+  if (action === 'hk_care_patch') {
+    mockCare[payload.slug] = (payload.clean_days || []).map(Number);
+    return { status: 200, body: { ok: true, care: { slug: payload.slug, clean_days: mockCare[payload.slug], active: true } } };
+  }
+  if (action === 'hk_replan') {
+    mockHkTasks = mockHkBuild();
+    return { status: 200, body: { removed: 0, planned: mockHkTasks.length, created: mockHkTasks.length, today: hkToday() } };
+  }
   if (action === 'hk_owner_inspection') {
     // One villa deliberately has no round this week, so the report renders
     // correctly both with and without the section.
