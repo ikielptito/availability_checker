@@ -183,12 +183,38 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
 .modal .row{display:flex;gap:9px;justify-content:flex-end;margin-top:16px;}
 .modal label.chk{display:flex;align-items:center;gap:8px;font-size:.8rem;margin:10px 0;}
 
-/* Team */
-.stfrow{display:grid;grid-template-columns:1.15fr 1.5fr 1.5fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--sb-hairline);}
-.stfrow:last-child{border-bottom:none;}
-.stfrow.off{opacity:.5;}
-.stfrow .who{font:700 13px/1.3 var(--sb-font-display);letter-spacing:-.01em;}
-.stfrow .who small{display:block;font:500 11px/1.5 var(--sb-font-ui);color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums;}
+/* Team — people as cards, because the person is the unit of interest and a
+   row per villa was fourteen lines to say five things. */
+.grouphead{display:flex;align-items:center;gap:8px;font:600 10.5px/1 var(--sb-font-ui);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin:22px 0 10px;}
+.grouphead span{background:var(--surface2);border-radius:999px;padding:3px 8px;letter-spacing:0;font-size:10px;}
+.grouphead:first-of-type{margin-top:4px;}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+.pcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 15px;display:flex;flex-direction:column;gap:9px;
+  transition:box-shadow var(--sb-t),transform var(--sb-t);}
+.pcard:hover{box-shadow:var(--sb-shadow-md);transform:translateY(-1px);}
+.pcard.off{opacity:.55;}
+.pcard .ph{display:flex;align-items:flex-start;gap:8px;}
+.pcard .pn{flex:1;min-width:0;font:700 14px/1.25 var(--sb-font-display);letter-spacing:-.01em;}
+.pcard .pn small{display:block;font:500 11px/1.5 var(--sb-font-ui);color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums;}
+.pcard .pr,.pcard .pv{display:flex;flex-wrap:wrap;gap:4px;}
+.pcard .pnote{font:500 11.5px/1.5 var(--sb-font-ui);color:var(--muted);}
+.pcard .pa{display:flex;gap:6px;margin-top:auto;padding-top:4px;}
+.pcard .pa .btn{padding:6px 11px;font-size:11.5px;}
+.vtag{display:inline-flex;align-items:baseline;gap:5px;font:500 11px/1.4 var(--sb-font-ui);color:var(--text-2);
+  background:var(--surface2);border-radius:7px;padding:4px 8px;}
+.vtag b{font:700 11px/1.4 var(--sb-font-ui);color:var(--text);letter-spacing:.04em;}
+.vtag.all{background:var(--live-bg);color:var(--green);}
+.pload{border-top:1px solid var(--sb-hairline);padding-top:10px;}
+.pload .lab{font:500 11px/1 var(--sb-font-ui);color:var(--muted);margin-bottom:7px;}
+.pload .lab b{color:var(--text);font-weight:700;}
+.pload .bars,.pload .dl{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.pload .bars{align-items:end;height:26px;}
+.pload .bars i{border-radius:2px 2px 0 0;background:var(--accent);display:block;width:100%;}
+.pload .bars i.nil{background:var(--border);height:2px;}
+.pload .bars i.hot{background:var(--sb-terracotta-700,#9C3A16);}
+.pload .dl{margin-top:5px;}
+.pload .dl span{font:600 8.5px/1 var(--sb-font-ui);color:var(--muted);text-align:center;letter-spacing:.04em;}
 .tag{display:inline-block;font:600 10.5px/1 var(--sb-font-ui);padding:4px 8px;border-radius:7px;background:var(--surface2);color:var(--text-2);margin:0 4px 4px 0;white-space:nowrap;}
 .tag.role{background:var(--sb-terracotta-050);color:var(--sb-terracotta-700);}
 .tag.job{background:var(--amber-bg);color:var(--amber-fg);}
@@ -1568,62 +1594,137 @@ function waPretty(n) {
 async function renderStaff() {
   const c = document.getElementById('content');
   c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading the team…</div>';
-  try { await refreshStaff(true); }
-  catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`; return; }
+  let load = {};
+  try {
+    await refreshStaff(true);
+    // This week's visit count per person. Without it the page is inert
+    // reference data; with it, it answers the question Era actually has,
+    // which is whether anyone's week is unmanageable.
+    const sched = await hkApi('hk_schedule', {}).catch(() => null);
+    if (sched?.tasks) {
+      const end = new Date(Date.parse(sched.today) + 7 * 86400e3).toISOString().slice(0, 10);
+      for (const t of sched.tasks) {
+        if (t.task_date >= sched.today && t.task_date < end && t.assigned_staff_id) {
+          (load[t.assigned_staff_id] ||= { total: 0, days: {} });
+          load[t.assigned_staff_id].total++;
+          load[t.assigned_staff_id].days[t.task_date] = (load[t.assigned_staff_id].days[t.task_date] || 0) + 1;
+        }
+      }
+      load.__from = sched.today;
+    }
+  } catch (e) {
+    if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`;
+    return;
+  }
 
   const people = staffData.staff || [];
   const units = staffData.units || [];
   const live = people.filter(p => p.active);
+  const hk = (p) => (p.roles || []).includes('housekeeper');
+  const gaps = units.filter(u => !live.some(p => hk(p) && (p.slugs || []).includes(u.slug)));
 
   let html = `<div class="crumb">Team</div>`;
-  html += `<div class="banner calm"><div>
-    <b>${live.length}</b> active · <b>${live.filter(p => (p.roles || []).includes('housekeeper')).length}</b> housekeeping ·
-    <b>${live.filter(p => (p.roles || []).includes('tukang')).length}</b> repairs
-    <div style="margin-top:5px;font-size:.76rem">Everyone Maya can message. A person here can send her maintenance photos, be assigned a repair, and appear on the cleaning schedule.</div>
-  </div></div>`;
 
-  // Coverage first: the useful question is not "who works here" but "is any
-  // villa uncovered", and that is invisible in a plain list of people.
-  const gaps = units.filter(u => !live.some(p => (p.roles || []).includes('housekeeper') && (p.slugs || []).includes(u.slug)));
-  html += `<div class="card"><h3>Housekeeping by villa</h3>`;
-  if (gaps.length) {
-    html += `<div class="banner amber" style="margin-bottom:12px"><div>No housekeeper is assigned to ${gaps.map(u => esc(pname(u.name))).join(', ')}. Cleaning tasks for those units will have nobody to notify.</div></div>`;
-  }
-  html += units.map(u => {
-    const who = live.filter(p => (p.roles || []).includes('housekeeper') && (p.slugs || []).includes(u.slug));
-    return `<div class="rc"><span>${esc(pname(u.name))}</span>
-      <span class="nums">${who.length ? who.map(p => esc(p.name)).join(', ') : '<span class="bad">nobody yet</span>'}</span></div>`;
-  }).join('') + `</div>`;
+  // Coverage as an EXCEPTION, not a list. Fourteen rows to report that
+  // nothing is wrong is fourteen rows of noise; the only state worth space
+  // on the page is the one that needs acting on.
+  html += gaps.length
+    ? `<div class="banner amber"><div><b>${gaps.length} villa${gaps.length > 1 ? 's have' : ' has'} no housekeeper.</b>
+        ${gaps.map(u => esc(pname(u.name))).join(', ')} — cleaning tasks there will have nobody to notify.</div></div>`
+    : `<div class="banner calm"><div><b>${live.length} on the team.</b> Every villa has a housekeeper.
+        <div style="margin-top:5px;font-size:.76rem">Everyone Maya can message: they can send her maintenance photos, be assigned a repair, and appear on the cleaning schedule.</div></div></div>`;
 
-  html += `<div class="card"><h3>People
-    <button class="btn primary" style="margin-left:auto" onclick="staffEdit(null)">Add someone</button></h3>`;
+  html += `<div class="actionsrow" style="margin-bottom:16px">
+    <button class="btn primary" onclick="staffEdit(null)">Add someone</button></div>`;
+
   if (!people.length) {
-    html += `<div class="empty-state">Nobody in the register yet. Add Era's housekeepers and the tukang you call, and Maya can start messaging them.</div>`;
-  } else {
-    const order = (p) => Math.min(...((p.roles || []).map(r => ROLES.indexOf(r)).filter(i => i >= 0).concat([99])));
-    const sorted = [...people].sort((a, b) =>
-      Number(b.active) - Number(a.active) || order(a) - order(b) || String(a.name).localeCompare(String(b.name)));
-    for (const p of sorted) {
-      const roles = (p.roles || []).map(r => `<span class="tag role">${esc(ROLE_LABEL[r] || r)}</span>`).join('');
-      const trades = realTrades(p).map(t => `<span class="tag job">${esc(TRADE_LABEL[t] || t)}</span>`).join('');
-      const slugs = (p.slugs || []);
-      const where = slugs.length
-        ? slugs.map(s => `<span class="tag">${esc(unitName(s))}</span>`).join('')
-        : `<span class="tag all">Every villa</span>`;
-      html += `<div class="stfrow${p.active ? '' : ' off'}">
-        <div class="who">${esc(p.name)}<small>${esc(waPretty(p.wa_num))}${p.pay_type === 'per_job' ? ' · vendor, paid per job' : ''}${p.active ? '' : ' · inactive'}</small></div>
-        <div>${roles || '<span class="stfnone">no role set</span>'}${trades}</div>
-        <div>${where}</div>
-        <div class="stfacts">
-          <button class="btn ghost" onclick="staffEdit(${p.id})">Edit</button>
-          ${p.active ? `<button class="btn ghost" onclick="staffDeactivate(${p.id})">Remove</button>` : ''}
-        </div>
-      </div>`;
-      if (p.notes) html += `<div class="stfnone" style="margin:-6px 0 10px">${esc(p.notes)}</div>`;
-    }
+    html += `<div class="empty-state" style="padding:34px">Nobody in the register yet. Add Era's housekeepers and the tukang you call, and Maya can start messaging them.</div>`;
+    c.innerHTML = html; return;
   }
-  html += `</div>`;
+
+  // Grouped by what someone is FOR, because that is how Era looks for them:
+  // she needs a cleaner, or she needs someone to fix a tap.
+  const groups = [
+    ['Housekeeping', live.filter(hk)],
+    ['Repairs and pool', live.filter(p => !hk(p) && ((p.roles || []).includes('tukang') || (p.roles || []).includes('pool') || (p.roles || []).includes('gardener')))],
+    ['Office', live.filter(p => !hk(p) && (p.roles || []).includes('manager'))],
+  ];
+  const placed = new Set(groups.flatMap(([, arr]) => arr.map(p => p.id)));
+  const rest = live.filter(p => !placed.has(p.id));
+  if (rest.length) groups.push(['Everyone else', rest]);
+  const inactive = people.filter(p => !p.active);
+  if (inactive.length) groups.push(['No longer with us', inactive]);
+
+  for (const [label, arr] of groups) {
+    if (!arr.length) continue;
+    html += `<div class="grouphead">${esc(label)}<span>${arr.length}</span></div><div class="pgrid">`;
+    html += arr.sort((a, b) => String(a.name).localeCompare(String(b.name))).map(p => personCard(p, load, hk(p))).join('');
+    html += `</div>`;
+  }
   c.innerHTML = html;
+}
+
+// "HAUS Canggu · Unit 1", "· Unit 2", "· Unit 4"… repeated down a page is
+// almost all redundancy. Collapsing to "HAUS Canggu 1 2 4" says the same
+// thing in a quarter of the space and is easier to scan.
+function groupedVillas(slugs) {
+  const out = new Map();
+  for (const slug of slugs) {
+    const full = unitName(slug);
+    const m = full.match(/^(.*?)\s*·\s*Unit\s*(.+)$/i);
+    const [head, unit] = m ? [m[1].trim(), m[2].trim()] : [full, null];
+    if (!out.has(head)) out.set(head, []);
+    if (unit) out.get(head).push(unit);
+  }
+  return [...out.entries()].map(([head, list]) =>
+    `<span class="vtag">${esc(head)}${list.length ? ' <b>' + list.map(esc).join(' ') + '</b>' : ''}</span>`).join('');
+}
+
+// Seven bars, one per day. A flat number hides the shape of a week; three
+// visits on Thursday and none otherwise is the thing worth seeing.
+//
+// Housekeepers only. This counts cleaning tasks, so on a tukang's card "No
+// visits this week" would imply he is idle when he simply does a different
+// kind of work — his jobs live on maintenance tickets.
+function loadBars(entry, from) {
+  if (!from) return '';
+  const e = entry || { total: 0, days: {} };
+  const days = [];
+  for (let i = 0; i < 7; i++) days.push(new Date(Date.parse(from) + i * 86400e3).toISOString().slice(0, 10));
+  // Scaled against three visits, not against this person's own maximum, so
+  // the bars mean the same thing on every card. A relative scale would make
+  // one quiet visit look identical to a brutal day.
+  const busy = 3;
+  const bars = days.map(d => {
+    const n = e.days[d] || 0;
+    const h = n ? Math.max(6, Math.round(Math.min(n, busy) / busy * 26)) : 2;
+    return `<i style="height:${h}px" class="${n ? (n >= busy ? 'hot' : '') : 'nil'}" title="${d}: ${n} visit${n === 1 ? '' : 's'}"></i>`;
+  }).join('');
+  const dl = days.map(d => `<span>${['S', 'M', 'T', 'W', 'T', 'F', 'S'][new Date(d + 'T00:00:00Z').getUTCDay()]}</span>`).join('');
+  return `<div class="pload">
+    <div class="lab">${e.total ? `<b>${e.total}</b> visit${e.total === 1 ? '' : 's'} this week` : 'No visits this week'}</div>
+    <div class="bars">${bars}</div><div class="dl">${dl}</div>
+  </div>`;
+}
+
+function personCard(p, load, showLoad) {
+  const roles = (p.roles || []).map(r => `<span class="tag role">${esc(ROLE_LABEL[r] || r)}</span>`).join('');
+  const trades = realTrades(p).map(t => `<span class="tag job">${esc(TRADE_LABEL[t] || t)}</span>`).join('');
+  const villas = (p.slugs || []).length ? groupedVillas(p.slugs) : `<span class="vtag all">Every villa</span>`;
+  return `<div class="pcard${p.active ? '' : ' off'}">
+    <div class="ph">
+      <div class="pn">${esc(p.name)}<small>${esc(waPretty(p.wa_num))}</small></div>
+      ${p.pay_type === 'per_job' ? '<span class="tag job">Vendor</span>' : ''}
+    </div>
+    <div class="pr">${roles}${trades}</div>
+    <div class="pv">${villas}</div>
+    ${showLoad ? loadBars(load[p.id], load.__from) : ''}
+    ${p.notes ? `<div class="pnote">${esc(p.notes)}</div>` : ''}
+    <div class="pa">
+      <button class="btn ghost" onclick="staffEdit(${p.id})">Edit</button>
+      ${p.active ? `<button class="btn ghost" onclick="staffDeactivate(${p.id})">Remove</button>` : ''}
+    </div>
+  </div>`;
 }
 
 // The one form, used by the Team tab and by quick-add from any picker.
