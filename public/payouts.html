@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>Owner Payouts · Samba Rentals</title>
+<title>Management · Samba Rentals</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23E2572B'/><text x='50' y='72' font-size='60' font-family='Georgia,serif' fill='%23fff' text-anchor='middle'>S</text></svg>">
 <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,6 +39,7 @@ body{font:var(--sb-body);background:var(--bg);color:var(--text);-webkit-font-smo
 .cmdbar .word{font:900 17px/1 var(--sb-font-display);letter-spacing:-.01em;white-space:nowrap;}
 .cmdbar .word small{font:600 10px/1 var(--sb-font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-top:3px;}
 body.embed .cmdbar .word{display:none;}
+body:not(.view-payouts) #outbanner,body:not(.view-payouts) #syncbtn{display:none;}
 .outbanner{display:inline-flex;align-items:center;gap:8px;font:600 12.5px/1.35 var(--sb-font-ui);padding:7px 13px;border-radius:999px;background:var(--red-bg);color:var(--red-fg);border:1px solid transparent;font-family:var(--sb-font-ui);}
 .outbanner.tappable{cursor:pointer;}
 .outbanner.tappable:hover{border-color:var(--red-fg);}
@@ -263,13 +264,13 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
 
 <div id="app">
   <div class="cmdbar">
-    <div class="word">SAMBA<small>Payouts</small></div>
+    <div class="word">SAMBA<small>Management</small></div>
     <button class="outbanner clear" id="outbanner" type="button" onclick="toggleOutstanding()">…</button>
     <button class="btn-sync" id="syncbtn" onclick="syncNow()">⟳ Sync from Era's sheets</button>
   </div>
   <div class="shell">
     <nav class="rail" id="rail">
-      <a href="#/" data-view="list"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.8h7l3 3v11.4H5z"/><path d="M12 2.8v3h3"/><path d="M7.6 9.5h4.8M7.6 12.4h4.8"/></svg>Statements</a>
+      <a href="#/" data-view="list"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.8h7l3 3v11.4H5z"/><path d="M12 2.8v3h3"/><path d="M7.6 9.5h4.8M7.6 12.4h4.8"/></svg>Payouts</a>
       <a href="#/maintenance" data-view="maintenance"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.6 3.6a3.6 3.6 0 0 0-4.9 4.4l-4.2 4.2a1.4 1.4 0 0 0 0 2l1.9 1.9a1.4 1.4 0 0 0 2 0l4.2-4.2a3.6 3.6 0 0 0 4.4-4.9l-2.2 2.2-2-.6-.6-2z"/></svg>Maintenance<span class="railbadge" id="maint-badge" style="display:none"></span></a>
       <a href="#/earnings" data-view="earnings"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 16.2h14"/><path d="M4.6 12.4l3.6-4 3 2.6 4.2-5.2"/></svg>Earnings</a>
       <a href="#/groups" data-view="groups"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.2 8.6L10 3.2l6.8 5.4"/><path d="M5 10v6.8h10V10"/><path d="M8.4 16.8v-4h3.2v4"/></svg>Properties</a>
@@ -357,6 +358,9 @@ function route() {
     : h === '#/groups' ? 'groups' : h === '#/earnings' ? 'earnings' : h === '#/staff' ? 'staff'
     : h === '#/cleaning' ? 'cleaning' : 'list';
   document.querySelectorAll('.rail a').forEach(a => a.classList.toggle('on', a.dataset.view === (view === 'detail' ? 'list' : view)));
+  // The outstanding banner and the sheet sync are payouts controls; on the
+  // cleaning schedule or the team register they were noise about money.
+  document.body.classList.toggle('view-payouts', view === 'list' || view === 'detail');
   if (view === 'list') renderList();
   else if (view === 'groups') renderGroups();
   else if (view === 'earnings') renderEarnings();
@@ -505,7 +509,7 @@ function drawDetail() {
   const checks = s.reconciliation?.checks || [];
   const unparsed = s.reconciliation?.unparsed_rows || [];
 
-  let html = `<div class="crumb"><a onclick="go('#/')">Statements</a> ›
+  let html = `<div class="crumb"><a onclick="go('#/')">Payouts</a> ›
     ${esc(pname(g.name || s.group_key))} · ${esc(det.period_label)}</div>`;
 
   if (amending) html += `<div class="banner amber"><div><b>Amending this published statement.</b> The owner can still open it while you edit, so finish promptly: correct the lines below, then <b>Save amendment</b> (they'll see a note of what changed), or <b>Cancel</b> to restore everything exactly as it was.</div></div>`;
