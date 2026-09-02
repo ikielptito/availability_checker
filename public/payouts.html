@@ -248,13 +248,72 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
 /* Fourteen villas and seven trades make this form taller than the screen.
    Keep Save reachable without scrolling to the end of the villa list. */
 .modal.wide .row{position:sticky;bottom:-24px;background:var(--surface);padding:14px 0;margin-top:6px;border-top:1px solid var(--sb-hairline);}
+
+/* ── Schedule (Era's page) ─────────────────────────────────────────── */
+.sched{max-width:640px;}
+.sched-top{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px 10px;}
+.sched-sub{font-size:.8rem;color:var(--muted);}
+.sched-sub b{color:var(--text);}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px;}
+.dayp{border:0;background:transparent;border-radius:12px;padding:6px 0 5px;text-align:center;cursor:pointer;font-family:var(--sb-font-ui);color:var(--text);}
+.dayp small{display:block;font:600 10px/1 var(--sb-font-ui);color:var(--muted);letter-spacing:.06em;}
+.dayp b{display:block;font:700 16px/1.2 var(--sb-font-display);margin-top:3px;}
+.dayp i{display:block;font:500 10px/1 var(--sb-font-ui);color:var(--muted);margin-top:3px;font-style:normal;height:10px;}
+.dayp.wk b,.dayp.past b{color:var(--muted);}
+.dayp.today{background:var(--accent);color:#fff;}
+.dayp.today small,.dayp.today i{color:#fff;opacity:.85;}
+.dayp.sel:not(.today){background:var(--sb-sand);}
+.dayp:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.weeknav{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:.74rem;color:var(--muted);}
+.weeknav button{border:0;background:transparent;font:600 12px/1 var(--sb-font-ui);color:var(--accent);cursor:pointer;padding:6px 2px;}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none;}
+.chips::-webkit-scrollbar{display:none;}
+.chip{flex:none;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:8px 13px;font:500 12.5px/1 var(--sb-font-ui);color:var(--text-2);cursor:pointer;}
+.chip.on{background:var(--text);color:var(--surface);border-color:var(--text);}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.sched-list{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-top:8px;}
+.dayhead{position:sticky;top:0;background:var(--surface2);padding:9px 14px;font:700 11px/1 var(--sb-font-display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--sb-hairline);border-bottom:1px solid var(--sb-hairline);display:flex;justify-content:space-between;z-index:1;}
+.dayhead.today{color:var(--accent);}
+.sitem{display:flex;gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--sb-hairline);background:var(--surface);}
+.sitem[role=button]{cursor:pointer;}
+.sitem[role=button]:hover{background:var(--surface2);}
+.sitem:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+.sitem-banner{background:color-mix(in srgb,var(--sb-sage) 30%,var(--surface));}
+.sic{width:36px;height:36px;border-radius:11px;flex:none;display:grid;place-items:center;font:700 13px/1 var(--sb-font-display);}
+.sic svg{width:19px;height:19px;}
+.sic.clean{background:color-mix(in srgb,var(--sb-sage) 40%,var(--surface));color:var(--text);}
+.sic.guest{background:color-mix(in srgb,var(--sb-sage) 55%,var(--surface));color:var(--sb-olive);}
+.sic.maint{background:color-mix(in srgb,var(--sb-warning) 22%,var(--surface));color:#7A4B00;}
+.stxt{flex:1;min-width:0;}
+.stxt .t{font:700 14px/1.3 var(--sb-font-display);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.stxt .t .vlink{color:inherit;text-decoration:none;cursor:pointer;}
+.stxt .t .vlink:hover{text-decoration:underline;}
+.stxt .s{font:500 12px/1.4 var(--sb-font-ui);color:var(--muted);margin-top:2px;}
+.stxt .s b{color:var(--text-2);}
+.sempty{padding:16px 14px;color:var(--muted);font-size:.8rem;border-bottom:1px solid var(--sb-hairline);}
+.pill.hot{background:var(--sb-terracotta-050);color:var(--sb-terracotta-700);}
+.opt{display:flex;align-items:center;gap:10px;padding:12px 12px;border:1px solid var(--border);border-radius:12px;margin-top:7px;font:600 13.5px/1.2 var(--sb-font-ui);cursor:pointer;background:var(--surface);}
+.opt:hover{background:var(--surface2);}
+.opt.on{border-color:var(--accent);background:var(--sb-terracotta-050);}
+.opt small{font-weight:400;color:var(--muted);margin-left:auto;text-align:right;font-size:11.5px;}
+.flab{display:block;font:600 10.5px/1 var(--sb-font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 0 5px;}
+.modal input[type=date]{font:500 13px/1 var(--sb-font-ui);padding:8px 10px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);}
+/* ── How to use ─────────────────────────────────────────────────────── */
+.helpbtn{margin-left:auto;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 11px;font:600 11.5px/1 var(--sb-font-ui);color:var(--accent);cursor:pointer;white-space:nowrap;}
+.helpbtn:hover{border-color:var(--accent);}
+.helpbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.help p{font-size:.84rem;}
+.help h4{font:700 12px/1 var(--sb-font-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;}
+.help ol,.help ul{padding-left:20px;margin:0 0 8px;font-size:.84rem;line-height:1.55;color:var(--text-2);}
+.help li{margin:5px 0;}
+.help li b,.help p b{color:var(--text);}
 </style>
 </head>
 <body>
 
 <div id="login">
   <div class="box">
-    <h1>Owner Payouts</h1>
+    <h1>Management</h1>
     <p>Enter the admin password to continue.</p>
     <input type="password" id="pw" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
     <button onclick="doLogin()">Open</button>
@@ -274,7 +333,7 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
       <a href="#/maintenance" data-view="maintenance"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.6 3.6a3.6 3.6 0 0 0-4.9 4.4l-4.2 4.2a1.4 1.4 0 0 0 0 2l1.9 1.9a1.4 1.4 0 0 0 2 0l4.2-4.2a3.6 3.6 0 0 0 4.4-4.9l-2.2 2.2-2-.6-.6-2z"/></svg>Maintenance<span class="railbadge" id="maint-badge" style="display:none"></span></a>
       <a href="#/earnings" data-view="earnings"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 16.2h14"/><path d="M4.6 12.4l3.6-4 3 2.6 4.2-5.2"/></svg>Earnings</a>
       <a href="#/groups" data-view="groups"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.2 8.6L10 3.2l6.8 5.4"/><path d="M5 10v6.8h10V10"/><path d="M8.4 16.8v-4h3.2v4"/></svg>Properties</a>
-      <a href="#/cleaning" data-view="cleaning"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.2" width="14" height="12.6" rx="2"/><path d="M3 8h14M7 2.8v2.8M13 2.8v2.8"/><path d="M7.4 11.6l1.5 1.5 3.2-3.2"/></svg>Cleaning<span class="railbadge" id="hk-badge" style="display:none"></span></a>
+      <a href="#/cleaning" data-view="cleaning"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.2" width="14" height="12.6" rx="2"/><path d="M3 8h14M7 2.8v2.8M13 2.8v2.8"/><path d="M7.4 11.6l1.5 1.5 3.2-3.2"/></svg>Schedule<span class="railbadge" id="hk-badge" style="display:none"></span></a>
       <a href="#/staff" data-view="staff"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.6" cy="6.6" r="2.6"/><path d="M2.6 16.4c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6"/><path d="M13.4 4.4a2.6 2.6 0 0 1 0 4.9"/><path d="M14.6 12.2c1.7.5 2.8 1.9 2.8 4.2"/></svg>Team</a>
     </nav>
     <main class="content" id="content">
@@ -361,13 +420,15 @@ function route() {
   // The outstanding banner and the sheet sync are payouts controls; on the
   // cleaning schedule or the team register they were noise about money.
   document.body.classList.toggle('view-payouts', view === 'list' || view === 'detail');
-  if (view === 'list') renderList();
-  else if (view === 'groups') renderGroups();
-  else if (view === 'earnings') renderEarnings();
-  else if (view === 'maintenance') renderMaintenance();
-  else if (view === 'staff') renderStaff();
-  else if (view === 'cleaning') renderCleaning();
-  else renderDetail(parseInt(h.slice('#/statement/'.length), 10));
+  const render = view === 'list' ? renderList()
+    : view === 'groups' ? renderGroups()
+    : view === 'earnings' ? renderEarnings()
+    : view === 'maintenance' ? renderMaintenance()
+    : view === 'staff' ? renderStaff()
+    : view === 'cleaning' ? renderCleaning()
+    : renderDetail(parseInt(h.slice('#/statement/'.length), 10));
+  // Every page carries its own "How to use" once it has drawn its crumb.
+  Promise.resolve(render).then(() => mountHelp(view)).catch(() => {});
 }
 window.addEventListener('hashchange', route);
 
@@ -1372,17 +1433,24 @@ async function doMaintDelete(id) {
   catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
 
-// ── Cleaning ─────────────────────────────────────────────────────────
-// The schedule, derived from the booking calendar every hour and sent to the
-// housekeepers each morning. Era's job here is exceptions: reassign when
-// someone is off, move a visit, mark one done or skipped.
-let hkData = null;
+// ── Schedule ─────────────────────────────────────────────────────────
+// Era's page. The same day list she gets on WhatsApp every morning, with
+// the guests and the tukang visits in it, a week strip to move around, and
+// one button to add a clean. Built phone-first: she reads it on her phone,
+// standing in a villa. Nothing here needs a legend; if it does, it is wrong.
+let hkData = null;        // hk_schedule payload for the 30-day window
+let hkStays = null;       // hk_stays payload (the Hostex calendar) — optional
+let schedSel = null;      // the day the list starts on
+let schedWeek = null;     // Monday of the week strip
+let schedFilter = 'all';  // all | clean | guest | maint | who:<staff id>
+let schedVilla = null;    // a slug, when looking at one villa's 30 days
+let hkAdd = {};           // the add-a-clean draft
 
 const HK_KIND = {
-  turnover:      ['Turnover', 'a tenant left'],
+  turnover:      ['Turnover clean', 'the guest left'],
   regular:       ['Regular clean', 'twice a week'],
-  pre_arrival:   ['Before arrival', 'after a vacancy'],
-  inspection:    ['Inspection', 'photos for the owner report'],
+  pre_arrival:   ['Prepare the villa', 'a guest arrives'],
+  inspection:    ['Inspection with photos', 'for the owner report'],
 };
 const HK_STATUS = {
   planned:   ['wait', 'Planned'],
@@ -1391,6 +1459,7 @@ const HK_STATUS = {
   done:      ['done', 'Done'],
   skipped:   ['no',   'Skipped'],
 };
+const HK_LETTER = { turnover: 'T', regular: 'R', pre_arrival: 'P', inspection: 'I' };
 
 async function hkApi(action, payload) {
   const r = await fetch('/api/housekeeping', {
@@ -1404,80 +1473,261 @@ async function hkApi(action, payload) {
   return d;
 }
 
+const witaToday = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+const dPlus = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
+const dFmt = (d, o) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { timeZone: 'UTC', ...o });
+const dMonday = (d) => dPlus(d, -((new Date(d + 'T00:00:00Z').getUTCDay() + 6) % 7));
 const hkName = (slug) => (hkData?.names || {})[slug] || unitName(slug);
-const hkDay = (d) => new Date(d + 'T00:00:00Z')
-  .toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+const hkShort = (slug) => hkName(slug).replace(/\s[–-]\s/, ' · ');
+const hkToday = () => hkData?.today || witaToday();
+const hkStayList = (slug) => ((hkStays?.units || []).find(u => u.slug === slug)?.stays || []).filter(s => s.status !== 'cancelled');
+const hkInResidence = (slug, d) => hkStayList(slug).some(s => s.check_in < d && s.check_out > d);
+const hkWho = (t) => t.staff?.name || (staffData?.staff || []).find(p => p.id === t.assigned_staff_id)?.name || '';
+const ICO_HOUSE = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 9L10 3.6 16.8 9"/><path d="M5 8.4V16h10V8.4"/><path d="M8.5 16v-4h3v4"/></svg>';
+const ICO_TOOL = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12.6 3.6a3.6 3.6 0 0 0-4.9 4.4l-4.2 4.2a1.4 1.4 0 0 0 0 2l1.9 1.9a1.4 1.4 0 0 0 2 0l4.2-4.2a3.6 3.6 0 0 0 4.4-4.9l-2.2 2.2-2-.6-.6-2z"/></svg>';
+
+// Everything that happens on one day, in the order Era reads it: the guest
+// movements that create the work, the cleans, then any tukang visit.
+function schedEvents(d) {
+  const out = [];
+  for (const u of (hkStays?.units || [])) {
+    for (const s of hkStayList(u.slug)) {
+      if (s.check_out === d) out.push({ type: 'guest', slug: u.slug, text: 'Guest checks out', sub: `${s.nights || '?'} nights · ${s.channel || 'booking'}` });
+      if (s.check_in === d) out.push({ type: 'guest', slug: u.slug, text: 'Guest checks in', sub: `${s.nights || '?'} nights · ${s.channel || 'booking'}` });
+    }
+  }
+  for (const t of (hkData?.tasks || [])) {
+    if (t.task_date !== d) continue;
+    const k = HK_KIND[t.kind] || [t.kind, ''];
+    const who = hkWho(t);
+    out.push({ type: 'clean', slug: t.slug, id: t.id, kind: t.kind, staffId: t.assigned_staff_id, text: k[0], status: t.status, sameDay: !!t.same_day,
+      sub: [who || 'nobody assigned', k[1], t.same_day ? 'next guest arrives the same day' : (hkInResidence(t.slug, d) ? 'guest in residence' : ''), t.moved_by ? 'moved by hand' : ''].filter(Boolean).join(' · ') });
+  }
+  for (const it of (maintData?.items || [])) {
+    if (!it.visit_at || ['done', 'declined'].includes(it.status)) continue;
+    const vd = new Date(new Date(it.visit_at).getTime() + 8 * 3600e3).toISOString().slice(0, 10);
+    if (vd !== d) continue;
+    const slug = it.unit_label || it.group_key;
+    out.push({ type: 'maint', slug, maintId: it.id, text: 'Tukang visit', sub: `${it.title}${it.staff?.name ? ' · ' + it.staff.name : ''}` });
+  }
+  const order = { guest: 0, clean: 1, maint: 2 };
+  return out
+    .filter(e => !schedVilla || e.slug === schedVilla)
+    .filter(e => schedFilter === 'all' || schedFilter === e.type || (schedFilter.startsWith('who:') && String(e.staffId) === schedFilter.slice(4)))
+    .sort((a, b) => order[a.type] - order[b.type] || hkName(a.slug).localeCompare(hkName(b.slug), undefined, { numeric: true }));
+}
 
 async function renderCleaning() {
   const c = document.getElementById('content');
   c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading the schedule…</div>';
-  try { [hkData] = await Promise.all([hkApi('hk_schedule', {}), refreshStaff().catch(() => {})]); }
-  catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`; return; }
+  const from = witaToday(), to = dPlus(from, 30);
+  try {
+    // The stays and the maintenance list are context; the schedule itself is
+    // the page. Either of them failing must not hide the cleans.
+    const [sched, stays] = await Promise.all([
+      hkApi('hk_schedule', { from, to }),
+      hkApi('hk_stays', { from, to }).catch(() => null),
+      refreshStaff().catch(() => {}),
+      refreshMaint().catch(() => {}),
+    ]);
+    hkData = sched; hkStays = stays;
+  } catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`; return; }
 
-  // Sorted here as well as in the query: the view groups consecutive dates
-  // under one heading, so anything out of order silently prints the same day
-  // twice and reads as two different days.
-  const tasks = [...(hkData.tasks || [])].sort((a, b) =>
-    a.task_date.localeCompare(b.task_date) || String(a.slug).localeCompare(String(b.slug)));
-  const today = hkData.today;
-  const badge = document.getElementById('hk-badge');
+  const today = hkToday();
+  if (!schedSel || schedSel < today || schedSel > to) schedSel = today;
+  schedWeek = dMonday(schedSel);
+  const tasks = hkData.tasks || [];
   const todayCount = tasks.filter(t => t.task_date === today && t.status !== 'done' && t.status !== 'skipped').length;
+  const badge = document.getElementById('hk-badge');
   if (badge) { badge.textContent = todayCount; badge.style.display = todayCount ? '' : 'none'; }
 
-  let html = `<div class="crumb">Cleaning</div>`;
-  html += `<div class="banner ${hkData.unassigned ? 'amber' : 'calm'}"><div>
-    <b>${todayCount}</b> today · <b>${tasks.length}</b> in the next three weeks${hkData.unassigned ? ` · <b>${hkData.unassigned}</b> with nobody assigned` : ''}
-    <div style="margin-top:5px;font-size:.76rem">Built from the booking calendar every hour. Each housekeeper gets her day in the morning and her week on Monday.</div>
-  </div></div>`;
-  html += `<div class="actionsrow" style="margin-bottom:14px">
-    <button class="btn ghost" onclick="hkCareEdit()">Cleaning days</button>
-    <button class="btn ghost" onclick="hkGenerate()">Rebuild from the calendar</button>
-  </div>`;
-
-  if (!tasks.length) {
-    html += `<div class="empty-state" style="padding:34px">Nothing scheduled. If this looks wrong, rebuild from the calendar: the villas may have no bookings, or the Hostex feed may be unreachable.</div>`;
-    c.innerHTML = html; return;
-  }
-
-  let lastDate = null;
-  for (const t of tasks) {
-    if (t.task_date !== lastDate) {
-      lastDate = t.task_date;
-      const rel = t.task_date === today ? ' · today' : '';
-      html += `<div class="periodhead"><h2>${esc(hkDay(t.task_date))}${rel}</h2></div>`;
-    }
-    const [kindCls, kindWhy] = [HK_KIND[t.kind]?.[0] || t.kind, HK_KIND[t.kind]?.[1] || ''];
-    const [stCls, stLabel] = HK_STATUS[t.status] || ['wait', t.status];
-    html += `<div class="strow" style="cursor:default">
-      <div class="nm">${esc(hkName(t.slug))}
-        <small>${esc(kindCls)}${kindWhy ? ' · ' + esc(kindWhy) : ''}${t.same_day ? ' · next tenant arrives the same day' : ''}</small></div>
-      <div style="min-width:150px">
-        <select class="flt" id="hk-who-${t.id}" onchange="hkReassign(${t.id}, this.value)"></select>
+  c.innerHTML = `<div class="crumb" id="sched-crumb"></div>
+    <div class="sched">
+      <div class="sched-top">
+        <div class="sched-sub" id="sched-sub"></div>
+        <div class="week" id="sched-week"></div>
+        <div class="weeknav"><button type="button" onclick="schedShift(-7)">‹ Last week</button><span id="sched-weeklabel"></span><button type="button" onclick="schedShift(7)">Next week ›</button></div>
       </div>
-      <span class="pill ${stCls}">${esc(stLabel)}</span>
-      <div class="stfacts">
-        ${t.status !== 'done' ? `<button class="btn ghost" onclick="hkStatus(${t.id}, 'done')">Done</button>` : ''}
-        ${t.status !== 'skipped' ? `<button class="btn ghost" onclick="hkStatus(${t.id}, 'skipped')">Skip</button>` : ''}
+      <div class="chips" id="sched-chips"></div>
+      <div class="actionsrow" style="margin:12px 0 6px">
+        <button class="btn primary" onclick="hkAddSheet(1)">+ Add a clean</button>
+        <button class="btn ghost" onclick="hkCareEdit()">Cleaning days</button>
+        <button class="btn ghost" onclick="hkGenerate()">Rebuild from the calendar</button>
       </div>
+      <div class="sched-list" id="sched-list"></div>
     </div>`;
-  }
-  c.innerHTML = html;
-
-  // The same picker as everywhere else, so a stand-in cleaner can be added
-  // without leaving the schedule.
-  for (const t of tasks) {
-    const sel = document.getElementById('hk-who-' + t.id);
-    if (!sel) continue;
-    staffFillPicker(sel, { role: 'housekeeper', slug: t.slug, placeholder: 'Nobody assigned' });
-    if (t.assigned_staff_id) sel.value = String(t.assigned_staff_id);
-  }
+  schedRender();
 }
 
-// Which weekdays each villa is cleaned on. Two a week is the service, but
-// the DAYS differ per villa deliberately: putting all four Tropicanas on
-// Monday and Thursday would give Gede two impossible mornings and four idle
-// days. Postgres day numbering, 0 = Sunday.
-const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+function schedRender() {
+  const today = hkToday();
+  const tasks = hkData?.tasks || [];
+  // Crumb: the page, or the page › one villa.
+  document.getElementById('sched-crumb').innerHTML = schedVilla
+    ? `<a onclick="schedShowVilla(null)">Schedule</a> › ${esc(hkShort(schedVilla))}`
+    : 'Schedule';
+  const todayCount = tasks.filter(t => t.task_date === today && t.status !== 'done' && t.status !== 'skipped').length;
+  document.getElementById('sched-sub').innerHTML = schedVilla
+    ? `The next 30 days at this villa. Tap a clean to change who does it or move it.`
+    : `<b>${todayCount}</b> clean${todayCount === 1 ? '' : 's'} today · <b>${tasks.length}</b> in the next 30 days${hkData.unassigned ? ` · <b>${hkData.unassigned}</b> with nobody assigned` : ''}${hkStays ? '' : ' · guest calendar unavailable right now'}`;
+
+  // Week strip.
+  let w = '';
+  for (let i = 0; i < 7; i++) {
+    const d = dPlus(schedWeek, i);
+    const n = d >= today ? schedEvents(d).length : 0;
+    const wd = new Date(d + 'T00:00:00Z').getUTCDay();
+    w += `<button type="button" class="dayp${d === today ? ' today' : ''}${d === schedSel ? ' sel' : ''}${wd === 0 || wd === 6 ? ' wk' : ''}${d < today ? ' past' : ''}" onclick="schedPick('${d}')"><small>${dFmt(d, { weekday: 'short' }).slice(0, 2).toUpperCase()}</small><b>${new Date(d + 'T00:00:00Z').getUTCDate()}</b><i>${n || ''}</i></button>`;
+  }
+  document.getElementById('sched-week').innerHTML = w;
+  document.getElementById('sched-weeklabel').textContent = `${dFmt(schedWeek, { day: 'numeric', month: 'short' })} – ${dFmt(dPlus(schedWeek, 6), { day: 'numeric', month: 'short' })}`;
+
+  // Chips: the three kinds of thing, then one per housekeeper.
+  const keepers = (staffData?.staff || []).filter(p => p.active && (p.roles || []).includes('housekeeper'));
+  const chips = [['all', 'Everything'], ['clean', 'Cleaning'], ['guest', 'Guests'], ['maint', 'Maintenance'], ...keepers.map(p => ['who:' + p.id, p.name])];
+  document.getElementById('sched-chips').innerHTML = chips.map(([k, l]) =>
+    `<button type="button" class="chip${schedFilter === k ? ' on' : ''}" onclick="schedSetFilter('${k}')">${esc(l)}</button>`).join('');
+
+  // The list: a week from the chosen day, or a villa's whole 30 days.
+  const from = schedVilla ? today : schedSel;
+  const to = schedVilla ? dPlus(today, 30) : dPlus(schedSel, 6);
+  let h = '';
+  if (schedVilla) {
+    const cur = hkStayList(schedVilla).find(s => s.check_in <= today && s.check_out > today);
+    const next = hkStayList(schedVilla).filter(s => s.check_in > today).sort((a, b) => a.check_in.localeCompare(b.check_in))[0];
+    h += `<div class="sitem sitem-banner"><div class="sic guest">${ICO_HOUSE}</div><div class="stxt"><div class="t">${cur ? `Guest in residence until ${dFmt(cur.check_out, { weekday: 'short', day: 'numeric', month: 'short' })}` : 'Empty right now'}</div><div class="s">${cur ? `${cur.nights || '?'} nights · ${cur.channel || 'booking'}` : next ? `next guest arrives ${dFmt(next.check_in, { weekday: 'short', day: 'numeric', month: 'short' })}` : (hkStays ? 'no booking in the next 30 days' : 'guest calendar unavailable')}</div></div></div>`;
+  }
+  for (let d = from; d <= to; d = dPlus(d, 1)) {
+    const ev = schedEvents(d);
+    if (schedVilla && !ev.length) continue;
+    h += `<div class="dayhead${d === today ? ' today' : ''}"><span>${dFmt(d, { weekday: 'long', day: 'numeric', month: 'long' })}${d === today ? ' · today' : ''}</span><span>${ev.length || ''}</span></div>`;
+    if (!ev.length) { h += `<div class="sempty">Nothing planned. Tap <b>Add a clean</b> if a villa needs one.</div>`; continue; }
+    for (const e of ev) {
+      const pill = e.type === 'clean'
+        ? (e.sameDay && e.status !== 'done' && e.status !== 'skipped' ? ['hot', 'Same day'] : (HK_STATUS[e.status] || ['wait', e.status]))
+        : null;
+      const icon = e.type === 'clean' ? (HK_LETTER[e.kind] || 'C') : e.type === 'guest' ? ICO_HOUSE : ICO_TOOL;
+      const onclick = e.type === 'clean' ? `hkTaskSheet(${e.id})` : e.type === 'maint' ? `go('#/maintenance')` : (schedVilla ? '' : `schedShowVilla('${esc(e.slug)}')`);
+      h += `<div class="sitem" ${onclick ? `onclick="${onclick}" role="button" tabindex="0"` : ''}>
+        <div class="sic ${e.type}">${icon}</div>
+        <div class="stxt">
+          <div class="t">${schedVilla ? esc(e.text) : `<a class="vlink" onclick="event.stopPropagation();schedShowVilla('${esc(e.slug)}')">${esc(hkShort(e.slug))}</a>`}</div>
+          <div class="s">${schedVilla ? '' : `<b>${esc(e.text)}</b> · `}${esc(e.sub)}</div>
+        </div>
+        ${pill ? `<span class="pill ${pill[0]}">${esc(pill[1])}</span>` : ''}
+      </div>`;
+    }
+  }
+  document.getElementById('sched-list').innerHTML = h || '<div class="sempty">Nothing here.</div>';
+}
+function schedPick(d) { schedSel = d; schedVilla = null; schedRender(); }
+function schedShift(n) { schedWeek = dPlus(schedWeek, n); schedRender(); }
+function schedSetFilter(k) { schedFilter = k; schedRender(); }
+function schedShowVilla(slug) { schedVilla = slug; schedRender(); if (slug) document.getElementById('content').scrollIntoView({ block: 'start' }); }
+
+// ── One clean: who, when, done, skip ──
+function hkTaskSheet(id) {
+  const t = (hkData?.tasks || []).find(x => x.id === id);
+  if (!t) return;
+  const k = HK_KIND[t.kind] || [t.kind, ''];
+  const st = HK_STATUS[t.status] || ['wait', t.status];
+  modal(`<h3>${esc(k[0])}</h3>
+    <p>${esc(hkShort(t.slug))} · ${dFmt(t.task_date, { weekday: 'long', day: 'numeric', month: 'long' })} · <span class="pill ${st[0]}">${esc(st[1])}</span>${t.same_day ? '<br>The next guest arrives the same day, so this one cannot slip.' : ''}</p>
+    <label class="flab">Who does it</label>
+    <select class="flt" id="hk-sheet-who" style="width:100%" onchange="staffPickerChanged(this,{role:'housekeeper'})"></select>
+    <label class="flab">Move it to</label>
+    <input type="date" id="hk-sheet-date" value="${t.task_date}" min="${hkToday()}" style="width:100%">
+    <div class="row" style="justify-content:space-between">
+      <span style="display:flex;gap:6px">
+        ${t.status !== 'skipped' ? `<button class="btn ghost" onclick="hkStatus(${t.id},'skipped')">Skip</button>` : ''}
+        ${t.status !== 'done' ? `<button class="btn ghost" onclick="hkStatus(${t.id},'done')">Done</button>` : ''}
+      </span>
+      <span style="display:flex;gap:6px"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="hkTaskSave(${t.id})">Save</button></span>
+    </div>`);
+  const sel = document.getElementById('hk-sheet-who');
+  staffFillPicker(sel, { role: 'housekeeper', slug: t.slug, placeholder: 'Nobody assigned' });
+  if (t.assigned_staff_id) sel.value = String(t.assigned_staff_id);
+}
+async function hkTaskSave(id) {
+  const t = (hkData?.tasks || []).find(x => x.id === id);
+  const who = document.getElementById('hk-sheet-who').value;
+  const date = document.getElementById('hk-sheet-date').value;
+  const fields = {};
+  if (String(t.assigned_staff_id || '') !== who) fields.assigned_staff_id = who ? Number(who) : null;
+  if (date && date !== t.task_date) fields.task_date = date;
+  if (!Object.keys(fields).length) { closeModal(); return; }
+  try {
+    await hkApi('hk_patch', { id, fields });
+    closeModal();
+    showToast(fields.task_date ? 'Moved. She will be told again on the new day.' : 'Saved.', 'success');
+    if (fields.task_date) schedSel = fields.task_date;
+    renderCleaning();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function hkStatus(id, status) {
+  try { await hkApi('hk_status', { id, status }); closeModal(); renderCleaning(); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
+// ── Add a clean: villa, day, who. Three taps. ──
+function hkAddSheet(step) {
+  if (step === 1) {
+    hkAdd = {};
+    const slugs = [...new Set([...(staffData?.units || []).map(u => u.slug), ...(hkStays?.units || []).map(u => u.slug), ...(hkData?.tasks || []).map(t => t.slug)])]
+      .sort((a, b) => hkName(a).localeCompare(hkName(b), undefined, { numeric: true }));
+    modal(`<h3>Add a clean</h3><p>Which villa?</p>
+      ${slugs.map(s => `<div class="opt" onclick="hkAddPick('slug','${esc(s)}')">${esc(hkShort(s))}</div>`).join('')}
+      <div class="row"><button class="btn ghost" onclick="closeModal()">Cancel</button></div>`, { wide: true });
+  }
+  if (step === 2) {
+    const today = hkToday();
+    let rows = '';
+    for (let i = 0; i < 14; i++) {
+      const d = dPlus(today, i);
+      const out = hkStayList(hkAdd.slug).some(s => s.check_out === d), inn = hkStayList(hkAdd.slug).some(s => s.check_in === d);
+      const inRes = hkInResidence(hkAdd.slug, d);
+      const already = (hkData?.tasks || []).filter(t => t.slug === hkAdd.slug && t.task_date === d).map(t => (HK_KIND[t.kind] || [t.kind])[0].toLowerCase());
+      const why = [out ? 'guest leaves' : '', inn ? 'guest arrives' : '', !out && !inn && inRes ? 'guest in' : '', !out && !inn && !inRes ? 'empty' : '', already.length ? 'already: ' + already.join(', ') : ''].filter(Boolean).join(' · ');
+      rows += `<div class="opt" onclick="hkAddPick('date','${d}')">${dFmt(d, { weekday: 'short', day: 'numeric', month: 'short' })}${d === today ? ' · today' : ''}<small>${esc(why)}</small></div>`;
+    }
+    modal(`<h3>Add a clean</h3><p>${esc(hkShort(hkAdd.slug))} · which day?</p>${rows}
+      <div class="row"><button class="btn ghost" onclick="hkAddSheet(1)">Back</button></div>`, { wide: true });
+  }
+  if (step === 3) {
+    const out = hkStayList(hkAdd.slug).some(s => s.check_out === hkAdd.date);
+    const inn = hkStayList(hkAdd.slug).some(s => s.check_in === dPlus(hkAdd.date, 1)) || hkStayList(hkAdd.slug).some(s => s.check_in === hkAdd.date);
+    hkAdd.kind = hkAdd.kind || (out ? 'turnover' : inn ? 'pre_arrival' : 'regular');
+    modal(`<h3>Add a clean</h3><p>${esc(hkShort(hkAdd.slug))} · ${dFmt(hkAdd.date, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+      <label class="flab">Who</label>
+      <select class="flt" id="hk-add-who" style="width:100%" onchange="staffPickerChanged(this,{role:'housekeeper'})"></select>
+      <label class="flab">What kind</label>
+      ${Object.entries(HK_KIND).map(([k, v]) => `<div class="opt${hkAdd.kind === k ? ' on' : ''}" onclick="hkAddPick('kind','${k}')">${esc(v[0])}<small>${esc(v[1])}</small></div>`).join('')}
+      <div class="row"><button class="btn ghost" onclick="hkAddSheet(2)">Back</button><button class="btn primary" id="hk-add-save" onclick="hkAddSave()">Add</button></div>`, { wide: true });
+    const sel = document.getElementById('hk-add-who');
+    staffFillPicker(sel, { role: 'housekeeper', slug: hkAdd.slug, placeholder: 'Nobody yet' });
+    if (hkAdd.who) sel.value = String(hkAdd.who);
+  }
+}
+function hkAddPick(key, value) {
+  if (key === 'kind') { hkAdd.who = document.getElementById('hk-add-who')?.value || hkAdd.who; }
+  hkAdd[key] = value;
+  hkAddSheet(key === 'slug' ? 2 : 3);
+}
+async function hkAddSave() {
+  const who = document.getElementById('hk-add-who').value;
+  const btn = document.getElementById('hk-add-save'); if (btn) btn.disabled = true;
+  try {
+    await hkApi('hk_create', { slug: hkAdd.slug, task_date: hkAdd.date, kind: hkAdd.kind, assigned_staff_id: who ? Number(who) : null });
+    closeModal();
+    const name = (staffData?.staff || []).find(p => String(p.id) === who)?.name;
+    showToast(name ? `Added. ${name} gets it in her morning message.` : 'Added. Assign someone so it goes out.', 'success');
+    schedSel = hkAdd.date; schedVilla = null;
+    renderCleaning();
+  } catch (e) { if (btn) btn.disabled = false; if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
+// Postgres weekday numbering, 0 = Sunday, the same as property_care.clean_days.
+const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 async function hkCareEdit() {
   let care = [];
@@ -1533,17 +1783,85 @@ async function hkGenerate() {
     renderCleaning();
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
-async function hkReassign(id, staffId) {
-  if (staffId === '__new__') return;    // the quick-add form handles this
-  try {
-    await hkApi('hk_patch', { id, fields: { assigned_staff_id: staffId ? Number(staffId) : null } });
-    showToast('Reassigned.', 'success');
-    renderCleaning();
-  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+
+// ── How to use: one short guide per page, opened from the crumb ───────
+// Era should never have to ask what a page is for. Each guide says what the
+// page shows, what she is expected to do on it, and what happens when she
+// does — in that order, in plain words, and short enough to read on a phone.
+const HELP = {
+  list: { title: 'Payouts', html: `
+    <p>One card per villa per month, built from the statement sheets. The amount is what the owner is owed after our fee and any costs.</p>
+    <h4>What you do here</h4>
+    <ol>
+      <li>Update the villa's sheet as usual, then tap <b>Sync from Era's sheets</b>. New months appear as <b>Draft</b>.</li>
+      <li>Open a card and check the lines against the sheet. <b>Needs review</b> means something did not parse cleanly; look at that one first.</li>
+      <li>Tap <b>Publish</b>. The owner gets the statement on WhatsApp, at the numbers saved under Properties.</li>
+      <li>After the transfer, mark it <b>Paid</b>. The pink banner at the top shows what is still owed; tap it to see only those.</li>
+    </ol>
+    <p>Use the property dropdown to see one villa at a time.</p>` },
+  detail: { title: 'One statement', html: `
+    <p>The lines that make up this month's payout: rent received, our fee, costs, adjustments, and the total owed.</p>
+    <h4>What you do here</h4>
+    <ol>
+      <li>Read the lines against the sheet. If a number is wrong, fix the sheet and sync again rather than editing here.</li>
+      <li>Check the bank details shown. They come from the villa's Properties page; change them there if needed.</li>
+      <li><b>Publish</b> sends it to the owner. If last month ended in deficit it is carried in automatically and you are warned first.</li>
+      <li>Mark <b>Paid</b> once the money has gone, so the outstanding banner stays true.</li>
+    </ol>` },
+  maintenance: { title: 'Maintenance', html: `
+    <p>Everything that needs fixing, in the order it needs you. It starts with a photo: send Maya a picture on WhatsApp with the villa and what is wrong, and it appears here.</p>
+    <h4>What you do here</h4>
+    <ol>
+      <li><b>Needs your review</b>: add the estimated cost. Choose <b>Ask the owner to approve</b> for anything that costs real money, or <b>Routine: just tell them</b> for small things. Then <b>Publish &amp; notify</b>.</li>
+      <li><b>Waiting on owner</b>: nothing to do. Maya reminds them. You will see it turn to <b>Approved</b>.</li>
+      <li><b>Approved</b>: pick who does the work from the dropdown. Maya sends them the job on WhatsApp and asks them for a day. When they confirm, the visit appears on the Schedule.</li>
+      <li>When it is fixed, mark it <b>Done</b> and add a photo. The owner is told.</li>
+    </ol>
+    <p>Mark something <b>Urgent</b> if a guest is affected today. It goes to the top.</p>` },
+  earnings: { title: 'Earnings', html: `
+    <p>Our management income by month, added up from the published statements. Nothing to do here; it is a summary.</p>` },
+  groups: { title: 'Properties', html: `
+    <p>One entry per villa: who owns it, how to reach them, and where the money goes.</p>
+    <h4>What you keep up to date</h4>
+    <ul>
+      <li><b>Owner WhatsApp numbers</b>: statements and the weekly report go to these. You can add more than one.</li>
+      <li><b>Bank account</b>: shown on every statement, so a typo here reaches the owner.</li>
+      <li><b>Notifications</b>: switch off only if the owner has asked not to receive WhatsApp messages.</li>
+    </ul>` },
+  cleaning: { title: 'Schedule', html: `
+    <p>The next 30 days for every villa: cleans, guest arrivals and departures, and tukang visits. Built from the booking calendar every hour. Each housekeeper gets her day on WhatsApp in the morning and her week on Monday.</p>
+    <h4>Reading it</h4>
+    <ul>
+      <li>The strip of days at the top shows a week; the small number under a day is how much is on. Tap a day to jump to it.</li>
+      <li>The chips filter the list: <b>Cleaning</b>, <b>Guests</b>, <b>Maintenance</b>, or one housekeeper's name to see just her week.</li>
+      <li>Tap a villa's name to see everything at that villa, including when the current guest leaves.</li>
+      <li><b>Same day</b> in orange means the next guest arrives the day this one leaves. That clean cannot slip.</li>
+    </ul>
+    <h4>Changing things</h4>
+    <ul>
+      <li><b>Tap a clean</b> to give it to someone else, move it to another day, or mark it Done or Skipped. A moved clean is sent again on its new day.</li>
+      <li><b>Add a clean</b>: pick the villa, the day, then who. The kind is guessed from the calendar and you can change it.</li>
+      <li><b>Cleaning days</b> sets which weekdays each villa is cleaned. <b>Rebuild from the calendar</b> refreshes the plan after a booking changes; cleans already sent to someone are kept.</li>
+    </ul>` },
+  staff: { title: 'Team', html: `
+    <p>Everyone who works at the villas: housekeepers, tukang and their trades, and which villas each one covers. Maya messages people at the numbers here, so this is the list that has to be right.</p>
+    <h4>What you do here</h4>
+    <ul>
+      <li><b>Add someone</b> with their WhatsApp number, role, and the villas they usually do.</li>
+      <li>When someone stops working with us, mark them <b>inactive</b> rather than deleting them; past visits stay on record.</li>
+      <li>A stand-in can still be given a villa that is not normally theirs; the schedule just says so.</li>
+    </ul>` },
+};
+function mountHelp(view) {
+  const key = HELP[view] ? view : null;
+  if (!key) return;
+  const crumb = document.querySelector('#content .crumb');
+  if (!crumb || crumb.querySelector('.helpbtn')) return;
+  crumb.insertAdjacentHTML('beforeend', `<button type="button" class="helpbtn" onclick="showHelp('${key}')" aria-label="How to use this page">? How to use</button>`);
 }
-async function hkStatus(id, status) {
-  try { await hkApi('hk_status', { id, status }); renderCleaning(); }
-  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+function showHelp(key) {
+  const h = HELP[key]; if (!h) return;
+  modal(`<div class="help"><h3>How to use · ${esc(h.title)}</h3>${h.html}<div class="row"><button class="btn primary" onclick="closeModal()">Got it</button></div></div>`, { wide: true });
 }
 
 // ── Team ─────────────────────────────────────────────────────────────
