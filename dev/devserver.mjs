@@ -69,6 +69,19 @@ const mockMaint = [
     actual_cost: 250000, currency: 'IDR', urgency: 'low', reported_by_name: 'Era', reported_at: dayISO(20),
     created_at: dayISO(20), published_at: dayISO(19), notified_at: dayISO(19), completed_at: dayISO(12),
     completion_note: 'Filters cleaned on both units.', done_notified_at: dayISO(12), thread: [], followup_count: 1 },
+  { id: 45, group_key: 'tropicana-b2356', slug: 'tropicana-b3', unit_label: 'tropicana-b3', title: 'Bedroom AC not cooling',
+    description: 'The bedroom unit runs but only blows warm air. The quote covers a gas refill and a filter service.', photos: [], status: 'pending_approval',
+    requires_approval: true, estimated_cost: 850000, actual_cost: null, currency: 'IDR', urgency: 'normal',
+    reported_by_wa: '6287832988120', reported_by_name: 'Oli', reported_at: dayISO(1), created_at: dayISO(1), published_at: dayISO(0), notified_at: dayISO(0),
+    thread: [{ at: dayISO(1), who: 'Oli', text: 'Tropicana B3 — bedroom AC not cooling' }], followup_count: 0, next_followup_at: null },
+  { id: 46, group_key: 'tropicana-b2356', slug: 'tropicana-b5', unit_label: 'tropicana-b5', title: 'Pool pump making a grinding noise',
+    description: null, photos: [], status: 'approved', requires_approval: true, estimated_cost: 1200000, currency: 'IDR', urgency: 'normal',
+    reported_by_name: 'Ikiel', reported_at: dayISO(6), created_at: dayISO(6), published_at: dayISO(5), notified_at: dayISO(5), approved_at: dayISO(4), approved_by: 'owner (link)',
+    staff_notified_at: dayISO(4), followup_count: 0, next_followup_at: null, promised_date: null, thread: [] },
+  { id: 47, group_key: 'tropicana-b2356', slug: 'tropicana-b2', unit_label: 'tropicana-b2', title: 'Front gate lock replaced',
+    description: null, photos: [], status: 'done', requires_approval: false, estimated_cost: 350000, actual_cost: 350000, currency: 'IDR', urgency: 'low',
+    reported_by_name: 'Oli', reported_at: dayISO(14), created_at: dayISO(14), published_at: dayISO(13), notified_at: dayISO(13), completed_at: dayISO(9),
+    completion_note: 'New lock fitted, two keys left in the unit.', done_notified_at: dayISO(9), thread: [], followup_count: 0 },
 ];
 // ── mock Staff registry (kaya-agent-crm /api/staff) ──────────────────
 // Deliberately seeded a person short of full coverage: haus-1 and the
@@ -378,6 +391,7 @@ const mockGroups = [
   { key: 'haus-2-4', name: 'HAUS Canggu – Units 2 & 4', sheet_file_id: 'SHEET_HAUS24', listing_slugs: ['haus-2', 'haus-4'], owner_wa_nums: ['628111111111', '628122222222'], owner_names: 'Romina & Tim', notify: true, active: true, charges_commission: true },
   { key: 'lanehaus', name: 'LaneHAUS – Units 1 & 3', sheet_file_id: 'SHEET_LANE', listing_slugs: ['lanehaus-1', 'lanehaus-3'], owner_wa_nums: [], owner_names: 'Ikiel & Guy', notify: false, active: true, charges_commission: false, tracks_payments: false },
   { key: 'villa-saturno', name: 'Villa Saturno', sheet_file_id: 'SHEET_SAT', listing_slugs: ['villa-saturno'], owner_wa_nums: ['628133333333'], owner_names: 'Pedro', notify: true, active: true },
+  { key: 'tropicana-b2356', name: 'Tropicana Valley – Units B2, B3, B5 & B6', sheet_file_id: '', listing_slugs: ['tropicana-b2', 'tropicana-b3', 'tropicana-b5', 'tropicana-b6'], owner_wa_nums: ['6287832988120'], owner_names: 'Ikiel & Oli', notify: true, active: true },
 ];
 let mockLineId = 100;
 const mockStatements = [
@@ -787,6 +801,14 @@ function exec(cmd) {
 store.set('owner:wa:61433733473', JSON.stringify({ sub: 'wa:61433733473', name: 'Rushika', wa: '61433733473', email: null }));
 store.set('listing:haus-5', JSON.stringify({ slug: 'haus-5', ownerSub: 'wa:61433733473', ownerEmail: null, reportContacts: [{ name: 'Co-owner', wa: '61400111222' }] }));
 store.set('owner_listings:wa:61433733473', JSON.stringify(['haus-5']));
+// Co-owned units: Ikiel is the primary owner; the dev owner is claimed as a
+// co-owner on sign-in through coOwnerEmails (the guide screenshots use this).
+store.set('owner:wa:15142400048', JSON.stringify({ sub: 'wa:15142400048', name: 'Ikiel', wa: '15142400048', email: 'ikielptito@gmail.com' }));
+for (const s of ['tropicana-b2', 'tropicana-b3', 'tropicana-b5', 'tropicana-b6']) {
+  store.set(`listing:${s}`, JSON.stringify({ slug: s, ownerSub: 'wa:15142400048', ownerEmail: 'ikielptito@gmail.com',
+    coOwnerEmails: [process.env.DEV_OWNER_EMAIL || 'owner@example.com'], reportContacts: [{ name: 'Oli', wa: '6287832988120' }] }));
+}
+store.set('owner_listings:wa:15142400048', JSON.stringify(['tropicana-b2', 'tropicana-b3', 'tropicana-b5', 'tropicana-b6']));
 
 const HOSTEX_PROPS = [
   { id: 11621510, name: 'HAUS Canggu – Unit 1', property_type: 'Apartment', cover: { large_url: 'https://picsum.photos/seed/h1/400/300' } },
@@ -816,8 +838,8 @@ globalThis.fetch = async (url, opts = {}) => {
     const idToken = new URL(u).searchParams.get('id_token');
     if (!idToken) return { ok: false, status: 400, json: async () => ({ error: 'missing' }) };
     return { ok: true, status: 200, json: async () => ({
-      sub: 'dev-owner-1', email: 'owner@example.com', email_verified: true,
-      name: 'Dev Owner', picture: '', aud: process.env.GOOGLE_CLIENT_ID,
+      sub: 'dev-owner-1', email: process.env.DEV_OWNER_EMAIL || 'owner@example.com', email_verified: true,
+      name: process.env.DEV_OWNER_NAME || 'Dev Owner', picture: '', aud: process.env.GOOGLE_CLIENT_ID,
     }) };
   }
   if (u.includes('sandbox-api.paddle.com/customers/') && u.includes('/portal-sessions')) {
@@ -1030,9 +1052,16 @@ const server = http.createServer(async (req, res) => {
     // Dev-only: ?devpw=1 pre-seeds the admin password so headless captures
     // (guide screenshots) can reach the logged-in cockpit. Never shipped.
     if (['/payouts', '/campaigns', '/admin'].includes(u.pathname) && u.searchParams.get('devpw') === '1') {
+      // ?capture=<name> opens a named modal after boot, so headless-Chrome
+      // guide screenshots can photograph states that normally need a click.
+      const cap = u.searchParams.get('capture') || '';
+      const capJs = cap ? `<script>window.addEventListener('load',()=>setTimeout(()=>{try{
+        if(${JSON.stringify(cap)}==='care'&&window.hkCareEdit)hkCareEdit();
+        if(${JSON.stringify(cap)}==='addstaff'&&window.staffEdit)staffEdit(null);
+      }catch(e){}},1800));</script>` : '';
       const html = fs.readFileSync(path.join(ROOT, 'public', u.pathname.slice(1) + '.html'), 'utf8')
         .replace('<script src="/shared.js"></script>',
-          `<script>sessionStorage.setItem('admin_pw', ${JSON.stringify(process.env.DASHBOARD_PASSWORD)});</script>\n<script src="/shared.js"></script>`);
+          `<script>sessionStorage.setItem('admin_pw', ${JSON.stringify(process.env.DASHBOARD_PASSWORD)});</script>\n${capJs}<script src="/shared.js"></script>`);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       return void res.end(html);
     }

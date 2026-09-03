@@ -53,6 +53,17 @@
         "/private/tmp/claude-501/-Users-ikiel-Samba-Rentals/56b90c83-97d4-4663-bcb4-48bb26283d40/scratchpad/mockserver.mjs"
       ],
       "port": 4174
+    },
+    {
+      "name": "samba-dev-oli",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DEV_OWNER_NAME=Oli",
+        "DEV_OWNER_EMAIL=oh.herrmann@gmail.com",
+        "node",
+        "dev/devserver.mjs"
+      ],
+      "port": 3456
     }
   ]
 }
