@@ -173,7 +173,7 @@ async function sessionOwner(req, kvGet) {
 // WhatsApp sign-ins) groups registered to their number.
 async function ownerGroups(owner, kvGet, crmStatements) {
   const hostexMap = await loadHostexOwnerMap(kvGet);
-  const mySlugs = new Set(Object.values(hostexMap).filter(l => l.ownerSub === owner.sub).map(l => l.slug));
+  const mySlugs = new Set(Object.values(hostexMap).filter(l => l.ownerSub === owner.sub || (l.coOwnerSubs || []).includes(owner.sub)).map(l => l.slug));
   const wa = owner.wa ? String(owner.wa).replace(/\D/g, '') : null;
   if (!mySlugs.size && !wa) return [];
   const gr = await crmStatements('statement_groups', {});

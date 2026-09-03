@@ -160,6 +160,34 @@ export default async function handler(req, res) {
     // behalf of an owner she's chatting with on WhatsApp (identified by their
     // number/email). Always lands as pending_review — you still approve before
     // it goes live. Same trust boundary as the sync secret (server-to-server).
+    // Service-authed co-owner: names an extra owner on a Hostex unit — their
+    // Google email (so the portal shows them the unit on sign-in) and their
+    // WhatsApp (as a report contact, so the weekly report and maintenance
+    // notices reach them and the CRM's owner-sync gives them the unit).
+    // Body: { slug, email?, name?, wa? }. Idempotent.
+    if (action === 'co-owner' && req.method === 'POST') {
+      const svcSecret = process.env.LISTING_SYNC_SECRET;
+      if (!svcSecret || (req.headers.authorization || '') !== `Bearer ${svcSecret}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const body = req.body || {};
+      const slug = cleanStr(body.slug);
+      if (!isHostexSlug(slug)) return res.status(400).json({ error: 'co-owner applies to Samba-managed units only' });
+      const email = cleanStr(body.email).toLowerCase();
+      const wa = cleanStr(body.wa).replace(/[^0-9]/g, '');
+      const name = cleanStr(body.name).slice(0, 60);
+      if (!email && !wa) return res.status(400).json({ error: 'email or wa required' });
+      const override = (await kvGet(`listing:${slug}`)) || { slug };
+      if (email) override.coOwnerEmails = [...new Set([...(override.coOwnerEmails || []), email])];
+      if (wa) {
+        const rc = Array.isArray(override.reportContacts) ? override.reportContacts : [];
+        if (!rc.some(x => String(x && x.wa || '').replace(/[^0-9]/g, '') === wa)) rc.push({ name: name || email || 'Co-owner', wa });
+        override.reportContacts = rc.slice(0, 5);
+      }
+      override.updatedAt = Date.now();
+      await kvSet(`listing:${slug}`, override);
+      return res.status(200).json({ ok: true, slug, coOwnerEmails: override.coOwnerEmails || [], reportContacts: override.reportContacts || [] });
+    }
     if (action === 'intake' && req.method === 'POST') {
       const svcSecret = process.env.LISTING_SYNC_SECRET;
       if (!svcSecret || (req.headers.authorization || '') !== `Bearer ${svcSecret}`) {
@@ -694,7 +722,10 @@ async function listProperties(res, owner, { kvGet, kvSet }) {
   const properties = slugs
     .map((slug, i) => {
       const c = resolveOwnedListing(slug, customMap, hostexMap);
-      if (!c || c.ownerSub !== owner.sub) return null;
+      // A co-owner (claimed through coOwnerEmails) sees the unit alongside
+      // the primary owner; editing rules are unchanged (Hostex units are
+      // read-mostly for everyone).
+      if (!c || (c.ownerSub !== owner.sub && !(c.coOwnerSubs || []).includes(owner.sub))) return null;
       if (c.hostex) {
         // Samba-managed unit: always live, no billing, restricted editing —
         // the `hostex` flag is what the portal UI keys those restrictions on.
@@ -730,7 +761,15 @@ async function claimByEmail(owner, customMap, hostexMap, { kvGet, kvSet }) {
     const h = hostexMap[slug];
     return h && h.ownerEmail && String(h.ownerEmail).toLowerCase() === email && h.ownerSub !== owner.sub;
   });
-  if (!toClaim.length && !hostexClaim.length) return;
+  // Co-owners: an admin lists extra emails on the unit; the matching Google
+  // account is recorded as a co-owner sub on first sign-in and the unit
+  // joins their portal list. The primary owner keeps ownerSub.
+  const coClaim = Object.keys(hostexMap || {}).filter(slug => {
+    const h = hostexMap[slug];
+    return h && Array.isArray(h.coOwnerEmails) && h.coOwnerEmails.map(x => String(x).toLowerCase()).includes(email)
+      && h.ownerSub !== owner.sub && !(h.coOwnerSubs || []).includes(owner.sub);
+  });
+  if (!toClaim.length && !hostexClaim.length && !coClaim.length) return;
   if (toClaim.length) {
     for (const slug of toClaim) customMap[slug].ownerSub = owner.sub;
     await kvSet(CUSTOM_KEY, customMap);
@@ -743,9 +782,15 @@ async function claimByEmail(owner, customMap, hostexMap, { kvGet, kvSet }) {
     override.ownerSub = owner.sub;
     await kvSet(`listing:${slug}`, override);
   }
+  for (const slug of coClaim) {
+    const override = (await kvGet(`listing:${slug}`)) || { slug };
+    override.coOwnerSubs = [...new Set([...(override.coOwnerSubs || []), owner.sub])];
+    await kvSet(`listing:${slug}`, override);
+    if (hostexMap[slug]) hostexMap[slug].coOwnerSubs = override.coOwnerSubs;
+  }
   const owned = (await kvGet(`owner_listings:${owner.sub}`)) || [];
   let changed = false;
-  for (const slug of [...toClaim, ...hostexClaim]) if (!owned.includes(slug)) { owned.push(slug); changed = true; }
+  for (const slug of [...toClaim, ...hostexClaim, ...coClaim]) if (!owned.includes(slug)) { owned.push(slug); changed = true; }
   if (changed) await kvSet(`owner_listings:${owner.sub}`, owned);
 }
 
