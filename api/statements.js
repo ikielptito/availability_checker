@@ -378,8 +378,11 @@ export default async function handler(req, res) {
       const detail = {};
       for (const g of groups) {
         const slugs = g.listing_slugs || [];
+        // A co-owner who signed in (coOwnerSubs) has onboarded as surely as
+        // the primary owner — Oli on the Tropicana B units, where the
+        // primary account is Ikiel's own and would not count.
         const subs = [...new Set(slugs
-          .map(s => hostexMap[s]?.ownerSub || custom[s]?.ownerSub || null)
+          .flatMap(s => [hostexMap[s]?.ownerSub || custom[s]?.ownerSub || null, ...((hostexMap[s]?.coOwnerSubs) || [])])
           .filter(Boolean))];
         const ownerSubs = [];
         for (const sub of subs) if (!(await isAdminAccount(sub))) ownerSubs.push(sub);

@@ -381,6 +381,14 @@ function readSessionToken(req) {
   return m ? decodeURIComponent(m.slice(SESSION_COOKIE.length + 1)) : null;
 }
 
+// The signed-in account holds the listing as its primary owner or as a
+// co-owner (claimed through coOwnerEmails). Read paths and Hostex-unit contact
+// edits accept both; custom-listing edits stay with the primary owner.
+function ownsOrCoOwns(rec, owner) {
+  if (!rec || !owner) return false;
+  return rec.ownerSub === owner.sub || (Array.isArray(rec.coOwnerSubs) && rec.coOwnerSubs.includes(owner.sub));
+}
+
 async function currentOwner(req, { kvGet }) {
   const token = readSessionToken(req);
   if (!token) return null;
@@ -894,7 +902,7 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
   // owner === null means the caller is service-authed (Maya server-side) and may
   // read any listing; a session caller is scoped to their own listings.
   if (!prop) return res.status(404).json({ error: 'Unknown listing' });
-  if (owner && prop.ownerSub !== owner.sub) return res.status(403).json({ error: 'Not your listing' });
+  if (owner && !ownsOrCoOwns(prop, owner)) return res.status(403).json({ error: 'Not your listing' });
   const propId = propIdFor(prop);
   const num = v => parseInt(v) || 0;
 
@@ -1171,7 +1179,7 @@ async function saveProperty(req, res, owner, { kvGet, kvSet, kvDel }) {
   const hostexSlug = cleanStr(req.body?.slug);
   if (hostexSlug && isHostexSlug(hostexSlug)) {
     const override = (await kvGet(`listing:${hostexSlug}`)) || { slug: hostexSlug };
-    if (override.ownerSub !== owner.sub) {
+    if (!ownsOrCoOwns(override, owner)) {
       return res.status(403).json({ error: 'Not your listing' });
     }
     if (data.waNumber !== undefined) override.waNumber = cleanStr(data.waNumber).replace(/[^0-9]/g, '');
@@ -1326,7 +1334,7 @@ async function rankPhotos(req, res, owner, { kvGet, kvSet, kvDel }) {
   const all = (await kvGet(CUSTOM_KEY)) || {};
   const hostexMap = await loadHostexOwnerMap(kvGet);
   const rec = resolveOwnedListing(slug, all, hostexMap);
-  if (!rec || rec.ownerSub !== owner.sub) {
+  if (!ownsOrCoOwns(rec, owner)) {
     return res.status(403).json({ error: 'Not your listing' });
   }
   // NOTE: Tropicana units share one Drive folder — ranking one ranks them all.
