@@ -124,6 +124,9 @@ body:not(.view-payouts) #outbanner,body:not(.view-payouts) #syncbtn{display:none
 .strow .nm small{display:block;font:500 11px/1.4 var(--sb-font-ui);color:var(--muted);margin-top:2px;}
 .strow .amt{font:700 15px/1 var(--sb-font-display);font-variant-numeric:tabular-nums;white-space:nowrap;}
 .strow .pills{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+.owed{font:500 13px/1.3 var(--sb-font-ui);color:var(--text);padding:8px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface);}
+.owed b{font-weight:700;color:var(--accent);}
+.owed.muted{color:var(--muted);}
 select.flt{padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font:500 12.5px/1 var(--sb-font-ui);}
 
 .card{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:17px 18px;margin-bottom:14px;}
@@ -514,18 +517,30 @@ function renderList() {
   const c = document.getElementById('content');
   if (!listData) { c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>'; return; }
   const groups = groupsData?.groups || [];
-  const rows = (listData.statements || [])
-    .filter(s => !groupFilter || s.group_key === groupFilter)
-    .filter(s => !outstandingOnly || isOutstanding(s));
+  const inGroup = (listData.statements || []).filter(s => !groupFilter || s.group_key === groupFilter);
+  const rows = inGroup.filter(s => !outstandingOnly || isOutstanding(s));
   const byPeriod = {};
   for (const s of rows) (byPeriod[s.period] ||= []).push(s);
   const periods = Object.keys(byPeriod).sort().reverse();
+
+  // Per-property total, same rule as the banner: deficits are recouped
+  // through the carry into the next month, so they never count as owed.
+  let owedHtml = '';
+  if (groupFilter) {
+    const due = inGroup.filter(isOutstanding);
+    const total = due.reduce((a, s) => a + balanceOf(s), 0);
+    const g = groups.find(x => x.key === groupFilter);
+    if (g && g.tracks_payments === false) owedHtml = `<span class="owed muted">Settled privately · no balance tracked</span>`;
+    else if (due.length) owedHtml = `<span class="owed"><b>Total owed: ${IDR(total)}</b> · ${due.length} payout${due.length > 1 ? 's' : ''}</span>`;
+    else owedHtml = `<span class="owed muted">Nothing owed · all settled</span>`;
+  }
 
   let html = `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
     <select class="flt" onchange="groupFilter=this.value;renderList()">
       <option value="">All properties</option>
       ${groups.map(g => `<option value="${esc(g.key)}"${g.key === groupFilter ? ' selected' : ''}>${esc(pname(g.name))}</option>`).join('')}
     </select>
+    ${owedHtml}
     ${outstandingOnly ? `<span class="pill outstanding"><span class="d"></span>Outstanding only</span>
       <button class="fltclear" onclick="toggleOutstanding()">Show all statements</button>` : ''}
   </div>`;
