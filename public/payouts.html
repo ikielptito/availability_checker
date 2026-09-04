@@ -975,11 +975,12 @@ function downscale(file) {
     img.src = URL.createObjectURL(file);
   });
 }
-// ── Earnings: monthly management-commission income ───────────────────
-// Commission comes from the statements themselves (Era's commission column),
-// summed per month across groups that charge a management fee. Own units
-// (charges_commission=false, e.g. LaneHAUS) are internal money and excluded
-// from the total — shown separately for context.
+// ── Earnings: monthly income ─────────────────────────────────────────
+// Managed villas earn the management fee (Era's commission column). Own
+// units (charges_commission=false, i.e. LaneHAUS) earn the full rental
+// profit: Era's sheet still splits a commission out, so profit is
+// commission + payout, which is gross less expenses and adjustments. Both
+// count towards the monthly total; the breakdown marks own units.
 async function renderEarnings() {
   const c = document.getElementById('content');
   if (!listData || !groupsData) { c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>'; return; }
@@ -987,16 +988,19 @@ async function renderEarnings() {
   const chargeable = new Set(groups.filter(g => g.charges_commission !== false).map(g => g.key));
   const mlab = (p) => { const [y, m] = String(p).split('-').map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }); };
 
-  const months = {};   // period → {total, own, byGroup:{name:amt}}
+  const months = {};   // period → {total, fees, own, byGroup:{name:amt}}
   for (const s of (listData.statements || [])) {
     if (s.status === 'void') continue;
-    const m = (months[s.period] ||= { total: 0, own: 0, byGroup: {} });
-    const amt = Number(s.commission_total) || 0;
+    const m = (months[s.period] ||= { total: 0, fees: 0, own: 0, byGroup: {} });
+    const name = s.statement_groups?.name || s.group_key;
     if (chargeable.has(s.group_key)) {
-      m.total += amt;
-      m.byGroup[s.statement_groups?.name || s.group_key] = (m.byGroup[s.statement_groups?.name || s.group_key] || 0) + amt;
+      const fee = Number(s.commission_total) || 0;
+      m.total += fee; m.fees += fee;
+      m.byGroup[name] = (m.byGroup[name] || 0) + fee;
     } else {
-      m.own += amt;
+      const profit = (Number(s.commission_total) || 0) + (Number(s.payout_total) || 0);
+      m.total += profit; m.own += profit;
+      m.byGroup[name + ' profit'] = (m.byGroup[name + ' profit'] || 0) + profit;
     }
   }
   const periods = Object.keys(months).sort().reverse();
@@ -1004,22 +1008,22 @@ async function renderEarnings() {
   const best = periods.reduce((a, p) => months[p].total > (months[a]?.total ?? -1) ? p : a, periods[0]);
   const maxV = Math.max(...periods.map(p => months[p].total), 1);
 
-  let html = `<div class="card"><h3>Management commission earnings</h3>
+  let html = `<div class="card"><h3>Monthly earnings</h3>
     <div class="totgrid">
       <div class="tot big"><div class="lab">2026 to date</div><div class="val">${IDR(ytd)}</div></div>
       <div class="tot"><div class="lab">Average / month</div><div class="val">${IDR(periods.length ? ytd / periods.length : 0)}</div></div>
       ${best ? `<div class="tot"><div class="lab">Best month</div><div class="val">${IDR(months[best].total)}</div><div style="font-size:.66rem;color:var(--muted);margin-top:3px">${esc(mlab(best))}</div></div>` : ''}
     </div>
-    <p style="font-size:.72rem;color:var(--muted);margin-top:8px">From the commission column of every statement (drafts included: the fee is earned whether or not the statement is published yet). LaneHAUS is excluded: your own units, no management fee charged.</p>
+    <p style="font-size:.72rem;color:var(--muted);margin-top:8px">Management fee from every managed villa's statement (drafts included: the fee is earned whether or not the statement is published yet), plus the full rental profit of LaneHAUS: your own units, so the whole nett after expenses counts, not a fee.</p>
   </div>`;
 
   html += `<div class="card"><h3>By month</h3><div class="tblwrap"><table class="lines">
-    <tr><th>Month</th><th></th><th class="num">Commission</th><th>Breakdown</th></tr>
+    <tr><th>Month</th><th></th><th class="num">Earnings</th><th>Breakdown</th></tr>
     ${periods.map(p => `<tr>
       <td style="white-space:nowrap;font-weight:600">${esc(mlab(p))}</td>
       <td style="width:34%;min-width:120px"><div style="height:9px;border-radius:5px;background:var(--surface2);overflow:hidden"><div style="height:100%;width:${Math.round(months[p].total / maxV * 100)}%;background:var(--accent);border-radius:5px"></div></div></td>
       <td class="num" style="font-weight:700">${IDR(months[p].total)}</td>
-      <td style="font-size:.68rem;color:var(--muted)">${Object.entries(months[p].byGroup).sort((a, b) => b[1] - a[1]).map(([n, v]) => `${esc(pname(n).replace(/HAUS Canggu · |Tropicana Valley · /, ''))} ${Math.round(v / 1e6 * 10) / 10}M`).join(' · ') || '–'}${months[p].own ? ` <span style="color:var(--paused-fg)">(+ LaneHAUS internal ${Math.round(months[p].own / 1e6 * 10) / 10}M)</span>` : ''}</td>
+      <td style="font-size:.68rem;color:var(--muted)">${Object.entries(months[p].byGroup).sort((a, b) => b[1] - a[1]).map(([n, v]) => `${esc(pname(n).replace(/HAUS Canggu · |Tropicana Valley · /, ''))} ${Math.round(v / 1e6 * 10) / 10}M`).join(' · ') || '–'}</td>
     </tr>`).join('')}
     <tr class="totrow"><td>Total</td><td></td><td class="num">${IDR(ytd)}</td><td></td></tr>
   </table></div></div>`;
@@ -1834,7 +1838,7 @@ const HELP = {
     </ol>
     <p>Mark something <b>Urgent</b> if a guest is affected today. It goes to the top.</p>` },
   earnings: { title: 'Earnings', html: `
-    <p>Our management income by month, added up from the published statements. Nothing to do here; it is a summary.</p>` },
+    <p>Our income by month: the management fee from every managed villa, plus the full rental profit of our own LaneHAUS units. Added up from the statements. Nothing to do here; it is a summary.</p>` },
   groups: { title: 'Properties', html: `
     <p>One entry per villa: who owns it, how to reach them, and where the money goes.</p>
     <h4>What you keep up to date</h4>
