@@ -298,9 +298,10 @@ function render(d) {
         // the statement is a record of the month, not a bill.
         const noSettle = d.group?.tracks_payments === false;
         if (expOnly) {
-          const b = pnlBounds();
-          const p = b ? PNL[`${b.from}:${b.to}`] : null;
-          const gross = PNL_RANGE.kind === 'month' && p && p.months?.[0] ? p.months[0].gross : null;
+          // The hero is always the statement's own month, whatever range the
+          // profit table below is showing.
+          const p = PNL[`${d.period}:${d.period}`];
+          const gross = p && p.months?.[0] ? p.months[0].gross : null;
           const net = gross != null ? gross - Number(t.expenses) : null;
           return `<div class="payout">
             <div class="pl">Net profit for the month${qm('hero')}</div>
