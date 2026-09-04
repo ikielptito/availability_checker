@@ -152,6 +152,104 @@ function mockStaffApi({ action, payload = {} }) {
   return { status: 400, body: { error: `Unknown action: ${action}` } };
 }
 
+// ── mock Payroll (kaya-agent-crm /api/payroll) ───────────────────────
+// One run shaped like Era's real September sheet, with the Putu/Ita roster
+// mismatch and the "Era from Romi" unclassified line so the review chrome
+// is visible offline.
+let mockPayrollLineId = 100, mockPayrollPayId = 1;
+const prLine = (payee, description, category, amount, slugs, extra = {}) => ({
+  id: ++mockPayrollLineId, run_id: 1, category, payee, person_name: category === 'salary' ? payee : null,
+  staff_id: extra.staff_id || null, role: extra.role || null, description, slugs, amount, flags: extra.flags || [], edited: false, source_row: mockPayrollLineId, position: mockPayrollLineId,
+});
+const mockPayrollLines = [
+  prLine('Era', 'Villa manager', 'salary', 11500000, [], { role: 'manager', flags: ['not_in_registry'] }),
+  prLine('Ana', 'HK Astanine', 'salary', 2500000, ['astanine'], { staff_id: 4, role: 'housekeeper' }),
+  prLine('Ana', 'HK Lane Haus', 'salary', 1500000, ['lanehaus-1', 'lanehaus-3'], { staff_id: 4, role: 'housekeeper' }),
+  prLine('Putu', 'HK A5', 'salary', 1000000, ['tropicana-a5'], { staff_id: 5, role: 'housekeeper', flags: ['roster_mismatch', 'registry:Ita'] }),
+  prLine('Putu', 'HK A4', 'salary', 1000000, ['tropicana-a4'], { staff_id: 5, role: 'housekeeper', flags: ['roster_mismatch', 'registry:Ita'] }),
+  prLine('Dian', 'Pool Lanehaus', 'salary', 1000000, ['lanehaus-1', 'lanehaus-3'], { staff_id: 6, role: 'pool' }),
+  prLine('Dian', 'Pool A5 & garden', 'salary', 800000, ['tropicana-a5'], { staff_id: 6, role: 'pool' }),
+  prLine('Naomi', 'HK Saturno', 'salary', 2000000, ['villa-saturno'], { staff_id: 2, role: 'housekeeper' }),
+  prLine('Internet', 'Haus Canggu', 'utility', 337500, ['haus-1', 'haus-2', 'haus-4', 'haus-5']),
+  prLine('Laundry', 'Lane, Haus, Tropicana, Astanine, Saturno', 'laundry', 5000000, ['lanehaus-1', 'lanehaus-3', 'haus-1', 'haus-2', 'haus-4', 'haus-5', 'tropicana-a4', 'tropicana-a5', 'tropicana-b4', 'astanine', 'villa-saturno']),
+  prLine('Era from Romi', 'Haus Unit 2&4', 'receipt', 2500000, ['haus-2', 'haus-4']),
+  prLine('Balance from August', 'Samba', 'balance', 10000000, []),
+  prLine('Petty Cash', 'Samba', 'petty_cash', 2000000, []),
+];
+const MOCK_MEMO = new Set(['balance', 'receipt', 'petty_cash']);
+const mockPayrollPayments = [];
+const mockPayrollRuns = [{
+  id: 1, period: '2026-09', status: 'draft', salary_total: 0, other_total: 0, run_total: 0, era_total: 31137500, paid_total: 0,
+  reconciliation: { checks: [
+    { name: 'total_matches_sheet', ok: true, expected: 31137500, actual: 31137500 },
+    { name: 'no_vendors_on_payroll', ok: true, actual: [] },
+    { name: 'sheet_matches_registry', ok: false, actual: ['Putu paid for tropicana-a5; registry: Ita', 'Putu paid for tropicana-a4; registry: Ita'] },
+    { name: 'housekeeping_covered', ok: true, actual: [] },
+    { name: 'no_unparsed_rows', ok: true, actual: 0 },
+  ], unparsed_rows: [] },
+  needs_review: true, period_flags: ['period_from_balance_hint'], source_hash: 'x', source_tab: 'Sheet1', parsed_at: '2026-09-04T01:00:00Z',
+  has_manual_edits: false, source_changed: false, published_at: null, published_by: null, paid_at: null,
+}, {
+  id: 2, period: '2026-08', status: 'paid', salary_total: 26950000, other_total: 27993000, run_total: 54943000, era_total: 54943000, paid_total: 54943000,
+  reconciliation: { checks: [], unparsed_rows: [] }, needs_review: false, period_flags: [], source_tab: 'August', parsed_at: '2026-08-04T01:00:00Z',
+  has_manual_edits: false, source_changed: false, published_at: '2026-08-05T01:00:00Z', published_by: 'admin', paid_at: '2026-08-06T01:00:00Z',
+}];
+function mockPayrollTotals(run) {
+  const lines = mockPayrollLines.filter(l => l.run_id === run.id);
+  run.salary_total = lines.filter(l => l.category === 'salary').reduce((a, l) => a + l.amount, 0);
+  run.run_total = lines.filter(l => !MOCK_MEMO.has(l.category)).reduce((a, l) => a + l.amount, 0);
+  run.memo_total = lines.filter(l => MOCK_MEMO.has(l.category)).reduce((a, l) => a + l.amount, 0);
+  run.other_total = run.run_total - run.salary_total;
+  const paid = mockPayrollPayments.filter(p => p.run_id === run.id).reduce((a, p) => a + p.amount, 0);
+  run.paid_total = paid;
+  if (['published', 'partial', 'paid'].includes(run.status)) run.status = paid >= run.run_total - 1 && paid > 0 ? 'paid' : paid > 0 ? 'partial' : 'published';
+}
+mockPayrollTotals(mockPayrollRuns[0]);
+function mockPayrollApi({ action, payload = {} }) {
+  const run = mockPayrollRuns.find(r => r.id === +payload.id);
+  if (action === 'payroll_list') {
+    const outstanding = mockPayrollRuns.filter(r => ['published', 'partial'].includes(r.status));
+    return { status: 200, body: { runs: mockPayrollRuns, outstanding: { count: outstanding.length, total: outstanding.reduce((a, r) => a + r.run_total - r.paid_total, 0) } } };
+  }
+  if (action === 'payroll_sync') return { status: 200, body: { tabs: 1, created: 0, updated: 0, unchanged: 1, kept_edits: 0, discrepancies: 0, skipped: 'unchanged since last sync', runs: [] } };
+  if (!run) return { status: 404, body: { error: 'Run not found' } };
+  if (action === 'payroll_detail') {
+    const lines = mockPayrollLines.filter(l => l.run_id === run.id);
+    const payments = mockPayrollPayments.filter(p => p.run_id === run.id);
+    const by = new Map();
+    for (const l of lines) {
+      if (MOCK_MEMO.has(l.category)) continue;
+      const r = by.get(l.payee) || { payee: l.payee, staff_id: l.staff_id, category: l.category, role: l.role, lines: [], total: 0, paid: 0, slugs: new Set() };
+      r.lines.push(l); r.total += l.amount; l.slugs.forEach(s => r.slugs.add(s)); by.set(l.payee, r);
+    }
+    for (const p of payments) { const r = by.get(p.payee); if (r) r.paid += p.amount; }
+    const payees = [...by.values()].map(r => ({ ...r, slugs: [...r.slugs], balance: r.total - r.paid }));
+    const props = new Map();
+    for (const l of lines) {
+      if (MOCK_MEMO.has(l.category)) continue;
+      const slugs = l.slugs.length ? l.slugs : ['samba'];
+      for (const s of slugs) { const r = props.get(s) || { slug: s, total: 0, salary: 0, other: 0, lines: 0 }; r.total += l.amount / slugs.length; if (l.category === 'salary') r.salary += l.amount / slugs.length; else r.other += l.amount / slugs.length; r.lines++; props.set(s, r); }
+    }
+    const properties = [...props.values()];
+    const statements = mockGroups.filter(g => g.active).map(g => ({
+      group_key: g.key, name: g.name, slugs: g.listing_slugs, allocated: g.listing_slugs.reduce((a, s) => a + (props.get(s)?.total || 0), 0),
+      statement: mockStatements.find(s => s.group_key === g.key && s.period === run.period) ? { id: mockStatements.find(s => s.group_key === g.key && s.period === run.period).id, status: 'published', expenses_total: 1250000 } : null,
+    })).filter(g => g.allocated > 0 || g.statement);
+    return { status: 200, body: { run, lines, payments, payees, properties, statements, period_label: run.period } };
+  }
+  if (action === 'payroll_publish') { run.status = 'published'; run.published_at = new Date().toISOString(); run.published_by = 'admin'; return { status: 200, body: { ok: true } }; }
+  if (action === 'payroll_unpublish') { run.status = 'draft'; run.published_at = null; return { status: 200, body: { ok: true } }; }
+  if (action === 'payroll_patch_line') {
+    const l = mockPayrollLines.find(x => x.id === +payload.line_id); if (l) Object.assign(l, payload.fields, { edited: true }); run.has_manual_edits = true; mockPayrollTotals(run); return { status: 200, body: { ok: true } };
+  }
+  if (action === 'payroll_add_line') { const f = payload.fields; mockPayrollLines.push({ ...prLine(f.payee, f.description, f.category, f.amount, f.slugs || [], { flags: ['manual'] }), run_id: run.id, edited: true }); run.has_manual_edits = true; mockPayrollTotals(run); return { status: 200, body: { ok: true } }; }
+  if (action === 'payroll_delete_line') { const i = mockPayrollLines.findIndex(x => x.id === +payload.line_id); if (i >= 0) mockPayrollLines.splice(i, 1); run.has_manual_edits = true; mockPayrollTotals(run); return { status: 200, body: { ok: true } }; }
+  if (action === 'payroll_reimport') { run.has_manual_edits = false; return { status: 200, body: { ok: true } }; }
+  if (action === 'payroll_record_payment') { mockPayrollPayments.push({ id: mockPayrollPayId++, run_id: run.id, payee: payload.payee, staff_id: payload.staff_id, amount: +payload.amount, paid_at: payload.paid_at || new Date().toISOString(), note: payload.note || null, proof_url: null, status: 'cleared' }); mockPayrollTotals(run); return { status: 200, body: { ok: true } }; }
+  if (action === 'payroll_delete_payment') { const i = mockPayrollPayments.findIndex(p => p.id === +payload.payment_id); if (i >= 0) mockPayrollPayments.splice(i, 1); mockPayrollTotals(run); return { status: 200, body: { ok: true } }; }
+  return { status: 400, body: { error: `Unknown action: ${action}` } };
+}
+
 // ── mock Housekeeping (kaya-agent-crm /api/housekeeping) ─────────────
 // The schedule is derived with the REAL planTasks rules against a fake
 // calendar, so what renders offline is what production would produce rather
@@ -896,6 +994,12 @@ globalThis.fetch = async (url, opts = {}) => {
     const body = JSON.parse(opts.body || '{}');
     __crmCalls.push({ kind: 'staff', body });
     const out = mockStaffApi(body);
+    return { ok: out.status === 200, status: out.status, json: async () => out.body };
+  }
+  if (u.includes('/__crm_mock/api/payroll')) {
+    const body = JSON.parse(opts.body || '{}');
+    __crmCalls.push({ kind: 'payroll', body });
+    const out = mockPayrollApi(body);
     return { ok: out.status === 200, status: out.status, json: async () => out.body };
   }
   if (u.includes('/__crm_mock/api/housekeeping')) {

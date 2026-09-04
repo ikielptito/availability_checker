@@ -335,6 +335,7 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
       <a href="#/" data-view="list"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.8h7l3 3v11.4H5z"/><path d="M12 2.8v3h3"/><path d="M7.6 9.5h4.8M7.6 12.4h4.8"/></svg>Payouts</a>
       <a href="#/maintenance" data-view="maintenance"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.6 3.6a3.6 3.6 0 0 0-4.9 4.4l-4.2 4.2a1.4 1.4 0 0 0 0 2l1.9 1.9a1.4 1.4 0 0 0 2 0l4.2-4.2a3.6 3.6 0 0 0 4.4-4.9l-2.2 2.2-2-.6-.6-2z"/></svg>Maintenance<span class="railbadge" id="maint-badge" style="display:none"></span></a>
       <a href="#/earnings" data-view="earnings"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 16.2h14"/><path d="M4.6 12.4l3.6-4 3 2.6 4.2-5.2"/></svg>Earnings</a>
+      <a href="#/payroll" data-view="payroll"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.6" y="5.2" width="14.8" height="9.6" rx="1.8"/><circle cx="10" cy="10" r="2.2"/><path d="M5.4 10h.01M14.6 10h.01"/></svg>Payroll</a>
       <a href="#/groups" data-view="groups"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.2 8.6L10 3.2l6.8 5.4"/><path d="M5 10v6.8h10V10"/><path d="M8.4 16.8v-4h3.2v4"/></svg>Properties</a>
       <a href="#/cleaning" data-view="cleaning"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.2" width="14" height="12.6" rx="2"/><path d="M3 8h14M7 2.8v2.8M13 2.8v2.8"/><path d="M7.4 11.6l1.5 1.5 3.2-3.2"/></svg>Schedule<span class="railbadge" id="hk-badge" style="display:none"></span></a>
       <a href="#/staff" data-view="staff"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.6" cy="6.6" r="2.6"/><path d="M2.6 16.4c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6"/><path d="M13.4 4.4a2.6 2.6 0 0 1 0 4.9"/><path d="M14.6 12.2c1.7.5 2.8 1.9 2.8 4.2"/></svg>Team</a>
@@ -418,6 +419,7 @@ function route() {
   const view = h.startsWith('#/statement/') ? 'detail'
     : h.startsWith('#/maintenance') ? 'maintenance'
     : h === '#/groups' ? 'groups' : h === '#/earnings' ? 'earnings' : h === '#/staff' ? 'staff'
+    : h.startsWith('#/payroll') ? 'payroll'
     : h === '#/cleaning' ? 'cleaning' : 'list';
   document.querySelectorAll('.rail a').forEach(a => a.classList.toggle('on', a.dataset.view === (view === 'detail' ? 'list' : view)));
   // The outstanding banner and the sheet sync are payouts controls; on the
@@ -428,6 +430,7 @@ function route() {
     : view === 'earnings' ? renderEarnings()
     : view === 'maintenance' ? renderMaintenance()
     : view === 'staff' ? renderStaff()
+    : view === 'payroll' ? (h.startsWith('#/payroll/') ? renderPayrollRun(parseInt(h.slice('#/payroll/'.length), 10)) : renderPayroll())
     : view === 'cleaning' ? renderCleaning()
     : renderDetail(parseInt(h.slice('#/statement/'.length), 10));
   // Every page carries its own "How to use" once it has drawn its crumb.
@@ -1029,6 +1032,280 @@ async function renderEarnings() {
   </table></div></div>`;
 
   c.innerHTML = html;
+}
+
+// ── Payroll: Era's staff sheet as monthly runs ───────────────────────
+async function payrollApi(action, payload) {
+  const r = await fetch('/api/payroll', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminPw },
+    body: JSON.stringify({ action, payload: payload || {} }),
+  });
+  if (r.status === 401) { showGate('Session expired. Please log in again.'); throw new Error('unauthorized'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+  return d;
+}
+const PR_CAT = { salary: 'Salary', utility: 'Utilities', laundry: 'Laundry', advance: 'Advance', building_fee: 'Building fee', other: 'Other', balance: 'Balance carried', receipt: 'Money received', petty_cash: 'Petty cash float' };
+const PR_CATS = Object.keys(PR_CAT);
+// Memo categories: Era lists them but her TOTAL leaves them out; nothing is paid.
+const PR_MEMO = new Set(['balance', 'receipt', 'petty_cash']);
+const prSlugName = (s) => s === 'samba' ? 'Samba overhead' : s === 'astanine' ? 'Astanine' : (unitName(s) || s);
+function prPills(r) {
+  const p = [];
+  if (r.status === 'draft') p.push('<span class="pill draft">Draft</span>');
+  if (r.status === 'published') p.push('<span class="pill outstanding"><span class="d"></span>To pay</span>');
+  if (r.status === 'partial') p.push(`<span class="pill review"><span class="d"></span>Partly paid · ${IDR(Number(r.run_total) - Number(r.paid_total))} left</span>`);
+  if (r.status === 'paid') p.push('<span class="pill paid">Paid</span>');
+  if (r.status === 'void') p.push('<span class="pill void">Void</span>');
+  if (r.needs_review && r.status === 'draft') p.push('<span class="pill review">Needs a look</span>');
+  if (r.source_changed) p.push('<span class="pill changed">Sheet changed</span>');
+  if ((r.period_flags || []).includes('period_assumed')) p.push('<span class="pill void" title="The sheet carries no month, so this is taken to be the current month">Month assumed</span>');
+  return p.join('');
+}
+let payrollList = null;
+async function renderPayroll() {
+  const c = document.getElementById('content');
+  c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading payroll…</div>';
+  try { payrollList = await payrollApi('payroll_list', {}); }
+  catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`; return; }
+  const runs = payrollList.runs || [];
+  const o = payrollList.outstanding || { count: 0, total: 0 };
+  let html = `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+    ${o.count ? `<span class="owed"><b>To pay: ${IDR(o.total)}</b> · ${o.count} month${o.count > 1 ? 's' : ''}</span>` : `<span class="owed muted">Nothing to pay · all settled</span>`}
+    <button class="btn-sync" id="prsync" onclick="payrollSync()">⟳ Sync from Era's payroll sheet</button>
+  </div>`;
+  if (!runs.length) html += `<div class="empty-state">No payroll runs yet. Hit <b>Sync from Era's payroll sheet</b> to import the current month.</div>`;
+  for (const r of runs) {
+    html += `<div class="strow" onclick="go('#/payroll/${r.id}')">
+      <div class="nm">${esc(monthLabel(r.period))}
+        <small>${r.status === 'paid' ? 'paid ' + dstr(r.paid_at) : r.status === 'published' || r.status === 'partial' ? 'published ' + dstr(r.published_at) : 'imported ' + dstr(r.parsed_at)} · salaries ${IDR(r.salary_total)} · other ${IDR(r.other_total)}</small>
+      </div>
+      <div class="amt">${IDR(r.run_total)}</div>
+      <div class="pills">${prPills(r)}</div>
+    </div>`;
+  }
+  c.innerHTML = html;
+}
+async function payrollSync() {
+  const btn = document.getElementById('prsync');
+  if (btn) { btn.disabled = true; btn.textContent = '⟳ Syncing…'; }
+  try {
+    const out = await payrollApi('payroll_sync', {});
+    if (out.error) throw new Error(out.error);
+    showToast(out.skipped ? `Sheet unchanged since last sync` : `Sync done: ${out.created} new, ${out.updated} updated${out.kept_edits ? `, ${out.kept_edits} kept your edits` : ''}${out.discrepancies ? `, ${out.discrepancies} changed after publish` : ''}`, out.discrepancies ? 'error' : 'success');
+    await renderPayroll();
+  } catch (e) { if (e.message !== 'unauthorized') showToast('Sync failed: ' + e.message, 'error'); }
+  if (btn) { btn.disabled = false; btn.textContent = "⟳ Sync from Era's payroll sheet"; }
+}
+
+let prDet = null;
+async function renderPayrollRun(id) {
+  const c = document.getElementById('content');
+  c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading run…</div>';
+  try { prDet = await payrollApi('payroll_detail', { id }); }
+  catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`; return; }
+  drawPayrollRun();
+}
+function drawPayrollRun() {
+  const c = document.getElementById('content');
+  const { run, lines, payments, payees, properties, statements } = prDet;
+  const draft = run.status === 'draft';
+  const payable = run.status === 'published' || run.status === 'partial';
+  const checks = (run.reconciliation && run.reconciliation.checks) || [];
+  const failed = checks.filter(k => !k.ok);
+  const CHECK_LABEL = {
+    total_matches_sheet: "Lines add up to the sheet's TOTAL",
+    no_vendors_on_payroll: 'No per-job vendors on the sheet',
+    sheet_matches_registry: 'Sheet agrees with the Team register',
+    housekeeping_covered: 'Every housekeeper is paid for every villa she covers',
+    no_unparsed_rows: 'Every row was understood',
+  };
+
+  let html = `<div class="crumb"><a onclick="go('#/payroll')">Payroll</a> · ${esc(monthLabel(run.period))}</div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div><h3 style="margin:0">${esc(monthLabel(run.period))} payroll</h3>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">from tab "${esc(run.source_tab || '')}" · imported ${dstr(run.parsed_at)}${run.published_at ? ' · published ' + dstr(run.published_at) : ''}</div></div>
+      <div class="pills">${prPills(run)}</div>
+    </div>
+    <div class="totgrid" style="margin-top:12px">
+      <div class="tot big"><div class="lab">This month</div><div class="val">${IDR(run.run_total)}</div></div>
+      <div class="tot"><div class="lab">Salaries</div><div class="val">${IDR(run.salary_total)}</div></div>
+      <div class="tot"><div class="lab">Everything else</div><div class="val">${IDR(run.other_total)}</div></div>
+      <div class="tot"><div class="lab">${payable || run.status === 'paid' ? 'Paid so far' : "Era's total"}</div><div class="val">${IDR(payable || run.status === 'paid' ? run.paid_total : run.era_total)}</div></div>
+      ${Number(run.memo_total) ? `<div class="tot"><div class="lab">Memo · not paid out</div><div class="val" style="color:var(--muted)">${IDR(run.memo_total)}</div><div style="font-size:.66rem;color:var(--muted);margin-top:3px">balance carried, money received, petty cash</div></div>` : ''}
+    </div>
+    <div class="actionsrow" style="margin-top:12px">
+      ${draft ? `<button class="btn primary" onclick="payrollPublish(${run.id})">Publish · lock these numbers</button>
+        <button class="btn ghost" onclick="payrollAddLine(${run.id})">Add a line</button>
+        ${run.has_manual_edits ? `<button class="btn ghost" onclick="payrollReimport(${run.id})">Re-import · discard my edits</button>` : ''}` : ''}
+      ${run.status === 'published' && !Number(run.paid_total) ? `<button class="btn ghost" onclick="payrollUnpublish(${run.id})">Back to draft</button>` : ''}
+    </div>
+  </div>`;
+
+  if (checks.length) {
+    html += `<div class="card"><h3>Checks</h3>
+      ${checks.map(k => `<div style="display:flex;gap:9px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border);font-size:.8rem">
+        <span class="pill ${k.ok ? 'paid' : 'review'}" style="flex:none">${k.ok ? 'OK' : 'Look'}</span>
+        <div><div>${esc(CHECK_LABEL[k.name] || k.name)}</div>
+          ${!k.ok ? `<div style="font-size:.72rem;color:var(--muted);margin-top:2px">${k.name === 'total_matches_sheet' ? `sheet says ${IDR(k.expected)}, lines add to ${IDR(k.actual)}` : Array.isArray(k.actual) ? k.actual.map(esc).join(' · ') : esc(String(k.actual))}</div>` : ''}
+        </div></div>`).join('')}
+      ${failed.length ? `<p style="font-size:.72rem;color:var(--muted);margin-top:8px">A failed check does not block publishing. Fix the line, or publish as-is if the sheet is right and the register is stale.</p>` : ''}
+    </div>`;
+  }
+
+  // By person
+  html += `<div class="card"><h3>By person</h3><div class="tblwrap"><table class="lines">
+    <tr><th>Payee</th><th>For</th><th class="num">Owed</th><th class="num">Paid</th><th></th></tr>
+    ${payees.map(p => `<tr>
+      <td style="font-weight:600;white-space:nowrap">${esc(p.payee)}${p.category !== 'salary' && (PR_CAT[p.category] || '').toLowerCase() !== p.payee.toLowerCase() ? ` <span class="tag">${esc(PR_CAT[p.category] || p.category)}</span>` : ''}</td>
+      <td style="font-size:.72rem;color:var(--muted)">${p.lines.map(l => esc(l.description || '')).filter(Boolean).join(' · ') || (p.slugs.length ? p.slugs.map(prSlugName).map(esc).join(', ') : 'Samba')}</td>
+      <td class="num" style="font-weight:600">${IDR(p.total)}</td>
+      <td class="num">${p.paid ? IDR(p.paid) : '–'}</td>
+      <td style="white-space:nowrap">${payable && p.balance > 0.5 ? `<button class="btn ghost" onclick="payrollPay(${run.id}, ${JSON.stringify(p.payee).replace(/"/g, '&quot;')}, ${p.staff_id || 'null'}, ${Math.round(p.balance)})">Record payment</button>` : p.balance <= 0.5 && p.paid ? '<span class="pill paid">Paid</span>' : ''}</td>
+    </tr>`).join('')}
+    <tr class="totrow"><td>Total</td><td></td><td class="num">${IDR(run.run_total)}</td><td class="num">${IDR(run.paid_total)}</td><td></td></tr>
+  </table></div></div>`;
+
+  // By property, next to the owner statements
+  const stByKey = new Map((statements || []).map(s => [s.group_key, s]));
+  html += `<div class="card"><h3>By property</h3>
+    <div class="tblwrap"><table class="lines">
+      <tr><th>Property</th><th class="num">Salaries</th><th class="num">Other</th><th class="num">Staff cost</th></tr>
+      ${properties.map(p => `<tr><td>${esc(prSlugName(p.slug))}</td><td class="num">${IDR(p.salary)}</td><td class="num">${IDR(p.other)}</td><td class="num" style="font-weight:600">${IDR(p.total)}</td></tr>`).join('')}
+    </table></div>
+    ${(statements || []).length ? `<h4 style="margin:14px 0 6px;font-size:.8rem">Against the owner statements for ${esc(monthLabel(run.period))}</h4>
+    <div class="tblwrap"><table class="lines">
+      <tr><th>Statement</th><th class="num">Staff cost here</th><th class="num">Expenses charged</th><th class="num">Gap</th></tr>
+      ${statements.map(s => `<tr onclick="${s.statement ? `go('#/statement/${s.statement.id}')` : ''}" style="${s.statement ? 'cursor:pointer' : ''}">
+        <td>${esc(pname(s.name))}${s.statement ? ` <span class="tag">${esc(s.statement.status)}</span>` : ' <span class="tag">no statement</span>'}</td>
+        <td class="num">${IDR(s.allocated)}</td>
+        <td class="num">${s.statement ? IDR(s.statement.expenses_total) : '–'}</td>
+        <td class="num" style="color:${s.statement && Math.abs(s.statement.expenses_total - s.allocated) > 1000 ? 'var(--amber-fg)' : 'var(--muted)'}">${s.statement ? IDR(s.statement.expenses_total - s.allocated) : '–'}</td>
+      </tr>`).join('')}
+    </table></div>
+    <p style="font-size:.72rem;color:var(--muted);margin-top:8px">Lines covering several villas are split evenly. The gap is what the owner was charged beyond staff (repairs, supplies) or, when negative, staff cost that reached no statement.</p>` : ''}
+  </div>`;
+
+  // All lines
+  html += `<div class="card"><h3>Every line${draft ? ' <span style="font-weight:400;font-size:.72rem;color:var(--muted)">· tap a line to edit</span>' : ''}</h3><div class="tblwrap"><table class="lines">
+    <tr><th>Who / what</th><th>Description</th><th>Category</th><th>Properties</th><th class="num">Amount</th></tr>
+    ${lines.map(l => `<tr ${draft ? `onclick="payrollEditLine(${run.id}, ${l.id})" style="cursor:pointer"` : ''}${PR_MEMO.has(l.category) ? ' class="memo"' : ''}>
+      <td style="font-weight:600;white-space:nowrap">${esc(l.payee)}${(l.flags || []).filter(f => !f.startsWith('registry:')).map(f => ` <span class="tag" title="${esc(f)}">${esc(f.replace(/_/g, ' '))}</span>`).join('')}</td>
+      <td>${esc(l.description || '')}</td>
+      <td style="font-size:.72rem">${esc(PR_CAT[l.category] || l.category)}${PR_MEMO.has(l.category) ? ' <span class="tag">memo</span>' : ''}</td>
+      <td style="font-size:.72rem;color:var(--muted)">${(l.slugs || []).length ? l.slugs.map(prSlugName).map(esc).join(', ') : 'Samba'}</td>
+      <td class="num"${PR_MEMO.has(l.category) ? ' style="color:var(--muted)"' : ''}>${IDR(l.amount)}</td>
+    </tr>`).join('')}
+    <tr class="totrow"><td>To pay out</td><td></td><td></td><td></td><td class="num">${IDR(run.run_total)}</td></tr>
+  </table></div></div>`;
+
+  if (payments.length) {
+    html += `<div class="card"><h3>Payments</h3><div class="tblwrap"><table class="lines">
+      <tr><th>Paid to</th><th>When</th><th>Note</th><th class="num">Amount</th><th></th></tr>
+      ${payments.map(p => `<tr><td>${esc(p.payee)}</td><td>${dstr(p.paid_at)}</td><td style="font-size:.72rem">${esc(p.note || '')}${p.proof_url ? ` <a href="${esc(p.proof_url)}" target="_blank" rel="noopener">proof</a>` : ''}</td><td class="num">${IDR(p.amount)}</td>
+        <td><button class="btn ghost" onclick="payrollDeletePayment(${run.id}, ${p.id})">Remove</button></td></tr>`).join('')}
+    </table></div></div>`;
+  }
+  c.innerHTML = html;
+}
+function prLineForm(l) {
+  const slugOpts = [...(unitsData || []).map(u => u.slug), 'astanine'];
+  return `<label class="flab">Who or what</label><input id="pl-payee" value="${esc(l.payee || '')}" placeholder="Dian, Internet, Laundry…">
+    <label class="flab">Description</label><input id="pl-desc" value="${esc(l.description || '')}" placeholder="Pool A5 & garden">
+    <label class="flab">Category</label><select id="pl-cat">${PR_CATS.map(k => `<option value="${k}"${(l.category || 'salary') === k ? ' selected' : ''}>${PR_CAT[k]}</option>`).join('')}</select>
+    <label class="flab">Amount (IDR)</label><input id="pl-amt" type="number" min="0" step="1000" value="${Math.round(Number(l.amount) || 0)}">
+    <label class="flab">Properties</label>
+    <div class="chips">${slugOpts.map(s => `<label class="chip"><input type="checkbox" value="${s}"${(l.slugs || []).includes(s) ? ' checked' : ''}> ${esc(prSlugName(s))}</label>`).join('')}</div>
+    <div style="font-size:.7rem;color:var(--muted);margin-top:4px">None ticked means Samba overhead.</div>`;
+}
+function prReadLineForm() {
+  const fields = {
+    payee: document.getElementById('pl-payee').value.trim(),
+    description: document.getElementById('pl-desc').value.trim() || null,
+    category: document.getElementById('pl-cat').value,
+    amount: Number(document.getElementById('pl-amt').value) || 0,
+    slugs: [...document.querySelectorAll('#modal .chips input:checked')].map(i => i.value),
+  };
+  if (fields.category === 'salary') fields.person_name = fields.payee;
+  return fields;
+}
+function payrollEditLine(runId, lineId) {
+  const l = (prDet.lines || []).find(x => x.id === lineId);
+  if (!l) return;
+  modal(`<h3>Edit line</h3>${prLineForm(l)}
+    <div class="actionsrow" style="margin-top:14px">
+      <button class="btn primary" onclick="payrollSaveLine(${runId}, ${lineId})">Save</button>
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn danger" style="margin-left:auto" onclick="payrollDeleteLine(${runId}, ${lineId})">Delete line</button>
+    </div>`);
+}
+function payrollAddLine(runId) {
+  modal(`<h3>Add a line</h3>${prLineForm({ category: 'salary', slugs: [] })}
+    <div class="actionsrow" style="margin-top:14px">
+      <button class="btn primary" onclick="payrollSaveLine(${runId}, null)">Add</button>
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+async function payrollSaveLine(runId, lineId) {
+  const fields = prReadLineForm();
+  if (!fields.payee) { showToast('Who or what is this line for?', 'error'); return; }
+  try {
+    if (lineId) await payrollApi('payroll_patch_line', { id: runId, line_id: lineId, fields });
+    else await payrollApi('payroll_add_line', { id: runId, fields });
+    closeModal(); await renderPayrollRun(runId);
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function payrollDeleteLine(runId, lineId) {
+  if (!confirm('Delete this line?')) return;
+  try { await payrollApi('payroll_delete_line', { id: runId, line_id: lineId }); closeModal(); await renderPayrollRun(runId); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function payrollReimport(runId) {
+  if (!confirm("Discard your edits and re-import this month from Era's sheet?")) return;
+  try { await payrollApi('payroll_reimport', { id: runId }); await renderPayrollRun(runId); showToast('Re-imported from the sheet', 'success'); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function payrollPublish(runId) {
+  const failed = ((prDet.run.reconciliation || {}).checks || []).filter(k => !k.ok).length;
+  if (!confirm(`Publish ${monthLabel(prDet.run.period)} payroll at ${IDR(prDet.run.run_total)}?${failed ? `\n\n${failed} check${failed > 1 ? 's' : ''} still flagged.` : ''}\n\nLines lock; you then record each transfer by person.`)) return;
+  try { await payrollApi('payroll_publish', { id: runId }); await renderPayrollRun(runId); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function payrollUnpublish(runId) {
+  try { await payrollApi('payroll_unpublish', { id: runId }); await renderPayrollRun(runId); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+function payrollPay(runId, payee, staffId, balance) {
+  modal(`<h3>Record a payment to ${esc(payee)}</h3>
+    <label class="flab">Amount (IDR)</label><input id="pp-amt" type="number" min="1" step="1000" value="${balance}">
+    <label class="flab">Date</label><input id="pp-date" type="date" value="${new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10)}">
+    <label class="flab">Note</label><input id="pp-note" placeholder="Transfer reference, cash, …">
+    <label class="flab">Proof (optional)</label><input id="pp-file" type="file" accept="image/*">
+    <div class="actionsrow" style="margin-top:14px">
+      <button class="btn primary" id="pp-save" onclick="payrollSavePayment(${runId}, ${JSON.stringify(payee).replace(/"/g, '&quot;')}, ${staffId || 'null'})">Save payment</button>
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+async function payrollSavePayment(runId, payee, staffId) {
+  const amount = Number(document.getElementById('pp-amt').value);
+  if (!(amount > 0)) { showToast('Enter the amount paid', 'error'); return; }
+  const date = document.getElementById('pp-date').value;
+  const note = document.getElementById('pp-note').value.trim();
+  const file = document.getElementById('pp-file').files[0];
+  const btn = document.getElementById('pp-save'); btn.disabled = true;
+  try {
+    let fileBase64 = null, contentType = null;
+    if (file) { const shrunk = await shrinkImage(file); fileBase64 = shrunk.base64; contentType = shrunk.type; }
+    await payrollApi('payroll_record_payment', { id: runId, payee, staff_id: staffId, amount, note, paid_at: date ? date + 'T04:00:00.000Z' : null, fileBase64, contentType });
+    closeModal(); await renderPayrollRun(runId);
+  } catch (e) { btn.disabled = false; if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function payrollDeletePayment(runId, paymentId) {
+  if (!confirm('Remove this payment?')) return;
+  try { await payrollApi('payroll_delete_payment', { id: runId, payment_id: paymentId }); await renderPayrollRun(runId); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
 
 // ── Properties / registry ────────────────────────────────────────────
@@ -1839,6 +2116,16 @@ const HELP = {
     <p>Mark something <b>Urgent</b> if a guest is affected today. It goes to the top.</p>` },
   earnings: { title: 'Earnings', html: `
     <p>Our income by month: the management fee from every managed villa, plus the full rental profit of our own LaneHAUS units. Added up from the statements. Nothing to do here; it is a summary.</p>` },
+  payroll: { title: 'Payroll', html: `
+    <p>Era's "Staff Salary and Expenses" sheet, imported every morning as one payroll run per month. Same rules as payouts: a draft follows the sheet, a draft you edited is never overwritten, a published run is frozen.</p>
+    <h4>Reading a run</h4>
+    <ul>
+      <li><b>By person</b>: one row per payee with everything they are owed this month (Dian's four villas are one transfer). Record each transfer against the person; the run turns Paid when everything is settled.</li>
+      <li><b>By property</b>: what each villa's staff cost, next to the expenses on that villa's owner statement for the same month. A big gap means something was charged to an owner that isn't on the sheet, or the other way round.</li>
+      <li><b>Checks</b>: the sheet's own total, vendors that should be maintenance costs, and where the sheet disagrees with the Team register about who covers a villa.</li>
+    </ul>
+    <h4>Villas paid outside the sheet</h4>
+    <p>HAUS Canggu and Tropicana B2, B3, B5 and B6 have their cleaning paid elsewhere, so a missing housekeeping line there is not a finding.</p>` },
   groups: { title: 'Properties', html: `
     <p>One entry per villa: who owns it, how to reach them, and where the money goes.</p>
     <h4>What you keep up to date</h4>
