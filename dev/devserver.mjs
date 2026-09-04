@@ -287,13 +287,28 @@ function mockPayrollApi({ action, payload = {} }) {
 // The schedule is derived with the REAL planTasks rules against a fake
 // calendar, so what renders offline is what production would produce rather
 // than a hand-written list that can drift from the scheduler.
-import { planTasks } from '../../kaya-agent-crm/lib/housekeeping.js';
+import { planTasks, projectRounds } from '../../kaya-agent-crm/lib/housekeeping.js';
+import { DEFAULT_STANDARD } from '../../kaya-agent-crm/lib/housekeeping-readiness.js';
 import { UNITS as CATALOG_UNITS } from '../lib/catalog.js';
 
 const hkToday = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
 const hkPlus = (d, n) => new Date(Date.parse(d) + n * 86400e3).toISOString().slice(0, 10);
 let mockHkTasks = null;
 let mockHkId = 0;
+let mockHkUnits = [];
+const mockStandards = {};
+// Handover checks: one of each outcome, attached to the first three past
+// or present turnover/pre-arrival/deep-clean tasks the planner produced.
+function mockReadiness() {
+  const cands = mockHkTasks.filter(t => ['turnover', 'pre_arrival', 'deep_clean'].includes(t.kind)).slice(0, 3);
+  const shapes = [
+    { status: 'pass', flags: [], checks: [{ spot: 'living', ok: true }, { spot: 'kitchen', ok: true }], photos: ['a', 'b', 'c', 'd', 'e'] },
+    { status: 'flagged', flags: ['living: sofa has no cover', 'restock: sabun habis'], restock: 'sabun habis', checks: [{ spot: 'living', ok: false, note: 'sofa has no cover' }, { spot: 'kitchen', ok: true }], photos: ['a', 'b', 'c', 'd'] },
+    { status: 'awaiting', flags: [], checks: [], photos: [] },
+  ];
+  return cands.map((t, i) => ({ id: i + 1, task_id: t.id, slug: t.slug, kind: t.kind, guest_in_date: t.guest_in_date, by_staff_id: t.assigned_staff_id,
+    ...shapes[i], photo_count: shapes[i].photos.length, asked_at: new Date().toISOString(), closed_at: null }));
+}
 // Real per-villa cleaning days, mirroring the property_care seed.
 const mockCare = {
   'haus-1': [1, 4], 'haus-2': [2, 5], 'haus-4': [3, 6], 'haus-5': [1, 4],
@@ -318,7 +333,9 @@ function mockHkBuild() {
     { slug: 'villa-saturno', stays: [stay(hkPlus(today, -50), hkPlus(today, -25))] },   // empty a while
     { slug: 'tropicana-b4', stays: [] },                                                // never booked
   ];
-  const planned = planTasks({ today, units, careDays: mockCare, lastInspection: { 'haus-2': hkPlus(today, -6) } });
+  mockHkUnits = units;
+  const planned = planTasks({ today, units, careDays: mockCare, lastInspection: { 'haus-2': hkPlus(today, -6) },
+    lastDeepClean: { 'haus-1': hkPlus(today, -85), 'haus-4': hkPlus(today, -100) } });
   const cover = (slug) => mockStaff.find(s => s.active && (s.roles || []).includes('housekeeper') && (s.slugs || []).includes(slug));
   return planned.map(t => {
     const who = cover(t.slug);
@@ -360,6 +377,33 @@ function mockHousekeepingApi({ action, payload = {} }) {
     return { status: 200, body: { ok: true } };
   }
   if (action === 'hk_inspections') return { status: 200, body: { inspections: [] } };
+  if (action === 'hk_readiness') return { status: 200, body: { checks: mockReadiness() } };
+  if (action === 'hk_readiness_photos') {
+    const r = mockReadiness().find(x => x.id === +payload.id);
+    const svg = (t) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#dcd6c8"/><text x="100" y="105" font-size="22" text-anchor="middle" fill="#444">${t}</text></svg>`);
+    return { status: 200, body: { id: +payload.id, photo_urls: (r?.photos || []).map((_, i) => svg('photo ' + (i + 1))), checks: r?.checks || [], flags: r?.flags || [] } };
+  }
+  if (action === 'hk_standard') {
+    const row = mockStandards[payload.slug];
+    const kit = DEFAULT_STANDARD.kit.map(k => ({ ...k, present: row?.kit?.find(x => x.key === k.key)?.present ?? null, note: null }));
+    return { status: 200, body: { standard: { slug: payload.slug, kit, consumables: DEFAULT_STANDARD.consumables, photo_spots: DEFAULT_STANDARD.photo_spots, notes: row?.notes || null, audited_at: row?.audited_at || null, audited_by: row?.audited_by || null } } };
+  }
+  if (action === 'hk_standard_save') {
+    const audited = (payload.kit || []).some(k => k.present != null);
+    mockStandards[payload.slug] = { kit: payload.kit, notes: payload.notes, audited_at: audited ? new Date().toISOString() : null, audited_by: 'admin' };
+    const missing = (payload.kit || []).filter(k => k.present === false).map(k => `Provide: ${k.label}`);
+    return { status: 200, body: { ok: true, filed: payload.slug.startsWith('haus') ? missing : [], unowned: payload.slug.startsWith('haus') ? [] : missing } };
+  }
+  if (action === 'hk_rounds') {
+    const today = hkToday();
+    const projected = projectRounds({ today, units: mockHkUnits, months: 6, lastInspection: { 'haus-2': hkPlus(today, -6) }, lastDeepClean: { 'haus-1': hkPlus(today, -85) } })
+      .filter(r => r.date > hkPlus(today, 21));
+    return { status: 200, body: { today, months: 6, names, tasks: mockHkTasks.filter(t => ['inspection', 'deep_clean'].includes(t.kind)), projected } };
+  }
+  if (action === 'hk_stats') {
+    return { status: 200, body: { days: 30, people: mockStaff.filter(s => (s.roles || []).includes('housekeeper')).map(s => ({ staff_id: s.id, name: s.name, visits: 18, done: 17, done_on_day: 16, skipped: 1, checks: 6, pass: 5, flagged: 1, unchecked: 0, villas: s.slugs || [] })) } };
+  }
+  if (action === 'hk_calendar') return { status: 200, body: { today: hkToday(), months: 6, events: mockHkTasks.map(t => ({ uid: 'hk-task-' + t.id, date: t.task_date, slug: t.slug, kind: t.kind, title: `${names[t.slug] || t.slug}: ${t.kind}`, status: t.status })) } };
   if (action === 'hk_care') {
     return { status: 200, body: { care: Object.entries(mockCare).map(([slug, clean_days]) => ({ slug, clean_days, active: true })) } };
   }

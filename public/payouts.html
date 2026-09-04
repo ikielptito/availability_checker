@@ -295,6 +295,24 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
 .stxt .s b{color:var(--text-2);}
 .sempty{padding:16px 14px;color:var(--muted);font-size:.8rem;border-bottom:1px solid var(--sb-hairline);}
 .pill.hot{background:var(--sb-terracotta-050);color:var(--sb-terracotta-700);}
+.pill.ok,.pill.done{background:var(--live-bg);color:var(--green);}
+.pill.wait{background:var(--surface2);color:var(--muted);}
+.pill.no{background:var(--red-bg);color:var(--red-fg);}
+.sic.clean.D{background:color-mix(in srgb,var(--sb-terracotta-050) 80%,var(--surface));color:var(--sb-terracotta-700);}
+.thumbs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
+.thumbs a{display:block;width:72px;height:72px;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.thumbs img{width:100%;height:100%;object-fit:cover;display:block;}
+.kitline{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--sb-hairline);font:500 13px/1.3 var(--sb-font-ui);}
+.kitline:last-child{border-bottom:none;}
+.kitline .kl{flex:1;min-width:0;}
+.kitline .kb{display:flex;gap:4px;flex:none;}
+.kitline .kb button{border:1px solid var(--border);background:var(--surface);border-radius:7px;padding:5px 9px;font:600 12px/1 var(--sb-font-ui);cursor:pointer;color:var(--muted);}
+.kitline .kb button.yes{background:var(--live-bg);color:var(--green);border-color:transparent;}
+.kitline .kb button.no{background:var(--red-bg);color:var(--red-fg);border-color:transparent;}
+.statline{display:flex;flex-wrap:wrap;gap:6px 14px;padding:10px 12px;margin:8px 0 2px;border-radius:12px;background:var(--surface2);font:500 12.5px/1.4 var(--sb-font-ui);color:var(--muted);}
+.statline b{color:var(--text);}
+.flaglist{margin:6px 0 0;padding-left:18px;font:500 12.5px/1.5 var(--sb-font-ui);}
+.feedurl{font:500 12px/1.4 ui-monospace,Menlo,monospace;word-break:break-all;padding:10px;border-radius:10px;background:var(--surface2);margin:8px 0;}
 .opt{display:flex;align-items:center;gap:10px;padding:12px 12px;border:1px solid var(--border);border-radius:12px;margin-top:7px;font:600 13.5px/1.2 var(--sb-font-ui);cursor:pointer;background:var(--surface);}
 .opt:hover{background:var(--surface2);}
 .opt.on{border-color:var(--accent);background:var(--sb-terracotta-050);}
@@ -1946,7 +1964,21 @@ const HK_KIND = {
   regular:       ['Regular clean', 'twice a week'],
   pre_arrival:   ['Prepare the villa', 'a guest arrives'],
   inspection:    ['Inspection with photos', 'for the owner report'],
+  deep_clean:    ['Deep clean', 'quarterly: walls, oven, windows, pool'],
 };
+// What the housekeeper's handover photos said. A turnover with a guest
+// behind it, a pre-arrival or a deep clean is not finished when she says
+// so; it is finished when Maya has seen the photos. This is the pill on
+// those items once she has said "done".
+const HK_READY = {
+  awaiting:  ['wait', 'Photos pending'],
+  pass:      ['done', 'Checked'],
+  flagged:   ['hot',  'Needs a look'],
+  unchecked: ['no',   'Not checked'],
+};
+let hkReady = null;       // hk_readiness payload: checks by task id
+let hkStats = null;       // hk_stats payload, loaded when a housekeeper chip is tapped
+const hkReadyFor = (taskId) => (hkReady?.checks || []).find(c => c.task_id === taskId) || null;
 const HK_STATUS = {
   planned:   ['wait', 'Planned'],
   notified:  ['ok',   'Sent'],
@@ -1954,7 +1986,7 @@ const HK_STATUS = {
   done:      ['done', 'Done'],
   skipped:   ['no',   'Skipped'],
 };
-const HK_LETTER = { turnover: 'T', regular: 'R', pre_arrival: 'P', inspection: 'I' };
+const HK_LETTER = { turnover: 'T', regular: 'R', pre_arrival: 'P', inspection: 'I', deep_clean: 'D' };
 
 async function hkApi(action, payload) {
   const r = await fetch('/api/housekeeping', {
@@ -1995,8 +2027,10 @@ function schedEvents(d) {
     if (t.task_date !== d) continue;
     const k = HK_KIND[t.kind] || [t.kind, ''];
     const who = hkWho(t);
-    out.push({ type: 'clean', slug: t.slug, id: t.id, kind: t.kind, staffId: t.assigned_staff_id, text: k[0], status: t.status, sameDay: !!t.same_day,
-      sub: [who || 'nobody assigned', k[1], t.same_day ? 'next guest arrives the same day' : (hkInResidence(t.slug, d) ? 'guest in residence' : ''), t.moved_by ? 'moved by hand' : ''].filter(Boolean).join(' · ') });
+    const ready = hkReadyFor(t.id);
+    out.push({ type: 'clean', slug: t.slug, id: t.id, kind: t.kind, staffId: t.assigned_staff_id, text: k[0], status: t.status, sameDay: !!t.same_day, ready,
+      sub: [who || 'nobody assigned', k[1], t.same_day ? 'next guest arrives the same day' : (hkInResidence(t.slug, d) ? 'guest in residence' : ''), t.moved_by ? 'moved by hand' : '',
+        ready ? (ready.status === 'pass' ? `${ready.photo_count} photos checked` : ready.status === 'awaiting' ? 'waiting for her photos' : (ready.flags || []).join('; ')) : ''].filter(Boolean).join(' · ') });
   }
   for (const it of (maintData?.items || [])) {
     if (!it.visit_at || ['done', 'declined'].includes(it.status)) continue;
@@ -2019,13 +2053,14 @@ async function renderCleaning() {
   try {
     // The stays and the maintenance list are context; the schedule itself is
     // the page. Either of them failing must not hide the cleans.
-    const [sched, stays] = await Promise.all([
+    const [sched, stays, ready] = await Promise.all([
       hkApi('hk_schedule', { from, to }),
       hkApi('hk_stays', { from, to }).catch(() => null),
+      hkApi('hk_readiness', { from: dPlus(from, -30), to }).catch(() => null),
       refreshStaff().catch(() => {}),
       refreshMaint().catch(() => {}),
     ]);
-    hkData = sched; hkStays = stays;
+    hkData = sched; hkStays = stays; hkReady = ready;
   } catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`; return; }
 
   const today = hkToday();
@@ -2048,7 +2083,10 @@ async function renderCleaning() {
         <button class="btn primary" onclick="hkAddSheet(1)">+ Add a clean</button>
         <button class="btn ghost" onclick="hkCareEdit()">Cleaning days</button>
         <button class="btn ghost" onclick="hkGenerate()">Rebuild from the calendar</button>
+        <button class="btn ghost" onclick="hkRoundsSheet()">Rounds ahead</button>
+        <button class="btn ghost" onclick="hkCalendarSheet()">Calendar feed</button>
       </div>
+      <div id="sched-stats"></div>
       <div class="sched-list" id="sched-list"></div>
     </div>`;
   schedRender();
@@ -2083,6 +2121,21 @@ function schedRender() {
   document.getElementById('sched-chips').innerHTML = chips.map(([k, l]) =>
     `<button type="button" class="chip${schedFilter === k ? ' on' : ''}" onclick="schedSetFilter('${k}')">${esc(l)}</button>`).join('');
 
+  // One housekeeper chosen: her last 30 days, as counts. This is the
+  // accountability line — visits done on the day, handovers that passed,
+  // were flagged, or were never answered — read out at a monthly sit-down,
+  // not a score.
+  const statsEl = document.getElementById('sched-stats');
+  if (statsEl) {
+    if (schedFilter.startsWith('who:')) {
+      const me = (hkStats?.people || []).find(p => String(p.staff_id) === schedFilter.slice(4));
+      statsEl.innerHTML = !hkStats ? '<div class="statline">Loading her last 30 days…</div>'
+        : !me ? '<div class="statline">No visits recorded for her in the last 30 days.</div>'
+        : `<div class="statline"><span>Last 30 days</span><span><b>${me.visits}</b> visits</span><span><b>${me.done_on_day}</b> done on the day</span>${me.skipped ? `<span><b>${me.skipped}</b> skipped</span>` : ''}<span>Handovers: <b>${me.pass}</b> passed${me.flagged ? `, <b>${me.flagged}</b> flagged` : ''}${me.unchecked ? `, <b>${me.unchecked}</b> unanswered` : ''}</span></div>`;
+      if (!hkStats) hkApi('hk_stats', { days: 30 }).then(d => { hkStats = d; if (schedFilter.startsWith('who:')) schedRender(); }).catch(() => { hkStats = { people: [] }; schedRender(); });
+    } else statsEl.innerHTML = '';
+  }
+
   // The list: a week from the chosen day, or a villa's whole 30 days.
   const from = schedVilla ? today : schedSel;
   const to = schedVilla ? dPlus(today, 30) : dPlus(schedSel, 6);
@@ -2090,7 +2143,7 @@ function schedRender() {
   if (schedVilla) {
     const cur = hkStayList(schedVilla).find(s => s.check_in <= today && s.check_out > today);
     const next = hkStayList(schedVilla).filter(s => s.check_in > today).sort((a, b) => a.check_in.localeCompare(b.check_in))[0];
-    h += `<div class="sitem sitem-banner"><div class="sic guest">${ICO_HOUSE}</div><div class="stxt"><div class="t">${cur ? `Guest in residence until ${dFmt(cur.check_out, { weekday: 'short', day: 'numeric', month: 'short' })}` : 'Empty right now'}</div><div class="s">${cur ? `${cur.nights || '?'} nights · ${cur.channel || 'booking'}` : next ? `next guest arrives ${dFmt(next.check_in, { weekday: 'short', day: 'numeric', month: 'short' })}` : (hkStays ? 'no booking in the next 30 days' : 'guest calendar unavailable')}</div></div></div>`;
+    h += `<div class="sitem sitem-banner"><div class="sic guest">${ICO_HOUSE}</div><div class="stxt"><div class="t">${cur ? `Guest in residence until ${dFmt(cur.check_out, { weekday: 'short', day: 'numeric', month: 'short' })}` : 'Empty right now'}</div><div class="s">${cur ? `${cur.nights || '?'} nights · ${cur.channel || 'booking'}` : next ? `next guest arrives ${dFmt(next.check_in, { weekday: 'short', day: 'numeric', month: 'short' })}` : (hkStays ? 'no booking in the next 30 days' : 'guest calendar unavailable')}</div></div><button class="btn ghost" onclick="event.stopPropagation();hkStandardSheet('${esc(schedVilla)}')">Villa standard</button></div>`;
   }
   for (let d = from; d <= to; d = dPlus(d, 1)) {
     const ev = schedEvents(d);
@@ -2099,12 +2152,13 @@ function schedRender() {
     if (!ev.length) { h += `<div class="sempty">Nothing planned. Tap <b>Add a clean</b> if a villa needs one.</div>`; continue; }
     for (const e of ev) {
       const pill = e.type === 'clean'
-        ? (e.sameDay && e.status !== 'done' && e.status !== 'skipped' ? ['hot', 'Same day'] : (HK_STATUS[e.status] || ['wait', e.status]))
+        ? (e.ready ? (HK_READY[e.ready.status] || ['wait', e.ready.status])
+          : e.sameDay && e.status !== 'done' && e.status !== 'skipped' ? ['hot', 'Same day'] : (HK_STATUS[e.status] || ['wait', e.status]))
         : null;
       const icon = e.type === 'clean' ? (HK_LETTER[e.kind] || 'C') : e.type === 'guest' ? ICO_HOUSE : ICO_TOOL;
       const onclick = e.type === 'clean' ? `hkTaskSheet(${e.id})` : e.type === 'maint' ? `go('#/maintenance')` : (schedVilla ? '' : `schedShowVilla('${esc(e.slug)}')`);
       h += `<div class="sitem" ${onclick ? `onclick="${onclick}" role="button" tabindex="0"` : ''}>
-        <div class="sic ${e.type}">${icon}</div>
+        <div class="sic ${e.type}${e.type === 'clean' && e.kind === 'deep_clean' ? ' D' : ''}">${icon}</div>
         <div class="stxt">
           <div class="t">${schedVilla ? esc(e.text) : `<a class="vlink" onclick="event.stopPropagation();schedShowVilla('${esc(e.slug)}')">${esc(hkShort(e.slug))}</a>`}</div>
           <div class="s">${schedVilla ? '' : `<b>${esc(e.text)}</b> · `}${esc(e.sub)}</div>
@@ -2128,6 +2182,7 @@ function hkTaskSheet(id) {
   const st = HK_STATUS[t.status] || ['wait', t.status];
   modal(`<h3>${esc(k[0])}</h3>
     <p>${esc(hkShort(t.slug))} · ${dFmt(t.task_date, { weekday: 'long', day: 'numeric', month: 'long' })} · <span class="pill ${st[0]}">${esc(st[1])}</span>${t.same_day ? '<br>The next guest arrives the same day, so this one cannot slip.' : ''}</p>
+    ${hkReadyHtml(hkReadyFor(t.id))}
     <label class="flab">Who does it</label>
     <select class="flt" id="hk-sheet-who" style="width:100%" onchange="staffPickerChanged(this,{role:'housekeeper'})"></select>
     <label class="flab">Move it to</label>
@@ -2142,6 +2197,108 @@ function hkTaskSheet(id) {
   const sel = document.getElementById('hk-sheet-who');
   staffFillPicker(sel, { role: 'housekeeper', slug: t.slug, placeholder: 'Nobody assigned' });
   if (t.assigned_staff_id) sel.value = String(t.assigned_staff_id);
+  const r = hkReadyFor(t.id);
+  if (r && r.photo_count) hkApi('hk_readiness_photos', { id: r.id }).then(d => {
+    const el = document.getElementById('hk-ready-thumbs'); if (!el) return;
+    el.innerHTML = (d.photo_urls || []).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt=""></a>`).join('') || '';
+  }).catch(() => {});
+}
+
+// The handover check on a clean, as Era reads it: what Maya concluded,
+// what she was told, what the housekeeper said is running low, and the
+// photos themselves so she can disagree with the model.
+function hkReadyHtml(r) {
+  if (!r) return '';
+  const st = HK_READY[r.status] || ['wait', r.status];
+  const bad = (r.checks || []).filter(c => c.ok === false);
+  return `<div style="margin:6px 0 10px">
+    <div><span class="pill ${st[0]}">${esc(st[1])}</span> <span style="font:500 12px/1.4 var(--sb-font-ui);color:var(--muted)">handover photos${r.guest_in_date ? ` · guest arrives ${dFmt(r.guest_in_date, { weekday: 'short', day: 'numeric', month: 'short' })}` : ''} · ${r.photo_count} photo${r.photo_count === 1 ? '' : 's'}</span></div>
+    ${bad.length ? `<ul class="flaglist">${bad.map(c => `<li><b>${esc(c.spot)}</b>: ${esc(c.note || 'not right')}</li>`).join('')}</ul>` : ''}
+    ${(r.flags || []).filter(f => !bad.some(c => f.startsWith(c.spot + ':'))).length ? `<ul class="flaglist">${(r.flags || []).filter(f => !bad.some(c => f.startsWith(c.spot + ':'))).map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
+    ${r.restock ? `<div style="font:500 12.5px/1.4 var(--sb-font-ui);margin-top:4px"><b>Running low:</b> ${esc(r.restock)}</div>` : ''}
+    <div class="thumbs" id="hk-ready-thumbs"></div>
+  </div>`;
+}
+
+// ── The villa standard: kit audit, consumables par list ──
+// Audited once by Era, on her phone, in the villa: ten items, tap yes or
+// no. Every "no" becomes a maintenance item for the owner with the normal
+// approval flow, so a missing kettle is a work order and not a memory.
+let hkStd = null;
+async function hkStandardSheet(slug) {
+  let std;
+  try { std = (await hkApi('hk_standard', { slug })).standard; }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); return; }
+  hkStd = std;
+  const rows = std.kit.map((k, i) => `<div class="kitline"><span class="kl">${esc(k.label)}${k.note ? `<br><small style="color:var(--muted)">${esc(k.note)}</small>` : ''}</span><span class="kb"><button type="button" class="${k.present === true ? 'yes' : ''}" onclick="hkKitSet(${i},true)">Yes</button><button type="button" class="${k.present === false ? 'no' : ''}" onclick="hkKitSet(${i},false)">Missing</button></span></div>`).join('');
+  const cons = std.consumables.map(c => `<li>${esc(c.label)} × ${c.par}</li>`).join('');
+  const spots = std.photo_spots.map(p => `<li>${esc(p.en)}</li>`).join('');
+  modal(`<h3>${esc(hkShort(slug))} · standard</h3>
+    <p>${std.audited_at ? `Kit audited ${dFmt(std.audited_at.slice(0, 10), { day: 'numeric', month: 'short' })} by ${esc(std.audited_by || 'admin')}.` : 'The kit has not been audited yet. Walk the villa once and tap Yes or Missing for each item.'}</p>
+    <h4 style="margin:10px 0 2px">Minimum kit</h4>
+    <div id="kit-rows">${rows}</div>
+    <h4 style="margin:14px 0 2px">Consumables box, when full</h4>
+    <ul class="flaglist">${cons}</ul>
+    <h4 style="margin:14px 0 2px">Handover photos Maya asks for</h4>
+    <ul class="flaglist">${spots}</ul>
+    <label class="flab">Notes for this villa</label>
+    <textarea id="kit-notes" class="flt" style="width:100%;min-height:56px">${esc(std.notes || '')}</textarea>
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" id="kit-save" onclick="hkStandardSave('${esc(slug)}')">Save</button></div>`, { wide: true });
+}
+function hkKitSet(i, present) {
+  if (!hkStd) return;
+  hkStd.kit[i].present = hkStd.kit[i].present === present ? null : present;
+  const row = document.querySelectorAll('#kit-rows .kitline')[i];
+  const [yes, no] = row.querySelectorAll('button');
+  yes.className = hkStd.kit[i].present === true ? 'yes' : '';
+  no.className = hkStd.kit[i].present === false ? 'no' : '';
+}
+async function hkStandardSave(slug) {
+  const btn = document.getElementById('kit-save'); if (btn) btn.disabled = true;
+  try {
+    const out = await hkApi('hk_standard_save', { slug, kit: hkStd.kit, consumables: hkStd.consumables, notes: document.getElementById('kit-notes').value });
+    closeModal();
+    const n = (out.filed || []).length;
+    showToast(n ? `Saved. ${n} missing item${n === 1 ? '' : 's'} sent to Maintenance for the owner.`
+      : (out.unowned || []).length ? `Saved. ${out.unowned.length} missing, but this villa has no owner group to ask — add it under Properties.`
+      : 'Saved.', 'success');
+    if (n) refreshMaint().catch(() => {});
+  } catch (e) { if (btn) btn.disabled = false; if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
+// ── Rounds ahead: inspections and deep cleans, six months out ──
+// Tasks only exist three weeks ahead so that a booking change never
+// strands a promised day; this is the longer view, projected from the two
+// clocks, for planning and for the owners.
+async function hkRoundsSheet() {
+  let d;
+  try { d = await hkApi('hk_rounds', { months: 6 }); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); return; }
+  const all = [...(d.tasks || []).map(t => ({ date: t.task_date, slug: t.slug, kind: t.kind, real: true, who: t.staff?.name })), ...(d.projected || [])]
+    .sort((a, b) => a.date.localeCompare(b.date) || hkName(a.slug).localeCompare(hkName(b.slug), undefined, { numeric: true }));
+  let h = '', month = '';
+  for (const r of all) {
+    const m = dFmt(r.date, { month: 'long', year: 'numeric' });
+    if (m !== month) { month = m; h += `<h4 style="margin:12px 0 2px">${esc(m)}</h4>`; }
+    h += `<div class="kitline"><span class="kl"><b>${esc(dFmt(r.date, { weekday: 'short', day: 'numeric' }))}</b> · ${esc(hkShort(r.slug))}<br><small style="color:var(--muted)">${esc((HK_KIND[r.kind] || [r.kind])[0])}${r.who ? ` · ${esc(r.who)}` : ''}${r.real ? '' : ' · planned'}</small></span></div>`;
+  }
+  modal(`<h3>Rounds ahead</h3>
+    <p>Every inspection (fortnightly) and deep clean (quarterly) for the next six months. The first three weeks are real tasks; the rest is the plan, and it shifts if a deep clean's day turns out to have a guest in it. Deep cleans wait for an empty villa when one is coming.</p>
+    ${h || '<div class="sempty">Nothing projected. Is the guest calendar reachable?</div>'}
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Close</button></div>`, { wide: true });
+}
+
+// ── The calendar feed ──
+async function hkCalendarSheet() {
+  let d;
+  try { d = await hkApi('hk_calendar_url', {}); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); return; }
+  modal(`<h3>Calendar feed</h3>
+    <p>Subscribe once and the whole schedule appears in Google Calendar or your phone's calendar: every clean, inspection and deep clean, guest arrivals and departures, six months ahead. It refreshes on its own.</p>
+    <div class="feedurl" id="feed-url">${esc(d.url)}</div>
+    <p><b>Google Calendar:</b> Other calendars › + › From URL › paste the link.<br><b>iPhone:</b> Settings › Calendar › Accounts › Add Subscribed Calendar › paste the link.</p>
+    <p style="color:var(--muted);font-size:12px">Anyone with this link can see the schedule. Share it with the team only.</p>
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Close</button><button class="btn primary" onclick="navigator.clipboard.writeText(document.getElementById('feed-url').textContent).then(()=>showToast('Copied.','success'))">Copy link</button></div>`);
 }
 async function hkTaskSave(id) {
   const t = (hkData?.tasks || []).find(x => x.id === id);
@@ -2347,6 +2504,19 @@ const HELP = {
       <li><b>Tap a clean</b> to give it to someone else, move it to another day, or mark it Done or Skipped. A moved clean is sent again on its new day.</li>
       <li><b>Add a clean</b>: pick the villa, the day, then who. The kind is guessed from the calendar and you can change it.</li>
       <li><b>Cleaning days</b> sets which weekdays each villa is cleaned. <b>Rebuild from the calendar</b> refreshes the plan after a booking changes; cleans already sent to someone are kept.</li>
+    </ul>
+    <h4>Handover checks</h4>
+    <ul>
+      <li>When a housekeeper finishes a turnover before a guest, a pre-arrival or a deep clean, Maya asks her for a set of photos: the sofa with its cover, the kitchen and inside the oven, the bathroom with soap in it, the bed, the pool, the consumables box. Maya looks at them.</li>
+      <li>The pill on that clean says what happened: <b>Checked</b> (fine, nothing to do), <b>Needs a look</b> (something is wrong and you were messaged), <b>Not checked</b> (she never sent photos). Tap the clean to see the photos and what was flagged.</li>
+      <li>You only hear about problems. A quiet day means every handover passed.</li>
+    </ul>
+    <h4>Standards and rounds</h4>
+    <ul>
+      <li>Tap a villa, then <b>Villa standard</b>: the minimum kit every Samba villa must have. Walk it once and tap Yes or Missing. Every Missing goes to Maintenance for the owner to approve.</li>
+      <li><b>Deep clean</b> (D) happens every three months: walls, inside the oven, exterior windows, grout, pool cushions, the dispenser. It waits for an empty villa when one is coming.</li>
+      <li><b>Rounds ahead</b> shows six months of inspections and deep cleans. <b>Calendar feed</b> puts the whole schedule in Google Calendar.</li>
+      <li>Tap a housekeeper's name to see her last 30 days: visits done on the day, and handovers passed, flagged, or never answered.</li>
     </ul>` },
   staff: { title: 'Team', html: `
     <p>Everyone who works at the villas: housekeepers, tukang and their trades, and which villas each one covers. Maya messages people at the numbers here, so this is the list that has to be right.</p>
