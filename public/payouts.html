@@ -1299,7 +1299,7 @@ function drawPayrollRun() {
   c.innerHTML = html;
 }
 function prLineForm(l) {
-  const slugOpts = [...(unitsData || []).map(u => u.slug), 'astanine'];
+  const slugOpts = [...(staffData?.units || []).map(u => u.slug), 'astanine'];
   return `<label class="flab">Who or what</label><input id="pl-payee" value="${esc(l.payee || '')}" placeholder="Dian, Internet, Laundry…">
     <label class="flab">Description</label><input id="pl-desc" value="${esc(l.description || '')}" placeholder="Pool A5 & garden">
     <label class="flab">Category</label><select id="pl-cat">${PR_CATS.map(k => `<option value="${k}"${(l.category || 'salary') === k ? ' selected' : ''}>${PR_CAT[k]}</option>`).join('')}</select>
@@ -1319,9 +1319,10 @@ function prReadLineForm() {
   if (fields.category === 'salary') fields.person_name = fields.payee;
   return fields;
 }
-function payrollEditLine(runId, lineId) {
+async function payrollEditLine(runId, lineId) {
   const l = (prDet.lines || []).find(x => x.id === lineId);
   if (!l) return;
+  await refreshStaff().catch(() => {});   // the villa list for the checkboxes
   modal(`<h3>Edit line</h3>${prLineForm(l)}
     <div class="actionsrow" style="margin-top:14px">
       <button class="btn primary" onclick="payrollSaveLine(${runId}, ${lineId})">Save</button>
@@ -1329,7 +1330,8 @@ function payrollEditLine(runId, lineId) {
       <button class="btn danger" style="margin-left:auto" onclick="payrollDeleteLine(${runId}, ${lineId})">Delete line</button>
     </div>`);
 }
-function payrollAddLine(runId) {
+async function payrollAddLine(runId) {
+  await refreshStaff().catch(() => {});
   modal(`<h3>Add a line</h3>${prLineForm({ category: 'salary', slugs: [] })}
     <div class="actionsrow" style="margin-top:14px">
       <button class="btn primary" onclick="payrollSaveLine(${runId}, null)">Add</button>

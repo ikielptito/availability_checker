@@ -162,28 +162,41 @@ const prLine = (payee, description, category, amount, slugs, extra = {}) => ({
   staff_id: extra.staff_id || null, role: extra.role || null, description, slugs, amount, flags: extra.flags || [], edited: false, source_row: mockPayrollLineId, position: mockPayrollLineId,
 });
 const mockPayrollLines = [
+  // Era's real September 2026 sheet (read 4 Sep 2026), so guide screenshots match production.
   prLine('Era', 'Villa manager', 'salary', 11500000, [], { role: 'manager', flags: ['not_in_registry'] }),
   prLine('Ana', 'HK Astanine', 'salary', 2500000, ['astanine'], { staff_id: 4, role: 'housekeeper' }),
+  prLine('Wayan', 'Pool Astanine', 'salary', 850000, ['astanine'], { staff_id: 7, role: 'pool' }),
   prLine('Ana', 'HK Lane Haus', 'salary', 1500000, ['lanehaus-1', 'lanehaus-3'], { staff_id: 4, role: 'housekeeper' }),
-  prLine('Putu', 'HK A5', 'salary', 1000000, ['tropicana-a5'], { staff_id: 5, role: 'housekeeper', flags: ['roster_mismatch', 'registry:Ita'] }),
-  prLine('Putu', 'HK A4', 'salary', 1000000, ['tropicana-a4'], { staff_id: 5, role: 'housekeeper', flags: ['roster_mismatch', 'registry:Ita'] }),
+  prLine('Ketut Buda', 'Gardener Lanehaus', 'salary', 800000, ['lanehaus-1', 'lanehaus-3'], { staff_id: 9, role: 'gardener' }),
   prLine('Dian', 'Pool Lanehaus', 'salary', 1000000, ['lanehaus-1', 'lanehaus-3'], { staff_id: 6, role: 'pool' }),
+  prLine('Putu', 'HK A5', 'salary', 1000000, ['tropicana-a5'], { staff_id: 5, role: 'housekeeper', flags: ['roster_mismatch', 'registry:Ita'] }),
   prLine('Dian', 'Pool A5 & garden', 'salary', 800000, ['tropicana-a5'], { staff_id: 6, role: 'pool' }),
+  prLine('Putu', 'HK A4', 'salary', 1000000, ['tropicana-a4'], { staff_id: 5, role: 'housekeeper', flags: ['roster_mismatch', 'registry:Ita'] }),
+  prLine('Dian', 'Pool A4 & garden', 'salary', 800000, ['tropicana-a4'], { staff_id: 6, role: 'pool' }),
+  prLine('Putu', 'HK B4', 'salary', 1000000, ['tropicana-b4'], { staff_id: 5, role: 'housekeeper', flags: ['roster_mismatch', 'registry:Ita'] }),
+  prLine('Dian', 'Pool B4 & garden', 'salary', 800000, ['tropicana-b4'], { staff_id: 6, role: 'pool' }),
   prLine('Naomi', 'HK Saturno', 'salary', 2000000, ['villa-saturno'], { staff_id: 2, role: 'housekeeper' }),
+  prLine('Yoga', 'Gardener Saturno', 'salary', 800000, ['villa-saturno'], { staff_id: 10, role: 'gardener' }),
+  prLine('Wayan', 'Pool Saturno', 'salary', 600000, ['villa-saturno'], { staff_id: 7, role: 'pool' }),
   prLine('Internet', 'Haus Canggu', 'utility', 337500, ['haus-1', 'haus-2', 'haus-4', 'haus-5']),
-  prLine('Laundry', 'Lane, Haus, Tropicana, Astanine, Saturno', 'laundry', 5000000, ['lanehaus-1', 'lanehaus-3', 'haus-1', 'haus-2', 'haus-4', 'haus-5', 'tropicana-a4', 'tropicana-a5', 'tropicana-b4', 'astanine', 'villa-saturno']),
+  prLine('Internet', 'Lane Haus', 'utility', 557500, ['lanehaus-1', 'lanehaus-3']),
+  prLine('Advance Payment', 'Haus Canggu', 'advance', 6920000, ['haus-1', 'haus-2', 'haus-4', 'haus-5']),
+  prLine('CA management', 'A4,5 & B4', 'building_fee', 2028000, ['tropicana-a4', 'tropicana-a5', 'tropicana-b4']),
   prLine('Era from Romi', 'Haus Unit 2&4', 'receipt', 2500000, ['haus-2', 'haus-4']),
+  prLine('Water and garbage', 'Lane and Saturday', 'utility', 650000, ['lanehaus-1', 'lanehaus-3', 'villa-saturno']),
+  prLine('Laundry', 'Lane, Haus, Tropicana, Astanine, Saturno', 'laundry', 5000000, ['lanehaus-1', 'lanehaus-3', 'haus-1', 'haus-2', 'haus-4', 'haus-5', 'tropicana-a4', 'tropicana-a5', 'tropicana-b4', 'astanine', 'villa-saturno']),
   prLine('Balance from August', 'Samba', 'balance', 10000000, []),
   prLine('Petty Cash', 'Samba', 'petty_cash', 2000000, []),
+  prLine('Electricity', 'Haus, lane and Tropicana', 'utility', 12500000, ['haus-1', 'haus-2', 'haus-4', 'haus-5', 'lanehaus-1', 'lanehaus-3', 'tropicana-a4', 'tropicana-a5', 'tropicana-b4']),
 ];
 const MOCK_MEMO = new Set(['balance', 'receipt', 'petty_cash']);
 const mockPayrollPayments = [];
 const mockPayrollRuns = [{
-  id: 1, period: '2026-09', status: 'draft', salary_total: 0, other_total: 0, run_total: 0, era_total: 31137500, paid_total: 0,
+  id: 1, period: '2026-09', status: 'draft', salary_total: 0, other_total: 0, run_total: 0, era_total: 54943000, paid_total: 0,
   reconciliation: { checks: [
-    { name: 'total_matches_sheet', ok: true, expected: 31137500, actual: 31137500 },
+    { name: 'total_matches_sheet', ok: true, expected: 54943000, actual: 54943000 },
     { name: 'no_vendors_on_payroll', ok: true, actual: [] },
-    { name: 'sheet_matches_registry', ok: false, actual: ['Putu paid for tropicana-a5; registry: Ita', 'Putu paid for tropicana-a4; registry: Ita'] },
+    { name: 'sheet_matches_registry', ok: false, actual: ['Putu paid for tropicana-a5; registry: Ita', 'Putu paid for tropicana-a4; registry: Ita', 'Putu paid for tropicana-b4; registry: Ita'] },
     { name: 'housekeeping_covered', ok: true, actual: [] },
     { name: 'no_unparsed_rows', ok: true, actual: 0 },
   ], unparsed_rows: [] },
@@ -1162,7 +1175,12 @@ const server = http.createServer(async (req, res) => {
       const capJs = cap ? `<script>window.addEventListener('load',()=>setTimeout(()=>{try{
         if(${JSON.stringify(cap)}==='care'&&window.hkCareEdit)hkCareEdit();
         if(${JSON.stringify(cap)}==='addstaff'&&window.staffEdit)staffEdit(null);
-      }catch(e){}},1800));</script>` : '';
+        var PR=(typeof prDet!=='undefined')&&prDet;
+        if(${JSON.stringify(cap)}==='predit'&&PR)payrollEditLine(PR.run.id, PR.lines[6].id);
+        if(${JSON.stringify(cap)}==='prpay'&&PR){var p=PR.payees.find(function(x){return x.payee==='Dian'});payrollPay(PR.run.id,'Dian',6,Math.round(p.balance));}
+        if(${JSON.stringify(cap)}==='prpublish'&&PR){window.confirm=function(){return true};payrollPublish(PR.run.id);}
+        if(${JSON.stringify(cap)}==='prpaid'&&PR){window.confirm=function(){return true};payrollApi('payroll_publish',{id:PR.run.id}).then(function(){return payrollApi('payroll_record_payment',{id:PR.run.id,payee:'Dian',staff_id:6,amount:3400000,note:'Transfer BCA 5 Sep'})}).then(function(){return payrollApi('payroll_record_payment',{id:PR.run.id,payee:'Naomi',staff_id:2,amount:2000000,note:'Transfer BCA 5 Sep'})}).then(function(){renderPayrollRun(PR.run.id)});}
+      }catch(e){}},2600));</script>` : '';
       const html = fs.readFileSync(path.join(ROOT, 'public', u.pathname.slice(1) + '.html'), 'utf8')
         .replace('<script src="/shared.js"></script>',
           `<script>sessionStorage.setItem('admin_pw', ${JSON.stringify(process.env.DASHBOARD_PASSWORD)});</script>\n${capJs}<script src="/shared.js"></script>`);
