@@ -630,7 +630,7 @@ async function loadPnl(groupKey) {
   if (document.getElementById('pnl') !== el || groupFilter !== groupKey) return;
   const fee = d.charges_commission && !d.expenses_only;
   const t = d.totals || {};
-  const revNote = d.expenses_only ? 'Revenue is what the Hostex calendar shows the units earned (after channel commission); expenses are Era\'s ledger. Money the co-owners paid in is not revenue and is left out.' : (d.charges_commission ? 'From the statements: gross rent, the Samba fee, villa expenses, and the payout as net.' : 'Own units: gross rent less villa expenses, no management fee.');
+  const revNote = d.expenses_only ? 'Revenue is what the booking calendar shows the units earned (after channel commission), direct tenants included; expenses are Era\'s ledger. Rent Era notes on the ledger appears on the statement as a booking but is not added on top.' : (d.charges_commission ? 'From the statements: gross rent, the Samba fee, villa expenses, and the payout as net.' : 'Own units: gross rent less villa expenses, no management fee.');
   el.innerHTML = `<div class="card" style="margin:10px 0 14px">
     <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h3 style="margin:0">Profit · ${esc(pname(d.name || groupKey))}</h3>${ctl}</div>
     <div class="totgrid" style="margin-top:12px">

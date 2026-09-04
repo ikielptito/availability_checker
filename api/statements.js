@@ -699,14 +699,17 @@ export default async function handler(req, res) {
         const adjustments = s ? Number(s.adjustments_total) || 0 : 0;
         let gross, commission, net, source;
         if (group.expenses_only) {
-          // Platform revenue from the calendar (direct stays excluded, since
-          // Era's direct-rent receipts arrive as the statement's bookings),
-          // plus the direct rent on the statement itself.
+          // The calendar is the revenue record for these units: Era enters
+          // every stay there with its rent, direct tenants included (Tropicana
+          // B is all direct entries). Rent she also notes on the ledger
+          // ("Received payment from …") shows on the statement as a booking
+          // but is not added on top. Only when the calendar has nothing for
+          // the month does the statement's own booking total stand in.
           const hm = hostex?.months?.[p];
-          const platform = hm ? Math.max(0, (hm.revenue || 0) - (hm.direct || 0)) : 0;
+          const calendar = hm ? Number(hm.revenue) || 0 : null;
           const direct = s ? Number(s.gross_total) || 0 : 0;
-          gross = platform + direct; commission = 0;
-          source = hm ? (s ? 'hostex+statement' : 'hostex') : (s ? 'statement' : 'none');
+          gross = calendar != null && calendar > 0 ? calendar : direct; commission = 0;
+          source = calendar != null && calendar > 0 ? 'hostex' : (direct ? 'statement' : 'none');
           net = gross - expenses;
         } else {
           gross = s ? Number(s.gross_total) || 0 : 0;

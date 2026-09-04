@@ -184,7 +184,7 @@ function pnlBlock(t, expenses, adjustments) {
     const net = gross != null ? gross - Number(t.expenses) : null;
     return `${ctl}
       <div class="mathline"><span class="mk">Gross rental revenue${qm('gross')}</span><span class="mv">${gross != null ? IDR(gross) : (p === false ? '–' : '…')}</span></div>
-      ${tip('gross', 'Rent the units earned for these dates: platform bookings from the calendar, after the platforms\' own commission, plus rent paid directly to Era (listed under Bookings above).')}
+      ${tip('gross', 'Rent the units earned for these dates according to the booking calendar, after any platform commission. Rent paid directly to Era is listed under Bookings above and is part of this figure when the stay is on the calendar.')}
       <div class="mathline"><span class="mk">Villa expenses${qm('exp')}</span><span class="mv">− ${IDR(t.expenses)}</span></div>
       ${tip('exp', 'Running costs Era paid for the units this month: utilities, cleaning, laundry, salaries, repairs. Every item is listed with its date in the Villa expenses section above.')}
       <div class="mathline grand"><span class="mk">Net profit${qm('net')}</span><span class="mv">${net != null ? IDR(net) : '…'}</span></div>
