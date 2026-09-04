@@ -699,8 +699,14 @@ export default async function handler(req, res) {
         const adjustments = s ? Number(s.adjustments_total) || 0 : 0;
         let gross, commission, net, source;
         if (group.expenses_only) {
-          const rev = hostex?.months?.[p]?.revenue;
-          gross = rev != null ? rev : 0; commission = 0; source = rev != null ? 'hostex' : 'none';
+          // Platform revenue from the calendar (direct stays excluded, since
+          // Era's direct-rent receipts arrive as the statement's bookings),
+          // plus the direct rent on the statement itself.
+          const hm = hostex?.months?.[p];
+          const platform = hm ? Math.max(0, (hm.revenue || 0) - (hm.direct || 0)) : 0;
+          const direct = s ? Number(s.gross_total) || 0 : 0;
+          gross = platform + direct; commission = 0;
+          source = hm ? (s ? 'hostex+statement' : 'hostex') : (s ? 'statement' : 'none');
           net = gross - expenses;
         } else {
           gross = s ? Number(s.gross_total) || 0 : 0;

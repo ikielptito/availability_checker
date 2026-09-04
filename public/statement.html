@@ -178,20 +178,17 @@ function pnlBlock(t, expenses, adjustments) {
     ${[['month', 'This month'], ['quarter', 'Quarter'], ['ytd', 'Year to date'], ['custom', 'Custom']].map(([kk, l]) => `<button onclick="setPnlRange('${kk}')" style="padding:6px 11px;border-radius:999px;border:1px solid ${PNL_RANGE.kind === kk ? 'var(--accent)' : 'var(--border)'};background:${PNL_RANGE.kind === kk ? 'var(--accent)' : 'var(--surface)'};color:${PNL_RANGE.kind === kk ? '#fff' : 'var(--text-2)'};font-family:inherit;font-size:.72rem;cursor:pointer">${l}</button>`).join('')}
     ${PNL_RANGE.kind === 'custom' ? `<input id="pnl-from" type="month" value="${esc(b.from)}" onchange="setPnlCustom()" style="padding:5px 7px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.72rem"> <span style="font-size:.7rem;color:var(--muted)">to</span> <input id="pnl-to" type="month" value="${esc(b.to)}" onchange="setPnlCustom()" style="padding:5px 7px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.72rem">` : ''}
   </div>`;
-  const receipts = adjustments.reduce((a, x) => a + (Number(x.amount) || 0), 0);
   if (PNL_RANGE.kind === 'month' || !p) {
     // The month itself comes from the frozen statement; revenue arrives with the profit fetch.
     const gross = p && p.months?.[0] ? p.months[0].gross : null;
     const net = gross != null ? gross - Number(t.expenses) : null;
     return `${ctl}
       <div class="mathline"><span class="mk">Gross rental revenue${qm('gross')}</span><span class="mv">${gross != null ? IDR(gross) : (p === false ? '–' : '…')}</span></div>
-      ${tip('gross', 'What the units earned on the booking calendar for these dates, after the booking platforms\' own commission. Rent for these units is collected directly, not through Samba.')}
+      ${tip('gross', 'Rent the units earned for these dates: platform bookings from the calendar, after the platforms\' own commission, plus rent paid directly to Era (listed under Bookings above).')}
       <div class="mathline"><span class="mk">Villa expenses${qm('exp')}</span><span class="mv">− ${IDR(t.expenses)}</span></div>
       ${tip('exp', 'Running costs Era paid for the units this month: utilities, cleaning, laundry, salaries, repairs. Every item is listed with its date in the Villa expenses section above.')}
       <div class="mathline grand"><span class="mk">Net profit${qm('net')}</span><span class="mv">${net != null ? IDR(net) : '…'}</span></div>
-      ${tip('net', 'Gross rental revenue less the month\'s expenses.')}
-      ${receipts ? `<div class="mathline"><span class="mk">Paid in towards expenses</span><span class="mv">${IDR(receipts)}</span></div>
-      <div class="mathline"><span class="mk"><b>Expenses still to settle</b></span><span class="mv">${IDR(Number(t.expenses) - receipts)}</span></div>` : ''}`;
+      ${tip('net', 'Gross rental revenue less the month\'s expenses.')}`;
   }
   return `${ctl}
     <div class="tblwrap"><table class="st">
