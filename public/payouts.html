@@ -671,6 +671,56 @@ async function loadPnl(groupKey) {
   </div>`;
 }
 
+// ── Sheet changed after publish ──────────────────────────────────────
+// Instead of a warning and a shrug: the exact lines Era added, removed or
+// changed, the payout before and after, and two buttons. "Bring the sheet
+// in" runs a proper amendment (owner-visible note, optional WhatsApp);
+// "Keep as published" acknowledges the change so it stops alerting.
+async function loadSheetDiff(id) {
+  const el = document.getElementById('sheetdiff');
+  if (!el) return;
+  let d;
+  try { d = await api('statement_sheet_diff', { id }); }
+  catch (e) { el.innerHTML = `<h3 style="margin:0 0 6px">Era's sheet changed after this statement was published</h3><div class="banner red" style="margin:0"><div>${esc(e.message)}</div></div>`; return; }
+  if (document.getElementById('sheetdiff') !== el) return;
+  const s = det.statement;
+  const row = (x, sign) => `<tr><td style="font-size:.72rem;color:var(--muted);white-space:nowrap">${esc(x.kind)}</td><td>${esc(x.label)}</td><td class="num">${sign === 'changed' ? `${IDR(x.from)} → <b>${IDR(x.to)}</b>` : `${sign === 'removed' ? '− ' : '+ '}${IDR(x.amount)}`}</td></tr>`;
+  const delta = d.ok ? Number(d.sheet.payout) - Number(d.published.payout) : 0;
+  el.innerHTML = `<h3 style="margin:0 0 4px">Era's sheet changed after this statement was published</h3>
+    <div style="font-size:.74rem;color:var(--muted);margin-bottom:10px">${esc(s.discrepancy?.note || '')}${s.discrepancy?.detected_at ? ' · noticed ' + dstr(s.discrepancy.detected_at) : ''}</div>
+    ${!d.ok ? `<div class="banner amber" style="margin:0 0 10px"><div>${esc(d.reason || 'Could not read the sheet')}</div></div>` : d.unchanged ? `<div class="note-line" style="font-size:.8rem;margin-bottom:10px">Every line still matches; only formatting or a side table moved. Nothing to bring in.</div>` : `
+    <div class="totgrid" style="margin-bottom:10px">
+      <div class="tot"><div class="lab">Owner saw</div><div class="val">${IDR(d.published.payout)}</div></div>
+      <div class="tot"><div class="lab">Sheet says now</div><div class="val">${IDR(d.sheet.payout)}</div></div>
+      <div class="tot ${delta < 0 ? '' : 'big'}"><div class="lab">Difference</div><div class="val" style="${delta < 0 ? 'color:var(--red-fg)' : ''}">${delta >= 0 ? '+ ' : '− '}${IDR(Math.abs(delta))}</div></div>
+    </div>
+    <div class="tblwrap"><table class="lines">
+      <tr><th></th><th>Line</th><th class="num">Amount</th></tr>
+      ${d.added.map(x => row(x, 'added')).join('')}
+      ${d.removed.map(x => row(x, 'removed')).join('')}
+      ${d.changed.map(x => row(x, 'changed')).join('')}
+    </table></div>
+    ${d.kept.length ? `<div style="font-size:.7rem;color:var(--muted);margin-top:6px">Kept regardless: ${d.kept.map(k => esc(k.label)).join(' · ')} (added by hand, carried forward, or from the expense ledger).</div>` : ''}`}
+    <div class="actionsrow" style="margin-top:12px">
+      ${d.ok && !d.unchanged ? `<button class="btn primary" onclick="amendFromSheet(${s.id}, false)">Bring the sheet in · amend</button>
+      ${s.notified_at ? `<button class="btn ghost" onclick="amendFromSheet(${s.id}, true)">Amend and tell the owner</button>` : ''}` : ''}
+      <button class="btn ghost" onclick="dismissDiscrepancy(${s.id})">Keep as published</button>
+    </div>
+    <p style="font-size:.7rem;color:var(--muted);margin:8px 0 0">Amending keeps the previous totals in the statement's history and adds a visible "Revised" note. Lines you added by hand and carried-forward amounts stay as they are.</p>`;
+}
+async function amendFromSheet(id, notify) {
+  if (!confirm(notify ? "Bring Era's sheet into this statement and tell the owner it was revised?" : "Bring Era's sheet into this statement? The owner sees a 'Revised' note on the page; no message is sent.")) return;
+  try {
+    const out = await api('statement_amend_from_sheet', { id, notify_owner: !!notify });
+    showToast(`Amended: payout ${IDR(out.prev_payout)} → ${IDR(out.payout_total)}`, 'success');
+    await renderDetail(id); await refreshList();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+async function dismissDiscrepancy(id) {
+  try { await api('statement_dismiss_discrepancy', { id }); showToast('Kept as published. The sheet as it is now will not re-flag.', 'success'); await renderDetail(id); await refreshList(); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
 // ── Statement detail ─────────────────────────────────────────────────
 let det = null;   // {statement, lines, token, period_label}
 async function renderDetail(id) {
@@ -697,9 +747,14 @@ function drawDetail() {
 
   if (amending) html += `<div class="banner amber"><div><b>Amending this published statement.</b> The owner can still open it while you edit, so finish promptly: correct the lines below, then <b>Save amendment</b> (they'll see a note of what changed), or <b>Cancel</b> to restore everything exactly as it was.</div></div>`;
 
-  if (s.source_changed) html += `<div class="banner amber"><div><b>Era's sheet changed</b> after ${s.status === 'draft' ? 'you edited this draft' : 'this statement was published'}.
-    ${s.discrepancy ? esc(s.discrepancy.note || '') + (s.discrepancy.new_era_payout != null ? ` Sheet now says ${IDR(s.discrepancy.new_era_payout)}.` : '') : ''}
-    ${s.status === 'draft' ? '<a style="cursor:pointer;text-decoration:underline" onclick="reparse()">Re-parse from sheet (discards your edits)</a>' : 'The published numbers are frozen. Add a corrected statement next month, or contact the owner.'}</div></div>`;
+  if (s.source_changed && s.status === 'draft') html += `<div class="banner amber"><div><b>Era's sheet changed</b> after you edited this draft.
+    ${s.discrepancy ? esc(s.discrepancy.note || '') : ''}
+    <a style="cursor:pointer;text-decoration:underline" onclick="reparse()">Re-parse from sheet (discards your edits)</a></div></div>`;
+  if (s.source_changed && s.status !== 'draft' && !amending) {
+    html += `<div class="card" id="sheetdiff" style="border-color:var(--amber-fg)"><h3 style="margin:0 0 6px">Era's sheet changed after this statement was published</h3>
+      <div class="loading-state" style="padding:12px 0"><div class="spinner"></div>Comparing the sheet with what the owner saw…</div></div>`;
+    setTimeout(() => loadSheetDiff(s.id), 0);
+  }
 
   // Totals
   const eraDelta = s.era_payout_total != null && Math.abs(s.era_payout_total - s.payout_total) > 1;
