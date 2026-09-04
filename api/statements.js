@@ -18,7 +18,7 @@
 
 import crypto from 'node:crypto';
 import { verifyStatementToken, statementToken, inviteToken, verifyInviteToken, previewToken, verifyPreviewToken } from '../lib/tokens.js';
-import { buildMonthStats, buildRangeStats, applyStatementNights } from '../lib/month-stats.js';
+import { buildMonthStats, buildRangeStats, applyStatementNights, revenueByMonth } from '../lib/month-stats.js';
 import { buildStatementWorkbook, buildGroupWorkbook } from '../lib/statement-export.js';
 import { UNITS_BY_SLUG } from '../lib/catalog.js';
 import { loadHostexOwnerMap } from '../lib/owner-listings.js';
@@ -642,6 +642,80 @@ export default async function handler(req, res) {
       return res.status(200).json({
         ownerExists: !!owner, ownerSub: owner?.sub || null, ownerWa: owner?.wa || null,
         ownerName: owner?.name || null, groups, err,
+      });
+    }
+
+    // ── Profit by month for one property group ──────────────────────
+    // Gross revenue, expenses and net profit per month over a range, for the
+    // admin cockpit (admin password) or an owner's statement page (statement
+    // token → that group, published months only). Managed villas read from
+    // the statements. Expenses-only groups (co-owned units whose rent never
+    // passes through Samba) take revenue from the Hostex feed and expenses
+    // from Era's ledger statements; their receipts are money the co-owners
+    // paid in, not revenue, so they stay out of the profit line.
+    if (action === 'pnl') {
+      const auth = req.headers.authorization || '';
+      const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD, process.env.STATEMENTS_ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
+      let groupKey = String(req.query.group || '');
+      let publishedOnly = false;
+      if (!isAdmin) {
+        const parsed = verifyStatementToken(req.query.token || '');
+        if (!parsed) return res.status(401).json({ error: 'Unauthorized' });
+        groupKey = parsed.groupKey;
+        publishedOnly = true;
+      }
+      if (!groupKey) return res.status(400).json({ error: 'Missing group' });
+      const from = String(req.query.from || '');
+      const to = String(req.query.to || from);
+      if (!/^\d{4}-\d{2}$/.test(from) || !/^\d{4}-\d{2}$/.test(to) || to < from) return res.status(400).json({ error: 'from/to must be YYYY-MM' });
+      const monthsBetween = (a, b) => { const [ay, am] = a.split('-').map(Number), [by, bm] = b.split('-').map(Number); return (by - ay) * 12 + (bm - am) + 1; };
+      if (monthsBetween(from, to) > 24) return res.status(400).json({ error: 'range is capped at 24 months' });
+
+      const groupsRes = await crm('statement_groups', {});
+      const group = (groupsRes.body?.groups || []).find(g => g.key === groupKey);
+      if (!group) return res.status(404).json({ error: 'Unknown group' });
+      const listRes = await crm('statement_list', { group_key: groupKey });
+      const stmts = (listRes.body?.statements || []).filter(s => s.period >= from && s.period <= to && s.status !== 'void'
+        && (!publishedOnly || ['published', 'partial', 'paid'].includes(s.status)));
+
+      // Hostex revenue for expenses-only groups, one fetch per unit, cached.
+      let hostex = null;
+      if (group.expenses_only) {
+        const cacheKey = `pnl-rev:${groupKey}:${from}:${to}`;
+        const cached = await kvGet(cacheKey);
+        if (cached && cached.at && Date.now() - cached.at < 30 * 60e3) hostex = cached.data;
+        else {
+          const units = (group.listing_slugs || []).map(slug => ({ slug, hostexId: UNITS_BY_SLUG[slug]?.hostexId || null, name: UNITS_BY_SLUG[slug]?.name || null }));
+          try { hostex = await revenueByMonth(units, { from, to }); await kvSet(cacheKey, { at: Date.now(), data: hostex }); }
+          catch { hostex = null; }
+        }
+      }
+
+      const months = [];
+      const label = (p) => { const [y, m] = p.split('-').map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+      for (let p = from; p <= to; p = (() => { const [y, m] = p.split('-').map(Number); const d = new Date(Date.UTC(y, m, 1)); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`; })()) {
+        const s = stmts.find(x => x.period === p) || null;
+        const expenses = s ? Number(s.expenses_total) || 0 : 0;
+        const adjustments = s ? Number(s.adjustments_total) || 0 : 0;
+        let gross, commission, net, source;
+        if (group.expenses_only) {
+          const rev = hostex?.months?.[p]?.revenue;
+          gross = rev != null ? rev : 0; commission = 0; source = rev != null ? 'hostex' : 'none';
+          net = gross - expenses;
+        } else {
+          gross = s ? Number(s.gross_total) || 0 : 0;
+          commission = group.charges_commission === false ? 0 : (s ? Number(s.commission_total) || 0 : 0);
+          net = s ? (group.charges_commission === false ? gross - expenses + adjustments : Number(s.payout_total) || 0) : 0;
+          source = s ? 'statement' : 'none';
+        }
+        months.push({ period: p, label: label(p), gross, commission, expenses, adjustments, net, source, status: s?.status || null, statement_id: s?.id || null, nights: hostex?.months?.[p]?.nights ?? null });
+      }
+      const sum = (k) => months.reduce((a, m) => a + (Number(m[k]) || 0), 0);
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json({
+        group_key: groupKey, name: group.name, from, to,
+        expenses_only: !!group.expenses_only, charges_commission: group.charges_commission !== false,
+        months, totals: { gross: sum('gross'), commission: sum('commission'), expenses: sum('expenses'), adjustments: sum('adjustments'), net: sum('net') },
       });
     }
 

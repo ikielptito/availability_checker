@@ -534,12 +534,10 @@ function renderList() {
     const due = inGroup.filter(isOutstanding);
     const total = due.reduce((a, s) => a + balanceOf(s), 0);
     const g = groups.find(x => x.key === groupFilter);
-    if (g && g.expenses_only) {
-      // Co-owned units with no rent through Samba: each published month is
-      // what the co-owners owe Samba (expenses less what they paid in).
-      const owedToSamba = inGroup.filter(s => ['published', 'partial'].includes(s.status)).reduce((a, s) => a + Math.max(0, -Number(s.payout_total) - Number(s.paid_total || 0)), 0);
-      owedHtml = owedToSamba ? `<span class="owed"><b>Owed to Samba: ${IDR(owedToSamba)}</b></span>` : `<span class="owed muted">Nothing owed to Samba</span>`;
-    } else if (g && g.tracks_payments === false) owedHtml = `<span class="owed muted">Settled privately · no balance tracked</span>`;
+    // Co-owned units with no rent through Samba have no payout to owe; the
+    // profit panel below is their whole story.
+    if (g && g.expenses_only) owedHtml = '';
+    else if (g && g.tracks_payments === false) owedHtml = `<span class="owed muted">Settled privately · no balance tracked</span>`;
     else if (due.length) owedHtml = `<span class="owed"><b>Total owed: ${IDR(total)}</b> · ${due.length} payout${due.length > 1 ? 's' : ''}</span>`;
     else owedHtml = `<span class="owed muted">Nothing owed · all settled</span>`;
   }
@@ -552,7 +550,9 @@ function renderList() {
     ${owedHtml}
     ${outstandingOnly ? `<span class="pill outstanding"><span class="d"></span>Outstanding only</span>
       <button class="fltclear" onclick="toggleOutstanding()">Show all statements</button>` : ''}
-  </div>`;
+  </div>
+  ${groupFilter ? '<div id="pnl"></div>' : ''}`;
+  if (groupFilter) setTimeout(() => loadPnl(groupFilter), 0);
   if (!rows.length) {
     html += outstandingOnly
       ? `<div class="empty-state">Nothing outstanding for this filter. <button class="fltclear" onclick="toggleOutstanding()">Show all statements</button></div>`
@@ -571,6 +571,88 @@ function renderList() {
     }
   }
   c.innerHTML = html;
+}
+
+// ── Profit by month for the selected property ────────────────────────
+// Gross revenue, expenses and net profit over a range the reader picks:
+// this month, last month, the quarter, the year to date, or any two months.
+let pnlRange = (() => { try { return JSON.parse(localStorage.getItem('samba_pnl_range') || 'null') || { kind: 'ytd' }; } catch { return { kind: 'ytd' }; } })();
+const pnlCache = {};
+function pnlBounds(range) {
+  const now = new Date(Date.now() + 8 * 3600e3);   // WITA
+  const y = now.getUTCFullYear(), m = now.getUTCMonth();
+  const key = (yy, mm) => `${yy}-${String(mm + 1).padStart(2, '0')}`;
+  if (range.kind === 'month') return { from: key(y, m), to: key(y, m), label: 'This month' };
+  if (range.kind === 'last') { const d = new Date(Date.UTC(y, m - 1, 1)); return { from: key(d.getUTCFullYear(), d.getUTCMonth()), to: key(d.getUTCFullYear(), d.getUTCMonth()), label: 'Last month' }; }
+  if (range.kind === 'quarter') { const q = Math.floor(m / 3); return { from: key(y, q * 3), to: key(y, q * 3 + 2), label: `Q${q + 1} ${y}` }; }
+  if (range.kind === 'custom' && range.from && range.to) return { from: range.from <= range.to ? range.from : range.to, to: range.from <= range.to ? range.to : range.from, label: 'Custom' };
+  return { from: key(y, 0), to: key(y, m), label: `${y} to date` };
+}
+function setPnlRange(kind) {
+  if (kind === 'custom') {
+    const b = pnlBounds(pnlRange);
+    pnlRange = { kind: 'custom', from: pnlRange.from || b.from, to: pnlRange.to || b.to };
+  } else pnlRange = { kind };
+  try { localStorage.setItem('samba_pnl_range', JSON.stringify(pnlRange)); } catch {}
+  if (groupFilter) loadPnl(groupFilter);
+}
+function setPnlCustom() {
+  const from = document.getElementById('pnl-from')?.value, to = document.getElementById('pnl-to')?.value;
+  if (!/^\d{4}-\d{2}$/.test(from || '') || !/^\d{4}-\d{2}$/.test(to || '')) return;
+  pnlRange = { kind: 'custom', from, to };
+  try { localStorage.setItem('samba_pnl_range', JSON.stringify(pnlRange)); } catch {}
+  loadPnl(groupFilter);
+}
+async function loadPnl(groupKey) {
+  const el = document.getElementById('pnl');
+  if (!el || !groupKey) return;
+  const b = pnlBounds(pnlRange);
+  const g = (groupsData?.groups || []).find(x => x.key === groupKey) || {};
+  const ctl = `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+    ${[['month', 'This month'], ['last', 'Last month'], ['quarter', 'Quarter'], ['ytd', 'Year to date'], ['custom', 'Custom']].map(([k, l]) => `<button class="btn ${pnlRange.kind === k ? 'primary' : 'ghost'}" style="padding:7px 11px" onclick="setPnlRange('${k}')">${l}</button>`).join('')}
+    ${pnlRange.kind === 'custom' ? `<input id="pnl-from" type="month" value="${esc(b.from)}" onchange="setPnlCustom()" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px;font:500 12.5px var(--sb-font-ui)"> <span style="color:var(--muted);font-size:.75rem">to</span> <input id="pnl-to" type="month" value="${esc(b.to)}" onchange="setPnlCustom()" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px;font:500 12.5px var(--sb-font-ui)">` : ''}
+  </div>`;
+  el.innerHTML = `<div class="card" style="margin:10px 0 14px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h3 style="margin:0">Profit · ${esc(pname(g.name || groupKey))}</h3>${ctl}</div><div class="loading-state" style="padding:16px 0"><div class="spinner"></div>Adding up ${esc(b.label.toLowerCase())}…</div></div>`;
+  const key = `${groupKey}:${b.from}:${b.to}`;
+  let d = pnlCache[key];
+  if (!d) {
+    try {
+      const r = await fetch(`/api/statements?action=pnl&group=${encodeURIComponent(groupKey)}&from=${b.from}&to=${b.to}`, { headers: { Authorization: 'Bearer ' + adminPw } });
+      d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+      pnlCache[key] = d;
+    } catch (e) {
+      if (document.getElementById('pnl') !== el) return;
+      el.querySelector('.loading-state').outerHTML = `<div class="banner red" style="margin-top:10px"><div>${esc(e.message)}</div></div>`;
+      return;
+    }
+  }
+  if (document.getElementById('pnl') !== el || groupFilter !== groupKey) return;
+  const fee = d.charges_commission && !d.expenses_only;
+  const t = d.totals || {};
+  const revNote = d.expenses_only ? 'Revenue is what the Hostex calendar shows the units earned (after channel commission); expenses are Era\'s ledger. Money the co-owners paid in is not revenue and is left out.' : (d.charges_commission ? 'From the statements: gross rent, the Samba fee, villa expenses, and the payout as net.' : 'Own units: gross rent less villa expenses, no management fee.');
+  el.innerHTML = `<div class="card" style="margin:10px 0 14px">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h3 style="margin:0">Profit · ${esc(pname(d.name || groupKey))}</h3>${ctl}</div>
+    <div class="totgrid" style="margin-top:12px">
+      <div class="tot"><div class="lab">Gross revenue</div><div class="val">${IDR(t.gross)}</div></div>
+      ${fee ? `<div class="tot"><div class="lab">Samba fee</div><div class="val">${IDR(t.commission)}</div></div>` : ''}
+      <div class="tot"><div class="lab">Expenses</div><div class="val">${IDR(t.expenses)}</div></div>
+      <div class="tot big"><div class="lab">Net profit · ${esc(b.label)}</div><div class="val" style="${Number(t.net) < 0 ? 'color:var(--red-fg)' : ''}">${IDR(t.net)}</div></div>
+    </div>
+    <div class="tblwrap" style="margin-top:12px"><table class="lines">
+      <tr><th>Month</th><th class="num">Gross revenue</th>${fee ? '<th class="num">Samba fee</th>' : ''}<th class="num">Expenses</th><th class="num">Net profit</th><th></th></tr>
+      ${(d.months || []).map(m => `<tr${m.statement_id ? ` onclick="go('#/statement/${m.statement_id}')" style="cursor:pointer"` : ''}>
+        <td style="white-space:nowrap;font-weight:600">${esc(m.label)}</td>
+        <td class="num">${IDR(m.gross)}${m.source === 'hostex' && m.nights != null ? `<div style="font-size:.66rem;color:var(--muted)">${m.nights} nights</div>` : ''}</td>
+        ${fee ? `<td class="num">${IDR(m.commission)}</td>` : ''}
+        <td class="num">${IDR(m.expenses)}</td>
+        <td class="num" style="font-weight:700;${Number(m.net) < 0 ? 'color:var(--red-fg)' : ''}">${IDR(m.net)}</td>
+        <td style="font-size:.68rem;color:var(--muted)">${m.status ? esc(m.status) : (m.source === 'hostex' ? 'no expenses yet' : 'no statement')}</td>
+      </tr>`).join('')}
+      <tr class="totrow"><td>Total</td><td class="num">${IDR(t.gross)}</td>${fee ? `<td class="num">${IDR(t.commission)}</td>` : ''}<td class="num">${IDR(t.expenses)}</td><td class="num">${IDR(t.net)}</td><td></td></tr>
+    </table></div>
+    <p style="font-size:.7rem;color:var(--muted);margin-top:8px">${revNote}</p>
+  </div>`;
 }
 
 // ── Statement detail ─────────────────────────────────────────────────
