@@ -508,6 +508,7 @@ function pillsFor(s) {
   if (s.status === 'draft' && s.needs_review) pills.push('<span class="pill review"><span class="d"></span>Needs review</span>');
   else if (s.status === 'draft') pills.push('<span class="pill draft">Draft</span>');
   if (s.status !== 'draft' && !tracksPayments(s)) pills.push('<span class="pill draft">Internal · settled privately</span>');
+  else if (s.status === 'published' && s.statement_groups?.expenses_only) pills.push(`<span class="pill outstanding"><span class="d"></span>Owed to Samba · ${IDR(Math.max(0, -Number(s.payout_total) - Number(s.paid_total || 0)))}</span>`);
   else if (s.status === 'published' && Number(s.payout_total) < 0) pills.push('<span class="pill void">Deficit · carries forward</span>');
   else if (s.status === 'published') pills.push('<span class="pill outstanding"><span class="d"></span>Unpaid</span>');
   if (tracksPayments(s) && s.status === 'partial') pills.push(`<span class="pill review"><span class="d"></span>Partial · ${IDR(balanceOf(s))} due</span>`);
@@ -533,7 +534,12 @@ function renderList() {
     const due = inGroup.filter(isOutstanding);
     const total = due.reduce((a, s) => a + balanceOf(s), 0);
     const g = groups.find(x => x.key === groupFilter);
-    if (g && g.tracks_payments === false) owedHtml = `<span class="owed muted">Settled privately · no balance tracked</span>`;
+    if (g && g.expenses_only) {
+      // Co-owned units with no rent through Samba: each published month is
+      // what the co-owners owe Samba (expenses less what they paid in).
+      const owedToSamba = inGroup.filter(s => ['published', 'partial'].includes(s.status)).reduce((a, s) => a + Math.max(0, -Number(s.payout_total) - Number(s.paid_total || 0)), 0);
+      owedHtml = owedToSamba ? `<span class="owed"><b>Owed to Samba: ${IDR(owedToSamba)}</b></span>` : `<span class="owed muted">Nothing owed to Samba</span>`;
+    } else if (g && g.tracks_payments === false) owedHtml = `<span class="owed muted">Settled privately · no balance tracked</span>`;
     else if (due.length) owedHtml = `<span class="owed"><b>Total owed: ${IDR(total)}</b> · ${due.length} payout${due.length > 1 ? 's' : ''}</span>`;
     else owedHtml = `<span class="owed muted">Nothing owed · all settled</span>`;
   }
