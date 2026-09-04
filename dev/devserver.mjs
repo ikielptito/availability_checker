@@ -20,6 +20,7 @@ process.env.PADDLE_PRICE_ID = 'pri_dev_10mo';
 process.env.PADDLE_WEBHOOK_SECRET = 'pdl_ntfset_devsecret';
 process.env.DIGEST_SHARED_SECRET = 'dev_secret';
 process.env.CRM_BASE_URL = 'http://localhost:3456/__crm_mock';
+process.env.DOUBLE8_ADMIN_PASSWORD = process.env.DOUBLE8_ADMIN_PASSWORD || 'double8-dev';
 process.env.LISTING_SYNC_SECRET = process.env.LISTING_SYNC_SECRET || 'dev-sync-secret';
 const __crmCalls = [];
 const { statementToken: devStatementToken } = await import(path.join(ROOT, 'lib', 'tokens.js'));
@@ -218,11 +219,30 @@ function mockPayrollTotals(run) {
   if (['published', 'partial', 'paid'].includes(run.status)) run.status = paid >= run.run_total - 1 && paid > 0 ? 'paid' : paid > 0 ? 'partial' : 'published';
 }
 mockPayrollTotals(mockPayrollRuns[0]);
+// Double 8: salary rows from the DOUBLE EIGHT ledger (August 2026, real).
+mockPayrollLines.push(
+  { ...prLine('Gede Baglug', 'Housekeeping Salary', 'salary', 3800000, ['tropicana-b2', 'tropicana-b3', 'tropicana-b5', 'tropicana-b6'], { staff_id: 1, role: 'housekeeper' }), run_id: 3 },
+  { ...prLine('Pool Salary', 'Pool Salary', 'salary', 2400000, ['tropicana-b2', 'tropicana-b3', 'tropicana-b5', 'tropicana-b6'], { role: 'pool', flags: ['not_in_registry'] }), run_id: 3 },
+  { ...prLine('Gardener salary CA &4 unit @200k', 'Gardener salary CA &4 unit @200k', 'salary', 1700000, ['tropicana-b2', 'tropicana-b3', 'tropicana-b5', 'tropicana-b6'], { role: 'gardener', flags: ['not_in_registry'] }), run_id: 3 },
+);
+mockPayrollRuns.push({
+  id: 3, entity: 'double8', period: '2026-08', status: 'draft', salary_total: 0, other_total: 0, run_total: 0, memo_total: 0, era_total: null, paid_total: 0,
+  reconciliation: { checks: [{ name: 'salary_lines_found', ok: true, actual: 3 }], unparsed_rows: [] }, needs_review: true, period_flags: [],
+  source_tab: 'Tropicana B statement · August 2026', source_statement_id: 64, parsed_at: '2026-09-04T03:00:00Z', has_manual_edits: false, source_changed: false, published_at: null, published_by: null, paid_at: null,
+});
+for (const r of mockPayrollRuns) { if (!r.entity) r.entity = 'samba'; }
+mockPayrollTotals(mockPayrollRuns[2]);
 function mockPayrollApi({ action, payload = {} }) {
+  const scope = payload.entity_scope || null;
+  const entity = scope || payload.entity || 'samba';
   const run = mockPayrollRuns.find(r => r.id === +payload.id);
+  if (run && scope && run.entity !== scope) return { status: 403, body: { error: 'This run is outside your access' } };
+  if (action === 'payroll_entities') return { status: 200, body: { entities: [{ key: 'samba', name: 'Samba' }, { key: 'double8', name: 'Double 8' }].filter(e => !scope || e.key === scope), scope } };
+  if (action === 'payroll_feedback') { __crmCalls.push({ kind: 'payroll_feedback', body: payload }); return { status: 200, body: { ok: true } }; }
   if (action === 'payroll_list') {
-    const outstanding = mockPayrollRuns.filter(r => ['published', 'partial'].includes(r.status));
-    return { status: 200, body: { runs: mockPayrollRuns, outstanding: { count: outstanding.length, total: outstanding.reduce((a, r) => a + r.run_total - r.paid_total, 0) } } };
+    const runs = mockPayrollRuns.filter(r => r.entity === entity);
+    const outstanding = runs.filter(r => ['published', 'partial'].includes(r.status));
+    return { status: 200, body: { entity, runs, outstanding: { count: outstanding.length, total: outstanding.reduce((a, r) => a + r.run_total - r.paid_total, 0) } } };
   }
   if (action === 'payroll_sync') return { status: 200, body: { tabs: 1, created: 0, updated: 0, unchanged: 1, kept_edits: 0, discrepancies: 0, skipped: 'unchanged since last sync', runs: [] } };
   if (!run) return { status: 404, body: { error: 'Run not found' } };
@@ -248,7 +268,7 @@ function mockPayrollApi({ action, payload = {} }) {
       group_key: g.key, name: g.name, slugs: g.listing_slugs, allocated: g.listing_slugs.reduce((a, s) => a + (props.get(s)?.total || 0), 0),
       statement: mockStatements.find(s => s.group_key === g.key && s.period === run.period) ? { id: mockStatements.find(s => s.group_key === g.key && s.period === run.period).id, status: 'published', expenses_total: 1250000 } : null,
     })).filter(g => g.allocated > 0 || g.statement);
-    return { status: 200, body: { run, lines, payments, payees, properties, statements, period_label: run.period } };
+    return { status: 200, body: { run, lines, payments, payees, properties, statements: run.entity === 'double8' ? [] : statements, entity: { key: run.entity, name: run.entity === 'double8' ? 'Double 8' : 'Samba' }, period_label: run.period } };
   }
   if (action === 'payroll_publish') { run.status = 'published'; run.published_at = new Date().toISOString(); run.published_by = 'admin'; return { status: 200, body: { ok: true } }; }
   if (action === 'payroll_unpublish') { run.status = 'draft'; run.published_at = null; return { status: 200, body: { ok: true } }; }
@@ -1172,6 +1192,19 @@ const server = http.createServer(async (req, res) => {
       // ?capture=<name> opens a named modal after boot, so headless-Chrome
       // guide screenshots can photograph states that normally need a click.
       const cap = u.searchParams.get('capture') || '';
+      // ?focus=<selector>&nth=<i> isolates one element after boot (the
+      // guide's per-card crops): everything else leaves the page, the element
+      // sits at a fixed width on the plain background, and a trim does the rest.
+      const focus = u.searchParams.get('focus') || '';
+      const nth = parseInt(u.searchParams.get('nth') || '0', 10) || 0;
+      const focusJs = focus ? `<script>window.addEventListener('load',()=>setTimeout(()=>{try{
+        var el=document.querySelectorAll(${JSON.stringify(focus)})[${nth}]; if(!el) return;
+        var st=[].slice.call(document.querySelectorAll('style,link[rel=stylesheet]'));
+        document.body.innerHTML=''; st.forEach(function(x){document.body.appendChild(x)});
+        document.body.style.background='#F4F1ED'; document.body.style.padding='24px';
+        el.style.maxWidth='1080px'; el.style.width='1080px'; el.style.margin='0'; el.style.transform='none'; el.style.position='static';
+        document.body.appendChild(el);
+      }catch(e){}},4200));</script>` : '';
       const capJs = cap ? `<script>window.addEventListener('load',()=>setTimeout(()=>{try{
         if(${JSON.stringify(cap)}==='care'&&window.hkCareEdit)hkCareEdit();
         if(${JSON.stringify(cap)}==='addstaff'&&window.staffEdit)staffEdit(null);
@@ -1181,9 +1214,10 @@ const server = http.createServer(async (req, res) => {
         if(${JSON.stringify(cap)}==='prpublish'&&PR){window.confirm=function(){return true};payrollPublish(PR.run.id);}
         if(${JSON.stringify(cap)}==='prpaid'&&PR){window.confirm=function(){return true};payrollApi('payroll_publish',{id:PR.run.id}).then(function(){return payrollApi('payroll_record_payment',{id:PR.run.id,payee:'Dian',staff_id:6,amount:3400000,note:'Transfer BCA 5 Sep'})}).then(function(){return payrollApi('payroll_record_payment',{id:PR.run.id,payee:'Naomi',staff_id:2,amount:2000000,note:'Transfer BCA 5 Sep'})}).then(function(){renderPayrollRun(PR.run.id)});}
       }catch(e){}},2600));</script>` : '';
+      const extraJs = capJs + focusJs;
       const html = fs.readFileSync(path.join(ROOT, 'public', u.pathname.slice(1) + '.html'), 'utf8')
         .replace('<script src="/shared.js"></script>',
-          `<script>sessionStorage.setItem('admin_pw', ${JSON.stringify(process.env.DASHBOARD_PASSWORD)});</script>\n${capJs}<script src="/shared.js"></script>`);
+          `<script>sessionStorage.setItem('admin_pw', ${JSON.stringify(process.env.DASHBOARD_PASSWORD)});</script>\n${extraJs}<script src="/shared.js"></script>`);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       return void res.end(html);
     }

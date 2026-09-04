@@ -368,7 +368,10 @@ async function doLogin() {
   const pw = document.getElementById('pw').value.trim();
   if (!pw) return;
   adminPw = pw;
-  try { await api('statement_groups', {}); } catch (e) {
+  // The payroll proxy accepts every login this page knows (Samba admins,
+  // Era's credential, Oli's Double 8 one); the statements engine only the
+  // first two. Validate against the one that accepts them all.
+  try { await payrollApi('payroll_whoami', {}); } catch (e) {
     if (e.message === 'unauthorized') { document.getElementById('login-err').textContent = 'Wrong password.'; return; }
   }
   sessionStorage.setItem('admin_pw', pw);
@@ -438,9 +441,22 @@ function route() {
 }
 window.addEventListener('hashchange', route);
 
+// Who is signed in? Samba admins see everything; a Double 8 login (Oli)
+// sees only the Double 8 payroll, and the page shapes itself before making
+// any other call (the statements engine would refuse that password).
+let scope = null;
 async function boot() {
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+  try { scope = (await payrollApi('payroll_whoami', {})).scope || null; } catch { scope = null; }
+  if (scope === 'double8') {
+    payrollEntity = 'double8';
+    document.body.classList.add('scope-double8');
+    document.querySelectorAll('.rail a').forEach(a => { if (a.dataset.view !== 'payroll') a.style.display = 'none'; });
+    if (!location.hash.startsWith('#/payroll')) location.hash = '#/payroll';
+    route();
+    return;
+  }
   await refreshList();
   refreshMaint().catch(() => {});   // badge only — never blocks the first paint
   route();
@@ -1152,18 +1168,35 @@ function prPills(r) {
   return p.join('');
 }
 let payrollList = null;
+// Two entities on one engine: Samba (Era's salary sheet) and Double 8
+// (Tropicana B2/B3/B5/B6 with Oli, derived from the DOUBLE EIGHT ledger).
+// Financially separate; the tab remembers which one you were on.
+let payrollEntity = (() => { try { return localStorage.getItem('samba_payroll_entity') || 'samba'; } catch { return 'samba'; } })();
+const PR_ENTITY = { samba: { name: 'Samba', sync: "⟳ Sync from Era's payroll sheet", empty: "No payroll runs yet. Hit <b>Sync from Era's payroll sheet</b> to import the current month.", note: "Era's \"Staff Salary and Expenses\" sheet, one run per month." }, double8: { name: 'Double 8', sync: '⟳ Refresh from the Double Eight ledger', empty: 'No Double 8 runs yet. They appear once a Tropicana B month has salary lines on the DOUBLE EIGHT ledger.', note: 'Salary rows from the DOUBLE EIGHT ledger (the sheet Era sends Oli), one run per Tropicana B statement month. Entirely separate from Samba.' } };
+function setPayrollEntity(e) {
+  if (scope === 'double8') e = 'double8';
+  payrollEntity = PR_ENTITY[e] ? e : 'samba';
+  try { localStorage.setItem('samba_payroll_entity', payrollEntity); } catch {}
+  renderPayroll();
+}
 async function renderPayroll() {
   const c = document.getElementById('content');
+  if (scope === 'double8') payrollEntity = 'double8';
   c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading payroll…</div>';
-  try { payrollList = await payrollApi('payroll_list', {}); }
+  try { payrollList = await payrollApi('payroll_list', { entity: payrollEntity }); }
   catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`; return; }
   const runs = payrollList.runs || [];
   const o = payrollList.outstanding || { count: 0, total: 0 };
-  let html = `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+  const ent = PR_ENTITY[payrollEntity];
+  let html = `${scope === 'double8' ? '' : `<div style="display:flex;gap:6px;margin-bottom:12px">
+    ${Object.entries(PR_ENTITY).map(([k, v]) => `<button class="btn ${payrollEntity === k ? 'primary' : 'ghost'}" onclick="setPayrollEntity('${k}')">${v.name}</button>`).join('')}
+  </div>`}
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
     ${o.count ? `<span class="owed"><b>To pay: ${IDR(o.total)}</b> · ${o.count} month${o.count > 1 ? 's' : ''}</span>` : `<span class="owed muted">Nothing to pay · all settled</span>`}
-    <button class="btn-sync" id="prsync" onclick="payrollSync()">⟳ Sync from Era's payroll sheet</button>
-  </div>`;
-  if (!runs.length) html += `<div class="empty-state">No payroll runs yet. Hit <b>Sync from Era's payroll sheet</b> to import the current month.</div>`;
+    <button class="btn-sync" id="prsync" onclick="payrollSync()">${ent.sync}</button>
+  </div>
+  <p style="font-size:.72rem;color:var(--muted);margin:-4px 0 12px">${ent.note} <a style="cursor:pointer;text-decoration:underline" onclick="payrollFeedback()">Send a note to Ikiel about this tab</a></p>`;
+  if (!runs.length) html += `<div class="empty-state">${ent.empty}</div>`;
   for (const r of runs) {
     html += `<div class="strow" onclick="go('#/payroll/${r.id}')">
       <div class="nm">${esc(monthLabel(r.period))}
@@ -1179,12 +1212,12 @@ async function payrollSync() {
   const btn = document.getElementById('prsync');
   if (btn) { btn.disabled = true; btn.textContent = '⟳ Syncing…'; }
   try {
-    const out = await payrollApi('payroll_sync', {});
+    const out = await payrollApi('payroll_sync', { entity: payrollEntity });
     if (out.error) throw new Error(out.error);
     showToast(out.skipped ? `Sheet unchanged since last sync` : `Sync done: ${out.created} new, ${out.updated} updated${out.kept_edits ? `, ${out.kept_edits} kept your edits` : ''}${out.discrepancies ? `, ${out.discrepancies} changed after publish` : ''}`, out.discrepancies ? 'error' : 'success');
     await renderPayroll();
   } catch (e) { if (e.message !== 'unauthorized') showToast('Sync failed: ' + e.message, 'error'); }
-  if (btn) { btn.disabled = false; btn.textContent = "⟳ Sync from Era's payroll sheet"; }
+  if (btn) { btn.disabled = false; btn.textContent = PR_ENTITY[payrollEntity].sync; }
 }
 
 let prDet = null;
@@ -1208,26 +1241,28 @@ function drawPayrollRun() {
     sheet_matches_registry: 'Sheet agrees with the Team register',
     housekeeping_covered: 'Every housekeeper is paid for every villa she covers',
     no_unparsed_rows: 'Every row was understood',
+    salary_lines_found: 'Salary rows found on the ledger for this month',
   };
 
-  let html = `<div class="crumb"><a onclick="go('#/payroll')">Payroll</a> · ${esc(monthLabel(run.period))}</div>
+  const entName = (prDet.entity && prDet.entity.name) || PR_ENTITY[run.entity || 'samba']?.name || 'Samba';
+  let html = `<div class="crumb"><a onclick="go('#/payroll')">Payroll</a> · ${esc(entName)} · ${esc(monthLabel(run.period))}</div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
       <div><h3 style="margin:0">${esc(monthLabel(run.period))} payroll</h3>
-        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">from tab "${esc(run.source_tab || '')}" · imported ${dstr(run.parsed_at)}${run.published_at ? ' · published ' + dstr(run.published_at) : ''}</div></div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${run.entity === 'double8' ? `from the DOUBLE EIGHT ledger${run.source_statement_id && scope !== 'double8' ? ` · <a style="cursor:pointer;text-decoration:underline" onclick="go('#/statement/${run.source_statement_id}')">open the Tropicana B statement</a>` : ''}` : `from tab "${esc(run.source_tab || '')}"`} · imported ${dstr(run.parsed_at)}${run.published_at ? ' · published ' + dstr(run.published_at) : ''}</div></div>
       <div class="pills">${prPills(run)}</div>
     </div>
     <div class="totgrid" style="margin-top:12px">
       <div class="tot big"><div class="lab">This month</div><div class="val">${IDR(run.run_total)}</div></div>
       <div class="tot"><div class="lab">Salaries</div><div class="val">${IDR(run.salary_total)}</div></div>
       <div class="tot"><div class="lab">Everything else</div><div class="val">${IDR(run.other_total)}</div></div>
-      <div class="tot"><div class="lab">${payable || run.status === 'paid' ? 'Paid so far' : "Era's total"}</div><div class="val">${IDR(payable || run.status === 'paid' ? run.paid_total : run.era_total)}</div></div>
+      ${payable || run.status === 'paid' ? `<div class="tot"><div class="lab">Paid so far</div><div class="val">${IDR(run.paid_total)}</div></div>` : run.entity === 'double8' ? '' : `<div class="tot"><div class="lab">Era's total</div><div class="val">${IDR(run.era_total)}</div></div>`}
       ${Number(run.memo_total) ? `<div class="tot"><div class="lab">Memo · not paid out</div><div class="val" style="color:var(--muted)">${IDR(run.memo_total)}</div><div style="font-size:.66rem;color:var(--muted);margin-top:3px">balance carried, money received, petty cash</div></div>` : ''}
     </div>
     <div class="actionsrow" style="margin-top:12px">
       ${draft ? `<button class="btn primary" onclick="payrollPublish(${run.id})">Publish · lock these numbers</button>
         <button class="btn ghost" onclick="payrollAddLine(${run.id})">Add a line</button>
-        ${run.has_manual_edits ? `<button class="btn ghost" onclick="payrollReimport(${run.id})">Re-import · discard my edits</button>` : ''}` : ''}
+        ${run.has_manual_edits ? `<button class="btn ghost" onclick="payrollReimport(${run.id})">${run.entity === 'double8' ? 'Refresh from the ledger · discard my edits' : 'Re-import · discard my edits'}</button>` : ''}` : ''}
       ${run.status === 'published' && !Number(run.paid_total) ? `<button class="btn ghost" onclick="payrollUnpublish(${run.id})">Back to draft</button>` : ''}
     </div>
   </div>`;
@@ -1390,6 +1425,25 @@ async function payrollSavePayment(runId, payee, staffId) {
     if (file) { const shrunk = await shrinkImage(file); fileBase64 = shrunk.base64; contentType = shrunk.type; }
     await payrollApi('payroll_record_payment', { id: runId, payee, staff_id: staffId, amount, note, paid_at: date ? date + 'T04:00:00.000Z' : null, fileBase64, contentType });
     closeModal(); await renderPayrollRun(runId);
+  } catch (e) { btn.disabled = false; if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+function payrollFeedback() {
+  modal(`<h3>A note to Ikiel about the Payroll tab</h3>
+    <p style="font-size:.78rem;color:var(--muted)">What would you change, add, or remove? It lands on Ikiel's phone with your name and the entity you're looking at.</p>
+    <label class="flab">Your name</label><input id="fb-from" value="${scope === 'double8' ? 'Oli' : ''}" placeholder="Name">
+    <label class="flab">Note</label><textarea id="fb-text" rows="5" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:9px;font:inherit"></textarea>
+    <div class="actionsrow" style="margin-top:14px">
+      <button class="btn primary" id="fb-save" onclick="payrollSendFeedback()">Send</button>
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+async function payrollSendFeedback() {
+  const text = document.getElementById('fb-text').value.trim();
+  if (!text) { showToast('Write the note first', 'error'); return; }
+  const btn = document.getElementById('fb-save'); btn.disabled = true;
+  try {
+    await payrollApi('payroll_feedback', { entity: payrollEntity, from: document.getElementById('fb-from').value.trim() || null, text, run_period: prDet?.run?.period || null });
+    closeModal(); showToast('Sent to Ikiel', 'success');
   } catch (e) { btn.disabled = false; if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
 async function payrollDeletePayment(runId, paymentId) {
@@ -2207,7 +2261,7 @@ const HELP = {
   earnings: { title: 'Earnings', html: `
     <p>Our income by month: the management fee from every managed villa, plus the full rental profit of our own LaneHAUS units. Added up from the statements. Nothing to do here; it is a summary.</p>` },
   payroll: { title: 'Payroll', html: `
-    <p>Era's "Staff Salary and Expenses" sheet, imported every morning as one payroll run per month. Same rules as payouts: a draft follows the sheet, a draft you edited is never overwritten, a published run is frozen.</p>
+    <p>Two entities on one engine, financially separate. <b>Samba</b>: Era's "Staff Salary and Expenses" sheet, imported every morning as one run per month. <b>Double 8</b>: the salary rows on the DOUBLE EIGHT ledger for Tropicana B2, B3, B5 and B6, one run per statement month, paid by Oli. Same rules for both: a draft follows its source, a draft you edited is never overwritten, a published run is frozen.</p>
     <h4>Reading a run</h4>
     <ul>
       <li><b>By person</b>: one row per payee with everything they are owed this month (Dian's four villas are one transfer). Record each transfer against the person; the run turns Paid when everything is settled.</li>
