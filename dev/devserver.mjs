@@ -1251,6 +1251,14 @@ const server = http.createServer(async (req, res) => {
       }catch(e){}},4200));</script>` : '';
       const capJs = cap ? `<script>window.addEventListener('load',()=>setTimeout(()=>{try{
         if(${JSON.stringify(cap)}==='care'&&window.hkCareEdit)hkCareEdit();
+        var C=${JSON.stringify(cap)};
+        if(C==='hkvilla'&&window.schedShowVilla)schedShowVilla('haus-4');
+        if(C==='hkstd'&&window.hkStandardSheet)hkStandardSheet('haus-4');
+        if(C==='hkrounds'&&window.hkRoundsSheet)hkRoundsSheet();
+        if(C==='hkfeed'&&window.hkCalendarSheet)hkCalendarSheet();
+        if(C==='hkwho'&&window.schedSetFilter)schedSetFilter('who:5');
+        if(C==='hkflag'&&window.hkTaskSheet){var r=(hkReady&&hkReady.checks||[]).find(function(x){return x.status==='flagged'});if(r)hkTaskSheet(r.task_id);}
+        if(C==='hkpass'&&window.hkTaskSheet){var r2=(hkReady&&hkReady.checks||[]).find(function(x){return x.status==='pass'});if(r2)hkTaskSheet(r2.task_id);}
         if(${JSON.stringify(cap)}==='addstaff'&&window.staffEdit)staffEdit(null);
         var PR=(typeof prDet!=='undefined')&&prDet;
         if(${JSON.stringify(cap)}==='predit'&&PR)payrollEditLine(PR.run.id, PR.lines[6].id);
