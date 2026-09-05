@@ -342,8 +342,8 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
     <div style="margin-top:18px;padding-top:14px;border-top:1px dashed var(--border)">
       <div style="font:600 10px/1 var(--sb-font-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Double 8 partners</div>
       <div style="display:flex;gap:6px">
-        <input type="tel" id="d8phone" placeholder="WhatsApp number, e.g. +62 878…" style="flex:1" onkeydown="if(event.key==='Enter')requestLink()">
-        <button onclick="requestLink()" style="white-space:nowrap">Send me a link</button>
+        <input type="tel" id="d8phone" placeholder="WhatsApp number, e.g. +62 878…" style="flex:1 1 auto;min-width:0;width:auto;margin:0" onkeydown="if(event.key==='Enter')requestLink()">
+        <button onclick="requestLink()" style="white-space:nowrap;width:auto;flex:0 0 auto;margin:0">Send me a link</button>
       </div>
       <div class="err" id="d8msg" style="color:var(--muted)"></div>
     </div>
