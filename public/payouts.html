@@ -339,6 +339,14 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
     <input type="password" id="pw" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
     <button onclick="doLogin()">Open</button>
     <div class="err" id="login-err"></div>
+    <div style="margin-top:18px;padding-top:14px;border-top:1px dashed var(--border)">
+      <div style="font:600 10px/1 var(--sb-font-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Double 8 partners</div>
+      <div style="display:flex;gap:6px">
+        <input type="tel" id="d8phone" placeholder="WhatsApp number, e.g. +62 878…" style="flex:1" onkeydown="if(event.key==='Enter')requestLink()">
+        <button onclick="requestLink()" style="white-space:nowrap">Send me a link</button>
+      </div>
+      <div class="err" id="d8msg" style="color:var(--muted)"></div>
+    </div>
   </div>
 </div>
 
@@ -376,11 +384,36 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
 const IS_EMBED = new URLSearchParams(location.search).get('embed') === '1';
 if (IS_EMBED) document.body.classList.add('embed');
 let adminPw = sessionStorage.getItem('admin_pw') || sessionStorage.getItem('dash_pwd') || '';
+// A Double 8 session from an earlier magic link outlives the tab.
+if (!adminPw) { try { adminPw = localStorage.getItem('samba_d8_session') || ''; } catch {} }
 
 function showGate(msg) {
   document.getElementById('app').style.display = 'none';
   document.getElementById('login').style.display = 'flex';
   if (msg) document.getElementById('login-err').textContent = msg;
+}
+// Double 8 partners sign in with a WhatsApp link instead of a password.
+async function requestLink() {
+  const phone = (document.getElementById('d8phone').value || '').trim();
+  const msg = document.getElementById('d8msg');
+  if (!phone) { msg.textContent = 'Enter your WhatsApp number.'; return; }
+  msg.textContent = 'Sending…';
+  try {
+    const r = await fetch('/api/payroll', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'payroll_link_start', payload: { phone } }) });
+    const d = await r.json().catch(() => ({}));
+    msg.textContent = r.ok ? 'Sent. Open WhatsApp and tap "Open my portal".' : (d.error || 'Could not send the link.');
+  } catch { msg.textContent = 'Could not send the link. Check your connection.'; }
+}
+async function verifyMagic(tok) {
+  try {
+    const r = await fetch('/api/payroll', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'payroll_link_verify', payload: { token: tok } }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.session) { showGate(d.error || 'This link has expired. Request a new one.'); return false; }
+    adminPw = d.session;
+    sessionStorage.setItem('admin_pw', adminPw);
+    try { localStorage.setItem('samba_d8_session', adminPw); } catch {}
+    return true;
+  } catch { showGate('Could not sign you in. Try the link again.'); return false; }
 }
 async function doLogin() {
   const pw = document.getElementById('pw').value.trim();
@@ -2879,7 +2912,16 @@ function staffPickerChanged(sel, opts) {
 }
 
 // ── Boot ─────────────────────────────────────────────────────────────
-if (adminPw) boot(); else showGate();
+// /payouts?d8=<token>: the tap on a Double 8 partner's WhatsApp link.
+(async () => {
+  const d8 = new URLSearchParams(location.search).get('d8');
+  if (d8) {
+    history.replaceState(null, '', '/payouts#/payroll');   // one-time token; keep it out of the bar
+    if (await verifyMagic(d8)) { boot(); return; }
+    return;
+  }
+  if (adminPw) boot(); else showGate();
+})();
 </script>
 </body>
 </html>

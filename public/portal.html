@@ -754,6 +754,9 @@ let PORTAL_PREVIEW=null;   // signed admin preview token — read-only owner vie
   // "Open my portal" in WhatsApp — exchange the token for a session, then
   // continue booting as a signed-in owner.
   const waTok = new URLSearchParams(location.search).get('wa_login');
+  // A Double 8 partner's management login rides the same WhatsApp button;
+  // its token is prefixed so it lands on the management page instead.
+  if (waTok && /^d8-/.test(waTok)) { location.replace('/payouts?d8=' + encodeURIComponent(waTok.slice(3))); return; }
   if (waTok) {
     history.replaceState(null, '', '/portal');   // token is one-time; don't leave it in the bar
     try {
