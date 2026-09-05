@@ -64,6 +64,18 @@
         "dev/devserver.mjs"
       ],
       "port": 3456
+    },
+    {
+      "name": "samba-dev-guide",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DEV_FIXTURES=/private/tmp/claude-501/-Users-ikiel-Samba-Rentals/426868e0-6812-425c-b20d-837fc9cbc3d5/scratchpad/fixtures",
+        "DEV_OWNER_NAME=Oli",
+        "DEV_OWNER_EMAIL=owner@example.com",
+        "node",
+        "dev/devserver.mjs"
+      ],
+      "port": 3456
     }
   ]
 }

@@ -28,6 +28,26 @@ const { statementToken: devStatementToken } = await import(path.join(ROOT, 'lib'
 // ── mock Campaign Command Center (kaya-agent-crm /api/campaigns) ──────
 // Stateful enough that pause/resume/arm/launch visibly work in the UI.
 const dayISO = (back) => new Date(Date.now() - back * 86400e3).toISOString();
+// Dev-only: DEV_FIXTURES=<dir> lets a capture session replace any mock CRM
+// answer with a JSON file, so guide screenshots can show real photos and
+// hand-picked states without editing the mocks. Looked up in order as
+// <action>@<type>.<id>.json, <action>@<id>.json, <action>@<slug>.json, <action>.json.
+const FIXTURES = process.env.DEV_FIXTURES || '';
+function fixture(action, payload = {}) {
+  if (!FIXTURES) return null;
+  const id = payload.id ?? payload.item_id;
+  const names = [
+    payload.type != null && id != null ? `${action}@${payload.type}.${id}` : null,
+    id != null ? `${action}@${id}` : null,
+    payload.slug ? `${action}@${payload.slug}` : null,
+    action,
+  ].filter(Boolean);
+  for (const n of names) {
+    const fp = path.join(FIXTURES, n + '.json');
+    if (fs.existsSync(fp)) return { status: 200, body: JSON.parse(fs.readFileSync(fp, 'utf8')) };
+  }
+  return null;
+}
 const sparkOf = (seed) => { const o = {}; for (let i = 0; i < 14; i++) { const v = Math.max(0, Math.round(Math.sin(i / 2 + seed) * 6 + (seed % 5) + 4 - (i % 3))); if (v) o[dayISO(13 - i).slice(0, 10)] = v; } return o; };
 const mockCampaigns = [
   { id: 'c-alert', key: 'availability_alert', kind: 'always_on', name: 'Availability alerts', status: 'live', goal: 'reply', pipeline: 'samba', context: 'High-signal availability changes to matched agents', schedule: { cron: 'daily 09:00-09:40 WITA, 3 waves', gate: 'HIGH_SIGNAL_MIN=3, 72h frequency' }, sent_count: 1240, delivered_count: 1180, read_count: 861, reply_count: 118, conversion_count: 0, fail_count: 34, skip_count: 402, last_run_at: dayISO(0), last_run_summary: { sent: 41, skipped: 12, errors: 0 }, spark: sparkOf(1), created_at: dayISO(80) },
@@ -350,6 +370,7 @@ function mockHkBuild() {
 }
 
 function mockHousekeepingApi({ action, payload = {} }) {
+  const fx = fixture(action, payload); if (fx) return fx;
   if (!mockHkTasks) mockHkTasks = mockHkBuild();
   const names = Object.fromEntries(CATALOG_UNITS.map(u => [u.slug, u.name.replace(/\s*[–—]\s*/g, ' · ')]));
   if (action === 'hk_schedule') {
@@ -460,6 +481,7 @@ function mockHousekeepingApi({ action, payload = {} }) {
 }
 
 function mockMaintenanceApi({ action, payload = {} }) {
+  const fx = fixture(action, payload); if (fx) return fx;
   const find = (id) => mockMaint.find(m => m.id === +id);
   const withGroup = (m) => ({ ...m, statement_groups: mockGroups.find(g => g.key === m.group_key) || null,
     staff: m.assigned_staff_id ? mockStaff.find(s => s.id === m.assigned_staff_id) || null : null,

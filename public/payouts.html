@@ -1755,6 +1755,7 @@ async function renderMaintenance() {
         <div style="flex:1;min-width:200px">
           <div class="mtitle">${esc(it.title)}</div>
           <div class="mwhere">${esc(where)} · reported ${esc(dstr(it.reported_at))}${it.reported_by_name ? ' by ' + esc(it.reported_by_name) : ''}</div>
+        ${(maintData.unclaimed_groups || []).includes(it.group_key) && it.status !== 'done' ? `<div class="mrow" style="font-size:.76rem;color:var(--red-fg)">The owner has not claimed their portal account, so Maya cannot message them about this. Tell them yourself, or send them the sign-in link from Properties.</div>` : ''}
         </div>
         ${it.urgency === 'urgent' ? '<span class="mpill urgent">Urgent</span>' : ''}
         <span class="mpill ${st.cls}">${esc(st.label)}</span>
@@ -1778,6 +1779,11 @@ async function renderMaintenance() {
         <button class="btn primary" onclick="maintPublish(${it.id})">Publish &amp; notify</button>
         <button class="btn ghost" onclick="maintDelete(${it.id})">Not an issue</button>
         <button class="btn ghost" onclick="maintMove(${it.id})">Wrong villa</button>
+      </div>
+      <div class="mrow">
+        ${it.heads_up_sent_at ? `<span style="font-size:.76rem;color:var(--green)">Owner told ${esc(dstr(it.heads_up_sent_at))}, cost to follow.</span>`
+          : it.heads_up_at ? `<span style="font-size:.76rem;color:var(--muted)">Heads-up queued for the owner${(maintData.unclaimed_groups || []).includes(it.group_key) ? ' (held: owner not on the portal yet)' : ', goes out on the next pass'}.</span>`
+          : `<button class="btn ghost" onclick="maintHeadsUp(${it.id})">Tell the owner now, cost to follow</button><span style="font-size:.76rem;color:var(--muted)">For a leak or damage they should hear about today.</span>`}
       </div>`;
     } else if (it.status !== 'done' && it.status !== 'declined') {
       html += `<div class="mrow"><button class="btn ghost" onclick="maintMove(${it.id})">Wrong villa</button></div>`;
@@ -2018,6 +2024,13 @@ function maintMove(id) {
     <label class="flab">Correct villa</label>
     <select class="flt" id="mv-slug" style="width:100%">${units.map(u => `<option value="${esc(u.slug)}"${u.slug === it.slug ? ' selected' : ''}>${esc(pname(u.name))}</option>`).join('')}</select>
     <div class="row"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" id="mv-save" onclick="doMaintMove(${id})">Move</button></div>`);
+}
+async function maintHeadsUp(id) {
+  try {
+    await maintApi('maint_heads_up', { id, actor: 'admin' });
+    showToast('Queued. Maya tells the owner on the next pass; add the estimate and publish when you have it.', 'success');
+    renderMaintenance();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
 async function doMaintMove(id) {
   const slug = document.getElementById('mv-slug').value;
@@ -2689,6 +2702,7 @@ const HELP = {
       <li>When it is fixed, mark it <b>Done</b> and add a photo. The owner is told.</li>
     </ol>
     <p>Mark something <b>Urgent</b> if a guest is affected today. It goes to the top.</p>
+    <p><b>Tell the owner now, cost to follow</b> is for a leak or damage the owner should hear about today: Maya sends a notice that it was found and is being assessed, and the ticket stays with you until you add the estimate and publish it for approval. If the owner has not claimed their portal account, Maya cannot message them at all; the card says so.</p>
     <p><b>Wrong villa</b> moves a ticket that was filed under the wrong property; the owner follows the villa. You can also answer Maya's backlog message on WhatsApp with the ticket number: "#4 done", "#8 waiting for the villa to be empty", "#15 estimate 85,000".</p>` },
   earnings: { title: 'Earnings', html: `
     <p>Our income by month: the management fee from every managed villa, plus the full rental profit of our own LaneHAUS units. Added up from the statements. Nothing to do here; it is a summary.</p>` },
