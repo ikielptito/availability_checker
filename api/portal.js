@@ -1397,7 +1397,14 @@ function buildOwnerListing(slug, data, existing, ownerSub, status) {
     // (an owner reporting his wifi speed) silently wiped the listing's map
     // pin — and agents can't arrange a viewing for a villa with no location.
     location: /^https?:\/\//.test(location) ? location : (existing?.location || ''),
-    icalUrl: /^https?:\/\//.test(cleanStr(data.icalUrl)) ? cleanStr(data.icalUrl) : (existing?.icalUrl || ''),
+    // Sent (even empty) → use it, so clearing the field in the portal form
+    // really disconnects the calendar; omitted → keep what's stored. It used
+    // to fall back whenever the value wasn't a URL, so an owner emptying the
+    // box could never remove a stale Airbnb feed that blocked every date
+    // (Villa Umah Astanine, 5 Sep 2026).
+    icalUrl: data.icalUrl !== undefined
+      ? (/^https?:\/\//.test(cleanStr(data.icalUrl)) ? cleanStr(data.icalUrl) : '')
+      : (existing?.icalUrl || ''),
     // Provided → use it; omitted → keep what's stored. Lets a bad auto-picked
     // cover be corrected without the admin UI (Vila Lestari's cover was one of
     // the side-by-side collages the owner first sent).
