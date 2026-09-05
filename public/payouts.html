@@ -1777,7 +1777,10 @@ async function renderMaintenance() {
         </select>
         <button class="btn primary" onclick="maintPublish(${it.id})">Publish &amp; notify</button>
         <button class="btn ghost" onclick="maintDelete(${it.id})">Not an issue</button>
+        <button class="btn ghost" onclick="maintMove(${it.id})">Wrong villa</button>
       </div>`;
+    } else if (it.status !== 'done' && it.status !== 'declined') {
+      html += `<div class="mrow"><button class="btn ghost" onclick="maintMove(${it.id})">Wrong villa</button></div>`;
     }
     if (it.status === 'approved' || it.status === 'scheduled') {
       html += dispatchRow(it);
@@ -2004,6 +2007,27 @@ async function maintDelete(id) {
   modal(`<h3>Remove this item?</h3><p>It disappears completely. Use this for duplicates or false alarms.</p>
     <div class="row"><button class="btn ghost" onclick="closeModal()">Keep it</button>
     <button class="btn primary" onclick="doMaintDelete(${id})">Remove</button></div>`);
+}
+// A ticket filed under the wrong villa: pick the right one. The owner
+// group follows. If the old owner had already been asked, say so.
+function maintMove(id) {
+  const it = (maintData?.items || []).find(x => x.id === id); if (!it) return;
+  const units = (staffData?.units || []).slice().sort((a, b) => pname(a.name).localeCompare(pname(b.name), undefined, { numeric: true }));
+  modal(`<h3>Move to another villa</h3>
+    <p><b>${esc(it.title)}</b><br>Now filed under ${esc(it.unit_label ? `${it.statement_groups?.name || it.group_key} (${it.unit_label})` : (it.statement_groups?.name || it.slug || it.group_key))}.</p>
+    <label class="flab">Correct villa</label>
+    <select class="flt" id="mv-slug" style="width:100%">${units.map(u => `<option value="${esc(u.slug)}"${u.slug === it.slug ? ' selected' : ''}>${esc(pname(u.name))}</option>`).join('')}</select>
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" id="mv-save" onclick="doMaintMove(${id})">Move</button></div>`);
+}
+async function doMaintMove(id) {
+  const slug = document.getElementById('mv-slug').value;
+  const btn = document.getElementById('mv-save'); if (btn) btn.disabled = true;
+  try {
+    const out = await maintApi('maint_move', { id, slug, actor: 'admin' });
+    closeModal();
+    showToast(out.owner_was_notified ? 'Moved. The previous owner had already been messaged about this one; tell them it was filed in error.' : 'Moved.', out.owner_was_notified ? 'error' : 'success');
+    renderMaintenance();
+  } catch (e) { if (btn) btn.disabled = false; if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
 async function doMaintDelete(id) {
   closeModal();
@@ -2664,7 +2688,8 @@ const HELP = {
       <li><b>Approved</b>: pick who does the work from the dropdown. Maya sends them the job on WhatsApp and asks them for a day. When they confirm, the visit appears on the Schedule.</li>
       <li>When it is fixed, mark it <b>Done</b> and add a photo. The owner is told.</li>
     </ol>
-    <p>Mark something <b>Urgent</b> if a guest is affected today. It goes to the top.</p>` },
+    <p>Mark something <b>Urgent</b> if a guest is affected today. It goes to the top.</p>
+    <p><b>Wrong villa</b> moves a ticket that was filed under the wrong property; the owner follows the villa. You can also answer Maya's backlog message on WhatsApp with the ticket number: "#4 done", "#8 waiting for the villa to be empty", "#15 estimate 85,000".</p>` },
   earnings: { title: 'Earnings', html: `
     <p>Our income by month: the management fee from every managed villa, plus the full rental profit of our own LaneHAUS units. Added up from the statements. Nothing to do here; it is a summary.</p>` },
   payroll: { title: 'Payroll', html: `
