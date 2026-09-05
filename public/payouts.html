@@ -726,6 +726,19 @@ async function loadSheetDiff(id) {
     </div>
     <p style="font-size:.7rem;color:var(--muted);margin:8px 0 0">Amending keeps the previous totals in the statement's history and adds a visible "Revised" note. Lines you added by hand and carried-forward amounts stay as they are.</p>`;
 }
+async function loadStatementInvoices(id) {
+  const el = document.getElementById('stinvoices');
+  if (!el) return;
+  let d;
+  try { d = await api('statement_attachments', { id }); } catch { return; }
+  if (document.getElementById('stinvoices') !== el || !(d.attachments || []).length) return;
+  el.innerHTML = `<div class="card"><h3>Invoices &amp; receipts <span style="font-weight:400;font-size:.72rem;color:var(--muted)">· sent by Era with a change request</span></h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      ${d.attachments.map(a => `<a href="${esc(a.url || '#')}" target="_blank" rel="noopener" style="display:block;width:150px;text-decoration:none;color:inherit">
+        ${a.url ? `<img src="${esc(a.url)}" alt="invoice" style="width:150px;height:110px;object-fit:cover;border-radius:9px;border:1px solid var(--border)">` : `<div style="width:150px;height:110px;border-radius:9px;background:var(--surface2)"></div>`}
+        <div style="font-size:.68rem;color:var(--muted);margin-top:4px">${esc(dstr(a.at))}${a.for ? ' · ' + esc(a.for) : ''}</div></a>`).join('')}
+    </div></div>`;
+}
 async function amendFromSheet(id, notify) {
   if (!confirm(notify ? "Bring Era's sheet into this statement and tell the owner it was revised?" : "Bring Era's sheet into this statement? The owner sees a 'Revised' note on the page; no message is sent.")) return;
   try {
@@ -773,6 +786,10 @@ function drawDetail() {
       <div class="loading-state" style="padding:12px 0"><div class="spinner"></div>Comparing the sheet with what the owner saw…</div></div>`;
     setTimeout(() => loadSheetDiff(s.id), 0);
   }
+
+  // Invoices Era attached to changes she asked Maya for (loaded async).
+  html += `<div id="stinvoices"></div>`;
+  setTimeout(() => loadStatementInvoices(s.id), 0);
 
   // Totals
   const eraDelta = s.era_payout_total != null && Math.abs(s.era_payout_total - s.payout_total) > 1;
