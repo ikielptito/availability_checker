@@ -486,6 +486,22 @@ export default async function handler(req, res) {
         if (check.status !== 200) return res.status(401).json({ error: 'Unauthorized' });
       }
 
+      // admin-owners: every portal account (owner:<sub>), optionally filtered
+      // by a name/email fragment — for "which account did she sign in with?".
+      if (action === 'admin-owners') {
+        const q = String(req.query.q || '').toLowerCase();
+        const keys = (await kvCmd('KEYS', 'owner:*')) || [];
+        const out = [];
+        for (const k of keys) {
+          const o = await kvGet(k);
+          if (!o) continue;
+          const blob = JSON.stringify(o).toLowerCase();
+          if (q && !blob.includes(q)) continue;
+          out.push({ sub: o.sub || k.slice(6), name: o.name || null, email: o.email || null, wa: o.wa || null, created_at: o.created_at || o.createdAt || null, last_seen: o.last_seen || o.lastSeen || null });
+        }
+        return res.status(200).json({ owners: out });
+      }
+
       // admin-claim: link a statement group's listings to an existing owner
       // account without the owner doing anything — the server-side equivalent
       // of them opening their invite link while signed in. force=1 reassigns
