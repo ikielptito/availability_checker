@@ -1010,6 +1010,7 @@ async function probeStatements(){
     stProbeError=null;
     if(d.fx) stFx=d.fx;
     if(statementsCache.length||statementGroupsCache.length) document.getElementById('tab-btn-statements').style.display='';
+    if(stDeepLinked&&(statementsCache.length||statementGroupsCache.length)){ stDeepLinked=false; try{ sessionStorage.removeItem('samba_stopen'); }catch{} showTab('statements'); return; }
     if(currentTab==='statements') initStatements();
   }catch(e){ stProbeError='network'; if(currentTab==='statements') initStatements(); }
 }
@@ -1042,7 +1043,13 @@ const stDlOpen={};        // group key → true while its download range picker 
 const stRowOpen={};       // "group.period" → true while that month is expanded
 // /portal?stopen=<group.period> opens that month's detail on arrival — the
 // deep link Maya can send instead of "tap the month".
-try{ const so=new URLSearchParams(location.search).get('stopen'); if(so) stRowOpen[so]=true; }catch{}
+try{
+  const so=new URLSearchParams(location.search).get('stopen');
+  if(so){ stRowOpen[so]=true; sessionStorage.setItem('samba_stopen',so); }
+  else { const saved=sessionStorage.getItem('samba_stopen'); if(saved) stRowOpen[saved]=true; }
+}catch{}
+// Once statements arrive, a deep-linked month wants the Statements tab.
+let stDeepLinked=(()=>{ try{ return !!(new URLSearchParams(location.search).get('stopen')||sessionStorage.getItem('samba_stopen')); }catch{ return false; } })();
 function stToggleRow(rk){ stRowOpen[rk]=!stRowOpen[rk]; initStatements(); }
 // Reference currency — display convenience only, payouts are in IDR. Shares
 // the statement page's saved choice (samba_stmt_cur) and its server rates.
@@ -1111,6 +1118,24 @@ function stDetailHtml(d, s, IDRf, mlab, dlab){
       <tr><th>Description</th><th class="num">Amount</th></tr>
       ${adjustments.map(a=>`<tr><td>${escapeHtml(a.description||'Adjustment')}</td><td class="num">${Number(a.amount)<0?'− ':'+ '}${money(Math.abs(a.amount))}</td></tr>`).join('')}
     </table></div></div>`;
+  }
+  const hx=d.hostex;
+  if(hx&&hx.group){
+    const g=hx.group;
+    const ch=Object.entries(g.channels||{}).map(([k,v])=>[/direct|hostex|samba/i.test(k)?'Samba':k,v]);
+    h+=`<div class="stx-card"><h3>Your numbers · ${escapeHtml(d.period_label||mlab(s.period))} <small>from the booking calendar, frozen at publish</small></h3>
+      <div class="stx-totgrid">
+        <div class="stx-tot"><div class="lab">Occupancy</div><div class="val">${g.occupancy_pct!=null?g.occupancy_pct+'%':'–'}</div></div>
+        <div class="stx-tot"><div class="lab">Nights sold</div><div class="val">${g.nights_sold??'–'}</div></div>
+        <div class="stx-tot"><div class="lab">Reservations</div><div class="val">${g.reservations??'–'}</div></div>
+        ${g.adr?`<div class="stx-tot"><div class="lab">Net nightly rate</div><div class="val">${money(g.adr)}</div></div>`:''}
+        ${ch.map(([k,v])=>`<div class="stx-tot"><div class="lab">${escapeHtml(k)} nights</div><div class="val">${v}</div></div>`).join('')}
+      </div>
+      ${hx.units&&Object.keys(hx.units).length>1?`<div class="stx-wrap" style="margin-top:10px"><table class="stx-lines">
+        <tr><th>Unit</th><th class="num">Occupancy</th><th class="num">Nights sold</th><th class="num">Reservations</th></tr>
+        ${Object.entries(hx.units).map(([slug,u])=>`<tr><td>${escapeHtml(pname(u.name||slug))}</td><td class="num">${u.occupancy_pct!=null?u.occupancy_pct+'%':'–'}</td><td class="num">${u.nights_sold??'–'}</td><td class="num">${u.reservations??'–'}</td></tr>`).join('')}
+      </table></div>`:''}
+    </div>`;
   }
   const pays=(d.payments||[]).filter(p=>p.status!=='returned');
   if(tracks&&pays.length){
