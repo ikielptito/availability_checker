@@ -761,7 +761,12 @@ export default async function handler(req, res) {
     // ── Admin read-only portal preview link ─────────────────────────
     if (action === 'preview-link') {
       const auth = req.headers.authorization || '';
-      const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD, process.env.STATEMENTS_ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
+      let isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD, process.env.STATEMENTS_ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
+      // Console key relayed to the CRM, as the other admin diagnostics allow.
+      if (!isAdmin && req.headers['x-console-key']) {
+        const check = await fetch(`${crmBase}/api/statements`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-console-key': String(req.headers['x-console-key']) }, body: JSON.stringify({ action: 'statement_groups', payload: {} }) });
+        isAdmin = check.status === 200;
+      }
       if (!isAdmin) return res.status(401).json({ error: 'Unauthorized' });
       const groupKey = String(req.query.group || '');
       if (!groupKey) return res.status(400).json({ error: 'Missing group' });
