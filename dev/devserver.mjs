@@ -1280,6 +1280,26 @@ const server = http.createServer(async (req, res) => {
     }
     // Dev-only: ?devpw=1 pre-seeds the admin password so headless captures
     // (guide screenshots) can reach the logged-in cockpit. Never shipped.
+    // Dev-only: /portal?devowner=1 serves the owner portal already signed in
+    // as the dev owner (the same fake Google token the Dev sign-in button
+    // posts), so headless-Chrome guide screenshots can photograph the owner
+    // tabs. ?tab=<reports|statements|maintenance> opens that tab after boot.
+    if (u.pathname === '/portal' && u.searchParams.get('devowner') === '1') {
+      let cookie = '';
+      try {
+        const fake = { method: 'POST', headers: req.headers, query: { action: 'auth/google' }, body: { id_token: 'dev' } };
+        const captured = { headers: {}, code: 200, setHeader(k, v) { this.headers[k] = v; }, status(c) { this.code = c; return this; }, json() { return this; }, end() { return this; }, send() { return this; } };
+        await handlers['portal'].default(fake, captured);
+        cookie = captured.headers['Set-Cookie'] || captured.headers['set-cookie'] || '';
+      } catch (e) { console.warn('devowner sign-in failed:', e.message); }
+      const tab = String(u.searchParams.get('tab') || '').replace(/[^a-z]/g, '');
+      const tabJs = tab ? `<script>window.addEventListener('load',()=>setTimeout(()=>{try{showTab(${JSON.stringify(tab)})}catch(e){}},3500));</script>` : '';
+      const html = fs.readFileSync(path.join(ROOT, 'public', 'portal.html'), 'utf8').replace('</head>', tabJs + '</head>');
+      const h = { 'Content-Type': 'text/html; charset=utf-8' };
+      if (cookie) h['Set-Cookie'] = Array.isArray(cookie) ? cookie[0] : cookie;
+      res.writeHead(200, h);
+      return void res.end(html);
+    }
     if (['/payouts', '/campaigns', '/admin'].includes(u.pathname) && u.searchParams.get('devpw') === '1') {
       // ?capture=<name> opens a named modal after boot, so headless-Chrome
       // guide screenshots can photograph states that normally need a click.
