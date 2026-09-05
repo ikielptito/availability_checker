@@ -428,6 +428,36 @@ body.wiz-open #snav-tabs{display:none !important;}
 .cop-price{font-size:.74rem;font-weight:600;}
 .rep-strength{background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:12px 14px;font-size:.8rem;margin-top:14px;line-height:1.5;}
 .rep-strength a{color:var(--accent);font-weight:600;text-decoration:none;}
+
+/* ── Statement detail inside the owner portal: the management page's own
+   design (cards, totals grid, line tables) minus everything internal. ── */
+.stx{padding:6px 0 14px;}
+.stx-card{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:17px 18px;margin:12px 0 0;}
+.stx-card h3{margin:0 0 10px;font-family:'Satoshi',-apple-system,sans-serif;font-size:.92rem;font-weight:700;letter-spacing:-.01em;color:var(--text);display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.stx-card h3 small{font-size:.68rem;font-weight:500;color:var(--muted);}
+.stx-pill{display:inline-flex;align-items:center;gap:5px;font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:var(--surface2);color:var(--muted);}
+.stx-pill .d{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.stx-pill.due{background:#FBE3DD;color:#A33B1F;}
+.stx-pill.partial{background:#FBF0D5;color:#8A5A00;}
+.stx-pill.paid{background:#E2EDE0;color:var(--green);}
+.stx-totgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;}
+.stx-tot{background:var(--surface2);border-radius:11px;padding:11px 13px;}
+.stx-tot .lab{font-size:.6rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.stx-tot .val{font-size:1.05rem;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+.stx-tot.big{background:var(--accent-soft);}
+.stx-tot.big .val{color:var(--sb-terracotta-700,var(--accent));}
+.stx-tot.due{background:#FBE3DD;}
+.stx-tot.due .val{color:#A33B1F;}
+.stx-wrap{overflow-x:auto;}
+table.stx-lines{width:100%;border-collapse:collapse;font-size:.78rem;}
+table.stx-lines th{font-size:.6rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);}
+table.stx-lines td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+table.stx-lines td.num,table.stx-lines th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+table.stx-lines tr.totrow td{font-weight:700;border-top:2px solid var(--border);border-bottom:none;background:var(--surface2);}
+.stx-rev{margin-top:10px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);font-size:.76rem;line-height:1.55;color:var(--text-2,#555);}
+.stx-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:.76rem;color:var(--muted);}
+.stx-foot a{color:var(--accent);font-weight:600;text-decoration:none;}
+.stx-loading{padding:18px;text-align:center;color:var(--muted);font-size:.8rem;}
 </style>
 </head>
 <body>
@@ -1010,6 +1040,9 @@ function acctSummary(a){
 const pname=(n)=>String(n==null?'':n).replace(/\s*[–—]\s*/g,' · ');
 const stDlOpen={};        // group key → true while its download range picker is open
 const stRowOpen={};       // "group.period" → true while that month is expanded
+// /portal?stopen=<group.period> opens that month's detail on arrival — the
+// deep link Maya can send instead of "tap the month".
+try{ const so=new URLSearchParams(location.search).get('stopen'); if(so) stRowOpen[so]=true; }catch{}
 function stToggleRow(rk){ stRowOpen[rk]=!stRowOpen[rk]; initStatements(); }
 // Reference currency — display convenience only, payouts are in IDR. Shares
 // the statement page's saved choice (samba_stmt_cur) and its server rates.
@@ -1017,6 +1050,81 @@ const ST_CURS={IDR:{sym:'IDR ',dec:0},USD:{sym:'$',dec:2},EUR:{sym:'€',dec:2},
 let stCur='IDR', stFx=null;
 try{const saved=localStorage.getItem('samba_stmt_cur');if(saved&&ST_CURS[saved])stCur=saved;}catch{}
 function stSetCur(c){ stCur=ST_CURS[c]?c:'IDR'; try{localStorage.setItem('samba_stmt_cur',stCur);}catch{} initStatements(); }
+// Full statement per month, from the same endpoint the /st/ page uses (the
+// row's signed link carries the token). Cached per month; null = failed.
+const stDetailCache={};
+async function stLoadDetail(rk, url){
+  const tok=String(url||'').split('/st/')[1]||'';
+  if(!tok){ stDetailCache[rk]=null; initStatements(); return; }
+  try{
+    const r=await fetch('/api/statements?action=public-statement&token='+encodeURIComponent(tok));
+    stDetailCache[rk]=r.ok?await r.json():null;
+  }catch{ stDetailCache[rk]=null; }
+  if(currentTab==='statements') initStatements();
+}
+function stDetailHtml(d, s, IDRf, mlab, dlab){
+  const t=d.totals||{};
+  const lines=d.lines||[];
+  const bookings=lines.filter(l=>l.kind==='booking');
+  const expenses=lines.filter(l=>l.kind==='expense');
+  const adjustments=lines.filter(l=>l.kind==='adjustment');
+  const units=[...new Set(bookings.map(b=>b.unit_name||''))];
+  const tracks=s.tracks_payments!==false;
+  const paid=Number(t.paid)||0, balance=Number(t.balance)||0;
+  const chip=!tracks?'':d.status==='paid'?'<span class="stx-pill paid">Paid</span>':d.status==='partial'?'<span class="stx-pill partial"><span class="d"></span>Partially paid</span>':'<span class="stx-pill due"><span class="d"></span>On its way</span>';
+  const money=n=>IDRf(n);
+  const pf=p=>String(p||'').replace(/direct booking/i,'Samba');
+  let h=`<div class="stx">
+    <div class="stx-card">
+      <h3>${escapeHtml(pname(d.group?.name||s.group_name||''))} · ${escapeHtml(d.period_label||mlab(s.period))} ${chip}</h3>
+      <div class="stx-totgrid">
+        <div class="stx-tot"><div class="lab">Gross revenue</div><div class="val">${money(t.gross)}</div></div>
+        <div class="stx-tot"><div class="lab">Samba management fee</div><div class="val">− ${money(t.commission)}</div></div>
+        <div class="stx-tot"><div class="lab">Nett to you</div><div class="val">${money(t.nett)}</div></div>
+        <div class="stx-tot"><div class="lab">Expenses</div><div class="val">− ${money(t.expenses)}</div></div>
+        ${Number(t.adjustments)?`<div class="stx-tot"><div class="lab">Adjustments</div><div class="val">${Number(t.adjustments)<0?'− ':'+ '}${money(Math.abs(t.adjustments))}</div></div>`:''}
+        <div class="stx-tot big"><div class="lab">Total payout</div><div class="val">${money(t.payout)}</div></div>
+        ${tracks?`<div class="stx-tot"><div class="lab">Paid to date</div><div class="val">${money(paid)}</div></div>
+        <div class="stx-tot${balance>0?' due':''}"><div class="lab">${balance>0?'On its way':'Balance due'}</div><div class="val">${money(balance)}</div></div>`:''}
+      </div>
+      ${(d.revisions||[]).map(r=>`<div class="stx-rev"><b>Revised ${escapeHtml(dlab(r.at))}</b>${r.note?` · ${escapeHtml(r.note)}`:''}${r.prev_payout!=null&&Math.abs(Number(r.prev_payout)-Number(r.new_payout??t.payout))>1?`<br><span style="opacity:.8">Payout corrected from ${money(r.prev_payout)} to ${money(r.new_payout??t.payout)}.</span>`:''}</div>`).join('')}
+    </div>`;
+  for(const u of units){
+    const rows=bookings.filter(b=>(b.unit_name||'')===u);
+    h+=`<div class="stx-card"><h3>Bookings${u?' · '+escapeHtml(pname(u)):''}</h3><div class="stx-wrap"><table class="stx-lines">
+      <tr><th>Guest</th><th>Dates</th><th>Platform</th><th class="num">Nights</th><th class="num">Amount</th><th class="num">Mgmt fee</th><th class="num">Nett</th></tr>
+      ${rows.map(b=>`<tr><td>${escapeHtml(b.guest_name||'–')}</td><td>${escapeHtml(b.stay_dates||'–')}</td><td>${escapeHtml(pf(b.platform)||'–')}</td><td class="num">${b.nights!=null?escapeHtml(String(b.nights)):'–'}</td><td class="num">${money(b.amount)}</td><td class="num">${money(b.commission)}</td><td class="num">${money(b.nett)}</td></tr>`).join('')}
+      <tr class="totrow"><td colspan="3">Total</td><td class="num">${rows.reduce((a,b)=>a+(Number(b.nights)||0),0)}</td><td class="num">${money(rows.reduce((a,b)=>a+(Number(b.amount)||0),0))}</td><td class="num">${money(rows.reduce((a,b)=>a+(Number(b.commission)||0),0))}</td><td class="num">${money(rows.reduce((a,b)=>a+(Number(b.nett)||0),0))}</td></tr>
+    </table></div></div>`;
+  }
+  if(!units.length) h+=`<div class="stx-card"><h3>Bookings</h3><div class="stx-loading" style="padding:6px 0;text-align:left">No bookings this month.</div></div>`;
+  h+=`<div class="stx-card"><h3>Expenses <small>paid on your behalf</small></h3>`;
+  if(!expenses.length) h+=`<div class="stx-loading" style="padding:6px 0;text-align:left">No expenses this month.</div>`;
+  else h+=`<div class="stx-wrap"><table class="stx-lines">
+      <tr><th>Date</th><th>Description</th><th class="num">Amount</th></tr>
+      ${expenses.map(e=>`<tr><td style="white-space:nowrap">${escapeHtml(e.expense_date||'–')}</td><td>${escapeHtml(e.description||'–')}</td><td class="num">${money(e.amount)}</td></tr>`).join('')}
+      <tr class="totrow"><td colspan="2">Total expenses</td><td class="num">${money(expenses.reduce((a,e)=>a+(Number(e.amount)||0),0))}</td></tr>
+    </table></div>`;
+  h+=`</div>`;
+  if(adjustments.length){
+    h+=`<div class="stx-card"><h3>Adjustments <small>positive increases the payout</small></h3><div class="stx-wrap"><table class="stx-lines">
+      <tr><th>Description</th><th class="num">Amount</th></tr>
+      ${adjustments.map(a=>`<tr><td>${escapeHtml(a.description||'Adjustment')}</td><td class="num">${Number(a.amount)<0?'− ':'+ '}${money(Math.abs(a.amount))}</td></tr>`).join('')}
+    </table></div></div>`;
+  }
+  const pays=(d.payments||[]).filter(p=>p.status!=='returned');
+  if(tracks&&pays.length){
+    h+=`<div class="stx-card"><h3>Payments${d.status==='paid'?'':' so far'}</h3><div class="stx-wrap"><table class="stx-lines">
+      <tr><th>Date</th><th class="num">Amount</th><th>Reference</th><th>Confirmation</th></tr>
+      ${pays.map(p=>`<tr><td style="white-space:nowrap">${escapeHtml(dlab(p.paid_at))}</td><td class="num">${money(p.amount)}</td><td>${escapeHtml(p.note||'–')}</td><td>${p.proof_url?`<a href="${escapeHtml(p.proof_url)}" target="_blank" rel="noopener">view ↗</a>`:'–'}</td></tr>`).join('')}
+    </table></div></div>`;
+  }
+  h+=`<div class="stx-foot">
+      <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">Open as a page · occupancy, download, share ↗</a>
+      ${s.occupancy_pct!=null?`<span>${Math.round(s.occupancy_pct)}% occupancy${s.nights_sold?` · ${s.nights_sold} nights hosted`:''}</span>`:''}
+    </div></div>`;
+  return h;
+}
 function initStatements(){
   const pane=document.getElementById('tab-statements');
   const sts=statementsCache||[];
@@ -1141,23 +1249,14 @@ function initStatements(){
         // Expanded: the month's arithmetic inline, bank-app style; the full
         // document (per-booking detail, stats, currency picker) stays one
         // click deeper.
-        const adj=Number(s.adjustments_total)||0;
-        const paidAmt=Number(s.paid_total)||0;
         let det='';
         if(open){
-          det=`<div class="st-det"><div class="st-det-lines">
-            <div class="dl"><span>Gross rental revenue</span><b>${IDRf(s.gross_total)}</b></div>
-            <div class="dl"><span>Samba Realty management fee</span><b>− ${IDRf(s.commission_total)}</b></div>
-            <div class="dl"><span>Villa expenses</span><b>− ${IDRf(s.expenses_total)}</b></div>
-            ${adj?`<div class="dl"><span>${adj<0?'Carried over from earlier months':'Adjustments'}</span><b>${adj<0?'− ':'+ '}${IDRf(Math.abs(adj))}</b></div>`:''}
-            <div class="dl rule hero"><span>Your payout</span><b>${IDRf(s.payout_total)}</b></div>
-            ${tracks&&paidAmt>0?`<div class="dl"><span>Paid to date</span><b>− ${IDRf(paidAmt)}</b></div>`:''}
-            ${tracks&&s.balance>0&&paidAmt>0?`<div class="dl due hero"><span>Still on its way</span><b>${IDRf(s.balance)}</b></div>`:''}
-          </div>
-          <div class="st-det-foot">
-            <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">Open full statement ↗</a>
-            ${s.occupancy_pct!=null?`<span>${Math.round(s.occupancy_pct)}% occupancy${s.nights_sold?` · ${s.nights_sold} nights hosted`:''}</span>`:''}
-          </div></div>`;
+          // The full statement, in the management page's own layout: totals,
+          // bookings per unit, every expense, adjustments, payments, revisions.
+          const d=stDetailCache[rk];
+          if(d===undefined){ stLoadDetail(rk, s.url); det=`<div class="stx"><div class="stx-loading">Loading the full statement…</div></div>`; }
+          else if(d===null){ det=`<div class="stx"><div class="stx-loading">Could not load this statement. <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">Open it as a page ↗</a></div></div>`; }
+          else det=stDetailHtml(d, s, IDRf, mlab, dlab);
         }
         return `<div class="st-row${open?' open':''}" role="button" tabindex="0" aria-expanded="${open}" onclick="stToggleRow('${escapeHtml(rk)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();stToggleRow('${escapeHtml(rk)}')}">
           <div><div class="st-month">${escapeHtml(mlab(s.period))}</div><div class="st-sub">${sub}</div></div>
