@@ -312,6 +312,15 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
 .statline{display:flex;flex-wrap:wrap;gap:6px 14px;padding:10px 12px;margin:8px 0 2px;border-radius:12px;background:var(--surface2);font:500 12.5px/1.4 var(--sb-font-ui);color:var(--muted);}
 .statline b{color:var(--text);}
 .flaglist{margin:6px 0 0;padding-left:18px;font:500 12.5px/1.5 var(--sb-font-ui);}
+.rec-strip{display:flex;gap:4px;flex:none;}
+.rec-strip img{width:38px;height:38px;border-radius:7px;object-fit:cover;border:1px solid var(--border);display:block;}
+.rec-strip .more{width:38px;height:38px;border-radius:7px;background:var(--surface2);display:grid;place-items:center;font:700 11px/1 var(--sb-font-ui);color:var(--muted);}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0;}
+.photo-grid a{display:block;aspect-ratio:1;border-radius:9px;overflow:hidden;border:1px solid var(--border);background:var(--surface2);}
+.photo-grid img{width:100%;height:100%;object-fit:cover;display:block;}
+.rec-guest{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px;}
+.rec-guest span{background:var(--surface2);border-radius:9px;padding:6px 10px;font:500 12px/1.3 var(--sb-font-ui);color:var(--text-2);}
+.rec-guest span b{color:var(--text);}
 .feedurl{font:500 12px/1.4 ui-monospace,Menlo,monospace;word-break:break-all;padding:10px;border-radius:10px;background:var(--surface2);margin:8px 0;}
 .opt{display:flex;align-items:center;gap:10px;padding:12px 12px;border:1px solid var(--border);border-radius:12px;margin-top:7px;font:600 13.5px/1.2 var(--sb-font-ui);cursor:pointer;background:var(--surface);}
 .opt:hover{background:var(--surface2);}
@@ -364,6 +373,7 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
       <a href="#/payroll" data-view="payroll"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.6" y="5.2" width="14.8" height="9.6" rx="1.8"/><circle cx="10" cy="10" r="2.2"/><path d="M5.4 10h.01M14.6 10h.01"/></svg>Payroll</a>
       <a href="#/groups" data-view="groups"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.2 8.6L10 3.2l6.8 5.4"/><path d="M5 10v6.8h10V10"/><path d="M8.4 16.8v-4h3.2v4"/></svg>Properties</a>
       <a href="#/cleaning" data-view="cleaning"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.2" width="14" height="12.6" rx="2"/><path d="M3 8h14M7 2.8v2.8M13 2.8v2.8"/><path d="M7.4 11.6l1.5 1.5 3.2-3.2"/></svg>Schedule<span class="railbadge" id="hk-badge" style="display:none"></span></a>
+      <a href="#/records" data-view="records"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="14" height="12" rx="2"/><path d="M3 13l4-4 3 3 2-2 5 5"/><circle cx="13.5" cy="7.5" r="1.3"/></svg>Records</a>
       <a href="#/staff" data-view="staff"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.6" cy="6.6" r="2.6"/><path d="M2.6 16.4c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6"/><path d="M13.4 4.4a2.6 2.6 0 0 1 0 4.9"/><path d="M14.6 12.2c1.7.5 2.8 1.9 2.8 4.2"/></svg>Team</a>
     </nav>
     <main class="content" id="content">
@@ -474,7 +484,8 @@ function route() {
     : h.startsWith('#/maintenance') ? 'maintenance'
     : h === '#/groups' ? 'groups' : h === '#/earnings' ? 'earnings' : h === '#/staff' ? 'staff'
     : h.startsWith('#/payroll') ? 'payroll'
-    : h === '#/cleaning' ? 'cleaning' : 'list';
+    : h === '#/cleaning' ? 'cleaning'
+    : h.startsWith('#/records') ? 'records' : 'list';
   document.querySelectorAll('.rail a').forEach(a => a.classList.toggle('on', a.dataset.view === (view === 'detail' ? 'list' : view)));
   // The outstanding banner and the sheet sync are payouts controls; on the
   // cleaning schedule or the team register they were noise about money.
@@ -486,6 +497,7 @@ function route() {
     : view === 'staff' ? renderStaff()
     : view === 'payroll' ? (h.startsWith('#/payroll/') ? renderPayrollRun(parseInt(h.slice('#/payroll/'.length), 10)) : renderPayroll())
     : view === 'cleaning' ? renderCleaning()
+    : view === 'records' ? renderRecords()
     : renderDetail(parseInt(h.slice('#/statement/'.length), 10));
   // Every page carries its own "How to use" once it has drawn its crumb.
   Promise.resolve(render).then(() => mountHelp(view)).catch(() => {});
@@ -2486,6 +2498,136 @@ async function hkGenerate() {
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
 
+// ── Records ──────────────────────────────────────────────────────────
+// The library. Every handover check and inspection round, for every villa,
+// newest first, each opening to its photos. This is what gets pulled up
+// when a guest is blamed for a broken table: the photos taken before they
+// arrived and the ones taken after they left, with dates and names.
+let recData = null;        // hk_records payload
+let recStays = null;       // hk_stays for the same window, for guest context
+let recFilter = { slug: '', type: 'all', month: 'all' };
+const REC_TYPE = { handover: 'Handover', inspection: 'Inspection round' };
+const REC_STATUS = {
+  awaiting: ['wait', 'Photos pending'], pass: ['done', 'Checked'], flagged: ['hot', 'Needs a look'], unchecked: ['no', 'Not checked'],
+  clear: ['done', 'Nothing found'], raised: ['hot', 'Repairs raised'],
+};
+const recKindLabel = (r) => r.type === 'inspection' ? 'Inspection round' : `Handover · ${(HK_KIND[r.kind] || [r.kind])[0].toLowerCase()}`;
+const recStayList = (slug) => ((recStays?.units || []).find(u => u.slug === slug)?.stays || []).filter(s => s.status !== 'cancelled');
+// The stay a record sits before, and the one it sits after.
+function recGuestContext(r) {
+  const stays = recStayList(r.slug).sort((a, b) => a.check_in.localeCompare(b.check_in));
+  const before = stays.find(s => s.check_in >= r.date && (!r.guest_in_date || s.check_in === r.guest_in_date)) || stays.find(s => s.check_in >= r.date);
+  const after = [...stays].reverse().find(s => s.check_out <= r.date);
+  const during = stays.find(s => s.check_in < r.date && s.check_out > r.date);
+  const g = (s) => `${s.guest ? esc(s.guest) : 'guest'} · ${dFmt(s.check_in, { day: 'numeric', month: 'short' })} – ${dFmt(s.check_out, { day: 'numeric', month: 'short' })} · ${s.nights || '?'} nights`;
+  const out = [];
+  if (after) out.push(`<span><b>After</b> ${g(after)}</span>`);
+  if (during) out.push(`<span><b>During</b> ${g(during)}</span>`);
+  if (before) out.push(`<span><b>Before</b> ${g(before)}</span>`);
+  return out.join('');
+}
+
+async function renderRecords() {
+  const c = document.getElementById('content');
+  c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading the records…</div>';
+  const today = witaToday(), from = dPlus(today, -365), to = dPlus(today, 30);
+  try {
+    const [rec, stays] = await Promise.all([
+      hkApi('hk_records', { from, to: today, limit: 500 }),
+      hkApi('hk_stays', { from, to }).catch(() => null),
+      refreshMaint().catch(() => {}),
+    ]);
+    recData = rec; recStays = stays;
+  } catch (e) { if (e.message !== 'unauthorized') c.innerHTML = `<div class="banner red"><div>${esc(e.message)}</div></div>`; return; }
+  c.innerHTML = `<div class="crumb">Records</div>
+    <div class="sched">
+      <div class="sched-top">
+        <div class="sched-sub" id="rec-sub"></div>
+        <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">
+          <select class="flt" id="rec-villa" onchange="recSet('slug',this.value)"></select>
+          <select class="flt" id="rec-month" onchange="recSet('month',this.value)"></select>
+        </div>
+      </div>
+      <div class="chips" id="rec-chips"></div>
+      <div class="sched-list" id="rec-list"></div>
+    </div>`;
+  recRender();
+}
+function recSet(k, v) { recFilter[k] = v; recRender(); }
+function recRender() {
+  const all = recData?.records || [];
+  const names = (slug) => (recData?.names || {})[slug] || hkName(slug);
+  // Villa and month dropdowns, built from what exists.
+  const slugs = [...new Set(all.map(r => r.slug))].sort((a, b) => names(a).localeCompare(names(b), undefined, { numeric: true }));
+  const months = [...new Set(all.map(r => r.date.slice(0, 7)))].sort().reverse();
+  const vsel = document.getElementById('rec-villa');
+  vsel.innerHTML = `<option value="">All villas</option>` + slugs.map(s => `<option value="${esc(s)}"${recFilter.slug === s ? ' selected' : ''}>${esc(pname(names(s)))}</option>`).join('');
+  const msel = document.getElementById('rec-month');
+  msel.innerHTML = `<option value="all">All months</option>` + months.map(m => `<option value="${m}"${recFilter.month === m ? ' selected' : ''}>${esc(monthLabel(m))}</option>`).join('');
+  const chips = [['all', 'Everything'], ['handover', 'Handovers'], ['inspection', 'Inspections'], ['flagged', 'Needs a look']];
+  document.getElementById('rec-chips').innerHTML = chips.map(([k, l]) => `<button type="button" class="chip${recFilter.type === k ? ' on' : ''}" onclick="recSet('type','${k}')">${esc(l)}</button>`).join('');
+
+  const rows = all.filter(r => (!recFilter.slug || r.slug === recFilter.slug)
+    && (recFilter.month === 'all' || r.date.startsWith(recFilter.month))
+    && (recFilter.type === 'all' || (recFilter.type === 'flagged' ? ['flagged', 'unchecked', 'raised'].includes(r.status) : r.type === recFilter.type)));
+  const photos = rows.reduce((n, r) => n + (r.photo_count || 0), 0);
+  document.getElementById('rec-sub').innerHTML = `<b>${rows.length}</b> record${rows.length === 1 ? '' : 's'} · <b>${photos}</b> photos${recFilter.slug ? '' : ` · ${slugs.length} villas`}. Tap one to see the photos and what was found.`;
+
+  let h = '', month = '';
+  for (const r of rows) {
+    const m = r.date.slice(0, 7);
+    if (m !== month) { month = m; h += `<div class="dayhead"><span>${esc(monthLabel(m))}</span><span>${rows.filter(x => x.date.startsWith(m)).length}</span></div>`; }
+    const st = REC_STATUS[r.status] || ['wait', r.status];
+    const sub = [recKindLabel(r), r.staff || 'unknown', r.photo_count ? `${r.photo_count} photo${r.photo_count === 1 ? '' : 's'}` : 'no photos',
+      r.type === 'handover' && r.guest_in_date ? `guest arrives ${dFmt(r.guest_in_date, { day: 'numeric', month: 'short' })}` : '',
+      r.type === 'inspection' && (r.item_ids || []).length ? `${r.item_ids.length} repair${r.item_ids.length === 1 ? '' : 's'} raised` : ''].filter(Boolean).join(' · ');
+    h += `<div class="sitem" onclick="recSheet('${r.type}',${r.id})" role="button" tabindex="0">
+      <div class="sic ${r.type === 'inspection' ? 'guest' : 'clean'}">${r.type === 'inspection' ? 'I' : (HK_LETTER[r.kind] || 'H')}</div>
+      <div class="stxt"><div class="t">${esc(dFmt(r.date, { weekday: 'short', day: 'numeric', month: 'short' }))} · ${esc(pname(names(r.slug)))}</div><div class="s">${esc(sub)}</div></div>
+      <span class="pill ${st[0]}">${esc(st[1])}</span>
+    </div>`;
+  }
+  document.getElementById('rec-list').innerHTML = h || '<div class="sempty">No records match. Handover photos appear here after a housekeeper finishes a turnover, a pre-arrival or a deep clean; inspection rounds every fortnight.</div>';
+}
+async function recSheet(type, id) {
+  const r = (recData?.records || []).find(x => x.type === type && x.id === id);
+  if (!r) return;
+  const names = (slug) => (recData?.names || {})[slug] || hkName(slug);
+  const st = REC_STATUS[r.status] || ['wait', r.status];
+  const bad = (r.checks || []).filter(c => c.ok === false);
+  const items = (r.item_ids || []).map(i => (maintData?.items || []).find(x => x.id === i)).filter(Boolean);
+  modal(`<h3>${esc(pname(names(r.slug)))}</h3>
+    <p>${esc(dFmt(r.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))} · ${esc(recKindLabel(r))} · ${esc(r.staff || 'unknown')} · <span class="pill ${st[0]}">${esc(st[1])}</span></p>
+    <div class="rec-guest">${recGuestContext(r) || '<span>No booking around this date</span>'}</div>
+    <div class="photo-grid" id="rec-photos">${r.photo_count ? '<div class="sempty" style="grid-column:1/-1">Loading photos…</div>' : '<div class="sempty" style="grid-column:1/-1">No photos on this record.</div>'}</div>
+    ${bad.length ? `<h4 style="margin:10px 0 2px">Flagged by Maya</h4><ul class="flaglist">${bad.map(c => `<li><b>${esc(c.spot)}</b>: ${esc(c.note || 'not right')}</li>`).join('')}</ul>` : ''}
+    ${(r.flags || []).filter(f => !bad.some(c => f.startsWith(c.spot + ':'))).length ? `<ul class="flaglist">${(r.flags || []).filter(f => !bad.some(c => f.startsWith(c.spot + ':'))).map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
+    ${r.restock ? `<p><b>Running low:</b> ${esc(r.restock)}</p>` : ''}
+    ${r.findings ? `<h4 style="margin:10px 0 2px">What she wrote</h4><p>${esc(r.findings)}</p>` : ''}
+    ${items.length ? `<h4 style="margin:10px 0 2px">Repairs raised</h4><ul class="flaglist">${items.map(i => `<li>${esc(i.title)} <span class="pill wait">${esc(i.status)}</span></li>`).join('')}</ul>` : ''}
+    <p style="color:var(--muted);font-size:11.5px;margin-top:8px">Photo links open full size and stay valid for an hour. Photos themselves are kept permanently.</p>
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Close</button><button class="btn primary" onclick="recShare('${type}',${id})">Share as PDF</button></div>`, { wide: true });
+  if (!r.photo_count) return;
+  try {
+    const d = await hkApi('hk_record_photos', { type, id });
+    const el = document.getElementById('rec-photos'); if (!el) return;
+    el.innerHTML = (d.photo_urls || []).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join('') || '<div class="sempty" style="grid-column:1/-1">Photos could not be loaded.</div>';
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
+// A signed link to the record as a PDF: photos, flags, findings, the
+// bookings around it. Forwardable on WhatsApp to an owner or to Airbnb; it
+// opens without a login and shows exactly this one record.
+async function recShare(type, id) {
+  let d;
+  try { d = await hkApi('hk_record_link', { type, id }); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); return; }
+  modal(`<h3>Share this record</h3>
+    <p>A PDF of this record: photos, what was flagged, what was reported, and the bookings around it. Anyone with the link can open it, no login needed. Forward it on WhatsApp or attach it to an Airbnb claim.</p>
+    <div class="feedurl" id="rec-url">${esc(d.url)}</div>
+    <div class="row"><button class="btn ghost" onclick="closeModal()">Close</button><a class="btn ghost" href="${esc(d.url)}" target="_blank" rel="noopener">Open PDF</a><button class="btn primary" onclick="navigator.clipboard.writeText(document.getElementById('rec-url').textContent).then(()=>showToast('Link copied.','success'))">Copy link</button></div>`);
+}
+
 // ── How to use: one short guide per page, opened from the crumb ───────
 // Era should never have to ask what a page is for. Each guide says what the
 // page shows, what she is expected to do on it, and what happens when she
@@ -2568,6 +2710,16 @@ const HELP = {
       <li><b>Rounds ahead</b> shows six months of inspections and deep cleans. <b>Calendar feed</b> puts the whole schedule in Google Calendar.</li>
       <li>Tap a housekeeper's name to see her last 30 days: visits done on the day, and handovers passed, flagged, or never answered.</li>
     </ul>` },
+  records: { title: 'Records', html: `
+    <p>The library of proof. Every handover check (the photos a housekeeper sends after a turnover, a pre-arrival or a deep clean) and every fortnightly inspection round, for every villa, newest first. Photos are kept permanently.</p>
+    <h4>Finding something</h4>
+    <ul>
+      <li>Pick the villa and the month at the top. <b>Needs a look</b> shows only the records Maya flagged, or rounds that raised repairs.</li>
+      <li>Tap a record: the photos, what Maya flagged, what the housekeeper wrote, what was running low, and which repairs came out of it.</li>
+      <li>Each record says which guest it sits <b>before</b> or <b>after</b>, so a damage claim can be answered with the photo taken before that guest arrived and the one taken after they left.</li>
+      <li><b>Share as PDF</b> makes a link to the record as a PDF with all its photos. Anyone with the link can open it without logging in; forward it to an owner or attach it to a claim.</li>
+    </ul>
+    <p>Nothing is added here by hand. If a record is missing, the housekeeper did not send photos; her Schedule entry will say <b>Not checked</b>.</p>` },
   staff: { title: 'Team', html: `
     <p>Everyone who works at the villas: housekeepers, tukang and their trades, and which villas each one covers. Maya messages people at the numbers here, so this is the list that has to be right.</p>
     <h4>What you do here</h4>

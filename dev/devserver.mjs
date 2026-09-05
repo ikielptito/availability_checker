@@ -361,6 +361,12 @@ function mockHousekeepingApi({ action, payload = {} }) {
     return { status: 200, body: { from: today, to: hkPlus(today, 21), today, tasks, names,
       unassigned: tasks.filter(t => !t.assigned_staff_id).length } };
   }
+  if (action === 'hk_stays') {
+    if (!mockHkTasks) mockHkTasks = mockHkBuild();
+    const today = hkToday();
+    const named = mockHkUnits.map(u => ({ ...u, stays: u.stays.map((s, i) => ({ ...s, status: 'accepted', channel: 'airbnb', guest: ['Aleksandr', 'Lucinda', 'Jeremie', 'Felicitas'][i % 4] })) }));
+    return { status: 200, body: { from: payload.from || today, to: payload.to || hkPlus(today, 30), units: named } };
+  }
   if (action === 'hk_generate') {
     const before = mockHkTasks.length;
     mockHkTasks = mockHkBuild();
@@ -378,6 +384,26 @@ function mockHousekeepingApi({ action, payload = {} }) {
   }
   if (action === 'hk_inspections') return { status: 200, body: { inspections: [] } };
   if (action === 'hk_readiness') return { status: 200, body: { checks: mockReadiness() } };
+  if (action === 'hk_records') {
+    const today = hkToday();
+    const recs = mockReadiness().map(c => ({ type: 'handover', id: c.id, slug: c.slug, kind: c.kind, status: c.status, date: hkPlus(today, -c.id * 9), at: hkPlus(today, -c.id * 9) + 'T03:00:00Z', staff: 'Putu', photo_count: c.photo_count, checks: c.checks, flags: c.flags, restock: c.restock || null, guest_in_date: c.guest_in_date, task_id: c.task_id }));
+    recs.push({ type: 'inspection', id: 1, slug: 'villa-saturno', kind: 'inspection', status: 'raised', date: hkPlus(today, -3), at: hkPlus(today, -3) + 'T05:00:00Z', staff: 'Naomi', photo_count: 5, findings: 'jamur di plafon kamar mandi', item_ids: [2], task_id: null });
+    recs.push({ type: 'inspection', id: 2, slug: 'haus-2', kind: 'inspection', status: 'clear', date: hkPlus(today, -20), at: hkPlus(today, -20) + 'T05:00:00Z', staff: 'Putu', photo_count: 6, findings: null, item_ids: [], task_id: null });
+    return { status: 200, body: { from: payload.from, to: payload.to, names, records: recs.sort((a, b) => b.at.localeCompare(a.at)) } };
+  }
+  if (action === 'hk_record_export') {
+    const c = mockReadiness().find(x => x.id === +payload.id) || mockReadiness()[0];
+    const today = hkToday();
+    const rec = payload.type === 'inspection'
+      ? { type: 'inspection', id: +payload.id, slug: 'villa-saturno', kind: 'inspection', status: 'raised', date: hkPlus(today, -3), at: hkPlus(today, -3) + 'T05:00:00Z', staff: 'Naomi', findings: 'jamur di plafon kamar mandi', checks: [], flags: [], restock: null, guest_in_date: null }
+      : { type: 'handover', id: c.id, slug: c.slug, kind: c.kind, status: c.status, date: hkPlus(today, -c.id * 9), at: hkPlus(today, -c.id * 9) + 'T03:00:00Z', staff: 'Putu', checks: c.checks, flags: c.flags, restock: c.restock || null, guest_in_date: c.guest_in_date, findings: null };
+    return { status: 200, body: { record: rec, villa: names[rec.slug] || rec.slug, photo_urls: ['https://picsum.photos/seed/a/800/600.jpg', 'https://picsum.photos/seed/b/800/600.jpg', 'https://picsum.photos/seed/c/600/800.jpg', 'https://picsum.photos/seed/d/800/600.jpg'], repairs: payload.type === 'inspection' ? [{ title: 'Ceiling mould, master bathroom', status: 'approved' }] : [] } };
+  }
+  if (action === 'hk_record_photos') {
+    const svg = (t) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" fill="#d9d2c4"/><text x="150" y="158" font-size="26" text-anchor="middle" fill="#444">${t}</text></svg>`);
+    const n = payload.type === 'inspection' ? 5 : 4;
+    return { status: 200, body: { id: +payload.id, type: payload.type, photo_urls: Array.from({ length: n }, (_, i) => svg('photo ' + (i + 1))) } };
+  }
   if (action === 'hk_readiness_photos') {
     const r = mockReadiness().find(x => x.id === +payload.id);
     const svg = (t) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#dcd6c8"/><text x="100" y="105" font-size="22" text-anchor="middle" fill="#444">${t}</text></svg>`);
