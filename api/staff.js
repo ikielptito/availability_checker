@@ -13,6 +13,7 @@
 // properties and so never appear in the statement groups.
 
 import { UNITS } from '../lib/catalog.js';
+import { isCockpitAdmin, adminPasswordsConfigured } from '../lib/cockpit-auth.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -21,14 +22,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const adminPasswords = [
-    process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD,
-    process.env.STATEMENTS_ADMIN_PASSWORD,      // Era's scoped credential
-  ].filter(Boolean);
-  if (!adminPasswords.length) return res.status(503).json({ error: 'Admin password not configured' });
-
-  const auth = req.headers.authorization || '';
-  if (!adminPasswords.some(p => auth === `Bearer ${p}`)) return res.status(401).json({ error: 'Unauthorized' });
+  if (!adminPasswordsConfigured()) return res.status(503).json({ error: 'Admin password not configured' });
+  // Ikiel's passwords, Era's password, or Era's WhatsApp-link session.
+  if (!(await isCockpitAdmin(req.headers.authorization))) return res.status(401).json({ error: 'Unauthorized' });
 
   const sync = process.env.LISTING_SYNC_SECRET;
   if (!sync) return res.status(503).json({ error: 'LISTING_SYNC_SECRET not configured' });

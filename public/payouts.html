@@ -349,7 +349,8 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
     <button onclick="doLogin()">Open</button>
     <div class="err" id="login-err"></div>
     <div style="margin-top:18px;padding-top:14px;border-top:1px dashed var(--border)">
-      <div style="font:600 10px/1 var(--sb-font-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Double 8 partners</div>
+      <div style="font:600 10px/1 var(--sb-font-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">No password? Sign in with WhatsApp</div>
+      <p style="margin-bottom:10px">For Era and Double 8 partners. Enter your number and tap the link Maya sends you.</p>
       <div style="display:flex;gap:6px">
         <input type="tel" id="d8phone" placeholder="WhatsApp number, e.g. +62 878…" style="flex:1 1 auto;min-width:0;width:auto;margin:0" onkeydown="if(event.key==='Enter')requestLink()">
         <button onclick="requestLink()" style="white-space:nowrap;width:auto;flex:0 0 auto;margin:0">Send me a link</button>
@@ -394,15 +395,16 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
 const IS_EMBED = new URLSearchParams(location.search).get('embed') === '1';
 if (IS_EMBED) document.body.classList.add('embed');
 let adminPw = sessionStorage.getItem('admin_pw') || sessionStorage.getItem('dash_pwd') || '';
-// A Double 8 session from an earlier magic link outlives the tab.
+// A WhatsApp-link session (Era's or a Double 8 partner's) outlives the tab.
 if (!adminPw) { try { adminPw = localStorage.getItem('samba_d8_session') || ''; } catch {} }
+let magicRole = null;   // set by verifyMagic; the session itself carries the role server-side
 
 function showGate(msg) {
   document.getElementById('app').style.display = 'none';
   document.getElementById('login').style.display = 'flex';
   if (msg) document.getElementById('login-err').textContent = msg;
 }
-// Double 8 partners sign in with a WhatsApp link instead of a password.
+// Era and Double 8 partners sign in with a WhatsApp link instead of a password.
 async function requestLink() {
   const phone = (document.getElementById('d8phone').value || '').trim();
   const msg = document.getElementById('d8msg');
@@ -420,6 +422,7 @@ async function verifyMagic(tok) {
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.session) { showGate(d.error || 'This link has expired. Request a new one.'); return false; }
     adminPw = d.session;
+    magicRole = d.role || 'double8';
     sessionStorage.setItem('admin_pw', adminPw);
     try { localStorage.setItem('samba_d8_session', adminPw); } catch {}
     return true;
@@ -430,8 +433,8 @@ async function doLogin() {
   if (!pw) return;
   adminPw = pw;
   // The payroll proxy accepts every login this page knows (Samba admins,
-  // Era's credential, Oli's Double 8 one); the statements engine only the
-  // first two. Validate against the one that accepts them all.
+  // Era's credential or link session, Oli's Double 8 one); the statements
+  // engine only the first two. Validate against the one that accepts them all.
   try { await payrollApi('payroll_whoami', {}); } catch (e) {
     if (e.message === 'unauthorized') { document.getElementById('login-err').textContent = 'Wrong password.'; return; }
   }
@@ -504,9 +507,9 @@ function route() {
 }
 window.addEventListener('hashchange', route);
 
-// Who is signed in? Samba admins see everything; a Double 8 login (Oli)
-// sees only the Double 8 payroll, and the page shapes itself before making
-// any other call (the statements engine would refuse that password).
+// Who is signed in? Samba admins and Era see everything; a Double 8 login
+// (Oli) sees only the Double 8 payroll, and the page shapes itself before
+// making any other call (the statements engine would refuse that login).
 let scope = null;
 async function boot() {
   document.getElementById('login').style.display = 'none';
@@ -3068,8 +3071,12 @@ function staffPickerChanged(sel, opts) {
 (async () => {
   const d8 = new URLSearchParams(location.search).get('d8');
   if (d8) {
-    history.replaceState(null, '', '/payouts#/payroll');   // one-time token; keep it out of the bar
-    if (await verifyMagic(d8)) { boot(); return; }
+    history.replaceState(null, '', '/payouts');   // one-time token; keep it out of the bar
+    if (await verifyMagic(d8)) {
+      // A partner's session lands on the payroll; Era's on the payouts list.
+      location.hash = magicRole === 'double8' ? '#/payroll' : '#/';
+      boot(); return;
+    }
     return;
   }
   if (adminPw) boot(); else showGate();

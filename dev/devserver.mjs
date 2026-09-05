@@ -694,7 +694,7 @@ function mockStatementsApi({ action, payload = {} }) {
   if (action === 'statement_wa_login_code') {
     const to = String(payload?.wa_num || '').replace(/\D/g, '');
     const known = mockGroups.some(g => (g.owner_wa_nums || []).some(n => String(n).replace(/\D/g, '') === to));
-    if (!known) return { status: 403, body: { error: 'Number not registered to any property' } };
+    if (!known && !payload?.allow_unregistered) return { status: 403, body: { error: 'Number not registered to any property' } };
     console.log(`[mock] WhatsApp sign-in link for ${to}: http://localhost:3456/portal?wa_login=${payload.token}`);
     return { status: 200, body: { ok: true, message_id: 'wamid.mock' } };
   }

@@ -17,6 +17,7 @@
 //     Hostex month aggregates the CRM snapshots into a statement at publish.
 
 import crypto from 'node:crypto';
+import { cockpitCaller, isCockpitAdmin } from '../lib/cockpit-auth.js';
 import { verifyStatementToken, statementToken, inviteToken, verifyInviteToken, previewToken, verifyPreviewToken } from '../lib/tokens.js';
 import { buildMonthStats, buildRangeStats, applyStatementNights, revenueByMonth } from '../lib/month-stats.js';
 import { buildStatementWorkbook, buildGroupWorkbook } from '../lib/statement-export.js';
@@ -233,15 +234,13 @@ export default async function handler(req, res) {
     // STATEMENTS_ADMIN_PASSWORD is Era's scoped credential — it opens the
     // payouts cockpit (this proxy + the payouts GET actions below) and
     // nothing else in the admin; her actions are attributed as actor 'era'.
-    const auth = req.headers.authorization || '';
-    const pwd = process.env.DASHBOARD_PASSWORD || '';
-    const adminPwd = process.env.ADMIN_PASSWORD || '';
-    const eraPwd = process.env.STATEMENTS_ADMIN_PASSWORD || '';
-    if (!pwd && !adminPwd) return res.status(503).json({ error: 'Admin password not configured' });
-    const isEra = eraPwd && auth === `Bearer ${eraPwd}`;
-    if (!(pwd && auth === `Bearer ${pwd}`) && !(adminPwd && auth === `Bearer ${adminPwd}`) && !isEra) {
+    if (!process.env.DASHBOARD_PASSWORD && !process.env.ADMIN_PASSWORD) return res.status(503).json({ error: 'Admin password not configured' });
+    const caller = await cockpitCaller(req.headers.authorization);
+    // Double 8 partners are payroll-only: the statements engine is not theirs.
+    if (!caller || (caller.role !== 'admin' && caller.role !== 'era')) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+    const isEra = caller.role === 'era';
     if (!sync) return res.status(503).json({ error: 'LISTING_SYNC_SECRET not configured' });
     if (!/^statement_[a-z_]+$/.test(String(action || ''))) {
       return res.status(400).json({ error: `unsupported action: ${action}` });
@@ -473,9 +472,7 @@ export default async function handler(req, res) {
     if (action === 'wa-owner-debug' || action === 'admin-owners' || action === 'admin-statements-as' || action === 'admin-claim' || action === 'admin-assign' || action === 'admin-release' || action === 'admin-delete-listing' || action === 'admin-invite-wa') {
       // Two ways in: the admin panel's password (it has no console key), or a
       // console key relayed to the CRM for command-line use.
-      const bearer = req.headers.authorization || '';
-      const byPassword = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD, process.env.STATEMENTS_ADMIN_PASSWORD]
-        .filter(Boolean).some(p => bearer === `Bearer ${p}`);
+      const byPassword = await isCockpitAdmin(req.headers.authorization);
       if (!byPassword) {
         const key = req.headers['x-console-key'] || '';
         const check = await fetch(`${crmBase}/api/statements`, {
@@ -684,8 +681,7 @@ export default async function handler(req, res) {
     // from Era's ledger statements; their receipts are money the co-owners
     // paid in, not revenue, so they stay out of the profit line.
     if (action === 'pnl') {
-      const auth = req.headers.authorization || '';
-      const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD, process.env.STATEMENTS_ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
+      const isAdmin = await isCockpitAdmin(req.headers.authorization);
       let groupKey = String(req.query.group || '');
       let publishedOnly = false;
       if (!isAdmin) {
@@ -760,8 +756,7 @@ export default async function handler(req, res) {
 
     // ── Admin read-only portal preview link ─────────────────────────
     if (action === 'preview-link') {
-      const auth = req.headers.authorization || '';
-      let isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD, process.env.STATEMENTS_ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
+      let isAdmin = await isCockpitAdmin(req.headers.authorization);
       // Console key relayed to the CRM, as the other admin diagnostics allow.
       if (!isAdmin && req.headers['x-console-key']) {
         const check = await fetch(`${crmBase}/api/statements`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-console-key': String(req.headers['x-console-key']) }, body: JSON.stringify({ action: 'statement_groups', payload: {} }) });
@@ -775,8 +770,7 @@ export default async function handler(req, res) {
 
     // ── Owner invite link (admin) ───────────────────────────────────
     if (action === 'invite-link') {
-      const auth = req.headers.authorization || '';
-      const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD, process.env.STATEMENTS_ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
+      const isAdmin = await isCockpitAdmin(req.headers.authorization);
       if (!isAdmin) return res.status(401).json({ error: 'Unauthorized' });
       const groupKey = String(req.query.group || '');
       if (!groupKey) return res.status(400).json({ error: 'Missing group' });
@@ -800,8 +794,7 @@ export default async function handler(req, res) {
       const year = String(req.query.year || '').replace(/\D/g, '').slice(0, 4) || null;
       const from = /^\d{4}-\d{2}$/.test(String(req.query.from || '')) ? String(req.query.from) : null;
       const to = /^\d{4}-\d{2}$/.test(String(req.query.to || '')) ? String(req.query.to) : null;
-      const auth = req.headers.authorization || '';
-      const isAdmin = [process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD, process.env.STATEMENTS_ADMIN_PASSWORD].filter(Boolean).some(p => auth === `Bearer ${p}`);
+      const isAdmin = await isCockpitAdmin(req.headers.authorization);
       const previewOk = verifyPreviewToken(req.query.preview || '') === groupKey;
       if (!isAdmin && !previewOk) {
         const owner = await sessionOwner(req, kvGet);

@@ -12,6 +12,7 @@
 //     signed token OR by the owner's session.
 
 import { verifyMaintenanceToken, verifyPreviewToken, verifyTukangToken } from '../lib/tokens.js';
+import { cockpitCaller, adminPasswordsConfigured } from '../lib/cockpit-auth.js';
 import { UNITS_BY_SLUG } from '../lib/catalog.js';
 import { loadHostexOwnerMap } from '../lib/owner-listings.js';
 
@@ -58,10 +59,6 @@ export default async function handler(req, res) {
     try { return JSON.parse(raw); } catch { return raw; }
   };
 
-  const adminPasswords = () => [
-    process.env.DASHBOARD_PASSWORD, process.env.ADMIN_PASSWORD,
-    process.env.STATEMENTS_ADMIN_PASSWORD,      // Era's scoped credential
-  ].filter(Boolean);
 
   try {
     // ── POST ────────────────────────────────────────────────────────
@@ -98,11 +95,10 @@ export default async function handler(req, res) {
       }
 
       // Admin proxy — Ikiel or Era.
-      const auth = req.headers.authorization || '';
-      const pws = adminPasswords();
-      if (!pws.length) return res.status(503).json({ error: 'Admin password not configured' });
-      const isEra = process.env.STATEMENTS_ADMIN_PASSWORD && auth === `Bearer ${process.env.STATEMENTS_ADMIN_PASSWORD}`;
-      if (!pws.some(p => auth === `Bearer ${p}`)) return res.status(401).json({ error: 'Unauthorized' });
+      if (!adminPasswordsConfigured()) return res.status(503).json({ error: 'Admin password not configured' });
+      const caller = await cockpitCaller(req.headers.authorization);
+      if (!caller || (caller.role !== 'admin' && caller.role !== 'era')) return res.status(401).json({ error: 'Unauthorized' });
+      const isEra = caller.role === 'era';
       if (!sync) return res.status(503).json({ error: 'LISTING_SYNC_SECRET not configured' });
       if (!/^maint_[a-z_]+$/.test(String(action || ''))) {
         return res.status(400).json({ error: `unsupported action: ${action}` });
