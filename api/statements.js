@@ -470,7 +470,7 @@ export default async function handler(req, res) {
     // ── Admin diagnostic: why does a WhatsApp-signed-in owner see (or not
     // see) their statement groups? Auth: the caller's console key must be
     // accepted by the CRM (relayed check — the portal stores no console key).
-    if (action === 'wa-owner-debug' || action === 'admin-claim' || action === 'admin-assign' || action === 'admin-release' || action === 'admin-delete-listing' || action === 'admin-invite-wa') {
+    if (action === 'wa-owner-debug' || action === 'admin-owners' || action === 'admin-claim' || action === 'admin-assign' || action === 'admin-release' || action === 'admin-delete-listing' || action === 'admin-invite-wa') {
       // Two ways in: the admin panel's password (it has no console key), or a
       // console key relayed to the CRM for command-line use.
       const bearer = req.headers.authorization || '';
