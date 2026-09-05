@@ -470,7 +470,7 @@ export default async function handler(req, res) {
     // ── Admin diagnostic: why does a WhatsApp-signed-in owner see (or not
     // see) their statement groups? Auth: the caller's console key must be
     // accepted by the CRM (relayed check — the portal stores no console key).
-    if (action === 'wa-owner-debug' || action === 'admin-owners' || action === 'admin-claim' || action === 'admin-assign' || action === 'admin-release' || action === 'admin-delete-listing' || action === 'admin-invite-wa') {
+    if (action === 'wa-owner-debug' || action === 'admin-owners' || action === 'admin-statements-as' || action === 'admin-claim' || action === 'admin-assign' || action === 'admin-release' || action === 'admin-delete-listing' || action === 'admin-invite-wa') {
       // Two ways in: the admin panel's password (it has no console key), or a
       // console key relayed to the CRM for command-line use.
       const bearer = req.headers.authorization || '';
@@ -484,6 +484,20 @@ export default async function handler(req, res) {
           body: JSON.stringify({ action: 'statement_groups', payload: {} }),
         });
         if (check.status !== 200) return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // admin-statements-as: what the Statements tab would receive for a given
+      // account, computed by the same code path — "why does she see nothing?".
+      if (action === 'admin-statements-as') {
+        const sub = String(req.query.sub || '');
+        const owner = sub ? await kvGet(`owner:${sub}`) : null;
+        if (!owner) return res.status(404).json({ error: 'No owner account with that sub' });
+        const hostexMap = await loadHostexOwnerMap(kvGet);
+        const mine = Object.values(hostexMap).filter(l => l.ownerSub === owner.sub).map(l => l.slug);
+        const groups = await ownerGroups(owner, kvGet, crm);
+        const listRes = await crm('statement_list', {});
+        const stmts = (listRes.body?.statements || []).filter(s => ['published', 'partial', 'paid'].includes(s.status) && groups.some(g => g.key === s.group_key));
+        return res.status(200).json({ owner: { sub: owner.sub, email: owner.email, wa: owner.wa || null }, my_slugs: mine, groups: groups.map(g => g.key), crm_status: listRes.status, statements: stmts.map(s => `${s.group_key} ${s.period} ${s.status}`) });
       }
 
       // admin-owners: every portal account (owner:<sub>), optionally filtered

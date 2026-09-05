@@ -969,14 +969,21 @@ async function probeStatements(){
   if(DEMO&&!PORTAL_PREVIEW) return;
   try{
     const r=await fetch('/api/statements?action=statements'+(PORTAL_PREVIEW?'&preview='+encodeURIComponent(PORTAL_PREVIEW):''),{credentials:'include'});
-    if(!r.ok) return;
+    if(!r.ok){ stProbeError=r.status; if(currentTab==='statements') initStatements(); return; }
     const d=await r.json();
+    // A later re-probe that comes back empty (a transient store hiccup) must
+    // not wipe a tab the owner is already looking at.
+    const had=(statementsCache||[]).length||(statementGroupsCache||[]).length;
+    if(had&&!(d.statements||[]).length&&!(d.groups||[]).length){ stProbeError=null; return; }
     statementsCache=d.statements||[];
     statementGroupsCache=d.groups||[];
+    stProbeError=null;
     if(d.fx) stFx=d.fx;
     if(statementsCache.length||statementGroupsCache.length) document.getElementById('tab-btn-statements').style.display='';
-  }catch(e){}
+    if(currentTab==='statements') initStatements();
+  }catch(e){ stProbeError='network'; if(currentTab==='statements') initStatements(); }
 }
+let stProbeError=null;
 const stAcctEditing={};   // group key → true while its payout-account form is open
 const stAcctCountry={};   // group key → country code chosen in the form
 // Country-specific payout fields, Wise/Stripe style: pick the account's
@@ -1021,8 +1028,14 @@ function initStatements(){
   const mlab=p=>{const[y,m]=String(p).split('-').map(Number);return y&&m?new Date(Date.UTC(y,m-1,1)).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}):p;};
   const dlab=iso=>iso?new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
 
+  if(statementsCache===null&&!stProbeError){
+    pane.innerHTML='<div class="rep-empty"><h3>Loading your statements…</h3></div>';
+    return;
+  }
   if(!groups.length&&!sts.length){
-    pane.innerHTML='<div class="rep-empty"><h3>No statements yet</h3><p>Monthly payout statements for villas under Samba Realty management appear here once published.</p></div>';
+    pane.innerHTML=stProbeError
+      ? '<div class="rep-empty"><h3>Could not load your statements</h3><p>'+(stProbeError===401?'Your session has expired. Sign in again and they will be here.':'Check your connection and try again.')+'</p><p><a href="#" onclick="probeStatements();return false;">Try again</a></p></div>'
+      : '<div class="rep-empty"><h3>No statements yet</h3><p>Monthly payout statements for villas under Samba Realty management appear here once published.</p><p><a href="#" onclick="probeStatements();return false;">Refresh</a></p></div>';
     return;
   }
 
