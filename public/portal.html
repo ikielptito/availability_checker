@@ -291,6 +291,17 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .mt-btn.no{background:var(--surface2);color:var(--text-2);border:1px solid var(--border);}
 .mt-btn:disabled{opacity:.55;cursor:default;}
 .mt-meta{font-size:.76rem;color:var(--muted);margin-top:10px;line-height:1.6;}
+.hk-next{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-bottom:14px;}
+.hk-next-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);}
+.hk-next-villa{font-family:var(--rep-serif);font-size:1.05rem;margin-bottom:6px;}
+.hk-next-row{display:flex;justify-content:space-between;gap:10px;font-size:.78rem;color:var(--muted);padding:2px 0;}
+.hk-next-row b{color:var(--text);font-weight:600;white-space:nowrap;}
+.hk-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.hk-chip{border:1px solid var(--border);background:var(--surface);color:var(--text-2);border-radius:999px;padding:6px 14px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.hk-chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+.hk-lines{font-size:.82rem;color:var(--text-2);margin-top:8px;line-height:1.6;}
+.hk-lines b{color:var(--text);font-weight:600;}
+.hk-about{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:18px;padding:14px 18px;border:1px dashed var(--border);border-radius:14px;}
 .st-cur{margin-left:auto;align-self:flex-start;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer;}
 .st-cur:hover{color:var(--text);border-color:var(--accent);}
 .st-prop{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;}
@@ -480,6 +491,7 @@ table.stx-lines tr.totrow td{font-weight:700;border-top:2px solid var(--border);
         <button class="tab" data-tab="reports" onclick="showTab('reports')">Weekly reports</button>
         <button class="tab" data-tab="statements" id="tab-btn-statements" style="display:none" onclick="showTab('statements')">Statements</button>
         <button class="tab" data-tab="maintenance" id="tab-btn-maintenance" style="display:none" onclick="showTab('maintenance')">Maintenance</button>
+        <button class="tab" data-tab="housekeeping" id="tab-btn-housekeeping" style="display:none" onclick="showTab('housekeeping')">Housekeeping</button>
         <button class="tab" data-tab="viewings" onclick="showTab('viewings')">Viewings</button>
       </div>
       <div class="spacer"></div>
@@ -499,6 +511,7 @@ table.stx-lines tr.totrow td{font-weight:700;border-top:2px solid var(--border);
     </div>
     <div id="tab-statements" style="display:none"></div>
     <div id="tab-maintenance" style="display:none"></div>
+    <div id="tab-housekeeping" style="display:none"></div>
     <div id="tab-viewings" style="display:none"></div>
     <div class="portal-foot"><a href="/home">How it works</a> · <a href="/terms">Terms of service</a> · <a href="/privacy">Privacy policy</a> · <a href="/refund">Refund &amp; cancellation policy</a></div>
   </div>
@@ -829,6 +842,7 @@ async function enterPreview(tok){
   document.getElementById('period-toggle').style.display='none';
   await probeStatements();
   await probeMaintenance();
+  await probeHousekeeping();
   const gname=(statementGroupsCache[0]&&(statementGroupsCache[0].owner_names||statementGroupsCache[0].name))||'this owner';
   const bar=document.createElement('div');
   bar.style.cssText='position:sticky;top:0;z-index:1200;background:#1c1917;color:#fff;font-size:.78rem;padding:9px 16px;text-align:center';
@@ -841,7 +855,7 @@ async function enterPreview(tok){
 function enterApp(owner){
   currentOwnerData=owner;
   document.getElementById('app').style.display='block';
-  claimPendingInvite().then(()=>{ loadProperties(); probeStatements(); probeMaintenance(); });
+  claimPendingInvite().then(()=>{ loadProperties(); probeStatements(); probeMaintenance(); probeHousekeeping(); });
   loadConfig();
   // Deep-link from the "List a property" sub-tab → open the add form.
   // Skipped in the demo: it fires for real once the owner signs in.
@@ -962,6 +976,7 @@ function showTab(name){
   document.getElementById('tab-reports').style.display=name==='reports'?'':'none';
   document.getElementById('tab-statements').style.display=name==='statements'?'':'none';
   document.getElementById('tab-maintenance').style.display=name==='maintenance'?'':'none';
+  document.getElementById('tab-housekeeping').style.display=name==='housekeeping'?'':'none';
   document.getElementById('tab-viewings').style.display=name==='viewings'?'':'none';
   const onProps=name==='properties';
   document.getElementById('period-toggle').style.display=onProps?'':'none';
@@ -969,6 +984,7 @@ function showTab(name){
   if(name==='reports') initReports();
   if(name==='statements') initStatements();
   if(name==='maintenance') initMaintenance();
+  if(name==='housekeeping') initHousekeeping();
   if(name==='viewings') initViewings();
 }
 
@@ -1444,6 +1460,102 @@ async function mtDecide(id,decision){
   }catch(e){
     document.querySelectorAll('.mt-btn').forEach(b=>b.disabled=false);
     if(msg) msg.textContent='Could not send: '+e.message;
+  }
+}
+
+// ── HOUSEKEEPING TAB ──
+// The owner's cleaning log: every visit, every pre-guest photo check and
+// every inspection round on their villas, with the photos and a PDF of
+// each record. Outcomes only — no housekeeper names.
+let hkCache=null, hkVilla='';
+async function probeHousekeeping(){
+  if(DEMO&&!PORTAL_PREVIEW) return;
+  try{
+    const r=await fetch('/api/housekeeping?action=owner'+(PORTAL_PREVIEW?'&preview='+encodeURIComponent(PORTAL_PREVIEW):''),{credentials:'include'});
+    if(!r.ok) return;
+    hkCache=await r.json();
+    if(Object.keys(hkCache.names||{}).length) document.getElementById('tab-btn-housekeeping').style.display='';
+  }catch(e){}
+}
+const HK_KIND={turnover:'Turnover clean',regular:'Regular clean',pre_arrival:'Pre-arrival preparation',deep_clean:'Deep clean',inspection:'Inspection round'};
+function hkPill(r){
+  if(r.type==='inspection') return r.status==='raised'?{cls:'wait',label:(r.repairs||1)+(r.repairs>1?' repairs raised':' repair raised')}:{cls:'ok',label:'✓ Nothing found'};
+  if(r.type==='clean') return {cls:'done',label:'✓ Cleaned'};
+  return ({pass:{cls:'ok',label:'✓ Photo check passed'},flagged:{cls:'wait',label:'Flagged, then fixed'},unchecked:{cls:'no',label:'No photos received'},awaiting:{cls:'done',label:'Photos pending'}})[r.status]||{cls:'done',label:r.status};
+}
+function initHousekeeping(){
+  const pane=document.getElementById('tab-housekeeping');
+  const d=hkCache;
+  const dl=iso=>iso?new Date(iso+'T00:00:00Z').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'}):'—';
+  const dlong=iso=>iso?new Date(iso+'T00:00:00Z').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}):'';
+  if(!d||!Object.keys(d.names||{}).length){
+    pane.innerHTML='<div class="rep-empty"><h3>Nothing to show yet</h3><p>Cleaning visits, pre-guest photo checks and inspection rounds at your villa appear here as they happen.</p></div>';
+    return;
+  }
+  const slugs=Object.keys(d.names);
+  const villa=s=>pname(d.names[s]||s);
+  let html='';
+  // What is planned next, one card per villa.
+  html+='<div class="hk-next">'+(d.upcoming||[]).map(u=>`<div class="hk-next-card"><div class="hk-next-villa">${escapeHtml(villa(u.slug))}</div>
+    <div class="hk-next-row"><span>Next cleaning visit</span><b>${escapeHtml(dl(u.next_clean))}</b></div>
+    <div class="hk-next-row"><span>Next inspection round</span><b>${escapeHtml(dl(u.next_inspection))}</b></div>
+    <div class="hk-next-row"><span>Next deep clean</span><b>${escapeHtml(dl(u.next_deep_clean))}</b></div></div>`).join('')+'</div>';
+  if(slugs.length>1){
+    html+='<div class="hk-filter"><button class="hk-chip'+(hkVilla?'':' on')+'" onclick="hkVilla=\'\';initHousekeeping()">All villas</button>'
+      +slugs.map(s=>`<button class="hk-chip${hkVilla===s?' on':''}" onclick="hkVilla='${escapeHtml(s)}';initHousekeeping()">${escapeHtml(villa(s))}</button>`).join('')+'</div>';
+  }
+  const recs=(d.records||[]).filter(r=>!hkVilla||r.slug===hkVilla);
+  if(!recs.length){
+    html+='<div class="rep-empty"><h3>No records in the last 90 days</h3><p>Cleaning visits, pre-guest photo checks and inspection rounds appear here as they happen.</p></div>';
+  }
+  for(const r of recs){
+    const pill=hkPill(r);
+    const lines=[];
+    if(r.type==='handover'){
+      if(r.guest_in_date) lines.push(`Prepared for the guest arriving <b>${escapeHtml(dl(r.guest_in_date))}</b>.`);
+      if((r.flagged||[]).length) lines.push('Flagged by the photo check and put right before arrival: '+r.flagged.map(f=>`<b>${escapeHtml(f.spot)}</b>${f.note?' ('+escapeHtml(f.note)+')':''}`).join(', ')+'.');
+      if((r.other_flags||[]).length) lines.push(escapeHtml(r.other_flags.join('; '))+'.');
+      if(r.restock) lines.push('Running low, restocked: '+escapeHtml(r.restock)+'.');
+      if(r.status==='unchecked') lines.push('The housekeeper marked the visit done but sent no photos; Era followed up.');
+    } else if(r.type==='inspection'){
+      if(r.findings) lines.push('Reported: '+escapeHtml(r.findings)+'.');
+      if(r.repairs) lines.push('What was found became '+(r.repairs>1?'tickets':'a ticket')+' under Maintenance.');
+    } else if(r.guest_in_date){
+      lines.push(`Before the guest arriving <b>${escapeHtml(dl(r.guest_in_date))}</b>.`);
+    }
+    html+=`<div class="mt-card">
+      <div class="mt-head">
+        <div style="flex:1;min-width:180px">
+          <div class="mt-title">${escapeHtml(HK_KIND[r.kind]||r.kind)}</div>
+          <div class="mt-where">${escapeHtml(villa(r.slug))} · ${escapeHtml(dlong(r.date))}${r.photo_count?` · ${r.photo_count} photo${r.photo_count>1?'s':''}`:''}</div>
+        </div>
+        <span class="mt-pill ${pill.cls}">${escapeHtml(pill.label)}</span>
+      </div>
+      ${lines.length?`<div class="hk-lines">${lines.join('<br>')}</div>`:''}
+      ${r.photo_count||r.pdf_url?`<div class="mt-acts" style="margin-top:12px">
+        ${r.photo_count?`<button class="mt-btn no" id="hk-btn-${r.type}-${r.id}" onclick="hkPhotos('${r.type}',${r.id})">View the photos</button>`:''}
+        ${r.pdf_url?`<a class="mt-btn no" style="text-decoration:none;display:inline-block" href="${escapeHtml(r.pdf_url)}" target="_blank" rel="noopener">Download as PDF</a>`:''}
+      </div><div class="mt-shots" id="hk-shots-${r.type}-${r.id}" style="display:none"></div>`:''}
+    </div>`;
+  }
+  html+=`<div class="hk-about"><b>How to read this.</b> Your villa is cleaned on fixed days each week. Before every guest the housekeeper photographs each room and Maya checks the photos against the villa's standard before the guest arrives; anything flagged is fixed on the spot. Every fortnight a photo inspection round looks for wear and damage, and a deep clean happens each quarter and after any stay of three weeks or more. Records are stored when received and cannot be edited afterwards. For a damage claim, download the PDF from before and after the guest's stay.</div>`;
+  pane.innerHTML=html;
+}
+async function hkPhotos(type,id){
+  const box=document.getElementById('hk-shots-'+type+'-'+id), btn=document.getElementById('hk-btn-'+type+'-'+id);
+  if(!box) return;
+  if(box.style.display!=='none'){ box.style.display='none'; if(btn) btn.textContent='View the photos'; return; }
+  if(btn){ btn.disabled=true; btn.textContent='Loading…'; }
+  try{
+    const r=await fetch('/api/housekeeping?action=owner-photos&type='+encodeURIComponent(type)+'&id='+id+(PORTAL_PREVIEW?'&preview='+encodeURIComponent(PORTAL_PREVIEW):''),{credentials:'include'});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.error||'HTTP '+r.status);
+    box.innerHTML=(d.photo_urls||[]).map(u=>`<img src="${escapeHtml(u)}" onclick="window.open('${escapeHtml(u)}','_blank')" alt="">`).join('')||'<span class="mt-meta">No photos stored for this record.</span>';
+    box.style.display='';
+    if(btn){ btn.disabled=false; btn.textContent='Hide the photos'; }
+  }catch(e){
+    if(btn){ btn.disabled=false; btn.textContent='View the photos'; }
+    showToast('Could not load the photos: '+e.message);
   }
 }
 

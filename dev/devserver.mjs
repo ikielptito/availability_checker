@@ -462,6 +462,28 @@ function mockHousekeepingApi({ action, payload = {} }) {
     mockHkTasks = mockHkBuild();
     return { status: 200, body: { removed: 0, planned: mockHkTasks.length, created: mockHkTasks.length, today: hkToday() } };
   }
+  if (action === 'hk_owner_records') {
+    const today = hkToday();
+    const slugs = (payload.slugs || []).filter(Boolean);
+    const s0 = slugs[0] || 'haus-1', s1 = slugs[1] || s0;
+    const at = (d, h) => hkPlus(today, d) + `T0${h}:10:00Z`;
+    const records = [
+      { type: 'handover', id: 1, slug: s0, kind: 'turnover', status: 'pass', date: hkPlus(today, -2), at: at(-2, 3), photo_count: 7, flagged: [], other_flags: [], restock: null, guest_in_date: hkPlus(today, -2) },
+      { type: 'clean', id: 11, slug: s1, kind: 'regular', status: 'done', date: hkPlus(today, -4), at: at(-4, 2), photo_count: 0 },
+      { type: 'handover', id: 2, slug: s1, kind: 'pre_arrival', status: 'flagged', date: hkPlus(today, -9), at: at(-9, 4), photo_count: 6, flagged: [{ spot: 'living', note: 'sofa has no cover' }], other_flags: [], restock: 'sabun habis', guest_in_date: hkPlus(today, -8) },
+      { type: 'inspection', id: 1, slug: s0, kind: 'inspection', status: 'raised', date: hkPlus(today, -12), at: at(-12, 5), photo_count: 5, findings: 'jamur di plafon kamar mandi', repairs: 1 },
+      { type: 'clean', id: 12, slug: s0, kind: 'regular', status: 'done', date: hkPlus(today, -15), at: at(-15, 2), photo_count: 0 },
+      { type: 'inspection', id: 2, slug: s1, kind: 'inspection', status: 'clear', date: hkPlus(today, -26), at: at(-26, 5), photo_count: 6, findings: null, repairs: 0 },
+      { type: 'handover', id: 3, slug: s0, kind: 'deep_clean', status: 'pass', date: hkPlus(today, -40), at: at(-40, 6), photo_count: 8, flagged: [], other_flags: [], restock: null, guest_in_date: null },
+    ].filter(r => slugs.includes(r.slug) || !slugs.length);
+    const upcoming = slugs.map((slug, i) => ({ slug, next_clean: hkPlus(today, 1 + i), next_inspection: hkPlus(today, 6 + i * 3), next_deep_clean: hkPlus(today, 45 + i * 7) }));
+    return { status: 200, body: { from: hkPlus(today, -90), to: today, names: Object.fromEntries(slugs.map(s => [s, names[s] || s])), records, upcoming } };
+  }
+  if (action === 'hk_owner_record_photos') {
+    const svg = (t) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" fill="#d9d2c4"/><text x="150" y="158" font-size="26" text-anchor="middle" fill="#444">${t}</text></svg>`);
+    const n = payload.type === 'inspection' ? 5 : 7;
+    return { status: 200, body: { id: +payload.id, type: payload.type, photo_urls: Array.from({ length: n }, (_, i) => svg('photo ' + (i + 1))) } };
+  }
   if (action === 'hk_owner_inspection') {
     // One villa deliberately has no round this week, so the report renders
     // correctly both with and without the section.

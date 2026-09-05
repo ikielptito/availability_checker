@@ -2,12 +2,18 @@
 // api/staff.js: Ikiel or Era authenticate with the admin password, and this
 // route forwards hk_* actions to the CRM using LISTING_SYNC_SECRET.
 //
-// Nothing owner-facing lives here. Owners see inspection findings through
-// their weekly report, which is built by api/portal.js from the same records
-// but carries no staff names or numbers.
+// Owner-facing, read-only:
+//   GET ?action=owner                 the owner's cleaning log and what is
+//                                     planned next (session or preview token)
+//   GET ?action=owner-photos&type&id  signed photo URLs for one of their records
+//   GET ?record=<token>               a record as a PDF; the "owner" audience
+//                                     carries no housekeeper name
+// Owners see outcomes, never staff names or numbers — the same rule as the
+// weekly report.
 
-import { calendarSig, verifyCalendarSig, recordToken, verifyRecordToken } from '../lib/tokens.js';
+import { calendarSig, verifyCalendarSig, recordToken, verifyRecordToken, verifyPreviewToken } from '../lib/tokens.js';
 import { isCockpitAdmin, adminPasswordsConfigured } from '../lib/cockpit-auth.js';
+import { makeKvGet, sessionOwner, ownerSlugs } from '../lib/owner-session.js';
 import { buildPdf } from '../lib/pdf.js';
 import { staysFrom } from '../lib/turnovers.js';
 import { fetchAllReservations } from '../lib/month-stats.js';
@@ -22,6 +28,7 @@ export default async function handler(req, res) {
   // rounds, deep cleans (the next six months projected), and guest
   // movements. Signed, not public.
   if (req.method === 'GET' && req.query.record) return serveRecordPdf(req, res);
+  if (req.method === 'GET' && req.query.action) return serveOwner(req, res);
   if (req.method === 'GET') return serveCalendar(req, res);
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -60,6 +67,58 @@ export default async function handler(req, res) {
     return res.status(r.status).json(await r.json().catch(() => ({ error: `CRM returned HTTP ${r.status}` })));
   } catch (e) {
     return res.status(500).json({ error: e.message });
+  }
+}
+
+// ── The portal's Housekeeping tab ───────────────────────────────────
+async function serveOwner(req, res) {
+  const action = String(req.query.action || '');
+  const sync = process.env.LISTING_SYNC_SECRET;
+  if (!sync) return res.status(503).json({ error: 'LISTING_SYNC_SECRET not configured' });
+  const crmBase = process.env.CRM_BASE_URL || 'https://kaya-agent-crm.vercel.app';
+  const crm = async (route, act, payload) => {
+    const r = await fetch(`${crmBase}/api/${route}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sync}` },
+      body: JSON.stringify({ action: act, payload }),
+      signal: AbortSignal.timeout(9000),
+    });
+    return { status: r.status, body: await r.json().catch(() => ({ error: `CRM returned HTTP ${r.status}` })) };
+  };
+  const fetchGroups = async () => (await crm('statements', 'statement_groups', {})).body?.groups || [];
+
+  // Whose villas: an admin preview of one group, or the signed-in owner.
+  let slugs = [];
+  const previewGroup = verifyPreviewToken(req.query.preview || '');
+  if (previewGroup) {
+    slugs = (await fetchGroups()).filter(g => g.key === previewGroup).flatMap(g => g.listing_slugs || []);
+  } else {
+    const owner = await sessionOwner(req, makeKvGet());
+    if (!owner) return res.status(401).json({ error: 'Not signed in' });
+    slugs = await ownerSlugs(owner, makeKvGet(), fetchGroups);
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  if (!slugs.length) return res.status(200).json({ names: {}, records: [], upcoming: [] });
+
+  try {
+    if (action === 'owner') {
+      const { status, body } = await crm('housekeeping', 'hk_owner_records', { slugs });
+      if (status !== 200) return res.status(status).json(body);
+      const host = req.headers['x-forwarded-host'] || req.headers.host || 'sambarentals.com';
+      body.records = (body.records || []).map(r => r.type === 'clean' ? r
+        : { ...r, pdf_url: `https://${host}/api/housekeeping?record=${recordToken(r.type, r.id, 'owner')}` });
+      return res.status(200).json({ ...body, ...(previewGroup ? { preview: true } : {}) });
+    }
+    if (action === 'owner-photos') {
+      const type = req.query.type === 'inspection' ? 'inspection' : 'handover';
+      const id = parseInt(req.query.id, 10);
+      if (!id) return res.status(400).json({ error: 'id required' });
+      const { status, body } = await crm('housekeeping', 'hk_owner_record_photos', { type, id, slugs });
+      return res.status(status).json(body);
+    }
+    return res.status(400).json({ error: 'Unknown action' });
+  } catch (e) {
+    return res.status(502).json({ error: e.message });
   }
 }
 
@@ -170,7 +229,7 @@ async function serveRecordPdf(req, res) {
     subtitle: `${rec.type === 'inspection' ? 'Inspection round' : 'Handover record'} · ${fmt(rec.date)}`,
     meta: [
       ['Type', KIND[rec.kind] || rec.kind],
-      ['Housekeeper', rec.staff || 'Unknown'],
+      ...(tok.aud === 'owner' ? [] : [['Housekeeper', rec.staff || 'Unknown']]),
       ['Result', STATUS[rec.status] || rec.status],
       ...(rec.guest_in_date ? [['Prepared for', `Guest arriving ${short(rec.guest_in_date)}`]] : []),
       ['Photos', String((data.photo_urls || []).length)],
