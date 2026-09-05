@@ -598,9 +598,15 @@ export default async function handler(req, res) {
         const tok = crypto.randomBytes(16).toString('hex');
         await kvCmd('SET', `walogin:${tok}`,
           JSON.stringify({ phone, listing: slug, name, exp: Date.now() + 7 * 24 * 3600 * 1000 }), 'EX', 7 * 24 * 3600);
-        const sendRes = await crm('statement_wa_login_code', { wa_num: phone, token: tok, allow_unregistered: true });
+        // The welcome template when approved (Maya introduces herself and
+        // the portal), the plain sign-in link otherwise.
+        const villaName = (UNITS_BY_SLUG[slug]?.name || slug).replace(/\s*[–—]\s*/g, ' ');
+        const sendRes = await crm('statement_wa_login_code', {
+          wa_num: phone, token: tok, allow_unregistered: true,
+          welcome: { first: (name || 'there').split(' ')[0], villa: villaName },
+        });
         if (sendRes.status !== 200) return res.status(502).json({ error: sendRes.body?.error || 'Could not send the invite' });
-        return res.status(200).json({ ok: true, slug, phone, link: `https://sambarentals.com/portal?wa_login=${tok}` });
+        return res.status(200).json({ ok: true, slug, phone, template: sendRes.body?.template || null, link: `https://sambarentals.com/portal?wa_login=${tok}` });
       }
 
       // admin-delete-listing: remove an owner-submitted listing (a duplicate
