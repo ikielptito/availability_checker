@@ -599,6 +599,11 @@ function pillsFor(s) {
   if (s.source_changed) pills.push('<span class="pill changed">Sheet changed</span>');
   return pills.join('');
 }
+async function removeInbox(id) {
+  if (!confirm('Remove this logged expense? It will not reach any statement.')) return;
+  try { await api('statement_inbox_remove', { inbox_id: id }); listData = await api('statement_list', {}); renderList(); }
+  catch (e) { alert('Could not remove: ' + e.message); }
+}
 function renderList() {
   const c = document.getElementById('content');
   if (!listData) { c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>'; return; }
@@ -634,6 +639,20 @@ function renderList() {
       <button class="fltclear" onclick="toggleOutstanding()">Show all statements</button>` : ''}
   </div>
   ${groupFilter ? '<div id="pnl"></div>' : ''}`;
+  // Expenses Era told Maya for months whose draft does not exist yet. They
+  // join the statement the moment the sheet sync builds that month.
+  const inbox = (listData.inbox || []).filter(i => !groupFilter || i.group_key === groupFilter);
+  if (inbox.length) {
+    const total = inbox.reduce((a, i) => a + (Number(i.amount) || 0), 0);
+    html += `<div class="card" style="margin:6px 0 12px;padding:12px 16px">
+      <h3 style="margin:0 0 6px">Logged via Maya, waiting for the month's statement <span style="font-weight:400;font-size:.72rem;color:var(--muted)">· ${inbox.length} expense${inbox.length > 1 ? 's' : ''} · ${IDR(total)} · added to the draft when the sheet is synced, skipping anything already on the sheet</span></h3>
+      ${inbox.map(i => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.84rem;padding:4px 0;border-top:1px solid var(--line)">
+        <span style="min-width:150px">${esc(pname(i.group_name))} · ${esc(i.period)}</span><span style="color:var(--muted)">${esc(i.expense_date)}</span>
+        <span style="flex:1">${esc(i.description)}</span><b>${IDR(i.amount)}</b>
+        ${i.receipt_url ? `<a href="${esc(i.receipt_url)}" target="_blank" rel="noopener">receipt</a>` : '<span style="color:var(--muted)">no receipt</span>'}
+        <button class="fltclear" onclick="removeInbox('${esc(i.id)}')" title="Not an expense after all">Remove</button></div>`).join('')}
+    </div>`;
+  }
   if (groupFilter) setTimeout(() => loadPnl(groupFilter), 0);
   if (!rows.length) {
     html += outstandingOnly
@@ -2682,7 +2701,8 @@ const HELP = {
       <li>Tap <b>Publish</b>. The owner gets the statement on WhatsApp, at the numbers saved under Properties.</li>
       <li>After the transfer, mark it <b>Paid</b>. The pink banner at the top shows what is still owed; tap it to see only those.</li>
     </ol>
-    <p>Use the property dropdown to see one villa at a time.</p>` },
+    <p>Use the property dropdown to see one villa at a time.</p>
+    <p><b>Expenses by chat.</b> You can tell Maya what you paid — "laundry HAUS 5 250rb" — and send her the receipt photo. If the month's draft exists it lands there, marked <i>via Maya</i>; if not, it waits under "Logged via Maya" on this page and joins the draft when you sync, skipping anything your sheet already has. The receipt appears under Invoices &amp; receipts.</p>` },
   detail: { title: 'One statement', html: `
     <p>The lines that make up this month's payout: rent received, our fee, costs, adjustments, and the total owed.</p>
     <h4>What you do here</h4>
