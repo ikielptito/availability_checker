@@ -1844,11 +1844,19 @@ async function renderMaintenance() {
     if (!(it.photos || []).length) continue;
     maintApi('maint_detail', { id: it.id }).then(d => {
       const box = document.getElementById('shots-' + it.id);
-      if (box && d.item?.photo_urls?.length) {
+      if (box && (d.item?.photo_urls?.length || d.item?.suggested?.length)) {
         const paths = d.item.photos || [];
-        box.innerHTML = d.item.photo_urls.map((u, n) => `<span class="mshot">
+        box.innerHTML = (d.item.photo_urls || []).map((u, n) => `<span class="mshot">
           <img src="${esc(u)}" onclick="window.open('${esc(u)}','_blank')" alt="">
           <button class="mshot-x" title="Remove from this ticket" onclick="maintRemovePhoto(${it.id}, '${esc(paths[n] || '')}')">✕</button>
+        </span>`).join('')
+        // Photos a model matched to this ticket: not on the ticket, not shown
+        // to the owner, until someone says so.
+        + ((d.item.suggested || []).length ? `<div style="flex-basis:100%;font-size:.7rem;color:var(--muted);margin-top:6px">Suggested by sight — confirm ✓ or drop ✕ (owners never see these until confirmed)</div>` : '')
+        + (d.item.suggested || []).map(sg => `<span class="mshot" style="outline:2px dashed var(--accent,#E2572B);outline-offset:-2px;opacity:.85">
+          <img src="${esc(sg.url)}" onclick="window.open('${esc(sg.url)}','_blank')" alt="">
+          <button class="mshot-x" style="right:26px;background:#2f5d34" title="Confirm: attach to this ticket" onclick="maintPhotoDecide(${it.id}, '${esc(sg.path)}', true)">✓</button>
+          <button class="mshot-x" title="Not this ticket" onclick="maintPhotoDecide(${it.id}, '${esc(sg.path)}', false)">✕</button>
         </span>`).join('');
       }
     }).catch(() => {});
@@ -1969,6 +1977,10 @@ async function doDispatchSetTime(id) {
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
 
+async function maintPhotoDecide(id, path, yes) {
+  try { await maintApi(yes ? 'maint_photo_confirm' : 'maint_photo_reject', { id, path }); renderMaintenance(); }
+  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
 async function maintRemovePhoto(id, path) {
   if (!path) return;
   try {
