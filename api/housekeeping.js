@@ -11,7 +11,7 @@
 // Owners see outcomes, never staff names or numbers — the same rule as the
 // weekly report.
 
-import { calendarSig, verifyCalendarSig, recordToken, verifyRecordToken, verifyPreviewToken } from '../lib/tokens.js';
+import { calendarSig, verifyCalendarSig, recordToken, verifyRecordToken, verifyPreviewToken, todaySig, verifyTodaySig } from '../lib/tokens.js';
 import { isCockpitAdmin, adminPasswordsConfigured } from '../lib/cockpit-auth.js';
 import { makeKvGet, sessionOwner, ownerSlugs } from '../lib/owner-session.js';
 import { buildPdf } from '../lib/pdf.js';
@@ -27,6 +27,7 @@ export default async function handler(req, res) {
   // Google Calendar. Everything the Schedule page shows: cleans, inspection
   // rounds, deep cleans (the next six months projected), and guest
   // movements. Signed, not public.
+  if (req.method === 'GET' && req.query.today) return serveToday(req, res);
   if (req.method === 'GET' && req.query.record) return serveRecordPdf(req, res);
   if (req.method === 'GET' && req.query.action) return serveOwner(req, res);
   if (req.method === 'GET') return serveCalendar(req, res);
@@ -50,6 +51,10 @@ export default async function handler(req, res) {
     if (!id) return res.status(400).json({ error: 'id required' });
     const host = req.headers['x-forwarded-host'] || req.headers.host || 'sambarentals.com';
     return res.status(200).json({ url: `https://${host}/api/housekeeping?record=${recordToken(type, id)}` });
+  }
+  if (action === 'hk_today_url') {
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'sambarentals.com';
+    return res.status(200).json({ url: `https://${host}/today/${todaySig()}` });
   }
   if (action === 'hk_calendar_url') {
     const host = req.headers['x-forwarded-host'] || req.headers.host || 'sambarentals.com';
@@ -120,6 +125,79 @@ async function serveOwner(req, res) {
   } catch (e) {
     return res.status(502).json({ error: e.message });
   }
+}
+
+// ── Era's day, as a page ────────────────────────────────────────────
+// Opened from the button on Maya's 07:05 brief. Phone-first, read-only,
+// built from the same data the Schedule page uses (the CRM's hk_era_brief).
+async function serveToday(req, res) {
+  if (!verifyTodaySig(String(req.query.today || ''))) return res.status(401).send('Unauthorized');
+  const sync = process.env.LISTING_SYNC_SECRET;
+  if (!sync) return res.status(503).send('LISTING_SYNC_SECRET not configured');
+  const crmBase = process.env.CRM_BASE_URL || 'https://kaya-agent-crm.vercel.app';
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.d || '')) ? req.query.d : null;
+  let b;
+  try {
+    const r = await fetch(`${crmBase}/api/housekeeping`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sync}` }, body: JSON.stringify({ action: 'hk_era_brief', payload: { date } }), signal: AbortSignal.timeout(25000) });
+    b = await r.json();
+    if (!r.ok) throw new Error(b.error || `CRM ${r.status}`);
+  } catch (e) { return res.status(502).send(`Today unavailable: ${e.message}`); }
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'private, max-age=120');
+  res.setHeader('X-Robots-Tag', 'noindex');
+  return res.status(200).send(renderToday(b, String(req.query.today)));
+}
+
+function renderToday(b, sig) {
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const pname = (s) => String(s || '').replace(/\s*[–—]\s*/g, ' · ');
+  const first = (n) => String(n || '').trim().split(/\s+/)[0];
+  const tm = (iso) => iso ? new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' }) : '';
+  const prev = new Date(Date.parse(b.date) - 86400e3).toISOString().slice(0, 10), next = new Date(Date.parse(b.date) + 86400e3).toISOString().slice(0, 10);
+  const g = b.guests || {};
+  const chip = (t, cls = '') => `<span class="chip ${cls}">${esc(t)}</span>`;
+  const stayRow = (s, what) => `<div class="row"><div><b>${esc(pname(s.villa))}</b><div class="sub">${esc(s.guest || 'Guest')} · ${esc(s.channel || 'booking')} · ${s.nights} night${s.nights === 1 ? '' : 's'}${what === 'arrive' ? ` · until ${esc(s.check_out)}` : ''}</div></div>${what === 'arrive' ? chip(s.same_day ? 'Arrives · same-day' : 'Arrives', s.same_day ? 'warn' : 'ok') : chip('Leaves', 'muted')}</div>`;
+  const guestsHtml = g.unavailable ? '<div class="empty">Booking calendar unavailable right now.</div>'
+    : (!g.departures.length && !g.arrivals.length && !g.tomorrow_arrivals.length) ? '<div class="empty">No guest movements today.</div>'
+    : [...g.departures.map(s => stayRow(s, 'leave')), ...g.arrivals.map(s => stayRow(s, 'arrive')),
+       ...(g.tomorrow_arrivals.length ? [`<div class="sub" style="margin-top:8px">Tomorrow: ${g.tomorrow_arrivals.map(s => `${esc(pname(s.villa))} (${esc(first(s.guest) || s.channel || 'guest')})`).join(', ')}</div>`] : [])].join('');
+  const visit = (v) => `<div class="row"><div><b>${esc(pname(v.villa))}</b><div class="sub">${esc(v.label)}${v.same_day ? ' · same-day turnover' : ''}${v.guest_in ? ` · guest ${esc(v.guest_in)}` : ''}${v.notes ? ` · ${esc(v.notes)}` : ''}</div></div>${v.photo_check ? chip('📷 photo check', 'ok') : ''}${chip(v.status === 'done' ? 'done' : v.status === 'notified' ? 'sent' : v.status, v.status === 'done' ? 'ok' : 'muted')}</div>`;
+  const cleaningHtml = (b.cleaning || []).length ? b.cleaning.map(p => `<h3 class="${p.who === 'Unassigned' ? 'warn' : ''}">${esc(p.who)} <span class="n">${p.visits.length}</span></h3>${p.visits.map(visit).join('')}`).join('') : '<div class="empty">No cleaning today.</div>';
+  const tukangHtml = (b.tukang || []).length ? b.tukang.map(t => `<div class="row"><div><b>${esc(pname(t.villa))}</b><div class="sub">#${t.ticket} ${esc(t.title)}${t.who ? ` · ${esc(t.who)}` : ''}</div></div>${chip(`${tm(t.at)}${t.confirmed ? '' : ' · unconfirmed'}`, t.confirmed ? 'ok' : 'warn')}</div>`).join('') : '';
+  const backlogHtml = (b.backlog || []).length ? b.backlog.map(x => `<a class="row link" href="https://sambarentals.com/payouts#/maintenance"><div><b>#${x.id} ${esc(x.title)}</b><div class="sub">${esc(pname(x.place || ''))} · ${esc(x.action || x.status)}</div></div>${chip(x.age || `${x.age_days}d`, (x.age_days || 0) >= 3 ? 'warn' : 'muted')}</a>`).join('') : '<div class="empty">Nothing waiting on you. 🎉</div>';
+  const relaysHtml = (b.relays || []).map(r => `<div class="row"><div><b>${esc(pname(r.villa || ''))}</b><div class="sub">${esc(r.question)}</div></div>${chip('reply to Maya', 'warn')}</div>`).join('');
+  const viewingsHtml = (b.viewings || []).map(v => `<div class="row"><div><b>${esc(pname(v.villa || ''))}</b><div class="sub">${esc(v.agent || 'agent')} · ${esc(v.status)}</div></div>${chip(tm(v.at), 'ok')}</div>`).join('');
+  const looseHtml = [...(b.loose?.not_done || []).map(x => `<div class="row"><div><b>${esc(pname(x.villa))}</b><div class="sub">${esc(x.kind)}${x.who ? ` · ${esc(x.who)}` : ''}</div></div>${chip('not marked done', 'warn')}</div>`), ...(b.loose?.readiness || []).map(x => `<div class="row"><div><b>${esc(pname(x.villa))}</b><div class="sub">${esc((x.flags || []).join('; ') || 'no photos received')}</div></div>${chip(x.status === 'unchecked' ? 'no photos' : 'flagged', 'warn')}</div>`)].join('');
+  const week = b.week || { days: [] };
+  const weekHtml = week.days.map(d => `<div class="day"><div class="dl">${esc(d.label)}</div><div class="dd">${d.arrivals.map(a => `<span class="chip ok">→ ${esc(pname(a.villa))}</span>`).join('')}${d.departures.map(a => `<span class="chip muted">← ${esc(pname(a.villa))}</span>`).join('')}${d.rounds.map(r => `<span class="chip">${esc(r.kind)} ${esc(pname(r.villa))}${r.who ? ` (${esc(first(r.who))})` : ''}</span>`).join('')}${d.cleans ? `<span class="sub">${d.cleans} clean${d.cleans === 1 ? '' : 's'}</span>` : ''}${!d.arrivals.length && !d.departures.length && !d.rounds.length && !d.cleans ? '<span class="sub">—</span>' : ''}</div></div>`).join('');
+  const moneyHtml = (week.statements_unpublished || []).length ? `<div class="sub" style="margin-top:8px">Statements for ${esc(week.prev_period)} not yet published: ${week.statements_unpublished.map(s => `${esc(pname(s.group))} (${esc(s.status)})`).join(', ')} — <a href="https://sambarentals.com/payouts#/">Payouts</a></div>` : '';
+  const section = (title, body, extra = '') => `<section><h2>${esc(title)}${extra}</h2>${body}</section>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Today · ${esc(b.label)}</title>
+<style>
+:root{--terra:#E2572B;--ink:#131A17;--sand:#E9E2D6;--olive:#6F7A5A;--sage:#B9C1A6;--off:#F4F1ED;--muted:#6b6b66;--line:#e6e0d6;--card:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--off);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;padding:14px 12px 60px;max-width:640px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:8px;margin-bottom:8px}.brand .mark{width:26px;height:26px;border-radius:50%;background:var(--terra);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px}.brand .wm{font-family:'Iowan Old Style',Georgia,serif;font-size:1.05rem}
+.head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:6px 0 14px}.head h1{font-family:'Iowan Old Style',Georgia,serif;font-weight:500;font-size:1.6rem;margin:0}.nav a{color:var(--muted);text-decoration:none;font-size:.85rem;margin-left:10px}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+h2{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--terra);margin:0 0 6px;display:flex;justify-content:space-between;align-items:center}h2 .n{font-weight:500;color:var(--muted);letter-spacing:0;text-transform:none}
+h3{font-size:.9rem;margin:10px 0 2px;display:flex;gap:8px;align-items:center}h3 .n{font-size:.7rem;background:var(--sand);border-radius:999px;padding:1px 8px;color:var(--muted)}h3.warn{color:#9a3412}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:.92rem}.row:first-of-type,h3+.row{border-top:0}.row b{font-weight:600}.sub{font-size:.78rem;color:var(--muted);margin-top:2px;line-height:1.4}
+a.row.link{text-decoration:none;color:inherit}
+.chip{flex:none;font-size:.66rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:var(--sand);color:var(--ink);white-space:nowrap}.chip.ok{background:#e2ede0;color:#2f5d34}.chip.warn{background:#fde8e1;color:#9a3412}.chip.muted{background:#eeeae3;color:var(--muted)}
+.empty{font-size:.85rem;color:var(--muted);padding:6px 0}
+.day{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--line);align-items:flex-start}.day:first-child{border-top:0}.dl{flex:none;width:76px;font-size:.8rem;font-weight:600}.dd{display:flex;flex-wrap:wrap;gap:5px;align-items:center}.dd .chip{text-transform:none;letter-spacing:0;font-weight:600}
+.foot{font-size:.72rem;color:var(--muted);text-align:center;margin-top:18px}
+</style></head><body>
+<div class="brand"><div class="mark">S</div><div class="wm">Samba · Era's day</div></div>
+<div class="head"><h1>${esc(b.label)}</h1><div class="nav"><a href="?d=${prev}">‹ ${esc(prev.slice(5))}</a><a href="?d=${next}">${esc(next.slice(5))} ›</a></div></div>
+${section('Guests', guestsHtml)}
+${section('Cleaning', cleaningHtml, `<span class="n">${(b.cleaning || []).reduce((n, p) => n + p.visits.length, 0)} visits</span>`)}
+${tukangHtml ? section('Tukang visits', tukangHtml) : ''}
+${section('Waiting on you', backlogHtml + relaysHtml + viewingsHtml, `<span class="n">${(b.backlog || []).length + (b.relays || []).length}</span>`)}
+${looseHtml ? section('Yesterday, still open', looseHtml) : ''}
+${section('The week', weekHtml + moneyHtml)}
+<div class="foot">Built ${esc(new Date(b.generated_at || Date.now()).toLocaleString('en-GB', { timeZone: 'Asia/Makassar', hour: '2-digit', minute: '2-digit' }))} WITA from the booking calendar and the schedule · <a href="https://sambarentals.com/payouts#/cleaning">Open the Schedule page</a></div>
+</body></html>`;
 }
 
 async function serveCalendar(req, res) {

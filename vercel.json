@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/today/(.*)",
+      "destination": "/api/housekeeping?today=$1"
+    },
+    {
       "source": "/api/gdrive",
       "destination": "/api/media?source=drive"
     },
