@@ -1903,10 +1903,16 @@ function doShare(propId, btn){
     btn.classList.add('shared-ok');
     setTimeout(()=>{btn.innerHTML=orig;btn.classList.remove('shared-ok');},2000);
   };
+  // The link travels INSIDE the text, not as a separate `url` field. iOS
+  // hands many share targets (WhatsApp above all) only the `text` when both
+  // are given, so agents were sending the villa name and facts with no link
+  // at all. Every target auto-links a URL in plain text, and iMessage still
+  // renders the preview card from it.
+  const payload=text+'\n'+url;
   if(navigator.share){
-    navigator.share({title,text,url}).then(()=>{flash('Shared');maybeShareSignupNudge();}).catch(()=>{});
+    navigator.share({title,text:payload}).then(()=>{flash('Shared');maybeShareSignupNudge();}).catch(()=>{});
   } else {
-    sbCopy(text+'\n'+url).then(ok=>{flash(ok?'Copied':'Couldn’t copy — select the link and copy it manually');if(ok)maybeShareSignupNudge();});
+    sbCopy(payload).then(ok=>{flash(ok?'Copied':'Couldn’t copy — select the link and copy it manually');if(ok)maybeShareSignupNudge();});
   }
 }
 // Signed-out shares carry OUR contact instead of the agent's — after a share
