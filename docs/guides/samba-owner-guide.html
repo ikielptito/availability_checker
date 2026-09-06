@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Samba Owner Guide</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root { --terra: #C8552D; --terra-soft: #FBEDE6; --ink: #1E1B18; --muted: #6E6862; --line: #E6E0D8; --paper: #F7F3EE; --sand: #EFE8DF; --green: #2E6B3F; --green-bg: #E2EDE0; --amber-bg: #FBF0D5; --amber: #8A5A00; --wa: #E7FFDB; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  .page { width: 210mm; height: 297mm; padding: 16mm 15mm 14mm; page-break-after: always; position: relative; overflow: hidden; background: #fff; }
+  .page:last-child { page-break-after: auto; }
+  .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 8mm; }
+  .brand .mark { width: 22px; height: 22px; border-radius: 50%; background: var(--terra); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  .brand .wm { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .brand .pg { margin-left: auto; font-size: 10px; color: var(--muted); }
+  h1 { font-size: 30px; line-height: 1.1; margin: 0 0 6px; letter-spacing: -.01em; }
+  h2 { font-size: 20px; margin: 0 0 4px; letter-spacing: -.01em; }
+  h3 { font-size: 12.5px; margin: 14px 0 6px; color: var(--terra); text-transform: uppercase; letter-spacing: .08em; }
+  p { font-size: 11.5px; line-height: 1.55; margin: 0 0 8px; color: #33302C; }
+  ul { margin: 0 0 8px; padding-left: 18px; } li { font-size: 11.5px; line-height: 1.5; margin-bottom: 3px; color: #33302C; }
+  .lead { font-size: 13px; color: var(--muted); }
+  .step { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 8px; }
+  .step .n { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--terra); color: #fff; font-weight: 700; font-size: 12px; display: grid; place-items: center; margin-top: 1px; }
+  .step p { margin: 0; }
+  .shot { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--paper); box-shadow: 0 1px 2px rgba(0,0,0,.05); margin: 6px 0 10px; }
+  .shot img { display: block; width: 100%; }
+  .cap { font-size: 10px; color: var(--muted); margin: -6px 0 10px; }
+  .callout { background: var(--terra-soft); border-left: 3px solid var(--terra); border-radius: 8px; padding: 9px 12px; margin: 8px 0 10px; }
+  .callout p { margin: 0; font-size: 11px; }
+  .note { background: var(--sand); border-radius: 8px; padding: 9px 12px; margin: 8px 0 10px; }
+  .note p { margin: 0; font-size: 11px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .two-narrow { display: grid; grid-template-columns: 1.15fr 1fr; gap: 12px; align-items: start; }
+  table.t { width: 100%; border-collapse: collapse; font-size: 10.5px; margin: 6px 0 10px; }
+  table.t th { text-align: left; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 5px 6px; border-bottom: 1px solid var(--line); }
+  table.t td { padding: 6px; border-bottom: 1px dashed var(--line); vertical-align: top; }
+  .cover { background: var(--paper); }
+  .cover .big { margin-top: 40mm; }
+  .cover .sub { font-size: 14px; color: var(--muted); max-width: 150mm; line-height: 1.5; }
+  .toc { margin-top: 14mm; }
+  .toc div { font-size: 12px; padding: 7px 0; border-bottom: 1px dashed var(--line); display: flex; justify-content: space-between; }
+  .toc div span:last-child { color: var(--muted); }
+  .foot { position: absolute; left: 15mm; right: 15mm; bottom: 8mm; font-size: 9px; color: var(--muted); display: flex; justify-content: space-between; }
+  .wa { background: #ECE5DD; border-radius: 12px; padding: 10px; margin: 6px 0 10px; font-size: 10.5px; }
+  .wa .hdr { font-size: 10px; font-weight: 700; color: #075E54; margin-bottom: 6px; }
+  .wa .b { max-width: 90%; padding: 6px 9px; border-radius: 9px; margin: 4px 0; line-height: 1.45; white-space: pre-line; box-shadow: 0 1px 0 rgba(0,0,0,.06); }
+  .wa .in { background: #fff; border-top-left-radius: 2px; }
+  .wa .out { background: var(--wa); margin-left: auto; border-top-right-radius: 2px; }
+  .wa .btns { display: flex; gap: 4px; margin: 4px 0 6px; }
+  .wa .btns span { flex: 1; background: #fff; text-align: center; padding: 5px 4px; border-radius: 7px; color: #027EB5; font-weight: 600; font-size: 10px; }
+  .rule { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+  .rule .k { flex: none; width: 26px; height: 26px; border-radius: 8px; background: var(--terra); color: #fff; font-weight: 800; font-size: 13px; display: grid; place-items: center; }
+  .rule p { margin: 0; }
+  .rule b.t { display: block; font-size: 12px; margin-bottom: 1px; }
+</style>
+</head>
+<body>
+
+<!-- Cover -->
+<div class="page cover">
+  <div class="brand"><div class="mark">S</div><div class="wm">Samba Realty</div></div>
+  <div class="big">
+    <h1>Samba Owner Guide</h1>
+    <p class="sub">How your villa is looked after, what you will hear from us and when, the cleaning and readiness standard every Samba villa is held to, how repairs and statements work, and how to use your owner portal and Maya.</p>
+  </div>
+  <div class="toc">
+    <div><span>1. Who looks after your villa</span><span>p. 2</span></div>
+    <div><span>2. Maya: what she sends you, and what you can ask her</span><span>p. 3</span></div>
+    <div><span>3. Your owner portal</span><span>p. 4</span></div>
+    <div><span>4. The cleaning and readiness standard</span><span>p. 5</span></div>
+    <div><span>5. Inspections, deep cleans and the minimum kit</span><span>p. 6</span></div>
+    <div><span>6. Repairs: from a photo to an approved job</span><span>p. 7</span></div>
+    <div><span>7. Statements, payouts and the weekly report</span><span>p. 8</span></div>
+    <div><span>8. Records, damage claims and questions</span><span>p. 9</span></div>
+  </div>
+  <div class="foot"><span>Samba Realty · Bali</span><span>September 2026</span></div>
+</div>
+
+<!-- 1 Who -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Samba Owner Guide</div><div class="pg">1 · Who looks after your villa</div></div>
+  <h2>Three people and one assistant</h2>
+  <p class="lead">Samba Realty manages your villa end to end: guests, cleaning, repairs, money. This is who does what, and how to reach them.</p>
+  <table class="t">
+    <tr><th>Who</th><th>What they do for your villa</th><th>How to reach them</th></tr>
+    <tr><td><b>Era</b><br>Villa manager</td><td>Runs the day to day: guest check-ins and check-outs, the housekeepers, repairs on site, supplies. If something at the villa needs a person, it is Era.</td><td>WhatsApp +62 812 4635 7778</td></tr>
+    <tr><td><b>Ikiel</b><br>Samba Realty</td><td>Your account: pricing, the management agreement, statements, anything commercial.</td><td>WhatsApp, as you have it</td></tr>
+    <tr><td><b>Maya</b><br>Assistant, on WhatsApp</td><td>Sends you what needs your attention and answers questions about your villa, any time. She is the number this guide came from.</td><td>Reply to any of her messages</td></tr>
+    <tr><td><b>Housekeepers</b></td><td>One named housekeeper per villa, plus the pool man and our repair team. You do not need to contact them; Era and Maya do.</td><td>Through Era</td></tr>
+  </table>
+  <h3>What changed in September 2026</h3>
+  <p>We rebuilt how villas are prepared and checked. Every villa now has a written readiness standard, every guest arrival is preceded by a photo check that our assistant verifies, every fortnight the villa is inspected with photos that reach you on your weekly report, and every repair is a ticket you approve or decline from your phone. This guide explains each part.</p>
+  <div class="callout"><p><b>One rule behind all of it:</b> nothing about your villa should be a surprise to you. If a repair needs money, you hear before it is done. If a guest complains, we have the photos from before they arrived. If a month's rent is in, the statement says so.</p></div>
+  <div class="foot"><span>Samba Owner Guide</span><span>2</span></div>
+</div>
+
+<!-- 2 Maya -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Samba Owner Guide</div><div class="pg">2 · Maya</div></div>
+  <h2>Maya: what she sends you, and what you can ask her</h2>
+  <p class="lead">Maya is Samba's assistant on WhatsApp. She is not a person; she is software run by our team, and she says so if you ask. She messages you only about your villa, and only when something needs you or is ready for you.</p>
+  <div class="two">
+    <div>
+      <h3>What she sends</h3>
+      <ul>
+        <li><b>Repair approvals.</b> A repair with a cost, one tap to approve or decline. Nothing that costs money is done without your yes.</li>
+        <li><b>Repair notices.</b> Routine work we are doing anyway, or a heads-up about something found today whose cost follows.</li>
+        <li><b>Repair completed.</b> When the work is done, with the final cost.</li>
+        <li><b>Your monthly statement</b>, when it is published, with a link.</li>
+        <li><b>Your weekly report</b>, every Monday: views, enquiries, bookings, occupancy, and the inspection photos from that week.</li>
+        <li><b>Your portal link</b>, when you need to sign in.</li>
+      </ul>
+      <h3>What you can ask her</h3>
+      <p>Reply to any message, in English or Indonesian. She knows your statements, your bookings, your open repairs and the housekeeping schedule. Examples: "What was August's payout?", "Is anyone staying this week?", "What happened with the leak?", "When is the next inspection?". If she cannot answer, she tells you and passes it to Era or Ikiel.</p>
+    </div>
+    <div>
+      <div class="wa"><div class="hdr">Maya → you</div>
+        <div class="b in">Hi Cielo, a repair at Tropicana Valley Unit A5 needs your approval:
+
+Replace glassware — long glass, stemmed glasses and bowl
+Estimated cost: IDR 85,000
+
+Tap to review and approve. It appears as an expense on the month's statement once done.</div>
+        <div class="btns"><span>Review and approve</span></div>
+        <div class="b out">Approved. Can you also tell me when the leak by the back door is being looked at?</div>
+        <div class="b in">Thank you. The leak was found on Saturday's inspection; Era is getting a quote and you will get it here to approve. I will let you know the moment it is in.</div>
+      </div>
+      <div class="note"><p><b>What she will not do:</b> spend your money, change your prices, or message your guests. Those stay with you, Era and Ikiel.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>Samba Owner Guide</span><span>3</span></div>
+</div>
+
+<!-- 3 Portal -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Samba Owner Guide</div><div class="pg">3 · Your owner portal</div></div>
+  <h2>Your owner portal</h2>
+  <p class="lead"><b>sambarentals.com/portal</b>. Sign in with your WhatsApp number: type it, tap the link Maya sends, and you are in. No password. You stay signed in for 30 days on that phone or computer.</p>
+  <div class="two-narrow">
+    <div>
+      <div class="shot"><img src="crops/properties.png" alt="My properties tab"></div>
+      <p class="cap">My properties: each villa you own with Samba, its listing, and who is on its contact list.</p>
+      <div class="shot"><img src="crops/maintenance.png" alt="Maintenance tab"></div>
+      <p class="cap">Maintenance: every repair ticket, what it costs, and the Approve button for the ones waiting on you.</p>
+    </div>
+    <div>
+      <h3>The five tabs</h3>
+      <div class="step"><div class="n">1</div><p><b>My properties.</b> Your villas, their live listing, views and enquiries over the last week or month, and the contacts we send reports to.</p></div>
+      <div class="step"><div class="n">2</div><p><b>Weekly reports.</b> Every Monday's report, kept. Interest in the listing, bookings and revenue, occupancy ahead, and the inspection photos with any repairs they raised.</p></div>
+      <div class="step"><div class="n">3</div><p><b>Statements.</b> Each month's payout statement: rent received, our fee, expenses, what is owed to you, and whether it has been paid. Download as Excel for your accountant.</p></div>
+      <div class="step"><div class="n">4</div><p><b>Maintenance.</b> All repairs: waiting for your approval, approved and in progress, completed with the final cost. Approve or decline here or from Maya's message, whichever is closer.</p></div>
+      <div class="step"><div class="n">5</div><p><b>Housekeeping.</b> Every cleaning visit, every photo check before a guest and every inspection round at your villa, with the photos and a PDF of each record, plus the next planned clean, inspection and deep clean.</p></div>
+      <div class="note"><p><b>Co-owners</b> can have their own sign-in on the same villa. Ask Ikiel to add their number.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>Samba Owner Guide</span><span>4</span></div>
+</div>
+
+<!-- 4 Cleaning standard -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Samba Owner Guide</div><div class="pg">4 · The cleaning and readiness standard</div></div>
+  <h2>The cleaning and readiness standard</h2>
+  <p class="lead">What every Samba villa gets, and how we know it was done.</p>
+  <div class="rule"><div class="k">1</div><p><b class="t">Cleaned twice a week, occupied or not</b>On fixed weekdays per villa, whether a guest is in or the villa is empty. An empty villa still has to show well for viewings.</p></div>
+  <div class="rule"><div class="k">2</div><p><b class="t">A turnover clean the day a guest leaves, and a preparation clean before the next one arrives</b>Prepared the day before arrival when the villa has stood empty for five days or more, so a guest never walks into a villa that has been closed up for a week.</p></div>
+  <div class="rule"><div class="k">3</div><p><b class="t">A photo check before every guest</b>When the housekeeper finishes preparing the villa, she photographs seven fixed spots: the living room with the sofa covers on, the kitchen and the inside of the oven, the bathroom with soap and shower gel stocked, the bedroom made, the wall that was dirtiest, the pool area and its furniture, and the consumables box. Our assistant checks the photos against the standard before the guest arrives. Anything not right is fixed while she is still there. A villa nobody photographed is treated as not ready.</p></div>
+  <div class="rule"><div class="k">4</div><p><b class="t">Stocked when the guest arrives</b>Every villa has a consumables box: hand soap, shower gel, shampoo, dish soap and sponge, kitchen roll, toilet roll, bin bags, and a dispenser gallon with two sealed bottles of water beside it. The housekeeper counts it at every turnover and Era restocks.</p></div>
+  <div class="rule"><div class="k">5</div><p><b class="t">Spare sofa covers in every villa</b>A cover being washed never leaves a sofa bare when a guest walks in.</p></div>
+  <div class="rule"><div class="k">6</div><p><b class="t">Every handover is on record</b>The photos, the check result and the housekeeper's name are kept permanently, dated, and tied to the booking before and after. That record is what protects you in a damage dispute.</p></div>
+  <div class="callout"><p><b>Why this exists.</b> A guest judges a villa in the first ten minutes: a bare sofa, an empty soap bottle, a rusty oven, a stained wall. One bad review costs months of bookings. The standard above is written from exactly those complaints.</p></div>
+  <div class="foot"><span>Samba Owner Guide</span><span>5</span></div>
+</div>
+
+<!-- 5 Inspections, deep cleans, kit -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Samba Owner Guide</div><div class="pg">5 · Inspections, deep cleans, minimum kit</div></div>
+  <h2>Inspections, deep cleans and the minimum kit</h2>
+  <div class="two">
+    <div>
+      <h3>Every two weeks: an inspection with photos</h3>
+      <p>The housekeeper walks the villa and photographs the bathroom, the ceilings, the wall behind the air conditioner, the kitchen and the pool, looking for mould, damp and damage. She also tests what a photo cannot show: door locks and hinges, every plug and switch, the air conditioner and TV remote, curtains, taps and showers, the hob, fridge and dispenser, the safe, the fire extinguisher date, hangers. Anything wrong becomes a repair ticket. The photos and findings appear on your weekly report, and "we looked and it was fine" is reported too.</p>
+      <h3>Every three months: a deep clean</h3>
+      <p>All walls and skirting, inside the oven, exterior windows including upstairs, bathroom grout, pool cushions washed, the water dispenser sanitised, under and behind furniture. Scheduled automatically on a day the villa is empty when one is coming, and also the day after any guest who stayed three weeks or more. Stains that will not wipe off come to you as a repaint ticket.</p>
+    </div>
+    <div>
+      <h3>The minimum kit</h3>
+      <p>Guests compare your villa with the one next door. These ten items are the Samba standard for every villa we manage. Era audits each villa once; anything missing reaches you as a repair ticket with a cost, to approve like any other.</p>
+      <table class="t">
+        <tr><td>Kettle</td><td>Microwave</td></tr>
+        <tr><td>Full-length mirror</td><td>Iron and ironing board</td></tr>
+        <tr><td>Towel rack or ladder</td><td>Drying rack by the pool</td></tr>
+        <tr><td>Hairdryer</td><td>Spare set of sofa covers</td></tr>
+        <tr><td>Water dispenser, hot and cold, with a dated sanitised sticker</td><td>Pool furniture cushions clean, no mould</td></tr>
+      </table>
+      <div class="note"><p><b>Villas without an oven or a pool</b> are photographed and checked for what they have. The standard adapts; the housekeeper is told what to do in each case.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>Samba Owner Guide</span><span>6</span></div>
+</div>
+
+<!-- 6 Repairs -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Samba Owner Guide</div><div class="pg">6 · Repairs</div></div>
+  <h2>Repairs: from a photo to an approved job</h2>
+  <p class="lead">Every repair is a ticket. You see it, you decide on it, and you see it closed.</p>
+  <div class="step"><div class="n">1</div><p><b>Found.</b> A housekeeper's photo during a clean or inspection, a guest's message, or Era's own visit. The ticket is created with the photo and the villa.</p></div>
+  <div class="step"><div class="n">2</div><p><b>Assessed.</b> Era looks and adds an estimated cost. For something urgent, a leak for example, you get a heads-up from Maya the same day, before the cost is known.</p></div>
+  <div class="step"><div class="n">3</div><p><b>Your decision.</b> Maya sends the ticket with the cost and a button. <b>Approve</b> or <b>Not right now</b>, from the message or from the portal's Maintenance tab. Small routine work we are doing anyway comes as a notice, not a question.</p></div>
+  <div class="step"><div class="n">4</div><p><b>Done.</b> Era sends our repair team, and Maya chases until it is finished. You get a completion message with the final cost.</p></div>
+  <div class="step"><div class="n">5</div><p><b>On the statement.</b> The cost appears as an expense on the month the work was done, with the ticket's title, so the statement and the messages always match.</p></div>
+  <div class="two">
+    <div>
+      <div class="wa"><div class="hdr">The three kinds of message</div>
+        <div class="b in"><b>Approval:</b> "…needs your approval. Estimated cost IDR 850,000. Tap to review."</div>
+        <div class="b in"><b>Notice:</b> "…we are doing this as routine work, just so you know."</div>
+        <div class="b in"><b>Heads-up:</b> "…found by our team today, being assessed; the repair cost follows for your approval."</div>
+      </div>
+    </div>
+    <div>
+      <div class="callout"><p><b>Nothing is spent without you.</b> Declining is fine and costs nothing; the ticket stays on record as declined. If you want a second quote or your own contractor, reply to Maya and say so.</p></div>
+      <p>Repair costs are passed through at cost. Our management fee is the 10% on rent and nothing else.</p>
+    </div>
+  </div>
+  <div class="foot"><span>Samba Owner Guide</span><span>7</span></div>
+</div>
+
+<!-- 7 Money -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Samba Owner Guide</div><div class="pg">7 · Statements and the weekly report</div></div>
+  <h2>Statements, payouts and the weekly report</h2>
+  <div class="two-narrow">
+    <div>
+      <div class="shot"><img src="crops/report-top.png" alt="Weekly report"></div>
+      <p class="cap">The Monday report: interest in the listing, this week at a glance, bookings and revenue, occupancy ahead. Inspection photos and repairs appear in the weeks a round happened.</p>
+    </div>
+    <div>
+      <h3>The monthly statement</h3>
+      <p>Published once the month's rent is in. It lists every booking and the rent received, our 10% management fee, expenses with their tickets, any adjustment, and the amount owed to you. When we transfer it, the statement shows paid. Download it as Excel for your accountant from the Statements tab.</p>
+      <p>Rent is quoted to guests and agents with the agent's 10% already inside it, so the rent on your statement is what was actually received.</p>
+      <h3>The weekly report</h3>
+      <p>Every Monday, on WhatsApp and kept in the portal. It is built from live data: listing views and enquiries, agents who shared the villa, new bookings and nights sold, occupancy for the next 30 days, and the fortnightly inspection with its photos and any repairs raised.</p>
+      <div class="note"><p><b>A question about a number?</b> Ask Maya in the same chat: "why is August lower than July?" She answers from the statement itself.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>Samba Owner Guide</span><span>8</span></div>
+</div>
+
+<!-- 8 Records -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Samba Owner Guide</div><div class="pg">8 · Records and questions</div></div>
+  <h2>Records, damage claims and questions</h2>
+  <div class="two">
+    <div>
+      <h3>Every clean, check and inspection is kept</h3>
+      <p>Open the <b>Housekeeping</b> tab in your portal. Each cleaning visit, each photo check before a guest and each fortnightly inspection is listed with its date and outcome. Tap <b>View the photos</b> to see what the housekeeper sent, and <b>Download as PDF</b> for a dated record with the photos and the bookings around it. Nothing in a record can be edited after the fact. The cards at the top show the next planned clean, inspection and deep clean.</p>
+      <div class="shot"><img src="crops/housekeeping.png" alt="Housekeeping tab"></div>
+      <p class="cap">Housekeeping: what is planned next, then the log. "Flagged, then fixed" means the photo check caught something and it was put right before the guest arrived.</p>
+      <h3>If a guest damages something</h3>
+      <p>Download the PDF from before that guest arrived and the one from after they left, and send both to the platform's claim or your insurer. Or tell Era or Maya and we prepare it for you.</p>
+      <h3>If a guest complains</h3>
+      <p>We answer the guest the same day, fix what is wrong as fast as it can be fixed, and tell you when it is done. If the complaint points at something structural, it becomes a ticket for you.</p>
+    </div>
+    <div>
+      <h3>Questions we get most</h3>
+      <table class="t">
+        <tr><td><b>Can I visit or stay in my villa?</b></td><td>Yes. Tell Era the dates so the calendar is blocked and the villa is prepared for you like a guest.</td></tr>
+        <tr><td><b>Who pays for consumables?</b></td><td>Soap, water and the like are part of running the villa and appear on the statement as expenses where they apply.</td></tr>
+        <tr><td><b>Can I use my own contractor?</b></td><td>Yes. Decline the ticket and tell Maya; Era coordinates access.</td></tr>
+        <tr><td><b>Can my partner get the messages too?</b></td><td>Yes. Ikiel adds their number; they get their own portal sign-in.</td></tr>
+        <tr><td><b>How do I change the price?</b></td><td>Message Ikiel. Pricing is a conversation, not a form.</td></tr>
+        <tr><td><b>I do not want WhatsApp messages.</b></td><td>Tell Ikiel. Reports and statements can go by email and the portal instead.</td></tr>
+      </table>
+      <div class="callout"><p><b>Anything else:</b> reply to Maya. If it is hers to answer she does; if not, Era or Ikiel gets it with your message attached.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>Samba Owner Guide</span><span>9</span></div>
+</div>
+
+</body>
+</html>

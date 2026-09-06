@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Panduan Housekeeper · Samba</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root { --terra: #C8552D; --terra-soft: #FBEDE6; --ink: #1E1B18; --muted: #6E6862; --line: #E6E0D8; --paper: #F7F3EE; --sand: #EFE8DF; --green: #2E6B3F; --green-bg: #E2EDE0; --red-bg: #FBE3DD; --red: #A33B1F; --wa: #E7FFDB; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  .page { width: 210mm; height: 297mm; padding: 16mm 15mm 14mm; page-break-after: always; position: relative; overflow: hidden; background: #fff; }
+  .page:last-child { page-break-after: auto; }
+  .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 8mm; }
+  .brand .mark { width: 22px; height: 22px; border-radius: 50%; background: var(--terra); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  .brand .wm { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .brand .pg { margin-left: auto; font-size: 10px; color: var(--muted); }
+  h1 { font-size: 32px; line-height: 1.1; margin: 0 0 6px; letter-spacing: -.01em; }
+  h2 { font-size: 24px; margin: 0 0 6px; letter-spacing: -.01em; }
+  h3 { font-size: 13px; margin: 14px 0 6px; color: var(--terra); text-transform: uppercase; letter-spacing: .08em; }
+  p { font-size: 13.5px; line-height: 1.55; margin: 0 0 8px; color: #33302C; }
+  .lead { font-size: 15px; color: var(--muted); }
+  .step { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 10px; }
+  .step .n { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--terra); color: #fff; font-weight: 700; font-size: 14px; display: grid; place-items: center; margin-top: 1px; }
+  .step p { margin: 0; font-size: 13.5px; }
+  .callout { background: var(--terra-soft); border-left: 4px solid var(--terra); border-radius: 8px; padding: 10px 14px; margin: 10px 0 12px; }
+  .callout p { margin: 0; font-size: 13px; }
+  .note { background: var(--sand); border-radius: 8px; padding: 10px 14px; margin: 10px 0 12px; }
+  .note p { margin: 0; font-size: 13px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .cover { background: var(--paper); }
+  .cover .big { margin-top: 40mm; }
+  .cover .sub { font-size: 16px; color: var(--muted); max-width: 150mm; line-height: 1.5; }
+  .toc { margin-top: 16mm; }
+  .toc div { font-size: 13px; padding: 8px 0; border-bottom: 1px dashed var(--line); display: flex; justify-content: space-between; }
+  .toc div span:last-child { color: var(--muted); }
+  .foot { position: absolute; left: 15mm; right: 15mm; bottom: 8mm; font-size: 9px; color: var(--muted); display: flex; justify-content: space-between; }
+  .kbd { font-family: inherit; background: var(--sand); border-radius: 5px; padding: 1px 7px; font-weight: 700; font-size: 12.5px; }
+  /* WhatsApp mockup */
+  .wa { background: #ECE5DD; border-radius: 14px; padding: 12px; margin: 8px 0 12px; font-size: 12.5px; }
+  .wa .hdr { font-size: 11px; font-weight: 700; color: #075E54; margin-bottom: 6px; }
+  .wa .b { max-width: 88%; padding: 8px 11px; border-radius: 10px; margin: 5px 0; line-height: 1.45; white-space: pre-line; box-shadow: 0 1px 0 rgba(0,0,0,.06); }
+  .wa .in { background: #fff; border-top-left-radius: 2px; }
+  .wa .out { background: var(--wa); margin-left: auto; border-top-right-radius: 2px; }
+  .wa .btns { display: flex; gap: 5px; margin: 5px 0 8px; }
+  .wa .btns span { flex: 1; background: #fff; text-align: center; padding: 7px 4px; border-radius: 8px; color: #027EB5; font-weight: 700; font-size: 12px; }
+  .wa .btns span.hi { outline: 3px solid var(--terra); }
+  /* checklist */
+  .ck { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin: 8px 0 12px; }
+  .ck div { display: flex; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .ck div:last-child { border-bottom: none; }
+  .ck .n { flex: none; width: 30px; height: 30px; border-radius: 9px; background: var(--terra); color: #fff; font-weight: 800; font-size: 15px; display: grid; place-items: center; }
+  .ck .box { flex: none; width: 22px; height: 22px; border: 2px solid var(--muted); border-radius: 6px; }
+  .ck small { display: block; color: var(--muted); font-size: 12px; }
+  .big-yes { font-size: 15px; font-weight: 800; color: var(--green); }
+  .big-no { font-size: 15px; font-weight: 800; color: var(--red); }
+  table.t { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0 10px; }
+  table.t td { padding: 8px 6px; border-bottom: 1px dashed var(--line); vertical-align: top; }
+  table.t td:last-child { text-align: right; font-weight: 700; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<!-- ── Sampul ── -->
+<div class="page cover">
+  <div class="brand"><div class="mark">S</div><div class="wm">Samba</div></div>
+  <div class="big">
+    <h1>Panduan Housekeeper</h1>
+    <p class="sub">Cara kerja yang baru: pesan pagi dari Maya, foto sebelum tamu datang, kotak perlengkapan, dan pembersihan menyeluruh tiga bulan sekali.</p>
+  </div>
+  <div class="toc">
+    <div><span>1. Tiga hal yang baru</span><span>hal. 2</span></div>
+    <div><span>2. Pesan pagi dari Maya dan tiga tombolnya</span><span>hal. 3</span></div>
+    <div><span>3. Foto sebelum tamu datang: tujuh foto</span><span>hal. 4</span></div>
+    <div><span>4. Kalau Maya minta diperbaiki</span><span>hal. 5</span></div>
+    <div><span>5. Arti "siap": periksa ruangan per ruangan</span><span>hal. 6</span></div>
+    <div><span>6. Kotak perlengkapan</span><span>hal. 7</span></div>
+    <div><span>7. Pembersihan menyeluruh (deep clean)</span><span>hal. 8</span></div>
+    <div><span>8. Pemeriksaan dua minggu sekali: yang dicoba, bukan hanya difoto</span><span>hal. 9</span></div>
+    <div><span>9. Aturan penting</span><span>hal. 10</span></div>
+  </div>
+  <div class="foot"><span>Samba Realty · Bali</span><span>September 2026</span></div>
+</div>
+
+<!-- ── 1. Tiga hal baru ── -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Panduan Housekeeper</div><div class="pg">1 · Tiga hal yang baru</div></div>
+  <h2>Kenapa ada yang baru</h2>
+  <p class="lead">Minggu lalu seorang tamu masuk ke villa yang belum siap: sofa tanpa sarung, tidak ada sabun, dinding dan oven kotor. Bukan karena tidak ada yang bersih-bersih. Karena tidak ada yang <b>memeriksa</b> sebelum tamu masuk, dan tidak ada yang tahu sarung sofa sedang dicuci.</p>
+  <p>Mulai sekarang, <b>yang membersihkan villa juga yang membuktikan villa sudah siap</b>, dengan foto. Maya yang memeriksa foto. Era hanya ikut kalau ada masalah.</p>
+
+  <h3>Tiga hal yang berubah</h3>
+  <div class="step"><div class="n">1</div><p><b>Setelah selesai, kirim foto.</b> Kalau tugasnya menyiapkan villa untuk tamu (turnover dengan tamu berikutnya, persiapan sebelum tamu datang, atau deep clean), Maya akan minta tujuh foto begitu Anda tekan "Sudah selesai". Bersih-bersih rutin biasa tidak perlu foto.</p></div>
+  <div class="step"><div class="n">2</div><p><b>Kotak perlengkapan selalu penuh.</b> Setiap villa punya satu kotak: sabun, sampo, tisu, kantong sampah, air. Anda yang menghitung isinya dan memberi tahu Maya kalau ada yang hampir habis.</p></div>
+  <div class="step"><div class="n">3</div><p><b>Pembersihan menyeluruh tiga bulan sekali, dan setelah tamu menginap lama.</b> Dinding, bagian dalam oven, kaca luar, nat kamar mandi, bantal kolam, dispenser. Jadwalnya datang dari Maya seperti tugas lain.</p></div>
+
+  <div class="callout"><p><b>Yang tidak berubah:</b> jadwal pagi dari Maya, jadwal minggu di hari Senin, tombol "Besok saja" dan "Tidak bisa", dan cara lapor barang rusak (foto ke Maya).</p></div>
+  <div class="foot"><span>Samba · Housekeeper</span><span>2</span></div>
+</div>
+
+<!-- ── 2. Pesan pagi ── -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Panduan Housekeeper</div><div class="pg">2 · Pesan pagi</div></div>
+  <h2>Pesan pagi dan tiga tombolnya</h2>
+  <p class="lead">Setiap pagi Maya mengirim tugas hari itu. Kalau di tugasnya tertulis <b>"Maya akan minta foto tiap ruangan"</b>, berarti hari ini ada tamu yang akan masuk: siapkan waktu untuk foto.</p>
+  <div class="two">
+    <div>
+      <div class="wa"><div class="hdr">Maya, pagi hari</div>
+        <div class="b in">Halo, ada jadwal untuk hari ini.
+
+Villa: HAUS Canggu · Unit 4
+Tugas: siapkan villa sebelum tamu datang — setelah selesai, Maya akan minta foto tiap ruangan
+
+Kalau sudah selesai atau ada kendala, tekan tombol di bawah. Terima kasih.</div>
+        <div class="btns"><span class="hi">Sudah selesai</span><span>Besok saja</span><span>Tidak bisa</span></div>
+      </div>
+    </div>
+    <div>
+      <h3>Tiga tombol</h3>
+      <div class="step"><div class="n">1</div><p><span class="kbd">Sudah selesai</span> tekan <b>setelah</b> villa benar-benar selesai dan Anda masih di villa. Untuk tugas dengan tamu, Maya langsung minta foto.</p></div>
+      <div class="step"><div class="n">2</div><p><span class="kbd">Besok saja</span> tugas dipindah ke besok. Era diberi tahu. Jangan dipakai kalau tamu datang hari ini.</p></div>
+      <div class="step"><div class="n">3</div><p><span class="kbd">Tidak bisa</span> Era akan mencari pengganti. Tekan sepagi mungkin.</p></div>
+      <div class="note"><p>Boleh juga menulis biasa: "sudah", "besok pagi bisa", "tidak bisa, sakit". Maya mengerti.</p></div>
+      <h3>Hari Senin</h3>
+      <p>Maya mengirim jadwal seminggu. Kalau ada hari yang tidak bisa, kabari hari Senin itu juga, supaya Era sempat mengatur.</p>
+    </div>
+  </div>
+  <div class="callout"><p><b>Jangan tekan "Sudah selesai" sebelum selesai.</b> Kalau Anda tekan lalu pulang tanpa foto, Maya menunggu, lalu memberi tahu Era bahwa villa itu <b>tidak diperiksa</b>. Itu dicatat.</p></div>
+  <div class="foot"><span>Samba · Housekeeper</span><span>3</span></div>
+</div>
+
+<!-- ── 3. Tujuh foto ── -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Panduan Housekeeper</div><div class="pg">3 · Tujuh foto</div></div>
+  <h2>Foto sebelum tamu datang</h2>
+  <p class="lead">Begitu Anda tekan "Sudah selesai", Maya minta tujuh foto ini. Foto dari pintu masuk ruangan, terang, seluruh ruangan terlihat.</p>
+  <div class="two">
+    <div>
+      <div class="ck">
+        <div><span class="n">1</span><span>Ruang tamu<small>sofa dengan sarungnya terpasang</small></span><span class="box"></span></div>
+        <div><span class="n">2</span><span>Dapur<small>meja, kompor, dan bagian dalam oven (buka pintunya)</small></span><span class="box"></span></div>
+        <div><span class="n">3</span><span>Kamar mandi<small>sabun tangan dan sabun mandi terisi, terlihat di foto</small></span><span class="box"></span></div>
+        <div><span class="n">4</span><span>Kamar tidur<small>tempat tidur sudah rapi</small></span><span class="box"></span></div>
+        <div><span class="n">5</span><span>Dinding yang tadinya paling kotor<small>setelah dilap</small></span><span class="box"></span></div>
+        <div><span class="n">6</span><span>Area kolam<small>kursi dan bantalnya</small></span><span class="box"></span></div>
+        <div><span class="n">7</span><span>Kotak perlengkapan<small>dibuka, isinya terlihat</small></span><span class="box"></span></div>
+      </div>
+      <div class="note"><p>Villa dengan dua kamar mandi atau dua lantai: foto keduanya. Lebih banyak foto tidak apa-apa. Kurang dari empat foto akan ditandai.</p></div>
+    </div>
+    <div>
+      <div class="wa"><div class="hdr">Setelah tekan "Sudah selesai"</div>
+        <div class="b in">Terima kasih! Sebelum tamu datang, tolong kirim foto HAUS Canggu · Unit 4:
+1. ruang tamu (sofa dengan sarungnya)
+2. dapur (meja, kompor, dan bagian dalam oven)
+3. kamar mandi (sabun dan sabun mandi terisi)
+4. kamar tidur (tempat tidur sudah rapi)
+5. dinding yang paling kotor sebelumnya
+6. area kolam dan kursinya
+7. kotak perlengkapan (sabun, tisu, kantong sampah)
+
+Kalau ada yang hampir habis, tulis saja di sini. Setelah semua foto terkirim, balas "selesai".</div>
+        <div class="b out">📷 📷 📷 📷 📷 📷 📷</div>
+        <div class="b out">sabun mandi tinggal sedikit</div>
+        <div class="b out">selesai</div>
+        <div class="b in">Terima kasih, HAUS Canggu · Unit 4 sudah dicatat siap dengan 7 foto. 🙏</div>
+      </div>
+      <h3>Urutannya</h3>
+      <div class="step"><div class="n">1</div><p>Kirim foto satu per satu. Maya membalas hanya pada foto pertama.</p></div>
+      <div class="step"><div class="n">2</div><p>Tulis apa yang hampir habis, kalau ada.</p></div>
+      <div class="step"><div class="n">3</div><p>Balas <span class="kbd">selesai</span>. Tunggu jawaban Maya sebelum pulang.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>Samba · Housekeeper</span><span>4</span></div>
+</div>
+
+<!-- ── 4. Kalau diminta perbaiki ── -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Panduan Housekeeper</div><div class="pg">4 · Kalau Maya minta diperbaiki</div></div>
+  <h2>Kalau Maya minta diperbaiki</h2>
+  <p class="lead">Maya melihat semua foto. Kalau ada yang belum siap, Maya menyebutkannya. Itu bukan marah; itu supaya diperbaiki <b>sekarang</b>, selagi Anda masih di villa, bukan setelah tamu mengeluh.</p>
+  <div class="two">
+    <div>
+      <div class="wa"><div class="hdr">Maya, setelah "selesai"</div>
+        <div class="b out">selesai</div>
+        <div class="b in">Terima kasih. Sebelum pulang, tolong periksa lagi:
+• pasang sarung sofa
+• isi sabun tangan di dapur
+
+Kalau sudah, foto lagi bagian itu.</div>
+        <div class="b out">📷 📷</div>
+        <div class="b out">sudah</div>
+      </div>
+    </div>
+    <div>
+      <div class="step"><div class="n">1</div><p><b>Perbaiki</b> yang disebut Maya.</p></div>
+      <div class="step"><div class="n">2</div><p><b>Foto lagi</b> bagian itu saja.</p></div>
+      <div class="step"><div class="n">3</div><p>Kalau Maya keliru (misalnya sofa di villa itu memang tidak pakai sarung), tulis saja: "sofa ini memang tanpa sarung". Era yang memutuskan.</p></div>
+      <div class="step"><div class="n">4</div><p>Kalau yang diminta <b>tidak bisa</b> diperbaiki hari itu (sarung sofa masih basah, sabun habis di stok), tulis alasannya. Era akan mengatur.</p></div>
+      <div class="callout"><p><b>Sarung sofa basah?</b> Setiap villa punya sarung cadangan. Pasang cadangannya. Sofa tidak boleh telanjang saat tamu masuk.</p></div>
+    </div>
+  </div>
+  <h3>Yang terjadi setelah itu</h3>
+  <p>Era melihat semua foto di halaman jadwal. Kalau semua beres, Era tidak diganggu sama sekali. Kalau ada yang ditandai, Era dapat pesan dan mungkin menelepon Anda. Setiap serah terima dicatat: <span class="big-yes">lolos</span>, <span class="big-no">ditandai</span>, atau <span class="big-no">tidak diperiksa</span>. Sebulan sekali Era membacanya bersama Anda.</p>
+  <div class="foot"><span>Samba · Housekeeper</span><span>5</span></div>
+</div>
+
+<!-- ── 5. Arti siap ── -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Panduan Housekeeper</div><div class="pg">5 · Arti "siap"</div></div>
+  <h2>Arti "siap": ruangan per ruangan</h2>
+  <p class="lead">Ini yang dilihat Maya di foto, dan yang dilihat tamu di hari pertama. Periksa sebelum menekan "Sudah selesai".</p>
+  <div class="two">
+    <div>
+      <h3>Ruang tamu</h3>
+      <div class="ck">
+        <div><span class="box"></span><span>Sarung sofa terpasang, bersih</span></div>
+        <div><span class="box"></span><span>Bantal sofa rapi, tidak ada noda</span></div>
+        <div><span class="box"></span><span>Lantai disapu dan dipel, termasuk bawah meja</span></div>
+        <div><span class="box"></span><span>Dinding dan lis dilap, tidak ada bekas tangan atau noda</span></div>
+      </div>
+      <h3>Dapur</h3>
+      <div class="ck">
+        <div><span class="box"></span><span>Meja dan kompor bersih, tidak ada noda minyak</span></div>
+        <div><span class="box"></span><span>Bagian dalam oven bersih (buka dan lihat)</span></div>
+        <div><span class="box"></span><span>Sabun cuci piring, spons, tisu dapur ada</span></div>
+        <div><span class="box"></span><span>Kulkas kosong dan bersih, tempat sampah kosong dengan kantong baru</span></div>
+        <div><span class="box"></span><span>Dispenser: galon terisi, 2 botol air segel di sebelahnya</span></div>
+      </div>
+      <h3>Kamar mandi</h3>
+      <div class="ck">
+        <div><span class="box"></span><span>Sabun tangan dan sabun mandi terisi (bukan hampir habis)</span></div>
+        <div><span class="box"></span><span>Sampo ada, tisu toilet minimal 2 gulung</span></div>
+        <div><span class="box"></span><span>Cermin, kaca, dan keran tanpa bercak</span></div>
+        <div><span class="box"></span><span>Handuk bersih di rak</span></div>
+      </div>
+    </div>
+    <div>
+      <h3>Kamar tidur</h3>
+      <div class="ck">
+        <div><span class="box"></span><span>Sprei dan sarung bantal bersih, tempat tidur rapi</span></div>
+        <div><span class="box"></span><span>Lemari kosong, hanger ada</span></div>
+        <div><span class="box"></span><span>AC dinyalakan sebentar, tidak bau</span></div>
+        <div><span class="box"></span><span>Setrika dan papan setrika ada</span></div>
+      </div>
+      <h3>Luar dan kolam</h3>
+      <div class="ck">
+        <div><span class="box"></span><span>Bantal dan kursi kolam bersih, tidak ada jamur</span></div>
+        <div><span class="box"></span><span>Jemuran ada dan bersih</span></div>
+        <div><span class="box"></span><span>Kaca luar bersih, termasuk lantai atas: tidak ada kotoran burung</span></div>
+        <div><span class="box"></span><span>Daun dan sampah di teras disapu</span></div>
+      </div>
+      <div class="callout"><p><b>Empat hal yang paling sering membuat tamu mengeluh:</b> sofa tanpa sarung, sabun kosong, oven kotor di dalam, dinding bernoda. Kalau ragu, foto dari dekat dan tanya Maya.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>Samba · Housekeeper</span><span>6</span></div>
+</div>
+
+<!-- ── 6. Kotak perlengkapan ── -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Panduan Housekeeper</div><div class="pg">6 · Kotak perlengkapan</div></div>
+  <h2>Kotak perlengkapan</h2>
+  <p class="lead">Setiap villa punya satu kotak. Ini isinya saat penuh. Setiap turnover: hitung, isi dari kotak ke kamar mandi dan dapur, lalu beri tahu Maya apa yang kurang.</p>
+  <div class="two">
+    <div>
+      <table class="t">
+        <tr><td>Sabun tangan (kamar mandi dan dapur)</td><td>2</td></tr>
+        <tr><td>Sabun mandi</td><td>1</td></tr>
+        <tr><td>Sampo</td><td>1</td></tr>
+        <tr><td>Sabun cuci piring dan spons</td><td>1</td></tr>
+        <tr><td>Tisu dapur / tisu makan</td><td>2</td></tr>
+        <tr><td>Tisu toilet</td><td>4</td></tr>
+        <tr><td>Kantong sampah</td><td>10</td></tr>
+        <tr><td>Galon dispenser + 2 botol air segel</td><td>1</td></tr>
+      </table>
+    </div>
+    <div>
+      <div class="wa"><div class="hdr">Cara memberi tahu Maya</div>
+        <div class="b out">tisu toilet tinggal 1, sabun tangan habis</div>
+        <div class="b in">Dicatat. Kirim fotonya juga ya, lalu balas "selesai".</div>
+      </div>
+      <div class="step"><div class="n">1</div><p>Tulis saat Maya minta foto, atau kapan saja setelah tekan "Sudah selesai".</p></div>
+      <div class="step"><div class="n">2</div><p>Era yang mengisi ulang atau membeli. Anda tidak perlu membeli sendiri.</p></div>
+      <div class="step"><div class="n">3</div><p>Sabun di kamar mandi harus <b>terisi</b> saat tamu masuk, bukan hampir habis. Kalau ragu, ganti.</p></div>
+      <div class="callout"><p><b>Dispenser:</b> sebulan sekali dibersihkan bagian dalamnya (saat deep clean). Tempelkan stiker tanggal di badannya. Tamu bertanya soal ini.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>Samba · Housekeeper</span><span>7</span></div>
+</div>
+
+<!-- ── 7. Deep clean ── -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Panduan Housekeeper</div><div class="pg">7 · Deep clean</div></div>
+  <h2>Pembersihan menyeluruh</h2>
+  <p class="lead">Tiga bulan sekali per villa, dan sehari setelah tamu yang menginap tiga minggu atau lebih pergi. Maya mengirimnya seperti tugas biasa, biasanya di hari villa kosong. Butuh setengah hari; jangan digabung dengan tugas lain.</p>
+  <div class="wa"><div class="hdr">Maya, pagi hari</div>
+    <div class="b in">Halo, ada jadwal untuk hari ini.
+Villa: Villa Saturno
+Tugas: pembersihan menyeluruh: lap semua dinding dan lis, bagian dalam oven, kaca luar termasuk lantai atas, nat kamar mandi, bantal kolam dicuci, dispenser dibersihkan — setelah selesai, Maya akan minta foto tiap ruangan</div>
+  </div>
+  <div class="ck">
+    <div><span class="n">1</span><span>Semua dinding dan lis dilap<small>termasuk di belakang pintu dan di bawah saklar</small></span><span class="box"></span></div>
+    <div><span class="n">2</span><span>Bagian dalam oven<small>rak dikeluarkan, dinding oven digosok</small></span><span class="box"></span></div>
+    <div><span class="n">3</span><span>Kaca luar, termasuk lantai atas<small>kotoran burung, debu, bekas hujan</small></span><span class="box"></span></div>
+    <div><span class="n">4</span><span>Nat kamar mandi<small>sikat, terutama di sudut dan sekitar keran</small></span><span class="box"></span></div>
+    <div><span class="n">5</span><span>Bantal dan kursi kolam dicuci<small>dijemur sampai kering sebelum dipasang lagi</small></span><span class="box"></span></div>
+    <div><span class="n">6</span><span>Dispenser dibersihkan bagian dalam<small>stiker tanggal diganti</small></span><span class="box"></span></div>
+    <div><span class="n">7</span><span>Di bawah dan di belakang perabot<small>sofa, tempat tidur, kulkas</small></span><span class="box"></span></div>
+  </div>
+  <div class="note"><p><b>Noda yang tidak hilang</b> setelah dilap (dinding, plafon): foto dari dekat dan kirim ke Maya dengan keterangan "perlu dicat". Itu menjadi permintaan perbaikan ke pemilik, bukan tugas Anda.</p></div>
+  <p>Setelah selesai, tekan "Sudah selesai" dan kirim tujuh foto seperti biasa.</p>
+  <div class="foot"><span>Samba · Housekeeper</span><span>8</span></div>
+</div>
+
+<!-- ── 8. Pemeriksaan ── -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Panduan Housekeeper</div><div class="pg">8 · Pemeriksaan dua minggu sekali</div></div>
+  <h2>Pemeriksaan: yang dicoba, bukan hanya difoto</h2>
+  <p class="lead">Dua minggu sekali Maya minta Anda jalan keliling villa dengan foto. Yang baru: sambil jalan, <b>coba</b> barang-barang ini. Foto ruangan yang bersih tidak menunjukkan kunci yang macet atau colokan yang mati.</p>
+  <div class="two">
+    <div>
+      <div class="wa"><div class="hdr">Maya, pagi hari (dua minggu sekali)</div>
+        <div class="b in">Halo, hari ini jadwalnya pemeriksaan rutin di Villa Saturno.
+
+Tolong kirim foto: kamar mandi, langit-langit, dinding dekat AC, dapur, dan kolam kalau ada. Kalau ada jamur, rembes air, atau yang rusak, foto dari dekat.
+
+Sambil jalan, coba juga: engsel, kunci dan gagang pintu · semua colokan, saklar dan lampu · AC dan remote TV · gorden dan tirai · keran, shower dan selang · toilet dan semprotan · kompor, kulkas dan dispenser · brankas · alat pemadam api (tanggal) · hanger lengkap · bantal kolam tidak berjamur.
+
+Yang tidak berfungsi, tulis saja di sini. Kalau semua bagus, balas "semua bagus". Terima kasih.</div>
+        <div class="b out">📷 📷 📷 📷 📷</div>
+        <div class="b out">lampu teras mati, remote TV tidak ada baterai</div>
+        <div class="b in">Terima kasih, sudah saya catat sebagai laporan perbaikan. Kalau ada lagi, foto saja.</div>
+        <div class="b out">selesai</div>
+      </div>
+    </div>
+    <div>
+      <div class="ck">
+        <div><span class="box"></span><span>Pintu: engsel, kunci, gagang<small>buka-tutup, kunci dari dalam dan luar</small></span></div>
+        <div><span class="box"></span><span>Semua colokan, saklar, lampu<small>nyalakan satu per satu, termasuk lampu teras</small></span></div>
+        <div><span class="box"></span><span>AC dan remote TV<small>nyalakan; ganti baterai kalau lemah</small></span></div>
+        <div><span class="box"></span><span>Gorden dan tirai<small>tarik buka-tutup, tidak macet atau sobek</small></span></div>
+        <div><span class="box"></span><span>Keran, shower, selang, semprotan toilet<small>air keluar lancar, tidak bocor</small></span></div>
+        <div><span class="box"></span><span>Kompor, kulkas, dispenser<small>menyala; dispenser panas dan dingin</small></span></div>
+        <div><span class="box"></span><span>Brankas<small>terbuka dan berfungsi</small></span></div>
+        <div><span class="box"></span><span>Alat pemadam api<small>ada, tanggalnya belum lewat</small></span></div>
+        <div><span class="box"></span><span>Hanger lengkap, yoga mat / handuk kolam ada</small></span></div>
+        <div><span class="box"></span><span>Bantal kolam, plafon, dinding dekat AC<small>tidak ada jamur atau rembes</small></span></div>
+      </div>
+      <div class="note"><p>Yang rusak: tulis saja, atau foto dari dekat. Langsung masuk daftar perbaikan dan Era yang mengatur tukangnya. Kalau semua baik, balas <span class="kbd">semua bagus</span>.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>Samba · Housekeeper</span><span>9</span></div>
+</div>
+
+<!-- ── 9. Aturan ── -->
+<div class="page">
+  <div class="brand"><div class="mark">S</div><div class="wm">Panduan Housekeeper</div><div class="pg">9 · Aturan penting</div></div>
+  <h2>Aturan penting</h2>
+  <div class="step"><div class="n">1</div><p><b>Sofa tidak pernah telanjang.</b> Kalau sarung dicuci, pasang cadangannya. Kalau tidak ada cadangan, beri tahu Maya hari itu.</p></div>
+  <div class="step"><div class="n">2</div><p><b>"Sudah selesai" berarti sudah selesai.</b> Tekan saat masih di villa, lalu langsung foto.</p></div>
+  <div class="step"><div class="n">3</div><p><b>Tujuh foto, lalu "selesai".</b> Tunggu jawaban Maya sebelum pulang.</p></div>
+  <div class="step"><div class="n">4</div><p><b>Yang hampir habis, tulis.</b> Jangan menunggu sampai benar-benar habis.</p></div>
+  <div class="step"><div class="n">5</div><p><b>Yang rusak, foto.</b> Kirim ke Maya dengan nama villa dan apa yang rusak. Itu masuk ke daftar perbaikan.</p></div>
+  <div class="step"><div class="n">6</div><p><b>Tidak bisa hari ini, kabari pagi-pagi.</b> Tombol "Tidak bisa" atau "Besok saja". Kalau ada tamu datang hari itu, telepon Era.</p></div>
+  <div class="step"><div class="n">7</div><p><b>Kalau Maya minta perbaiki, perbaiki lalu foto lagi.</b> Kalau Maya keliru, tulis saja alasannya.</p></div>
+
+  <h3>Nomor penting</h3>
+  <p><b>Maya</b>: nomor WhatsApp yang mengirim jadwal pagi. Semua foto dan laporan ke sini.<br><b>Era</b>: +62 812 4635 7778. Untuk hal yang mendesak: tamu sudah di depan pintu, kunci tidak ada, air atau listrik mati.</p>
+
+  <div class="callout"><p><b>Terima kasih.</b> Foto-foto ini yang membuktikan ke pemilik villa dan ke tamu bahwa villanya dirawat dengan baik. Villa yang selalu lolos pemeriksaan adalah villa yang tamunya kembali lagi.</p></div>
+  <div class="foot"><span>Samba · Housekeeper</span><span>10</span></div>
+</div>
+
+</body>
+</html>
