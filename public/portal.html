@@ -1395,6 +1395,7 @@ async function probeMaintenance(){
   }catch(e){}
 }
 const MT_STATUS={
+  new:{cls:'wait',label:'Being assessed'},
   pending_approval:{cls:'wait',label:'Needs your approval'},
   scheduled:{cls:'ok',label:'Scheduled'},
   approved:{cls:'ok',label:'Approved'},
@@ -1437,6 +1438,8 @@ function initMaintenance(){
         <button class="mt-btn go" onclick="mtDecide(${it.id},'approve')">Approve the repair</button>
         <button class="mt-btn no" onclick="mtDecide(${it.id},'decline')">Not right now</button>
       </div><div class="mt-meta" id="mt-msg-${it.id}"></div>`;
+    } else if(it.status==='new'){
+      html+=`<div class="mt-meta">Found by our team and being assessed. The repair cost follows for your approval.</div>`;
     } else if(it.status==='approved'){
       html+=`<div class="mt-meta">Approved ${escapeHtml(dl(it.approved_at))} — we'll let you know when it's finished.</div>`;
     } else if(it.status==='done'){

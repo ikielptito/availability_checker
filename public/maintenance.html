@@ -88,6 +88,7 @@ function render() {
     : d.status === 'approved' ? '<span class="chip ok">Approved · work scheduled</span>'
     : d.status === 'declined' ? '<span class="chip no">Declined</span>'
     : waiting ? '<span class="chip wait">Awaiting your approval</span>'
+    : d.heads_up ? '<span class="chip wait">Being assessed · cost to follow</span>'
     : '<span class="chip ok">Scheduled · no action needed</span>';
 
   let html = `<div class="sheet">
