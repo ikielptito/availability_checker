@@ -335,7 +335,9 @@ function renderPortfolio(d){
   const kpis=`<div class="rep-kpis">${kpi('Listing views',t.views,'vs last week')}${kpi('Enquiries',t.enquiries,'vs last week')}${kpi('Agents reached',t.agentsReached,'summed across villas')}<div class="rep-kpi"><div class="kl">Villas</div><div class="kv">${d.villas.length}</div><div class="kc">in this report</div></div></div>`;
   const rows=d.villas.map(v=>{
     const dv=repDelta(v.metrics.views.now,v.metrics.views.prev), de=repDelta(v.metrics.enquiries.now,v.metrics.enquiries.prev);
-    const pct=v.benchmark&&v.benchmark.percentile!=null?`Top ${100-v.benchmark.percentile}% by enquiries`:'';
+    /* Only a real standing is worth a word: the bottom half (and a villa with
+       no enquiries, which reads "Top 100%") shows nothing. */
+    const pct=v.benchmark&&v.benchmark.percentile!=null&&v.benchmark.percentile>=50&&v.metrics.enquiries.now>0?`Top ${100-v.benchmark.percentile}% by enquiries`:'';
     return `<a class="rep-villa" href="${escapeHtml(v.reportUrl)}">
       <div class="rv-name"><b>${escapeHtml(v.name)}</b><span>${[v.unitType,v.area].filter(Boolean).map(escapeHtml).join(' · ')}${pct?` · ${pct}`:''}</span></div>
       <div class="rv-num"><div class="kl">Views</div><div class="kv">${v.metrics.views.now}</div>${repChip(dv)}</div>
