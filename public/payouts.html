@@ -2545,11 +2545,12 @@ async function hkCareSave() {
   if (btn) btn.disabled = true;
   try {
     for (const [slug, clean_days] of Object.entries(bySlug)) {
-      await hkApi('hk_care_patch', { slug, clean_days });
+      // Each call skips the regular cleans now on the wrong days; the one
+      // rebuild below fills the new ones for every villa at once.
+      await hkApi('hk_care_patch', { slug, clean_days, actor: 'Era (Schedule page)', regenerate: false });
     }
     closeModal();
-    // Changing the days only alters visits nobody has been told about, so a
-    // rebuild here is safe and makes the effect immediately visible.
+    // Rebuilds visits nobody has been told about and nobody moved by hand.
     const out = await hkApi('hk_replan', {});
     showToast(`Saved. Schedule rebuilt: ${out.created || 0} visits.`, 'success');
     renderCleaning();
