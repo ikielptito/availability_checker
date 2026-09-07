@@ -15,7 +15,7 @@ import { parseIcsBookedDates } from './ical.js';
 import { isHostexSlug, propIdFor, loadHostexOwnerMap, resolveOwnedListing } from '../lib/owner-listings.js';
 import { nextActions, fieldChecklist } from '../lib/next-actions.js';
 import { driveConfigured, createPhotoFolder, folderLink, uploadPhotoFromUrl, uploadBytes } from '../lib/drive-photos.js';
-import { verifyReportToken } from '../lib/tokens.js';
+import { verifyReportToken, verifyPortfolioToken, reportToken } from '../lib/tokens.js';
 
 const SESSION_COOKIE = 'samba_session';
 const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days
@@ -201,6 +201,9 @@ export default async function handler(req, res) {
     // an HMAC that can't be forged, and can't be used to enumerate other
     // listings. Same secret both apps share (LISTING_SYNC_SECRET).
     if (action === 'public-report' && req.method === 'GET') {
+      // A multi-villa (portfolio) link lists every villa on one page.
+      const slugs = verifyPortfolioToken(req.query.token || '');
+      if (slugs) return portfolioReport(req, res, slugs, { kvGet, kvPipeline });
       const slug = verifyReportToken(req.query.token || '');
       if (!slug) return res.status(403).json({ error: 'Invalid or expired report link' });
       req.query.slug = slug;
@@ -896,13 +899,46 @@ function zeroEvents() { return Object.fromEntries(PEVENTS.map(e => [e, 0])); }
 async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
   const slug = normSlug(req.query.slug || '');
   if (!slug) return res.status(400).json({ error: 'Missing slug' });
+  const { status, body } = await reportPayload(req, slug, owner, { kvGet, kvPipeline });
+  return res.status(status).json(body);
+}
+
+// The portfolio page behind a multi-villa weekly link: every villa the token
+// names, side by side, with the per-villa report links minted here so the
+// secret never reaches the browser. `light` payloads skip the slow sections
+// (calendar, Hostex bookings, inspection) — 16 villas in parallel must fit
+// one function invocation; those sections live on each villa's own page.
+async function portfolioReport(req, res, slugs, { kvGet, kvPipeline }) {
+  const results = await Promise.all(slugs.map(slug =>
+    reportPayload(req, slug, null, { kvGet, kvPipeline }, { light: true }).catch(e => ({ status: 500, body: { error: e.message } }))));
+  const villas = results.filter(r => r.status === 200).map(r => ({
+    slug: r.body.slug, name: r.body.name, area: r.body.area, unitType: r.body.unitType,
+    metrics: r.body.metrics, agentsReached: r.body.agentsReached, benchmark: r.body.benchmark,
+    reportUrl: `/r/${reportToken(r.body.slug)}`,
+  }));
+  if (!villas.length) return res.status(404).json({ error: 'None of these listings could be found' });
+  const sum = (pick) => villas.reduce((acc, v) => ({ now: acc.now + (pick(v).now || 0), prev: acc.prev + (pick(v).prev || 0) }), { now: 0, prev: 0 });
+  const first = results.find(r => r.status === 200).body;
+  // Busiest villa first — the owner's eye goes to what moved this week.
+  villas.sort((a, b) => (b.metrics.enquiries.now - a.metrics.enquiries.now) || (b.metrics.views.now - a.metrics.views.now));
+  return res.status(200).json({
+    portfolio: true,
+    week: first.week,
+    ownerName: first.ownerName || '',
+    totals: { views: sum(v => v.metrics.views), enquiries: sum(v => v.metrics.enquiries), agentsReached: sum(v => v.agentsReached) },
+    villas,
+    missing: slugs.filter(s => !villas.some(v => v.slug === s)),
+  });
+}
+
+async function reportPayload(req, slug, owner, { kvGet, kvPipeline }, { light = false } = {}) {
   const customMap = (await kvGet(CUSTOM_KEY)) || {};
   const hostexMap = await loadHostexOwnerMap(kvGet);
   const prop = resolveOwnedListing(slug, customMap, hostexMap);
   // owner === null means the caller is service-authed (Maya server-side) and may
   // read any listing; a session caller is scoped to their own listings.
-  if (!prop) return res.status(404).json({ error: 'Unknown listing' });
-  if (owner && !ownsOrCoOwns(prop, owner)) return res.status(403).json({ error: 'Not your listing' });
+  if (!prop) return { status: 404, body: { error: 'Unknown listing' } };
+  if (owner && !ownsOrCoOwns(prop, owner)) return { status: 403, body: { error: 'Not your listing' } };
   const propId = propIdFor(prop);
   const num = v => parseInt(v) || 0;
 
@@ -984,7 +1020,7 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
   // harness mocks Hostex so this works locally too). Degrades to null — the
   // section hides — if no calendar or fetch fails.
   let occupancy = null;
-  if (prop.hostex && prop.hostexId) {
+  if (light) { /* the villa's own page carries the calendar */ } else if (prop.hostex && prop.hostexId) {
     try {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const horizon = new Date(today); horizon.setDate(horizon.getDate() + 90);
@@ -1021,19 +1057,19 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
   // villa's full commercial picture, not just Samba-driven activity. Degrades
   // to null — the section hides — if the token is missing or the fetch fails.
   let bookings = null;
-  if (prop.hostex && prop.hostexId && process.env.HOSTEX_TOKEN) {
+  if (!light && prop.hostex && prop.hostexId && process.env.HOSTEX_TOKEN) {
     try { bookings = await buildBookings(prop.hostexId, days); }
     catch { /* keep bookings null */ }
   }
 
   // Listing strength → a recurring improvement nudge inside every report.
   // Samba-managed (Hostex) listings are curated by us, so no nudge there.
-  const strength = isHostexSlug(slug) ? null : await listingStrength(prop);
+  const strength = (light || isHostexSlug(slug)) ? null : await listingStrength(prop);
 
   // Ranked next-best-actions (lib/next-actions.js) — the same engine the
   // properties checklist uses, here fed the full stats bundle. Report pages
   // render these instead of computing their own recommendations.
-  const actions = nextActions(prop, {
+  const actions = light ? [] : nextActions(prop, {
     metrics, funnel, occupancy, benchmark, agentsReached: agentsReached.now,
   });
 
@@ -1043,16 +1079,16 @@ async function ownerReport(req, res, owner, { kvGet, kvPipeline }) {
   // here is the whole argument for the schedule: it turns a cleaning cost
   // into visible evidence that someone is looking after the place. Degrades
   // to null so the section simply does not render.
-  const inspection = await weekInspection(slug, days[7], days[13]).catch(() => null);
+  const inspection = light ? null : await weekInspection(slug, days[7], days[13]).catch(() => null);
 
-  return res.status(200).json({
+  return { status: 200, body: {
     slug, name: prop.name || slug, area: prop.tag || prop.area || '', unitType: prop.unitType || '',
     listedAt: prop.createdAt || null, ownerName: (owner && owner.name) || prop.waContactName || '',
     week: { from: days[7], to: days[13] },
     metrics, daily, funnel, agentsReached, benchmark, occupancy, bookings, maya, strength,
     inspection,
     nextActions: actions,
-  });
+  } };
 }
 
 // ── The fortnightly inspection, for the weekly report ───────────────
