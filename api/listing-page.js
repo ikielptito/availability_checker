@@ -10,7 +10,7 @@
 // returns the modified HTML. The existing client-side JS in listing.html
 // still runs after the OG tags are read by the scraper.
 
-import { verifyReportToken, verifyStatementToken } from '../lib/tokens.js';
+import { verifyReportToken, verifyPortfolioToken, verifyStatementToken } from '../lib/tokens.js';
 let _maintHtmlCache = null, _maintHtmlCacheAt = 0;
 let _jobHtmlCache = null, _jobHtmlCacheAt = 0;
 
@@ -222,16 +222,23 @@ async function serveAgent(req, res, { proto, host, agentHandle, shareId }) {
 async function serveReport(req, res, { proto, host, token }) {
   let listing = null;
   const slug = verifyReportToken(token);
+  // A portfolio link (several villas, one owner) gets a count in the title
+  // and generic art — no single villa to put on the card.
+  const portfolio = slug ? null : verifyPortfolioToken(token);
   if (slug) {
     await Promise.all([ensureReportTemplate(proto, host), getListings(proto, host)]);
     listing = (_listingsCache || []).find(l => l.slug === slug) || null;
   }
   if (!_reportHtmlCache) await ensureReportTemplate(proto, host);
 
-  const title = listing ? `Weekly report · ${listing.name} · Samba` : 'Your villa report · Samba';
+  const title = listing ? `Weekly report · ${listing.name} · Samba`
+    : portfolio ? `Weekly report · ${portfolio.length} villas · Samba`
+    : 'Your villa report · Samba';
   const desc = listing
     ? `Views, enquiries, agent reach and occupancy for ${listing.name} this week, from Samba Realty.`
-    : 'Your villa’s weekly performance: views, enquiries, agent reach and occupancy.';
+    : portfolio
+      ? `Views, enquiries and agent reach for your ${portfolio.length} villas this week, from Samba Realty.`
+      : 'Your villa’s weekly performance: views, enquiries, agent reach and occupancy.';
   const image = listing?.coverPhotoId
     ? `https://lh3.googleusercontent.com/d/${listing.coverPhotoId}=w1200-h630-c`
     : FALLBACK_OG;

@@ -73,6 +73,17 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 .rep-shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;margin:14px 0;}
 .rep-shots a{display:block;border-radius:11px;overflow:hidden;border:1px solid var(--border);aspect-ratio:4/3;background:var(--surface2);}
 .rep-shots img{width:100%;height:100%;object-fit:cover;display:block;}
+.rep-villas{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.rep-villa{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;padding:14px 16px;background:var(--surface);color:inherit;text-decoration:none;}
+.rep-villa:hover{background:var(--surface2);}
+.rep-villa .rv-name b{display:block;font-family:var(--rep-serif);font-size:1.05rem;color:var(--text);}
+.rep-villa .rv-name span{font-size:0.7rem;color:var(--muted);}
+.rep-villa .rv-num{text-align:right;min-width:64px;}
+.rep-villa .rv-num .kl{font-size:0.55rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.rep-villa .rv-num .kv{font-family:var(--rep-serif);font-size:1.4rem;line-height:1.1;color:var(--text);font-variant-numeric:tabular-nums;}
+.rep-villa .rv-num .rep-chip{margin-top:2px;}
+.rep-villa .rv-go{grid-column:1/-1;font-size:0.7rem;color:var(--yellow);font-weight:600;}
+@media(min-width:560px){.rep-villa{grid-template-columns:1fr auto auto auto;}.rep-villa .rv-go{grid-column:auto;}}
 .rep-cols{display:grid;grid-template-columns:1fr;gap:16px;}
 @media(min-width:560px){.rep-cols{grid-template-columns:1fr 1fr;}}
 .rep-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:17px;}
@@ -302,6 +313,50 @@ function renderReport(d){
     <div class="rep-foot"><div class="rep-fmeta">Maya prepares this for you every week.<br>Numbers are live. This link always shows your latest.</div></div>
   </div>`;
 }
+/* Portfolio: one owner, several villas, one link (the Monday message used to
+   be one template per villa — 12 identical pings for a 12-villa owner). The
+   page is the overview; each row opens that villa's full report. */
+function repDelta(now,prev){
+  if(prev==null||prev===0)return now>0?{cls:'up',txt:'new'}:{cls:'flat',txt:'—'};
+  const d=Math.round((now-prev)/prev*100);
+  return d>0?{cls:'up',txt:'▲ '+d+'%'}:d<0?{cls:'down',txt:'▼ '+Math.abs(d)+'%'}:{cls:'flat',txt:'= same'};
+}
+function portfolioSummary(d){
+  const t=d.totals,n=d.villas.length;
+  const busiest=d.villas[0];
+  let s=`Across your <b>${n}</b> villas, <b>${t.views.now}</b> ${t.views.now===1?'person':'people'} opened a listing this week`;
+  s+=t.enquiries.now?` and <b>${t.enquiries.now}</b> reached out to enquire.`:`, though none enquired yet.`;
+  if(busiest&&(busiest.metrics.enquiries.now||busiest.metrics.views.now))s+=` <b>${escapeHtml(busiest.name)}</b> drew the most attention.`;
+  return s;
+}
+function renderPortfolio(d){
+  const t=d.totals;
+  const kpi=(l,m,ctx)=>{const dl=repDelta(m.now,m.prev);return `<div class="rep-kpi"><div class="kl">${l}</div><div class="kv">${m.now}</div>${repChip(dl)}<div class="kc">${ctx}</div></div>`;};
+  const kpis=`<div class="rep-kpis">${kpi('Listing views',t.views,'vs last week')}${kpi('Enquiries',t.enquiries,'vs last week')}${kpi('Agents reached',t.agentsReached,'summed across villas')}<div class="rep-kpi"><div class="kl">Villas</div><div class="kv">${d.villas.length}</div><div class="kc">in this report</div></div></div>`;
+  const rows=d.villas.map(v=>{
+    const dv=repDelta(v.metrics.views.now,v.metrics.views.prev), de=repDelta(v.metrics.enquiries.now,v.metrics.enquiries.prev);
+    const pct=v.benchmark&&v.benchmark.percentile!=null?`Top ${100-v.benchmark.percentile}% by enquiries`:'';
+    return `<a class="rep-villa" href="${escapeHtml(v.reportUrl)}">
+      <div class="rv-name"><b>${escapeHtml(v.name)}</b><span>${[v.unitType,v.area].filter(Boolean).map(escapeHtml).join(' · ')}${pct?` · ${pct}`:''}</span></div>
+      <div class="rv-num"><div class="kl">Views</div><div class="kv">${v.metrics.views.now}</div>${repChip(dv)}</div>
+      <div class="rv-num"><div class="kl">Enquiries</div><div class="kv">${v.metrics.enquiries.now}</div>${repChip(de)}</div>
+      <div class="rv-go">Full report →</div>
+    </a>`;
+  }).join('');
+  const missing=(d.missing||[]).length?`<p class="rep-note" style="font-size:0.85rem">${d.missing.length} listing${d.missing.length===1?'':'s'} in this link could not be loaded right now.</p>`:'';
+  return `<div class="rep-sheet">
+    <div class="rep-mast"><span class="rl">Samba · weekly owner report</span><span class="rr">Week of<b>${fmtRange(d.week.from,d.week.to)}</b></span></div>
+    <div class="rep-pad">
+      <div class="rep-eyebrow">Owner report</div>
+      <div class="rep-title">Your ${d.villas.length} villas</div>
+      ${d.ownerName?`<p class="rep-prep">Prepared for <b>${escapeHtml(d.ownerName)}</b> by <b>Maya</b>, your Samba listings agent.</p>`:''}
+      <p class="rep-note">${portfolioSummary(d)}</p>
+    </div>
+    <div class="rep-pad"><div class="rep-sec-h">This week at a glance</div>${kpis}</div>
+    <div class="rep-pad"><div class="rep-sec-h">Villa by villa</div><div class="rep-villas">${rows}</div>${missing}</div>
+    <div class="rep-foot"><div class="rep-fmeta">Maya prepares this for you every week.<br>Numbers are live. Tap a villa for occupancy, bookings, reach and next steps.</div></div>
+  </div>`;
+}
 function errCard(msg){ return `<div class="rep-empty"><h3>Report unavailable</h3><p>${escapeHtml(msg)}</p></div>`; }
 function getToken(){
   const m = location.pathname.match(/\/r\/([^/?#]+)/);
@@ -316,7 +371,8 @@ function getToken(){
   try{
     const r = await fetch('/api/portal?action=public-report&token=' + encodeURIComponent(token));
     if(!r.ok){ const b = await r.json().catch(()=>({})); el.innerHTML = errCard(b.error || 'This report link is no longer valid.'); return; }
-    el.innerHTML = renderReport(await r.json());
+    const d = await r.json();
+    el.innerHTML = d.portfolio ? renderPortfolio(d) : renderReport(d);
   }catch(e){ el.innerHTML = errCard('Could not load the report just now. Please try again shortly.'); }
 })();
 </script>
