@@ -46,7 +46,7 @@ export default async function handler(req, res) {
   }
   // Answered here, not by the CRM: the feed URL is this host's.
   if (action === 'hk_record_link') {
-    const type = payload?.type === 'inspection' ? 'inspection' : 'handover';
+    const type = ['inspection', 'visit'].includes(payload?.type) ? payload.type : 'handover';
     const id = parseInt(payload?.id, 10);
     if (!id) return res.status(400).json({ error: 'id required' });
     const host = req.headers['x-forwarded-host'] || req.headers.host || 'sambarentals.com';
@@ -110,12 +110,13 @@ async function serveOwner(req, res) {
       const { status, body } = await crm('housekeeping', 'hk_owner_records', { slugs });
       if (status !== 200) return res.status(status).json(body);
       const host = req.headers['x-forwarded-host'] || req.headers.host || 'sambarentals.com';
-      body.records = (body.records || []).map(r => r.type === 'clean' ? r
-        : { ...r, pdf_url: `https://${host}/api/housekeeping?record=${recordToken(r.type, r.id, 'owner')}` });
+      // Every record has a PDF now, visits included: the paper trail is the
+      // point, and a routine clean with photos is evidence like any other.
+      body.records = (body.records || []).map(r => ({ ...r, pdf_url: `https://${host}/api/housekeeping?record=${recordToken(r.type, r.id, 'owner')}` }));
       return res.status(200).json({ ...body, ...(previewGroup ? { preview: true } : {}) });
     }
     if (action === 'owner-photos') {
-      const type = req.query.type === 'inspection' ? 'inspection' : 'handover';
+      const type = ['inspection', 'visit'].includes(req.query.type) ? req.query.type : 'handover';
       const id = parseInt(req.query.id, 10);
       if (!id) return res.status(400).json({ error: 'id required' });
       const { status, body } = await crm('housekeeping', 'hk_owner_record_photos', { type, id, slugs });
@@ -259,7 +260,7 @@ async function serveRecordPdf(req, res) {
   try {
     const r = await fetch(`${crmBase}/api/housekeeping`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sync}` },
-      body: JSON.stringify({ action: 'hk_record_export', payload: { type: tok.type, id: tok.id } }),
+      body: JSON.stringify({ action: 'hk_record_export', payload: { type: tok.type, id: tok.id, audience: tok.aud === 'owner' ? 'owner' : 'era' } }),
     });
     data = await r.json();
     if (!r.ok) throw new Error(data.error || `CRM ${r.status}`);
@@ -269,7 +270,23 @@ async function serveRecordPdf(req, res) {
   const fmt = (d) => d ? new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '';
   const short = (d) => d ? new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '';
   const KIND = { turnover: 'Turnover clean', regular: 'Regular clean', pre_arrival: 'Pre-arrival preparation', deep_clean: 'Deep clean', inspection: 'Inspection round' };
-  const STATUS = { pass: 'Checked, nothing to fix', flagged: 'Checked, issues flagged', unchecked: 'Not checked (no photos received)', unverified: 'Photos received, not checked', awaiting: 'Photos pending', clear: 'Nothing found', raised: 'Repairs raised' };
+  const STATUS = { pass: 'Checked, nothing to fix', flagged: 'Checked, issues flagged', unchecked: 'Not checked (no photos received)', unverified: 'Photos received, not checked', awaiting: 'Photos pending', clear: 'Nothing found', raised: 'Repairs raised',
+    done: 'Done', skipped: 'Skipped', unconfirmed: 'Scheduled, not confirmed by the housekeeper', not_sent: 'Not covered (never sent)', uncovered: 'Not covered (no housekeeper reachable)', open: 'In progress' };
+  const isVisit = rec.type === 'visit';
+  const EVENT = { generated: 'Scheduled', notified: 'Sent to the housekeeper', chased: 'Reminder sent', confirmed: 'Confirmed by the housekeeper', done: 'Marked done', moved: 'Moved', skipped: 'Skipped', cannot: 'Housekeeper could not do it', reassigned: 'Reassigned', photo: 'Photo received', readiness_opened: 'Photo check requested', readiness_closed: 'Photo check closed', uncovered: 'Nobody to send it to', note: 'Note' };
+  const when = (iso) => new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' });
+  const timeline = [];
+  for (const e of (data.events || [])) {
+    const p = e.payload || {};
+    let line = EVENT[e.kind] || e.kind;
+    if (e.kind === 'moved') line += ` from ${short(p.from)} to ${short(p.to)}`;
+    if (e.kind === 'readiness_closed' && p.status) line += ` — ${STATUS[p.status] || p.status}`;
+    if (e.kind === 'uncovered' && p.why) line += ` — ${p.why}`;
+    if (tok.aud !== 'owner' && e.actor) line += ` (${e.actor})`;
+    timeline.push(`${when(e.at)} WITA — ${line}`);
+  }
+  if (tok.aud !== 'owner') for (const th of (rec.thread || [])) if (th?.text && !/^Evening chase sent$/.test(th.text)) timeline.push(`${when(th.at)} WITA — ${th.who || ''}: ${String(th.text).slice(0, 200)}`);
+  timeline.sort();
 
   // Guest context from the Hostex calendar, when it is reachable.
   const guests = [];
@@ -304,24 +321,28 @@ async function serveRecordPdf(req, res) {
   const otherFlags = (rec.flags || []).filter(f => !bad.some(c => f.startsWith(c.spot + ':')));
   const pdf = buildPdf({
     title: `${villa}`,
-    subtitle: `${rec.type === 'inspection' ? 'Inspection round' : 'Handover record'} · ${fmt(rec.date)}`,
+    subtitle: `${rec.type === 'inspection' ? 'Inspection round' : rec.type === 'handover' ? 'Handover record' : 'Visit record'} · ${fmt(rec.date)}`,
     meta: [
       ['Type', KIND[rec.kind] || rec.kind],
       ...(tok.aud === 'owner' ? [] : [['Housekeeper', rec.staff || 'Unknown']]),
       ['Result', STATUS[rec.status] || rec.status],
       ...(rec.guest_in_date ? [['Prepared for', `Guest arriving ${short(rec.guest_in_date)}`]] : []),
       ['Photos', String((data.photo_urls || []).length)],
-      ['Record', `${rec.type} #${rec.id}, taken ${new Date(rec.at).toLocaleString('en-GB', { timeZone: 'Asia/Makassar' })} WITA`],
+      ['Record', `${rec.type} #${rec.id}${rec.at ? `, taken ${new Date(rec.at).toLocaleString('en-GB', { timeZone: 'Asia/Makassar' })} WITA` : ''}`],
     ],
     sections: [
       guests.length ? { heading: 'BOOKINGS AROUND THIS RECORD', lines: guests } : null,
       bad.length || otherFlags.length ? { heading: 'FLAGGED BY THE PHOTO CHECK', lines: [...bad.map(c => `${c.spot}: ${c.note || 'not right'}`), ...otherFlags] } : null,
       rec.restock ? { heading: 'RUNNING LOW', text: rec.restock } : null,
       rec.findings ? { heading: 'WHAT THE HOUSEKEEPER REPORTED', text: rec.findings } : null,
+      tok.aud !== 'owner' && rec.notes ? { heading: 'NOTES', text: rec.notes } : null,
+      timeline.length ? { heading: 'WHAT HAPPENED', lines: timeline.slice(0, 40) } : null,
       (data.repairs || []).length ? { heading: 'REPAIRS RAISED FROM THIS RECORD', lines: data.repairs.map(r => `${r.title} (${r.status})`) } : null,
       { heading: 'ABOUT THIS RECORD', text: rec.type === 'inspection'
         ? 'A fortnightly inspection round: the housekeeper walks the villa, photographs it and reports anything wrong. Photos are stored when received and are not edited.'
-        : 'A handover record: after preparing the villa for a guest, the housekeeper photographs each room and Maya, Samba\u2019s assistant, checks the photos before the guest arrives. Photos are stored when received and are not edited.' },
+        : rec.type === 'handover'
+          ? 'A handover record: after preparing the villa for a guest, the housekeeper photographs each room and Maya, Samba\u2019s assistant, checks the photos before the guest arrives. Photos are stored when received and are not edited.'
+          : 'A visit record: one scheduled housekeeping visit, what became of it, and any photos the housekeeper sent that day. Every visit is recorded, whether or not it happened, so the state of the villa on any date can be checked afterwards.' },
     ],
     photos,
     footer: `Samba Realty · Bali · generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Makassar' })}`,

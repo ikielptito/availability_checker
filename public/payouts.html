@@ -2578,12 +2578,14 @@ async function hkGenerate() {
 let recData = null;        // hk_records payload
 let recStays = null;       // hk_stays for the same window, for guest context
 let recFilter = { slug: '', type: 'all', month: 'all' };
-const REC_TYPE = { handover: 'Handover', inspection: 'Inspection round' };
+const REC_TYPE = { visit: 'Visit', handover: 'Handover', inspection: 'Inspection round' };
 const REC_STATUS = {
   awaiting: ['wait', 'Photos pending'], pass: ['done', 'Checked'], flagged: ['hot', 'Needs a look'], unchecked: ['no', 'Not checked'], unverified: ['hot', 'Photos not checked'],
   clear: ['done', 'Nothing found'], raised: ['hot', 'Repairs raised'],
+  done: ['done', 'Done'], skipped: ['wait', 'Skipped'], unconfirmed: ['no', 'Not confirmed'], not_sent: ['no', 'Never sent'], uncovered: ['no', 'Uncovered'], open: ['wait', 'Today'],
 };
-const recKindLabel = (r) => r.type === 'inspection' ? 'Inspection round' : `Handover · ${(HK_KIND[r.kind] || [r.kind])[0].toLowerCase()}`;
+const REC_ATTENTION = ['flagged', 'unchecked', 'unverified', 'raised', 'unconfirmed', 'not_sent', 'uncovered'];
+const recKindLabel = (r) => r.type === 'inspection' ? 'Inspection round' : r.type === 'handover' ? `Handover · ${(HK_KIND[r.kind] || [r.kind])[0].toLowerCase()}` : (HK_KIND[r.kind] || [r.kind])[0];
 const recStayList = (slug) => ((recStays?.units || []).find(u => u.slug === slug)?.stays || []).filter(s => s.status !== 'cancelled');
 // The stay a record sits before, and the one it sits after.
 function recGuestContext(r) {
@@ -2605,7 +2607,7 @@ async function renderRecords() {
   const today = witaToday(), from = dPlus(today, -365), to = dPlus(today, 30);
   try {
     const [rec, stays] = await Promise.all([
-      hkApi('hk_records', { from, to: today, limit: 500 }),
+      hkApi('hk_records', { from: dPlus(today, -180), to: today, limit: 2000 }),
       hkApi('hk_stays', { from, to }).catch(() => null),
       refreshMaint().catch(() => {}),
     ]);
@@ -2636,30 +2638,32 @@ function recRender() {
   vsel.innerHTML = `<option value="">All villas</option>` + slugs.map(s => `<option value="${esc(s)}"${recFilter.slug === s ? ' selected' : ''}>${esc(pname(names(s)))}</option>`).join('');
   const msel = document.getElementById('rec-month');
   msel.innerHTML = `<option value="all">All months</option>` + months.map(m => `<option value="${m}"${recFilter.month === m ? ' selected' : ''}>${esc(monthLabel(m))}</option>`).join('');
-  const chips = [['all', 'Everything'], ['handover', 'Handovers'], ['inspection', 'Inspections'], ['flagged', 'Needs a look']];
+  const chips = [['all', 'Everything'], ['visit', 'Visits'], ['handover', 'Handovers'], ['inspection', 'Inspections'], ['flagged', 'Needs a look']];
   document.getElementById('rec-chips').innerHTML = chips.map(([k, l]) => `<button type="button" class="chip${recFilter.type === k ? ' on' : ''}" onclick="recSet('type','${k}')">${esc(l)}</button>`).join('');
 
   const rows = all.filter(r => (!recFilter.slug || r.slug === recFilter.slug)
     && (recFilter.month === 'all' || r.date.startsWith(recFilter.month))
-    && (recFilter.type === 'all' || (recFilter.type === 'flagged' ? ['flagged', 'unchecked', 'unverified', 'raised'].includes(r.status) : r.type === recFilter.type)));
+    && (recFilter.type === 'all' || (recFilter.type === 'flagged' ? REC_ATTENTION.includes(r.status) : r.type === recFilter.type)));
   const photos = rows.reduce((n, r) => n + (r.photo_count || 0), 0);
-  document.getElementById('rec-sub').innerHTML = `<b>${rows.length}</b> record${rows.length === 1 ? '' : 's'} · <b>${photos}</b> photos${recFilter.slug ? '' : ` · ${slugs.length} villas`}. Tap one to see the photos and what was found.`;
+  const attention = rows.filter(r => REC_ATTENTION.includes(r.status)).length;
+  document.getElementById('rec-sub').innerHTML = `<b>${rows.length}</b> visit${rows.length === 1 ? '' : 's'} · <b>${photos}</b> photos${recFilter.slug ? '' : ` · ${slugs.length} villas`}${attention ? ` · <b>${attention}</b> need a look` : ''}. Every scheduled visit is here, done or not. Tap one for the photos and what happened.`;
 
   let h = '', month = '';
   for (const r of rows) {
     const m = r.date.slice(0, 7);
     if (m !== month) { month = m; h += `<div class="dayhead"><span>${esc(monthLabel(m))}</span><span>${rows.filter(x => x.date.startsWith(m)).length}</span></div>`; }
     const st = REC_STATUS[r.status] || ['wait', r.status];
-    const sub = [recKindLabel(r), r.staff || 'unknown', r.photo_count ? `${r.photo_count} photo${r.photo_count === 1 ? '' : 's'}` : 'no photos',
-      r.type === 'handover' && r.guest_in_date ? `guest arrives ${dFmt(r.guest_in_date, { day: 'numeric', month: 'short' })}` : '',
-      r.type === 'inspection' && (r.item_ids || []).length ? `${r.item_ids.length} repair${r.item_ids.length === 1 ? '' : 's'} raised` : ''].filter(Boolean).join(' · ');
+    const sub = [recKindLabel(r), r.staff || 'unassigned', r.photo_count ? `${r.photo_count} photo${r.photo_count === 1 ? '' : 's'}` : 'no photos',
+      r.guest_in_date && r.kind !== 'regular' ? `guest arrives ${dFmt(r.guest_in_date, { day: 'numeric', month: 'short' })}` : '',
+      r.type === 'inspection' && (r.item_ids || []).length ? `${r.item_ids.length} repair${r.item_ids.length === 1 ? '' : 's'} raised` : '',
+      r.moved_by ? `moved by ${r.moved_by}` : ''].filter(Boolean).join(' · ');
     h += `<div class="sitem" onclick="recSheet('${r.type}',${r.id})" role="button" tabindex="0">
-      <div class="sic ${r.type === 'inspection' ? 'guest' : 'clean'}">${r.type === 'inspection' ? 'I' : (HK_LETTER[r.kind] || 'H')}</div>
+      <div class="sic ${r.type === 'inspection' ? 'guest' : 'clean'}"${REC_ATTENTION.includes(r.status) ? ' style="opacity:.6"' : ''}>${r.type === 'inspection' ? 'I' : (HK_LETTER[r.kind] || 'H')}</div>
       <div class="stxt"><div class="t">${esc(dFmt(r.date, { weekday: 'short', day: 'numeric', month: 'short' }))} · ${esc(pname(names(r.slug)))}</div><div class="s">${esc(sub)}</div></div>
       <span class="pill ${st[0]}">${esc(st[1])}</span>
     </div>`;
   }
-  document.getElementById('rec-list').innerHTML = h || '<div class="sempty">No records match. Handover photos appear here after a housekeeper finishes a turnover, a pre-arrival or a deep clean; inspection rounds every fortnight.</div>';
+  document.getElementById('rec-list').innerHTML = h || '<div class="sempty">No visits match. Every scheduled visit appears here once its day has come, with whatever the housekeeper sent.</div>';
 }
 async function recSheet(type, id) {
   const r = (recData?.records || []).find(x => x.type === type && x.id === id);
@@ -2669,9 +2673,11 @@ async function recSheet(type, id) {
   const bad = (r.checks || []).filter(c => c.ok === false);
   const items = (r.item_ids || []).map(i => (maintData?.items || []).find(x => x.id === i)).filter(Boolean);
   modal(`<h3>${esc(pname(names(r.slug)))}</h3>
-    <p>${esc(dFmt(r.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))} · ${esc(recKindLabel(r))} · ${esc(r.staff || 'unknown')} · <span class="pill ${st[0]}">${esc(st[1])}</span></p>
+    <p>${esc(dFmt(r.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))} · ${esc(recKindLabel(r))} · ${esc(r.staff || 'unassigned')} · <span class="pill ${st[0]}">${esc(st[1])}</span></p>
     <div class="rec-guest">${recGuestContext(r) || '<span>No booking around this date</span>'}</div>
+    ${r.notes ? `<p style="font-size:12.5px;color:var(--muted)">${esc(r.notes)}</p>` : ''}
     <div class="photo-grid" id="rec-photos">${r.photo_count ? '<div class="sempty" style="grid-column:1/-1">Loading photos…</div>' : '<div class="sempty" style="grid-column:1/-1">No photos on this record.</div>'}</div>
+    <div id="rec-trail"></div>
     ${bad.length ? `<h4 style="margin:10px 0 2px">Flagged by Maya</h4><ul class="flaglist">${bad.map(c => `<li><b>${esc(c.spot)}</b>: ${esc(c.note || 'not right')}</li>`).join('')}</ul>` : ''}
     ${(r.flags || []).filter(f => !bad.some(c => f.startsWith(c.spot + ':'))).length ? `<ul class="flaglist">${(r.flags || []).filter(f => !bad.some(c => f.startsWith(c.spot + ':'))).map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
     ${r.restock ? `<p><b>Running low:</b> ${esc(r.restock)}</p>` : ''}
@@ -2679,11 +2685,20 @@ async function recSheet(type, id) {
     ${items.length ? `<h4 style="margin:10px 0 2px">Repairs raised</h4><ul class="flaglist">${items.map(i => `<li>${esc(i.title)} <span class="pill wait">${esc(i.status)}</span></li>`).join('')}</ul>` : ''}
     <p style="color:var(--muted);font-size:11.5px;margin-top:8px">Photo links open full size and stay valid for an hour. Photos themselves are kept permanently.</p>
     <div class="row"><button class="btn ghost" onclick="closeModal()">Close</button><button class="btn primary" onclick="recShare('${type}',${id})">Share as PDF</button></div>`, { wide: true });
-  if (!r.photo_count) return;
   try {
-    const d = await hkApi('hk_record_photos', { type, id });
-    const el = document.getElementById('rec-photos'); if (!el) return;
-    el.innerHTML = (d.photo_urls || []).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join('') || '<div class="sempty" style="grid-column:1/-1">Photos could not be loaded.</div>';
+    const d = await hkApi('hk_record_detail', { type, id });
+    const el = document.getElementById('rec-photos');
+    if (el && r.photo_count) el.innerHTML = (d.photo_urls || []).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join('') || '<div class="sempty" style="grid-column:1/-1">Photos could not be loaded.</div>';
+    // The breadcrumbs: what happened to this visit, in order — sent, tapped,
+    // moved, chased, photographed, closed — and what the housekeeper wrote.
+    const EVENT = { generated: 'Scheduled', notified: 'Sent to the housekeeper', chased: 'Reminder sent', confirmed: 'Confirmed', done: 'Marked done', moved: 'Moved', skipped: 'Skipped', cannot: 'Could not do it', reassigned: 'Reassigned', photo: 'Photo received', readiness_opened: 'Photo check requested', readiness_closed: 'Photo check closed', uncovered: 'Nobody to send it to', note: 'Note' };
+    const when = (iso) => new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' });
+    const trail = [];
+    for (const e of (d.events || [])) { const p = e.payload || {}; let line = EVENT[e.kind] || e.kind; if (e.kind === 'moved') line += ` ${p.from} → ${p.to}`; if (e.kind === 'readiness_closed' && p.status) line += ` — ${(REC_STATUS[p.status] || [0, p.status])[1]}`; if (e.kind === 'uncovered' && p.why) line += ` — ${p.why}`; if (e.kind === 'note' && p.text) line += `: ${p.text}`; trail.push({ at: e.at, text: `${line}${e.actor ? ` (${e.actor})` : ''}` }); }
+    for (const th of (d.record?.thread || [])) if (th?.text && th.text !== 'Evening chase sent') trail.push({ at: th.at, text: `${th.who || ''}: ${th.text}` });
+    trail.sort((a, b) => String(a.at).localeCompare(String(b.at)));
+    const tr = document.getElementById('rec-trail');
+    if (tr && trail.length) tr.innerHTML = `<h4 style="margin:10px 0 2px">What happened</h4><ul class="flaglist">${trail.map(t => `<li><span style="color:var(--muted)">${esc(when(t.at))}</span> ${esc(t.text)}</li>`).join('')}</ul>`;
   } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
 }
 
@@ -2786,15 +2801,16 @@ const HELP = {
       <li>Tap a housekeeper's name to see her last 30 days: visits done on the day, and handovers passed, flagged, or never answered.</li>
     </ul>` },
   records: { title: 'Records', html: `
-    <p>The library of proof. Every handover check (the photos a housekeeper sends after a turnover, a pre-arrival or a deep clean) and every fortnightly inspection round, for every villa, newest first. Photos are kept permanently.</p>
+    <p>The paper trail. Every scheduled visit at every villa, newest first: routine cleans, turnovers, pre-arrival preparations, deep cleans and inspection rounds — done, skipped, not confirmed, or never sent — with the photos the housekeeper sent and what happened to the visit step by step. Photos are kept permanently.</p>
     <h4>Finding something</h4>
     <ul>
-      <li>Pick the villa and the month at the top. <b>Needs a look</b> shows only the records Maya flagged, or rounds that raised repairs.</li>
+      <li>Pick the villa and the month at the top. <b>Visits</b>, <b>Handovers</b> and <b>Inspections</b> narrow by kind; <b>Needs a look</b> shows what Maya flagged, rounds that raised repairs, and visits that were not confirmed or never sent.</li>
+      <li>To check the state of a unit on a date: pick the villa, find the visit before and after that date, open the photos. The <b>What happened</b> list on each visit shows when it was sent, tapped, moved, chased and closed.</li>
       <li>Tap a record: the photos, what Maya flagged, what the housekeeper wrote, what was running low, and which repairs came out of it.</li>
       <li>Each record says which guest it sits <b>before</b> or <b>after</b>, so a damage claim can be answered with the photo taken before that guest arrived and the one taken after they left.</li>
       <li><b>Share as PDF</b> makes a link to the record as a PDF with all its photos. Anyone with the link can open it without logging in; forward it to an owner or attach it to a claim.</li>
     </ul>
-    <p>Nothing is added here by hand. If a record is missing, the housekeeper did not send photos; her Schedule entry will say <b>Not checked</b>.</p>` },
+    <p>Nothing is added here by hand. A visit with no photos is still a record: <b>Done</b> means the housekeeper said so, <b>Not confirmed</b> means nobody did, <b>Uncovered</b> means there was nobody to send it to.</p>` },
   staff: { title: 'Team', html: `
     <p>Everyone who works at the villas: housekeepers, tukang and their trades, and which villas each one covers. Maya messages people at the numbers here, so this is the list that has to be right.</p>
     <h4>What you do here</h4>
