@@ -2107,7 +2107,7 @@ const HK_READY = {
   awaiting:  ['wait', 'Photos pending'],
   pass:      ['done', 'Checked'],
   flagged:   ['hot',  'Needs a look'],
-  unchecked: ['no',   'Not checked'],
+  unchecked: ['no',   'Not checked'], unverified: ['no', 'Photos not checked'],
 };
 let hkReady = null;       // hk_readiness payload: checks by task id
 let hkStats = null;       // hk_stats payload, loaded when a housekeeper chip is tapped
@@ -2580,7 +2580,7 @@ let recStays = null;       // hk_stays for the same window, for guest context
 let recFilter = { slug: '', type: 'all', month: 'all' };
 const REC_TYPE = { handover: 'Handover', inspection: 'Inspection round' };
 const REC_STATUS = {
-  awaiting: ['wait', 'Photos pending'], pass: ['done', 'Checked'], flagged: ['hot', 'Needs a look'], unchecked: ['no', 'Not checked'],
+  awaiting: ['wait', 'Photos pending'], pass: ['done', 'Checked'], flagged: ['hot', 'Needs a look'], unchecked: ['no', 'Not checked'], unverified: ['hot', 'Photos not checked'],
   clear: ['done', 'Nothing found'], raised: ['hot', 'Repairs raised'],
 };
 const recKindLabel = (r) => r.type === 'inspection' ? 'Inspection round' : `Handover · ${(HK_KIND[r.kind] || [r.kind])[0].toLowerCase()}`;
@@ -2641,7 +2641,7 @@ function recRender() {
 
   const rows = all.filter(r => (!recFilter.slug || r.slug === recFilter.slug)
     && (recFilter.month === 'all' || r.date.startsWith(recFilter.month))
-    && (recFilter.type === 'all' || (recFilter.type === 'flagged' ? ['flagged', 'unchecked', 'raised'].includes(r.status) : r.type === recFilter.type)));
+    && (recFilter.type === 'all' || (recFilter.type === 'flagged' ? ['flagged', 'unchecked', 'unverified', 'raised'].includes(r.status) : r.type === recFilter.type)));
   const photos = rows.reduce((n, r) => n + (r.photo_count || 0), 0);
   document.getElementById('rec-sub').innerHTML = `<b>${rows.length}</b> record${rows.length === 1 ? '' : 's'} · <b>${photos}</b> photos${recFilter.slug ? '' : ` · ${slugs.length} villas`}. Tap one to see the photos and what was found.`;
 

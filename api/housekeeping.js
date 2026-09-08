@@ -269,7 +269,7 @@ async function serveRecordPdf(req, res) {
   const fmt = (d) => d ? new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '';
   const short = (d) => d ? new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '';
   const KIND = { turnover: 'Turnover clean', regular: 'Regular clean', pre_arrival: 'Pre-arrival preparation', deep_clean: 'Deep clean', inspection: 'Inspection round' };
-  const STATUS = { pass: 'Checked, nothing to fix', flagged: 'Checked, issues flagged', unchecked: 'Not checked (no photos received)', awaiting: 'Photos pending', clear: 'Nothing found', raised: 'Repairs raised' };
+  const STATUS = { pass: 'Checked, nothing to fix', flagged: 'Checked, issues flagged', unchecked: 'Not checked (no photos received)', unverified: 'Photos received, not checked', awaiting: 'Photos pending', clear: 'Nothing found', raised: 'Repairs raised' };
 
   // Guest context from the Hostex calendar, when it is reachable.
   const guests = [];

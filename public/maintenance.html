@@ -81,6 +81,13 @@ async function load() {
 
 function render() {
   const d = DATA;
+  if (d.moved) {
+    document.getElementById('root').innerHTML = `<div class="sheet"><div class="mast"><div class="rl">Maintenance request</div></div><div class="pad">
+      <div class="title">${esc(d.title || 'This request')}</div>
+      <div class="msg">This request was filed under the wrong property and has since been moved. Nothing is needed from you, and it will not appear on your statement. Sorry for the confusion.</div>
+    </div></div>`;
+    return;
+  }
   const where = d.unit_label ? `${pname(d.group?.name || '')} · ${d.unit_label}` : pname(d.group?.name || '');
   const waiting = d.status === 'pending_approval';
 
