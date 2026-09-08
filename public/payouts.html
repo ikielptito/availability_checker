@@ -2582,9 +2582,10 @@ const REC_TYPE = { visit: 'Visit', handover: 'Handover', inspection: 'Inspection
 const REC_STATUS = {
   awaiting: ['wait', 'Photos pending'], pass: ['done', 'Checked'], flagged: ['hot', 'Needs a look'], unchecked: ['no', 'Not checked'], unverified: ['hot', 'Photos not checked'],
   clear: ['done', 'Nothing found'], raised: ['hot', 'Repairs raised'],
-  done: ['done', 'Done'], skipped: ['wait', 'Skipped'], unconfirmed: ['no', 'Not confirmed'], not_sent: ['no', 'Never sent'], uncovered: ['no', 'Uncovered'], open: ['wait', 'Today'],
+  done: ['done', 'Done'], skipped: ['wait', 'Skipped'], not_done: ['no', 'Not done'], unconfirmed: ['no', 'Not confirmed'], not_sent: ['no', 'Never sent'], uncovered: ['no', 'Uncovered'], open: ['wait', 'Today'],
 };
-const REC_ATTENTION = ['flagged', 'unchecked', 'unverified', 'raised', 'unconfirmed', 'not_sent', 'uncovered'];
+const REC_EVIDENCE = { photos: 'with photos', reported: 'reported on the day', reported_late: 'reported later' };
+const REC_ATTENTION = ['flagged', 'unchecked', 'unverified', 'raised', 'unconfirmed', 'not_sent', 'uncovered', 'not_done'];
 const recKindLabel = (r) => r.type === 'inspection' ? 'Inspection round' : r.type === 'handover' ? `Handover · ${(HK_KIND[r.kind] || [r.kind])[0].toLowerCase()}` : (HK_KIND[r.kind] || [r.kind])[0];
 const recStayList = (slug) => ((recStays?.units || []).find(u => u.slug === slug)?.stays || []).filter(s => s.status !== 'cancelled');
 // The stay a record sits before, and the one it sits after.
@@ -2653,7 +2654,7 @@ function recRender() {
     const m = r.date.slice(0, 7);
     if (m !== month) { month = m; h += `<div class="dayhead"><span>${esc(monthLabel(m))}</span><span>${rows.filter(x => x.date.startsWith(m)).length}</span></div>`; }
     const st = REC_STATUS[r.status] || ['wait', r.status];
-    const sub = [recKindLabel(r), r.staff || 'unassigned', r.photo_count ? `${r.photo_count} photo${r.photo_count === 1 ? '' : 's'}` : 'no photos',
+    const sub = [recKindLabel(r), r.staff || 'unassigned', r.photo_count ? `${r.photo_count} photo${r.photo_count === 1 ? '' : 's'}` : (r.evidence && r.evidence !== 'photos' ? REC_EVIDENCE[r.evidence] : 'no photos'),
       r.guest_in_date && r.kind !== 'regular' ? `guest arrives ${dFmt(r.guest_in_date, { day: 'numeric', month: 'short' })}` : '',
       r.type === 'inspection' && (r.item_ids || []).length ? `${r.item_ids.length} repair${r.item_ids.length === 1 ? '' : 's'} raised` : '',
       r.moved_by ? `moved by ${r.moved_by}` : ''].filter(Boolean).join(' · ');

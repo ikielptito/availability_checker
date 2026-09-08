@@ -1483,7 +1483,7 @@ async function probeHousekeeping(){
 const HK_KIND={turnover:'Turnover clean',regular:'Regular clean',pre_arrival:'Pre-arrival preparation',deep_clean:'Deep clean',inspection:'Inspection round'};
 function hkPill(r){
   if(r.type==='inspection') return r.status==='raised'?{cls:'wait',label:(r.repairs||1)+(r.repairs>1?' repairs raised':' repair raised')}:{cls:'ok',label:'✓ Nothing found'};
-  if(r.type==='visit') return ({done:{cls:'ok',label:'✓ Cleaned'},skipped:{cls:'done',label:'Skipped'},unconfirmed:{cls:'no',label:'Not confirmed'},not_sent:{cls:'no',label:'Not covered'},uncovered:{cls:'no',label:'Not covered'},open:{cls:'done',label:'Today'}})[r.status]||{cls:'done',label:r.status};
+  if(r.type==='visit') return ({done:{cls:'ok',label:r.evidence==='photos'?'✓ Cleaned, photos':r.evidence==='reported_late'?'Cleaned (reported later)':'✓ Cleaned'},not_done:{cls:'no',label:'Not cleaned'},skipped:{cls:'done',label:'Skipped'},unconfirmed:{cls:'no',label:'Not confirmed'},not_sent:{cls:'no',label:'Not covered'},uncovered:{cls:'no',label:'Not covered'},open:{cls:'done',label:'Today'}})[r.status]||{cls:'done',label:r.status};
   return ({pass:{cls:'ok',label:'✓ Photo check passed'},flagged:{cls:'wait',label:'Flagged, then fixed'},unchecked:{cls:'no',label:'No photos received'},unverified:{cls:'wait',label:'Photos received, being checked'},awaiting:{cls:'done',label:'Photos pending'}})[r.status]||{cls:'done',label:r.status};
 }
 function initHousekeeping(){
@@ -1528,6 +1528,8 @@ function initHousekeeping(){
       if(r.status==='unconfirmed') lines.push('The visit was scheduled and sent to the housekeeper, but was not confirmed as done. Era follows up on these.');
       if(r.status==='not_sent'||r.status==='uncovered') lines.push('No housekeeper could be reached for this visit; Era arranges cover.');
       if(r.status==='skipped') lines.push('This visit was taken off the schedule.');
+      if(r.status==='not_done') lines.push('The housekeeper reported that this visit did not happen. Era follows up.');
+      if(r.status==='done'&&r.evidence==='reported_late') lines.push('Confirmed by the housekeeper after the day, when asked; no photos were sent.');
       if(r.status==='done'&&r.photo_count) lines.push('The housekeeper sent photos from this visit.');
     }
     html+=`<div class="mt-card">
