@@ -302,6 +302,16 @@ a.btn-sm{text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .hk-lines{font-size:.82rem;color:var(--text-2);margin-top:8px;line-height:1.6;}
 .hk-lines b{color:var(--text);font-weight:600;}
 .hk-about{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:18px;padding:14px 18px;border:1px dashed var(--border);border-radius:14px;}
+.hk-strip{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px 10px;margin-bottom:14px;box-shadow:var(--shadow);}
+.hk-strip-cells{display:grid;grid-template-columns:repeat(28,1fr);gap:3px;}
+.hk-rc{position:relative;height:16px;border-radius:4px;background:var(--surface2);}
+.hk-rc.guest{background:color-mix(in srgb,var(--sb-sage,#9fb59a) 45%,var(--surface));}
+.hk-rc.today{outline:2px solid var(--accent);outline-offset:-2px;}
+.hk-rc i{position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;}
+.hk-strip-cap{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:.7rem;color:var(--muted);}
+.hk-strip-cap i{display:inline-block;width:7px;height:7px;border-radius:50%;vertical-align:middle;margin:0 3px 0 6px;}
+.hk-seg{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:14px 0 8px;padding-left:2px;}
+.hk-ticket{border-left:3px solid var(--accent);}
 .st-cur{margin-left:auto;align-self:flex-start;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer;}
 .st-cur:hover{color:var(--text);border-color:var(--accent);}
 .st-prop{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;}
@@ -491,7 +501,7 @@ table.stx-lines tr.totrow td{font-weight:700;border-top:2px solid var(--border);
         <button class="tab" data-tab="reports" onclick="showTab('reports')">Weekly reports</button>
         <button class="tab" data-tab="statements" id="tab-btn-statements" style="display:none" onclick="showTab('statements')">Statements</button>
         <button class="tab" data-tab="maintenance" id="tab-btn-maintenance" style="display:none" onclick="showTab('maintenance')">Maintenance</button>
-        <button class="tab" data-tab="housekeeping" id="tab-btn-housekeeping" style="display:none" onclick="showTab('housekeeping')">Housekeeping</button>
+        <button class="tab" data-tab="housekeeping" id="tab-btn-housekeeping" style="display:none" onclick="showTab('housekeeping')">Care log</button>
         <button class="tab" data-tab="viewings" onclick="showTab('viewings')">Viewings</button>
       </div>
       <div class="spacer"></div>
@@ -1480,7 +1490,41 @@ async function probeHousekeeping(){
     if(Object.keys(hkCache.names||{}).length) document.getElementById('tab-btn-housekeeping').style.display='';
   }catch(e){}
 }
-const HK_KIND={turnover:'Turnover clean',regular:'Regular clean',pre_arrival:'Pre-arrival preparation',deep_clean:'Deep clean',inspection:'Inspection round'};
+const HK_KIND={turnover:'Turnover clean',regular:'Routine clean',pre_arrival:'Preparation before arrival',deep_clean:'Deep clean',inspection:'Inspection'};
+const HK_DOT={done:'var(--green)',open:'var(--muted)',skipped:'var(--border)',not_done:'var(--red)',unconfirmed:'#B8860B',not_sent:'var(--red)',uncovered:'var(--red)',pass:'var(--green)',flagged:'#B8860B',unchecked:'var(--red)',unverified:'#B8860B',awaiting:'var(--muted)',clear:'var(--green)',raised:'#B8860B'};
+const HK_ATTN=['flagged','unchecked','unverified','raised','unconfirmed','not_sent','uncovered','not_done'];
+function hkKindLabel(r){ return (r.jobs||[]).length>1?r.jobs.map(j=>HK_KIND[j.kind]||j.kind).join(' + '):(r.type==='handover'?(HK_KIND[r.kind]||r.kind)+' · guest-ready check':(HK_KIND[r.kind]||r.kind)); }
+// One villa, the last twelve weeks, day by day: a band while a guest is in
+// house, a dot per visit coloured by its outcome. What a claim turns on.
+function hkStrip(slug,recs,stays){
+  const today=new Date(Date.now()+8*3600e3).toISOString().slice(0,10);
+  const plus=(d,n)=>new Date(Date.parse(d)+n*86400e3).toISOString().slice(0,10);
+  const df=d=>new Date(d+'T00:00:00Z').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'});
+  const by={}; for(const r of recs) (by[r.date]=by[r.date]||[]).push(r);
+  let cells='';
+  for(let i=83;i>=0;i--){
+    const d=plus(today,-i);
+    const inHouse=(stays||[]).some(s=>s.check_in<=d&&s.check_out>d);
+    const rs=by[d]||[];
+    const dot=rs.length?`<i style="background:${HK_DOT[rs[0].status]||'var(--muted)'}"></i>`:'';
+    const title=`${df(d)}${inHouse?' · guest in house':''}${rs.map(r=>' · '+hkKindLabel(r)+': '+hkPill(r).label).join('')}`;
+    cells+=`<span class="hk-rc${inHouse?' guest':''}${d===today?' today':''}" title="${escapeHtml(title)}">${dot}</span>`;
+  }
+  const done=recs.filter(r=>['done','pass','clear'].includes(r.status)).length, attn=recs.filter(r=>HK_ATTN.includes(r.status)).length;
+  return `<div class="hk-strip"><div class="hk-strip-cells">${cells}</div><div class="hk-strip-cap"><span>Last 12 weeks · <b>${done}</b> visits done${attn?` · <b>${attn}</b> not confirmed or not covered`:''}</span><span><i style="background:var(--green)"></i> done <i style="background:#B8860B"></i> reported later / flagged <i style="background:var(--red)"></i> not confirmed <span class="hk-rc guest" style="display:inline-block;vertical-align:middle;width:14px;height:10px"></span> guest in house</span></div></div>`;
+}
+function hkSegment(date,stays){
+  const st=(stays||[]).slice().sort((a,b)=>a.check_in.localeCompare(b.check_in));
+  const df=d=>new Date(d+'T00:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
+  const g=s=>`${s.guest?escapeHtml(s.guest):'Guest'} · ${df(s.check_in)} – ${df(s.check_out)}`;
+  const during=st.find(s=>s.check_in<=date&&s.check_out>date);
+  if(during) return 'During the stay of '+g(during);
+  const prev=st.slice().reverse().find(s=>s.check_out<=date), next=st.find(s=>s.check_in>date);
+  if(prev&&next) return `Vacant · after ${g(prev)} · before ${g(next)}`;
+  if(prev) return 'Vacant · after '+g(prev);
+  if(next) return 'Vacant · before '+g(next);
+  return 'No bookings on file';
+}
 function hkPill(r){
   if(r.type==='inspection') return r.status==='raised'?{cls:'wait',label:(r.repairs||1)+(r.repairs>1?' repairs raised':' repair raised')}:{cls:'ok',label:'✓ Nothing found'};
   if(r.type==='visit') return ({done:{cls:'ok',label:r.evidence==='photos'?'✓ Cleaned, photos':r.evidence==='reported_late'?'Cleaned (reported later)':'✓ Cleaned'},not_done:{cls:'no',label:'Not cleaned'},skipped:{cls:'done',label:'Skipped'},unconfirmed:{cls:'no',label:'Not confirmed'},not_sent:{cls:'no',label:'Not covered'},uncovered:{cls:'no',label:'Not covered'},open:{cls:'done',label:'Today'}})[r.status]||{cls:'done',label:r.status};
@@ -1508,10 +1552,23 @@ function initHousekeeping(){
       +slugs.map(s=>`<button class="hk-chip${hkVilla===s?' on':''}" onclick="hkVilla='${escapeHtml(s)}';initHousekeeping()">${escapeHtml(villa(s))}</button>`).join('')+'</div>';
   }
   const recs=(d.records||[]).filter(r=>!hkVilla||r.slug===hkVilla);
+  const oneVilla=hkVilla||(slugs.length===1?slugs[0]:null);
+  if(oneVilla) html+=hkStrip(oneVilla,recs.filter(r=>r.slug===oneVilla),(d.stays||{})[oneVilla]||[]);
   if(!recs.length){
-    html+='<div class="rep-empty"><h3>No records in the last 90 days</h3><p>Cleaning visits, pre-guest photo checks and inspection rounds appear here as they happen.</p></div>';
+    html+='<div class="rep-empty"><h3>No visits in the last 90 days</h3><p>Every scheduled housekeeping visit, guest-ready check and inspection at your villa appears here, whether or not it happened.</p></div>';
   }
-  for(const r of recs){
+  // Repairs raised at this villa sit in the same timeline, on the day they
+  // were reported, so "what state was it in" reads as one story.
+  const tickets=(maintCache||[]).filter(m=>(!oneVilla||m.unit_label===oneVilla||m.slug===oneVilla)&&m.reported_at).map(m=>({type:'ticket',slug:m.unit_label||m.slug,date:String(m.reported_at).slice(0,10),at:m.reported_at,m}));
+  const feed=[...recs.map(r=>({...r,at:r.at||r.date})),...(oneVilla?tickets:[])].sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.at).localeCompare(String(a.at)));
+  let seg='';
+  for(const r of feed){
+    if(oneVilla){ const sg=hkSegment(r.date,(d.stays||{})[oneVilla]||[]); if(sg!==seg){ seg=sg; html+=`<div class="hk-seg">${sg}</div>`; } }
+    if(r.type==='ticket'){
+      const m=r.m; const st=MT_STATUS[m.status]||{cls:'done',label:m.status};
+      html+=`<div class="mt-card hk-ticket"><div class="mt-head"><div style="flex:1;min-width:180px"><div class="mt-title" style="font-size:1.02rem">Repair raised: ${escapeHtml(m.title)}</div><div class="mt-where">${escapeHtml(villa(r.slug))} · ${escapeHtml(dlong(r.date))}${m.completed_at?` · completed ${escapeHtml(dlong(String(m.completed_at).slice(0,10)))}`:''}</div></div><span class="mt-pill ${st.cls}">${escapeHtml(st.label)}</span></div>${m.url?`<div class="mt-acts" style="margin-top:10px"><a class="mt-btn no" style="text-decoration:none;display:inline-block" href="${escapeHtml(m.url)}" target="_blank" rel="noopener">Open the ticket</a></div>`:''}</div>`;
+      continue;
+    }
     const pill=hkPill(r);
     const lines=[];
     if(r.type==='handover'){
@@ -1531,11 +1588,13 @@ function initHousekeeping(){
       if(r.status==='not_done') lines.push('The housekeeper reported that this visit did not happen. Era follows up.');
       if(r.status==='done'&&r.evidence==='reported_late') lines.push('Confirmed by the housekeeper after the day, when asked; no photos were sent.');
       if(r.status==='done'&&r.photo_count) lines.push('The housekeeper sent photos from this visit.');
+      if(r.status==='done'&&r.evidence==='reported') lines.push('Marked done by the housekeeper on the day; no photos were sent.');
     }
+    if((r.jobs||[]).length>1) lines.push(r.jobs.map(j=>`<b>${escapeHtml(HK_KIND[j.kind]||j.kind)}</b>: ${escapeHtml(({done:'done',not_done:'not done',unconfirmed:'not confirmed',not_sent:'not covered',uncovered:'not covered',skipped:'removed',open:'today',pass:'guest-ready',flagged:'issues flagged and fixed',unchecked:'no photos',unverified:'photos being checked',clear:'nothing found',raised:'repairs raised'})[j.status]||j.status)}${j.photo_count?` (${j.photo_count} photos)`:''}`).join(' · '));
     html+=`<div class="mt-card">
       <div class="mt-head">
         <div style="flex:1;min-width:180px">
-          <div class="mt-title">${escapeHtml(HK_KIND[r.kind]||r.kind)}</div>
+          <div class="mt-title">${escapeHtml(hkKindLabel(r))}</div>
           <div class="mt-where">${escapeHtml(villa(r.slug))} · ${escapeHtml(dlong(r.date))}${r.photo_count?` · ${r.photo_count} photo${r.photo_count>1?'s':''}`:''}</div>
         </div>
         <span class="mt-pill ${pill.cls}">${escapeHtml(pill.label)}</span>
@@ -1547,7 +1606,7 @@ function initHousekeeping(){
       </div><div class="mt-shots" id="hk-shots-${r.type}-${r.id}" style="display:none"></div>`:''}
     </div>`;
   }
-  html+=`<div class="hk-about"><b>How to read this.</b> Every scheduled visit at your villa is listed, whether or not it happened, so the state of the villa on any date can be checked afterwards. Your villa is cleaned on fixed days each week. Before every guest the housekeeper photographs each room and Maya checks the photos against the villa's standard before the guest arrives; anything flagged is fixed on the spot. Every fortnight a photo inspection round looks for wear and damage, and a deep clean happens each quarter and after any stay of three weeks or more. Records are stored when received and cannot be edited afterwards. For a damage claim, download the PDF from before and after the guest's stay.</div>`;
+  html+=`<div class="hk-about"><b>How to read this.</b> Every scheduled visit at your villa is listed, whether or not it happened, so the state of the villa on any date can be checked afterwards. A visit is one housekeeper at your villa on one day; it can hold more than one job (a turnover clean and an inspection, say). "With photos" means the housekeeper photographed the work; "reported" means she said it was done and sent no photos. Your villa is cleaned on fixed days each week. Before every guest the housekeeper photographs each room and Maya checks the photos against the villa's standard before the guest arrives; anything flagged is fixed on the spot. Every fortnight a photo inspection round looks for wear and damage, and a deep clean happens each quarter and after any stay of three weeks or more. Records are stored when received and cannot be edited afterwards. For a damage claim, download the PDF from before and after the guest's stay.</div>`;
   pane.innerHTML=html;
 }
 async function hkPhotos(type,id){

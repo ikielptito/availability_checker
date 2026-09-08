@@ -269,7 +269,7 @@ async function serveRecordPdf(req, res) {
   const villa = String(data.villa || rec.slug).replace(/\s*[–—]\s*/g, ' · ');
   const fmt = (d) => d ? new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '';
   const short = (d) => d ? new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '';
-  const KIND = { turnover: 'Turnover clean', regular: 'Regular clean', pre_arrival: 'Pre-arrival preparation', deep_clean: 'Deep clean', inspection: 'Inspection round' };
+  const KIND = { turnover: 'Turnover clean', regular: 'Routine clean', pre_arrival: 'Preparation before arrival', deep_clean: 'Deep clean', inspection: 'Inspection' };
   const STATUS = { pass: 'Checked, nothing to fix', flagged: 'Checked, issues flagged', unchecked: 'Not checked (no photos received)', unverified: 'Photos received, not checked', awaiting: 'Photos pending', clear: 'Nothing found', raised: 'Repairs raised',
     done: 'Done', skipped: 'Skipped', unconfirmed: 'Scheduled, not confirmed by the housekeeper', not_sent: 'Not covered (never sent)', uncovered: 'Not covered (no housekeeper reachable)', open: 'In progress' };
   const isVisit = rec.type === 'visit';
@@ -321,7 +321,7 @@ async function serveRecordPdf(req, res) {
   const otherFlags = (rec.flags || []).filter(f => !bad.some(c => f.startsWith(c.spot + ':')));
   const pdf = buildPdf({
     title: `${villa}`,
-    subtitle: `${rec.type === 'inspection' ? 'Inspection round' : rec.type === 'handover' ? 'Handover record' : 'Visit record'} · ${fmt(rec.date)}`,
+    subtitle: `${rec.type === 'inspection' ? 'Inspection' : rec.type === 'handover' ? 'Guest-ready check' : 'Visit record'} · ${fmt(rec.date)}`,
     meta: [
       ['Type', KIND[rec.kind] || rec.kind],
       ...(tok.aud === 'owner' ? [] : [['Housekeeper', rec.staff || 'Unknown']]),
@@ -339,9 +339,9 @@ async function serveRecordPdf(req, res) {
       timeline.length ? { heading: 'WHAT HAPPENED', lines: timeline.slice(0, 40) } : null,
       (data.repairs || []).length ? { heading: 'REPAIRS RAISED FROM THIS RECORD', lines: data.repairs.map(r => `${r.title} (${r.status})`) } : null,
       { heading: 'ABOUT THIS RECORD', text: rec.type === 'inspection'
-        ? 'A fortnightly inspection round: the housekeeper walks the villa, photographs it and reports anything wrong. Photos are stored when received and are not edited.'
+        ? 'A fortnightly inspection: the housekeeper walks the villa, photographs it and reports anything wrong. Photos are stored when received and are not edited.'
         : rec.type === 'handover'
-          ? 'A handover record: after preparing the villa for a guest, the housekeeper photographs each room and Maya, Samba\u2019s assistant, checks the photos before the guest arrives. Photos are stored when received and are not edited.'
+          ? 'A guest-ready check: after preparing the villa for a guest, the housekeeper photographs each room and Maya, Samba\u2019s assistant, checks the photos before the guest arrives. Photos are stored when received and are not edited.'
           : 'A visit record: one scheduled housekeeping visit, what became of it, and any photos the housekeeper sent that day. Every visit is recorded, whether or not it happened, so the state of the villa on any date can be checked afterwards.' },
     ],
     photos,

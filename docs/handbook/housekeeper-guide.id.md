@@ -31,7 +31,7 @@ Mulai sekarang, **yang membersihkan villa juga yang membuktikan villa sudah siap
 ### Tiga hal yang berubah
 
 1
-**Setelah selesai, kirim foto.** Kalau tugasnya menyiapkan villa untuk tamu (turnover dengan tamu berikutnya, persiapan sebelum tamu datang, atau deep clean), Maya akan minta tujuh foto begitu Anda tekan "Sudah selesai". Bersih-bersih rutin biasa tidak perlu foto.
+**Setelah selesai, kirim foto.** Kalau tugasnya menyiapkan villa untuk tamu (turnover dengan tamu berikutnya, persiapan sebelum tamu datang, atau deep clean), Maya akan minta tujuh foto begitu Anda tekan "Sudah selesai". Bersih-bersih rutin: dua foto saja, dapur dan kamar mandi, setelah tekan "Sudah selesai". Tanpa foto, catatannya hanya "dilaporkan selesai".
 
 2
 **Kotak perlengkapan selalu penuh.** Setiap villa punya satu kotak: sabun, sampo, tisu, kantong sampah, air. Anda yang menghitung isinya dan memberi tahu Maya kalau ada yang hampir habis.

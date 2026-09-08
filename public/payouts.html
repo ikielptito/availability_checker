@@ -277,6 +277,16 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
 .sched-list{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-top:8px;}
 .dayhead{position:sticky;top:0;background:var(--surface2);padding:9px 14px;font:700 11px/1 var(--sb-font-display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--sb-hairline);border-bottom:1px solid var(--sb-hairline);display:flex;justify-content:space-between;z-index:1;}
 .dayhead.today{color:var(--accent);}
+.rec-strip{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px 10px;margin-top:8px;}
+.rec-strip-cells{display:grid;grid-template-columns:repeat(28,1fr);gap:3px;}
+.rec-strip .rc{position:relative;height:16px;border-radius:4px;background:var(--surface2);}
+.rec-strip .rc.guest{background:color-mix(in srgb,var(--sb-sage) 45%,var(--surface));}
+.rec-strip .rc.today{outline:2px solid var(--accent);outline-offset:-2px;}
+.rec-strip .rc i{position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;}
+.rec-strip .rc.ring i{box-shadow:0 0 0 2px var(--surface),0 0 0 3px currentColor;color:var(--sb-olive);}
+.rec-strip-cap{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--muted);}
+.rec-strip-cap i{display:inline-block;width:7px;height:7px;border-radius:50%;vertical-align:middle;margin:0 3px 0 6px;}
+.rec-strip-cap .rc{width:14px;height:10px;}
 .sitem{display:flex;gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--sb-hairline);background:var(--surface);}
 .sitem[role=button]{cursor:pointer;}
 .sitem[role=button]:hover{background:var(--surface2);}
@@ -2094,9 +2104,9 @@ let hkAdd = {};           // the add-a-clean draft
 
 const HK_KIND = {
   turnover:      ['Turnover clean', 'the guest left'],
-  regular:       ['Regular clean', 'twice a week'],
-  pre_arrival:   ['Prepare the villa', 'a guest arrives'],
-  inspection:    ['Inspection with photos', 'for the owner report'],
+  regular:       ['Routine clean', 'twice a week'],
+  pre_arrival:   ['Arrival prep', 'a guest arrives'],
+  inspection:    ['Inspection', 'photos, for the owner record'],
   deep_clean:    ['Deep clean', 'quarterly: walls, oven, windows, pool'],
 };
 // What the housekeeper's handover photos said. A turnover with a guest
@@ -2119,7 +2129,7 @@ const HK_STATUS = {
   done:      ['done', 'Done'],
   skipped:   ['no',   'Skipped'],
 };
-const HK_LETTER = { turnover: 'T', regular: 'R', pre_arrival: 'P', inspection: 'I', deep_clean: 'D' };
+const HK_LETTER = { turnover: 'T', regular: 'R', pre_arrival: 'A', inspection: 'I', deep_clean: 'D' };
 
 async function hkApi(action, payload) {
   const r = await fetch('/api/housekeeping', {
@@ -2578,7 +2588,7 @@ async function hkGenerate() {
 let recData = null;        // hk_records payload
 let recStays = null;       // hk_stays for the same window, for guest context
 let recFilter = { slug: '', type: 'all', month: 'all' };
-const REC_TYPE = { visit: 'Visit', handover: 'Handover', inspection: 'Inspection round' };
+const REC_TYPE = { visit: 'Visit', handover: 'Guest-ready check', inspection: 'Inspection' };
 const REC_STATUS = {
   awaiting: ['wait', 'Photos pending'], pass: ['done', 'Checked'], flagged: ['hot', 'Needs a look'], unchecked: ['no', 'Not checked'], unverified: ['hot', 'Photos not checked'],
   clear: ['done', 'Nothing found'], raised: ['hot', 'Repairs raised'],
@@ -2586,7 +2596,10 @@ const REC_STATUS = {
 };
 const REC_EVIDENCE = { photos: 'with photos', reported: 'reported on the day', reported_late: 'reported later' };
 const REC_ATTENTION = ['flagged', 'unchecked', 'unverified', 'raised', 'unconfirmed', 'not_sent', 'uncovered', 'not_done'];
-const recKindLabel = (r) => r.type === 'inspection' ? 'Inspection round' : r.type === 'handover' ? `Handover · ${(HK_KIND[r.kind] || [r.kind])[0].toLowerCase()}` : (HK_KIND[r.kind] || [r.kind])[0];
+const recKindLabel = (r) => (r.jobs || []).length > 1
+  ? r.jobs.map(j => (HK_KIND[j.kind] || [j.kind])[0]).join(' + ')
+  : r.type === 'inspection' ? 'Inspection' : r.type === 'handover' ? `${(HK_KIND[r.kind] || [r.kind])[0]} · guest-ready check` : (HK_KIND[r.kind] || [r.kind])[0];
+const recLetters = (r) => (r.jobs || []).length > 1 ? r.jobs.map(j => HK_LETTER[j.kind] || 'V').join('') : (r.type === 'inspection' ? 'I' : (HK_LETTER[r.kind] || 'V'));
 const recStayList = (slug) => ((recStays?.units || []).find(u => u.slug === slug)?.stays || []).filter(s => s.status !== 'cancelled');
 // The stay a record sits before, and the one it sits after.
 function recGuestContext(r) {
@@ -2639,7 +2652,7 @@ function recRender() {
   vsel.innerHTML = `<option value="">All villas</option>` + slugs.map(s => `<option value="${esc(s)}"${recFilter.slug === s ? ' selected' : ''}>${esc(pname(names(s)))}</option>`).join('');
   const msel = document.getElementById('rec-month');
   msel.innerHTML = `<option value="all">All months</option>` + months.map(m => `<option value="${m}"${recFilter.month === m ? ' selected' : ''}>${esc(monthLabel(m))}</option>`).join('');
-  const chips = [['all', 'Everything'], ['visit', 'Visits'], ['handover', 'Handovers'], ['inspection', 'Inspections'], ['flagged', 'Needs a look']];
+  const chips = [['all', 'Everything'], ['visit', 'Visits'], ['handover', 'Guest-ready checks'], ['inspection', 'Inspections'], ['flagged', 'Needs a look']];
   document.getElementById('rec-chips').innerHTML = chips.map(([k, l]) => `<button type="button" class="chip${recFilter.type === k ? ' on' : ''}" onclick="recSet('type','${k}')">${esc(l)}</button>`).join('');
 
   const rows = all.filter(r => (!recFilter.slug || r.slug === recFilter.slug)
@@ -2649,22 +2662,65 @@ function recRender() {
   const attention = rows.filter(r => REC_ATTENTION.includes(r.status)).length;
   document.getElementById('rec-sub').innerHTML = `<b>${rows.length}</b> visit${rows.length === 1 ? '' : 's'} · <b>${photos}</b> photos${recFilter.slug ? '' : ` · ${slugs.length} villas`}${attention ? ` · <b>${attention}</b> need a look` : ''}. Every scheduled visit is here, done or not. Tap one for the photos and what happened.`;
 
-  let h = '', month = '';
+  let h = '';
+  if (recFilter.slug) h += recUnitStrip(rows, recFilter.slug);
+  let month = '';
   for (const r of rows) {
     const m = r.date.slice(0, 7);
-    if (m !== month) { month = m; h += `<div class="dayhead"><span>${esc(monthLabel(m))}</span><span>${rows.filter(x => x.date.startsWith(m)).length}</span></div>`; }
+    if (recFilter.slug) {
+      const seg = recSegmentFor(r.slug, r.date);
+      if (seg !== month) { month = seg; h += `<div class="dayhead"><span>${esc(seg)}</span><span></span></div>`; }
+    } else if (m !== month) { month = m; h += `<div class="dayhead"><span>${esc(monthLabel(m))}</span><span>${rows.filter(x => x.date.startsWith(m)).length}</span></div>`; }
     const st = REC_STATUS[r.status] || ['wait', r.status];
     const sub = [recKindLabel(r), r.staff || 'unassigned', r.photo_count ? `${r.photo_count} photo${r.photo_count === 1 ? '' : 's'}` : (r.evidence && r.evidence !== 'photos' ? REC_EVIDENCE[r.evidence] : 'no photos'),
       r.guest_in_date && r.kind !== 'regular' ? `guest arrives ${dFmt(r.guest_in_date, { day: 'numeric', month: 'short' })}` : '',
       r.type === 'inspection' && (r.item_ids || []).length ? `${r.item_ids.length} repair${r.item_ids.length === 1 ? '' : 's'} raised` : '',
       r.moved_by ? `moved by ${r.moved_by}` : ''].filter(Boolean).join(' · ');
     h += `<div class="sitem" onclick="recSheet('${r.type}',${r.id})" role="button" tabindex="0">
-      <div class="sic ${r.type === 'inspection' ? 'guest' : 'clean'}"${REC_ATTENTION.includes(r.status) ? ' style="opacity:.6"' : ''}>${r.type === 'inspection' ? 'I' : (HK_LETTER[r.kind] || 'H')}</div>
+      <div class="sic ${r.type === 'inspection' ? 'guest' : 'clean'}"${REC_ATTENTION.includes(r.status) ? ' style="opacity:.6"' : ''}>${esc(recLetters(r))}</div>
       <div class="stxt"><div class="t">${esc(dFmt(r.date, { weekday: 'short', day: 'numeric', month: 'short' }))} · ${esc(pname(names(r.slug)))}</div><div class="s">${esc(sub)}</div></div>
       <span class="pill ${st[0]}">${esc(st[1])}</span>
     </div>`;
   }
   document.getElementById('rec-list').innerHTML = h || '<div class="sempty">No visits match. Every scheduled visit appears here once its day has come, with whatever the housekeeper sent.</div>';
+}
+// ── One villa: the last 90 days as a strip, then the visits by stay ──
+// The strip is the "was it looked after" view an owner or a claim needs:
+// one cell per day, a guest band while someone is in house, a dot per
+// visit coloured by what became of it. The list beneath groups visits by
+// the stay they sit inside or the vacancy between two stays.
+const REC_DOT = { done: 'var(--green)', open: 'var(--muted)', skipped: 'var(--border)', not_done: 'var(--red-fg)', unconfirmed: 'var(--amber-fg)', not_sent: 'var(--red-fg)', uncovered: 'var(--red-fg)', pass: 'var(--green)', flagged: 'var(--amber-fg)', unchecked: 'var(--red-fg)', unverified: 'var(--amber-fg)', awaiting: 'var(--muted)', clear: 'var(--green)', raised: 'var(--amber-fg)' };
+function recUnitStrip(rows, slug) {
+  const today = witaToday(), days = 84;
+  const stays = recStayList(slug);
+  const byDate = {};
+  for (const r of rows) (byDate[r.date] ||= []).push(r);
+  let cells = '';
+  for (let i = days - 1; i >= 0; i--) {
+    const d = dPlus(today, -i);
+    const inHouse = stays.some(s => s.check_in <= d && s.check_out > d);
+    const recs = byDate[d] || [];
+    const dot = recs.length ? `<i style="background:${REC_DOT[recs[0].status] || 'var(--muted)'}"></i>` : '';
+    const ring = recs.some(r => r.type === 'inspection' || r.kind === 'inspection') ? ' ring' : '';
+    const title = `${dFmt(d, { weekday: 'short', day: 'numeric', month: 'short' })}${inHouse ? ' · guest in house' : ''}${recs.map(r => ` · ${recKindLabel(r)}: ${(REC_STATUS[r.status] || [0, r.status])[1]}`).join('')}`;
+    cells += `<span class="rc${inHouse ? ' guest' : ''}${ring}${d === today ? ' today' : ''}" title="${esc(title)}">${dot}</span>`;
+  }
+  const done = rows.filter(r => r.status === 'done' || r.status === 'pass' || r.status === 'clear').length;
+  const miss = rows.filter(r => REC_ATTENTION.includes(r.status)).length;
+  return `<div class="rec-strip"><div class="rec-strip-cells">${cells}</div>
+    <div class="rec-strip-cap"><span>Last 12 weeks · <b>${done}</b> done · <b>${miss}</b> need a look</span><span><i style="background:var(--green)"></i> done <i style="background:var(--amber-fg)"></i> reported later / flagged <i style="background:var(--red-fg)"></i> not confirmed / not covered <span class="rc guest" style="display:inline-block;vertical-align:middle"></span> guest in house</span></div></div>`;
+}
+function recSegmentFor(slug, date) {
+  const stays = recStayList(slug).sort((a, b) => a.check_in.localeCompare(b.check_in));
+  const during = stays.find(s => s.check_in <= date && s.check_out > date);
+  const g = (s) => `${s.guest ? esc(s.guest.split(' ')[0]) : 'Guest'} · ${dFmt(s.check_in, { day: 'numeric', month: 'short' })} – ${dFmt(s.check_out, { day: 'numeric', month: 'short' })}`;
+  if (during) return `During the stay of ${g(during)}`;
+  const prev = [...stays].reverse().find(s => s.check_out <= date);
+  const next = stays.find(s => s.check_in > date);
+  if (prev && next) return `Vacant · after ${g(prev)} · before ${g(next)}`;
+  if (prev) return `Vacant · after ${g(prev)}`;
+  if (next) return `Vacant · before ${g(next)}`;
+  return 'No bookings on file';
 }
 async function recSheet(type, id) {
   const r = (recData?.records || []).find(x => x.type === type && x.id === id);
@@ -2676,6 +2732,7 @@ async function recSheet(type, id) {
   modal(`<h3>${esc(pname(names(r.slug)))}</h3>
     <p>${esc(dFmt(r.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))} · ${esc(recKindLabel(r))} · ${esc(r.staff || 'unassigned')} · <span class="pill ${st[0]}">${esc(st[1])}</span></p>
     <div class="rec-guest">${recGuestContext(r) || '<span>No booking around this date</span>'}</div>
+    ${(r.jobs || []).length > 1 ? `<ul class="flaglist">${r.jobs.map(j => `<li><b>${esc((HK_KIND[j.kind] || [j.kind])[0])}</b> — ${esc((REC_STATUS[j.status] || [0, j.status])[1])}${j.evidence ? ` · ${esc(REC_EVIDENCE[j.evidence])}` : ''}${j.photo_count ? ` · ${j.photo_count} photos` : ''}</li>`).join('')}</ul>` : ''}
     ${r.notes ? `<p style="font-size:12.5px;color:var(--muted)">${esc(r.notes)}</p>` : ''}
     <div class="photo-grid" id="rec-photos">${r.photo_count ? '<div class="sempty" style="grid-column:1/-1">Loading photos…</div>' : '<div class="sempty" style="grid-column:1/-1">No photos on this record.</div>'}</div>
     <div id="rec-trail"></div>
@@ -2788,7 +2845,7 @@ const HELP = {
       <li><b>Add a clean</b>: pick the villa, the day, then who. The kind is guessed from the calendar and you can change it.</li>
       <li><b>Cleaning days</b> sets which weekdays each villa is cleaned. <b>Rebuild from the calendar</b> refreshes the plan after a booking changes; cleans already sent to someone are kept.</li>
     </ul>
-    <h4>Handover checks</h4>
+    <h4>Guest-ready checks</h4>
     <ul>
       <li>When a housekeeper finishes a turnover before a guest, a pre-arrival or a deep clean, Maya asks her for a set of photos: the sofa with its cover, the kitchen and inside the oven, the bathroom with soap in it, the bed, the pool, the consumables box. Maya looks at them.</li>
       <li>The pill on that clean says what happened: <b>Checked</b> (fine, nothing to do), <b>Needs a look</b> (something is wrong and you were messaged), <b>Not checked</b> (she never sent photos). Tap the clean to see the photos and what was flagged.</li>
@@ -2806,7 +2863,8 @@ const HELP = {
     <h4>Finding something</h4>
     <ul>
       <li>Pick the villa and the month at the top. <b>Visits</b>, <b>Handovers</b> and <b>Inspections</b> narrow by kind; <b>Needs a look</b> shows what Maya flagged, rounds that raised repairs, and visits that were not confirmed or never sent.</li>
-      <li>To check the state of a unit on a date: pick the villa, find the visit before and after that date, open the photos. The <b>What happened</b> list on each visit shows when it was sent, tapped, moved, chased and closed.</li>
+      <li>To check the state of a unit on a date: pick the villa. The strip shows the last twelve weeks day by day — a green band while a guest is in house, a dot per visit coloured by its outcome — and the list beneath groups the visits by stay, so the visit before a guest arrived and the one after they left sit under their name. The <b>What happened</b> list on each visit shows when it was sent, tapped, moved, chased and closed.</li>
+      <li>Every visit that is not a guest-ready check should still end with two photos (kitchen and bathroom). A visit marked <b>Done</b> with "reported on the day" or "reported later" has no photos: the housekeeper said so, and nothing more.</li>
       <li>Tap a record: the photos, what Maya flagged, what the housekeeper wrote, what was running low, and which repairs came out of it.</li>
       <li>Each record says which guest it sits <b>before</b> or <b>after</b>, so a damage claim can be answered with the photo taken before that guest arrived and the one taken after they left.</li>
       <li><b>Share as PDF</b> makes a link to the record as a PDF with all its photos. Anyone with the link can open it without logging in; forward it to an owner or attach it to a claim.</li>
