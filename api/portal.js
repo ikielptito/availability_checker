@@ -1489,6 +1489,10 @@ function buildOwnerListing(slug, data, existing, ownerSub, status) {
     wifi: cleanStr(data.wifi) || existing?.wifi || '',
     pool: cleanStr(data.pool) || existing?.pool || '',
     minStay: cleanStr(data.minStay) || existing?.minStay || '',
+    // The owner has said there is no channel calendar and dates are kept by
+    // hand. Stops every later message (listing-live, chase, Maya) asking for
+    // an iCal again — Bas said "No" and was asked three more times (10 Sep 2026).
+    manualDates: typeof data.manualDates === 'boolean' ? data.manualDates : (existing?.manualDates ?? false),
     hidden: false,
     // Ownership + complimentary flags are never set from the edit form — always
     // carried over so an owner edit can't strip its own free/linked status.

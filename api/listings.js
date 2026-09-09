@@ -523,6 +523,14 @@ export default async function handler(req, res) {
         wifi: cleanStr(data.wifi) || existing.wifi || '',
         pool: cleanStr(data.pool) || existing.pool || '',
         minStay: cleanStr(data.minStay) || existing.minStay || '',
+        manualDates: typeof data.manualDates === 'boolean' ? data.manualDates : (existing.manualDates ?? false),
+        // Intake-owned fields an admin edit never sends: keep them, or the
+        // first admin save after a Maya intake dropped the room counts and
+        // the owner's WhatsApp identity (found 10 Sep 2026).
+        bedrooms: existing.bedrooms,
+        bathrooms: existing.bathrooms,
+        ownerWa: existing.ownerWa || '',
+        source: existing.source,
         // Ownership/review fields are owned by the portal + review flow; never
         // clobbered by an admin content edit.
         ownerSub: existing.ownerSub || null,
