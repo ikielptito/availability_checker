@@ -601,6 +601,17 @@ function mockMaintenanceApi({ action, payload = {} }) {
     if (!m.requires_approval) m.next_followup_at = dayISO(-3);
     return { status: 200, body: { ok: true, status: m.status } };
   }
+  if (action === 'maint_owner_decide') {
+    const m = find(payload.id); if (!m) return { status: 404, body: { error: 'Item not found' } };
+    const approve = payload.decision !== 'decline';
+    if (payload.estimated_cost !== undefined && payload.estimated_cost !== null) m.estimated_cost = payload.estimated_cost;
+    m.requires_approval = true; m.status = approve ? 'approved' : 'declined';
+    m.published_at = m.published_at || new Date().toISOString(); m.notified_at = m.notified_at || new Date().toISOString();
+    m.approved_by = payload.by || 'owner'; m.staff_notified_at = null;
+    if (approve) { m.approved_at = new Date().toISOString(); m.next_followup_at = dayISO(-3); }
+    else { m.declined_at = new Date().toISOString(); m.decline_note = payload.note || null; }
+    return { status: 200, body: { ok: true, status: m.status } };
+  }
   if (action === 'maint_approve') {
     const m = find(payload.id); if (!m) return { status: 404, body: { error: 'Item not found' } };
     m.status = 'approved'; m.approved_at = new Date().toISOString(); m.approved_by = payload.by || 'owner';

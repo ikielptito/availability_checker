@@ -192,7 +192,8 @@ async function partnerProxy(res, caller, action, payload, crm, crmStatements) {
   if (!scope.groupKeys.has(detail.body.item?.group_key)) return res.status(403).json({ error: 'Not your property' });
   if (action === 'maint_move' && !scope.slugs.has(String(p.slug || ''))) return res.status(403).json({ error: 'You can only move a ticket to one of your own units.' });
   if (action === 'maint_detail') return res.status(200).json(detail.body);
-  const { status, body } = await crm(action, { ...p, actor: 'oli' });
+  // His decision is signed with his name, whatever the page sent.
+  const { status, body } = await crm(action, { ...p, actor: 'oli', ...(action === 'maint_owner_decide' ? { by: 'Oli' } : {}) });
   return res.status(status).json(body);
 }
 

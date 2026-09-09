@@ -523,6 +523,8 @@ window.addEventListener('hashchange', route);
 // records for its units, and the page shapes itself before making any other
 // call (the statements engine would refuse that login).
 let scope = null;
+let whoName = null;   // 'admin' (Ikiel), 'Era' or 'Oli', from payroll_whoami
+const myName = () => whoName === 'Era' ? 'Era' : whoName === 'Oli' ? 'Oli' : 'Ikiel';
 const D8_VIEWS = ['payroll', 'maintenance', 'cleaning', 'records'];
 const d8Allowed = (h) => ['#/payroll', '#/maintenance', '#/cleaning', '#/records'].some(p => String(h || '').startsWith(p));
 // On the schedule and the records the partner reads; on maintenance he
@@ -532,7 +534,7 @@ const readOnly = () => scope === 'double8';
 async function boot() {
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  try { scope = (await payrollApi('payroll_whoami', {})).scope || null; } catch { scope = null; }
+  try { const who = await payrollApi('payroll_whoami', {}); scope = who.scope || null; whoName = who.name || null; } catch { scope = null; }
   if (scope === 'double8') {
     payrollEntity = 'double8';
     document.body.classList.add('scope-double8');
@@ -1757,6 +1759,30 @@ const MSTATUS = {
   done:             { cls: 'done', label: 'Done' },
 };
 
+// A ticket on a unit whose owner is in this cockpit: Oli's login on the
+// Tropicana B group, or Ikiel and Era on any group without an outside owner
+// (expenses-only: Samba's own units). There is nobody to ask, so review and
+// approval are one step.
+function selfOwned(it) {
+  if (scope === 'double8') return true;
+  return !!(groupsData?.groups || []).find(g => g.key === it.group_key)?.expenses_only;
+}
+async function maintOwnerDecide(id, decision, note) {
+  if (decision === 'decline' && note === undefined) {
+    modal(`<h3>Decline this repair?</h3>
+      <p>Era will be told. A word on why helps her.</p>
+      <textarea id="mdecl-note" class="flt" style="width:100%;min-height:56px" placeholder="Optional"></textarea>
+      <div class="row"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="closeModal();maintOwnerDecide(${id},'decline',document.getElementById('mdecl-note').value)">Decline</button></div>`);
+    return;
+  }
+  const cost = document.getElementById('mcost-' + id)?.value.replace(/[^\d.]/g, '');
+  try {
+    await maintApi('maint_owner_decide', { id, decision, by: myName(), estimated_cost: cost ? Number(cost) : undefined, note: note || null });
+    showToast(decision === 'approve' ? 'Approved. Era will get it done.' : 'Declined. Era has been told.', 'success');
+    renderMaintenance();
+  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
+}
+
 async function renderMaintenance() {
   const c = document.getElementById('content');
   c.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading maintenance…</div>';
@@ -1806,7 +1832,17 @@ async function renderMaintenance() {
         </label>
       </div>`;
 
-    if (it.status === 'new') {
+    if ((it.status === 'new' || it.status === 'pending_approval') && selfOwned(it)) {
+      html += `<div class="mrow">
+        <span style="font-size:.76rem;color:var(--muted)">Estimated cost</span>
+        <input type="text" id="mcost-${it.id}" placeholder="e.g. 850000" value="${it.estimated_cost ?? ''}" style="width:130px">
+        <button class="btn primary" onclick="maintOwnerDecide(${it.id}, 'approve')">Approve · do the work</button>
+        <button class="btn ghost" onclick="maintOwnerDecide(${it.id}, 'decline')">Decline</button>
+        ${it.status === 'new' ? `<button class="btn ghost" onclick="maintDelete(${it.id})">Not an issue</button>` : ''}
+        <button class="btn ghost" onclick="maintMove(${it.id})">Wrong villa</button>
+      </div>
+      <div class="mrow"><span style="font-size:.76rem;color:var(--muted)">${esc(g.owner_names || 'Samba')} own${/&|,| and /.test(g.owner_names || '') ? '' : 's'} this unit: approving here is the owner's decision, nobody is asked.</span></div>`;
+    } else if (it.status === 'new') {
       html += `<div class="mrow">
         <span style="font-size:.76rem;color:var(--muted)">Estimated cost</span>
         <input type="text" id="mcost-${it.id}" placeholder="e.g. 850000" value="${it.estimated_cost ?? ''}" style="width:130px">
@@ -1833,7 +1869,7 @@ async function renderMaintenance() {
         <span style="font-size:.76rem;color:var(--muted)">Next check-in ${it.next_followup_at ? esc(dstr(it.next_followup_at)) : '–'}${it.promised_date ? ` (you said ${esc(dstr(it.promised_date))})` : ''}</span>
       </div>`;
     }
-    if (it.status === 'pending_approval') {
+    if (it.status === 'pending_approval' && !selfOwned(it)) {
       html += `<div class="mrow">
         <a class="btn ghost" href="/m/${esc(it.token || '')}" target="_blank">Preview owner view ↗</a>
         <button class="btn ghost" onclick="maintApproveFor(${it.id})">Owner approved (by phone)</button>
