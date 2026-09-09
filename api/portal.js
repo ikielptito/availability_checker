@@ -1478,6 +1478,17 @@ function buildOwnerListing(slug, data, existing, ownerSub, status) {
     // Provided → use it (availability can now come in with an intake);
     // omitted → keep what the listing already had.
     bookedRanges: cleanBookedRanges(data.bookedRanges) || existing?.bookedRanges || [],
+    // Key facts (deposit, electricity, wifi, pool, minimum stay, pets): taken
+    // when the intake carries them, otherwise KEPT. This record replaces the
+    // stored one wholesale, and without these lines every Maya intake — an
+    // owner adding a map pin, say — silently wiped the facts the chase had
+    // already collected and Ikiel had applied (found 10 Sep 2026).
+    petFriendly: typeof data.petFriendly === 'boolean' ? data.petFriendly : (existing?.petFriendly ?? null),
+    deposit: cleanStr(data.deposit) || existing?.deposit || '',
+    electricity: cleanStr(data.electricity) || existing?.electricity || '',
+    wifi: cleanStr(data.wifi) || existing?.wifi || '',
+    pool: cleanStr(data.pool) || existing?.pool || '',
+    minStay: cleanStr(data.minStay) || existing?.minStay || '',
     hidden: false,
     // Ownership + complimentary flags are never set from the edit form — always
     // carried over so an owner edit can't strip its own free/linked status.
