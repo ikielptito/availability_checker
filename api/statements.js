@@ -23,6 +23,7 @@ import { buildMonthStats, buildRangeStats, applyStatementNights, revenueByMonth 
 import { buildStatementWorkbook, buildGroupWorkbook } from '../lib/statement-export.js';
 import { UNITS_BY_SLUG } from '../lib/catalog.js';
 import { loadHostexOwnerMap } from '../lib/owner-listings.js';
+import { position as financePosition, rentalSeries, addMonths } from '../lib/project-finance.js';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
@@ -242,7 +243,7 @@ export default async function handler(req, res) {
     }
     const isEra = caller.role === 'era';
     if (!sync) return res.status(503).json({ error: 'LISTING_SYNC_SECRET not configured' });
-    if (!/^statement_[a-z_]+$/.test(String(action || ''))) {
+    if (!/^(statement|finance)_[a-z_]+$/.test(String(action || ''))) {
       return res.status(400).json({ error: `unsupported action: ${action}` });
     }
     try {
@@ -710,54 +711,79 @@ export default async function handler(req, res) {
       const stmts = (listRes.body?.statements || []).filter(s => s.period >= from && s.period <= to && s.status !== 'void'
         && (!publishedOnly || ['published', 'partial', 'paid'].includes(s.status)));
 
-      // Hostex revenue for expenses-only groups, one fetch per unit, cached.
-      let hostex = null;
-      if (group.expenses_only) {
-        const cacheKey = `pnl-rev:${groupKey}:${from}:${to}`;
-        const cached = await kvGet(cacheKey);
-        if (cached && cached.at && Date.now() - cached.at < 30 * 60e3) hostex = cached.data;
-        else {
-          const units = (group.listing_slugs || []).map(slug => ({ slug, hostexId: UNITS_BY_SLUG[slug]?.hostexId || null, name: UNITS_BY_SLUG[slug]?.name || null }));
-          try { hostex = await revenueByMonth(units, { from, to }); await kvSet(cacheKey, { at: Date.now(), data: hostex }); }
-          catch { hostex = null; }
-        }
-      }
-
-      const months = [];
-      const label = (p) => { const [y, m] = p.split('-').map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }); };
-      for (let p = from; p <= to; p = (() => { const [y, m] = p.split('-').map(Number); const d = new Date(Date.UTC(y, m, 1)); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`; })()) {
-        const s = stmts.find(x => x.period === p) || null;
-        const expenses = s ? Number(s.expenses_total) || 0 : 0;
-        const adjustments = s ? Number(s.adjustments_total) || 0 : 0;
-        let gross, commission, net, source;
-        if (group.expenses_only) {
-          // The calendar is the revenue record for these units: Era enters
-          // every stay there with its rent, direct tenants included (Tropicana
-          // B is all direct entries). Rent she also notes on the ledger
-          // ("Received payment from …") shows on the statement as a booking
-          // but is not added on top. Only when the calendar has nothing for
-          // the month does the statement's own booking total stand in.
-          const hm = hostex?.months?.[p];
-          const calendar = hm ? Number(hm.revenue) || 0 : null;
-          const direct = s ? Number(s.gross_total) || 0 : 0;
-          gross = calendar != null && calendar > 0 ? calendar : direct; commission = 0;
-          source = calendar != null && calendar > 0 ? 'hostex' : (direct ? 'statement' : 'none');
-          net = gross - expenses;
-        } else {
-          gross = s ? Number(s.gross_total) || 0 : 0;
-          commission = group.charges_commission === false ? 0 : (s ? Number(s.commission_total) || 0 : 0);
-          net = s ? (group.charges_commission === false ? gross - expenses + adjustments : Number(s.payout_total) || 0) : 0;
-          source = s ? 'statement' : 'none';
-        }
-        months.push({ period: p, label: label(p), gross, commission, expenses, adjustments, net, source, status: s?.status || null, statement_id: s?.id || null, nights: hostex?.months?.[p]?.nights ?? null });
-      }
-      const sum = (k) => months.reduce((a, m) => a + (Number(m[k]) || 0), 0);
+      const hostex = await hostexRevenueCached(group, from, to, { kvGet, kvSet });
+      const months = pnlMonths(group, stmts, hostex, from, to);
       res.setHeader('Cache-Control', 'no-store');
       return res.status(200).json({
         group_key: groupKey, name: group.name, from, to,
         expenses_only: !!group.expenses_only, charges_commission: group.charges_commission !== false,
-        months, totals: { gross: sum('gross'), commission: sum('commission'), expenses: sum('expenses'), adjustments: sum('adjustments'), net: sum('net') },
+        months, totals: pnlTotals(months),
       });
+    }
+
+    // ── Project finance: the Tropicana Valley development as a whole ──
+    // The CRM holds the books (ledger, costs still to pay, buyers, loans,
+    // bank balances); this adds the rental side of the four unsold B units
+    // from Hostex and Era's statements, writes each closed month back into
+    // the ledger, and works out the loan headline (lib/project-finance.js).
+    // Ikiel and Era see and edit; Oli (double8) reads.
+    if (action === 'finance') {
+      const caller = await cockpitCaller(req.headers.authorization);
+      if (!caller) return res.status(401).json({ error: 'Unauthorized' });
+      if (!sync) return res.status(503).json({ error: 'LISTING_SYNC_SECRET not configured' });
+      const readonly = caller.role === 'double8';
+      const got = await crm('finance_get', { project_key: String(req.query.project || 'tropicana') });
+      if (got.status !== 200) return res.status(got.status).json(got.body);
+      const data = got.body;
+      if (data.error === 'migration') return res.status(200).json({ migration: data.message, readonly });
+
+      // Rental months: from the configured start to this month, capped at
+      // the last 24 (the Hostex feed is fetched per unit).
+      const now = new Date().toISOString().slice(0, 7);
+      let from = /^\d{4}-\d{2}$/.test(String(data.settings?.rental_from || '')) ? data.settings.rental_from : addMonths(now, -11);
+      if (from > now) from = now;
+      const floor = addMonths(now, -23);
+      if (from < floor) from = floor;
+      const groupKey = data.settings?.rental_group_key || 'tropicana-b2356';
+      const groupsRes = await crm('statement_groups', {});
+      const group = (groupsRes.body?.groups || []).find(g => g.key === groupKey) || null;
+      let rental = null, rentalWrite = null;
+      if (group) {
+        const listRes = await crm('statement_list', { group_key: groupKey });
+        const stmts = (listRes.body?.statements || []).filter(s => s.period >= from && s.period <= now && s.status !== 'void');
+        const hostex = await hostexRevenueCached(group, from, now, { kvGet, kvSet });
+        const months = pnlMonths(group, stmts, hostex, from, now).map(m => ({ ...m, closed: m.period < now, units: Object.fromEntries((group.listing_slugs || []).map(slug => [slug, Math.round(hostex?.units?.[slug]?.[m.period] || 0)])) }));
+        rental = rentalSeries(months, { window: Number(data.settings?.projection_months) || 3, ledger: data.ledger });
+        rental.group_key = groupKey; rental.group_name = group.name; rental.from = from; rental.to = now;
+        rental.hostex_ok = !!hostex;
+        // Closed months go into the ledger as calendar rows (source 'rental'),
+        // one income row per unit and one expense row per month, so the
+        // history stays even when the calendar drifts later.
+        if (!readonly && hostex) {
+          const rows = [];
+          for (const m of months.filter(x => x.closed)) {
+            const last = new Date(Date.UTC(+m.period.slice(0, 4), +m.period.slice(5, 7), 0)).toISOString().slice(0, 10);
+            for (const [slug, amt] of Object.entries(m.units)) {
+              const unit = (UNITS_BY_SLUG[slug]?.name || slug).replace(/.*Unit\s+/, '').toUpperCase();
+              rows.push({ source_ref: `rental:${slug}:${m.period}:income`, entry_date: last, direction: 'in', amount: m.source === 'hostex' ? amt : 0, description: `Rent on the calendar · ${unit} · ${m.label}`, unit, counterparty: 'hostex' });
+            }
+            if (m.source !== 'hostex') rows.push({ source_ref: `rental:${groupKey}:${m.period}:income`, entry_date: last, direction: 'in', amount: m.gross, description: `Rent on the statement · ${m.label}`, counterparty: 'statement' });
+            else rows.push({ source_ref: `rental:${groupKey}:${m.period}:income`, entry_date: last, direction: 'in', amount: 0 });
+            rows.push({ source_ref: `rental:${groupKey}:${m.period}:expense`, entry_date: last, direction: 'out', amount: m.expenses, description: `Unit expenses on Era's statement · ${m.label}`, counterparty: 'statement' });
+          }
+          const w = await crm('finance_rental_upsert', { rows, project_key: data.project_key });
+          rentalWrite = w.body;
+          // The ledger the maths sees must include what was just written.
+          if (w.status === 200 && (w.body.upserted || w.body.removed)) {
+            const again = await crm('finance_get', { project_key: data.project_key });
+            if (again.status === 200 && again.body.ledger) data.ledger = again.body.ledger;
+          }
+        }
+      }
+      const pos = financePosition(data, rental);
+      const fx = await getFx();
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json({ readonly, who: caller.name, data, rental, rental_write: rentalWrite, position: pos, fx_live: fx?.rates?.USD ? Math.round(1 / fx.rates.USD) : null });
     }
 
     // ── Admin read-only portal preview link ─────────────────────────
@@ -837,6 +863,58 @@ async function getFx() {
   };
   _fx = { payload, fetched: Date.now() };
   return payload;
+}
+
+// ── Profit by month, shared by ?action=pnl and ?action=finance ──────────
+// Hostex revenue for expenses-only groups, one fetch per unit, cached 30 min
+// in KV (four units × a paginated feed is slow).
+async function hostexRevenueCached(group, from, to, { kvGet, kvSet }) {
+  if (!group.expenses_only) return null;
+  const cacheKey = `pnl-rev:${group.key}:${from}:${to}`;
+  const cached = await kvGet(cacheKey);
+  if (cached && cached.at && Date.now() - cached.at < 30 * 60e3) return cached.data;
+  const units = (group.listing_slugs || []).map(slug => ({ slug, hostexId: UNITS_BY_SLUG[slug]?.hostexId || null, name: UNITS_BY_SLUG[slug]?.name || null }));
+  try { const hostex = await revenueByMonth(units, { from, to }); await kvSet(cacheKey, { at: Date.now(), data: hostex }); return hostex; }
+  catch { return null; }
+}
+
+const periodLabel = (p) => { const [y, m] = p.split('-').map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+
+// One row per month. Managed villas read from the statements. Expenses-only
+// groups (co-owned units whose rent never passes through Samba) take revenue
+// from the Hostex calendar and expenses from Era's ledger statements; the
+// calendar is the revenue record for these units — Era enters every stay
+// there with its rent, direct tenants included. Rent she also notes on the
+// ledger ("Received payment from …") shows on the statement as a booking but
+// is not added on top; only when the calendar has nothing for the month does
+// the statement's own booking total stand in.
+function pnlMonths(group, stmts, hostex, from, to) {
+  const months = [];
+  for (let p = from; p <= to; p = addMonths(p, 1)) {
+    const s = stmts.find(x => x.period === p) || null;
+    const expenses = s ? Number(s.expenses_total) || 0 : 0;
+    const adjustments = s ? Number(s.adjustments_total) || 0 : 0;
+    let gross, commission, net, source;
+    if (group.expenses_only) {
+      const hm = hostex?.months?.[p];
+      const calendar = hm ? Number(hm.revenue) || 0 : null;
+      const direct = s ? Number(s.gross_total) || 0 : 0;
+      gross = calendar != null && calendar > 0 ? calendar : direct; commission = 0;
+      source = calendar != null && calendar > 0 ? 'hostex' : (direct ? 'statement' : 'none');
+      net = gross - expenses;
+    } else {
+      gross = s ? Number(s.gross_total) || 0 : 0;
+      commission = group.charges_commission === false ? 0 : (s ? Number(s.commission_total) || 0 : 0);
+      net = s ? (group.charges_commission === false ? gross - expenses + adjustments : Number(s.payout_total) || 0) : 0;
+      source = s ? 'statement' : 'none';
+    }
+    months.push({ period: p, label: periodLabel(p), gross, commission, expenses, adjustments, net, source, status: s?.status || null, statement_id: s?.id || null, nights: hostex?.months?.[p]?.nights ?? null });
+  }
+  return months;
+}
+function pnlTotals(months) {
+  const sum = (k) => months.reduce((a, m) => a + (Number(m[k]) || 0), 0);
+  return { gross: sum('gross'), commission: sum('commission'), expenses: sum('expenses'), adjustments: sum('adjustments'), net: sum('net') };
 }
 
 function sendXlsx(res, buf, filename) {

@@ -38,7 +38,8 @@ Plain facts about the portal for anyone supporting it. Written for Maya's handbo
 
 ## The management cockpit (`/payouts`)
 
-- Pages: Payouts, one statement, Maintenance, Earnings, Payroll, Properties, Schedule, Records, Team. Each page has a "How to use" guide.
+- Pages: Payouts, one statement, Maintenance, Earnings, Finance, Payroll, Properties, Schedule, Records, Team. Each page has a "How to use" guide.
+- Finance is the Tropicana Valley development as a whole (`/payouts#/finance`): a ledger of every rupiah in or out, the costs still to pay, the buyers still paying, the loans and the bank balances, kept in the CRM's project_* tables. The rent and expenses of the four unsold B units (tropicana-b2, b3, b5, b6) come from the Hostex calendar and Era's statements through `GET /api/statements?action=finance`, which also writes each closed month into the ledger as calendar rows. The headline is the loan from Oli's mother-in-law that bought the land: loan outstanding, less the company account, plus costs still to pay, less what buyers still owe, and how many months of rent close the gap. Ikiel and Era edit; Oli reads.
 - Statements are synced from Era's Google Sheets, reviewed, published to the owner on WhatsApp, then marked paid. Repairs move from review to owner approval to a tukang to done. The schedule is rebuilt hourly from the booking calendar. Records keep every photo check and inspection permanently.
 - Everything the cockpit does is proxied to the CRM with a shared secret that never reaches the browser.
 

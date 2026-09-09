@@ -747,8 +747,81 @@ function stRecomputePayments(st) {
     st.paid_at = settled ? cleared[cleared.length - 1].paid_at : null;
   }
 }
+// ── mock Project finance (kaya-agent-crm lib/project-finance.js) ─────
+// A slice of the real seed: enough for the Finance page's headline, every
+// tab and the edit modals to work in the harness.
+let mockFinId = 500;
+const mockFinance = {
+  project_key: 'tropicana',
+  settings: { fx_usd: 16300, rental_group_key: 'tropicana-b2356', rental_from: '2026-03', projection_months: 3, units_total: 14, units_unsold: ['B2', 'B3', 'B5', 'B6'] },
+  loans: [
+    { id: 1, key: 'mil', lender: "Oli's mother-in-law", principal: 2620800000, currency: 'IDR', fx_rate: null, interest_rate: 0, started_on: '2023-04-23', headline: true, note: 'PLACEHOLDER from the sheet: the two "Investment Oliver" entries that paid 80% of the land lease. Confirm the principal, the currency, any interest, and record every repayment.' },
+    { id: 2, key: 'bridge', lender: 'Oli (bridge loan)', principal: 1821188763, currency: 'IDR', fx_rate: null, interest_rate: 0, started_on: '2024-10-15', headline: false, note: 'USD 100,000 repaid 30 Dec 2025; confirm the IDR 150M from Oct 2024.' },
+  ],
+  accounts: [
+    { id: 1, name: 'OCBC', kind: 'bank', counts_as_cash: true, balance: 466489108.49, balance_as_of: '2026-07-31', note: 'PT Double 8 company account', position: 1 },
+    { id: 2, name: 'Oliver Permata', kind: 'partner', counts_as_cash: false, balance: null, balance_as_of: null, note: "Oli's account", position: 2 },
+    { id: 3, name: 'Cash', kind: 'cash', counts_as_cash: false, balance: null, balance_as_of: null, note: null, position: 4 },
+  ],
+  commitments: [
+    { id: 1, name: 'SLF permit (agent)', category: 'slf', total: 574000000, due_on: null, status: 'open', note: 'IDR 574M in total; the deposit and the Sisi contribution are on the ledger against this row.', position: 1 },
+    { id: 2, name: 'Perimeter wall & parking', category: 'construction', total: 200000000, due_on: '2026-11-30', status: 'open', note: null, position: 2 },
+  ],
+  receivables: [
+    { id: 1, buyer: 'Will & Marie-Josée', units: ['A1'], contract_amount: 107500, currency: 'USD', fx_rate: 16300, balance_override: null, ledger_match: 'will', status: 'open', note: 'Paid partly in CAD via Ikiel.', position: 1 },
+    { id: 2, buyer: 'Kate Taylor', units: ['B4'], contract_amount: 100000, currency: 'USD', fx_rate: 16300, balance_override: null, ledger_match: 'kate', status: 'settled', note: null, position: 2 },
+    { id: 3, buyer: 'Singapore buyers (A6 resale)', units: ['A6'], contract_amount: 1290431436, currency: 'IDR', fx_rate: null, balance_override: null, ledger_match: 'singapore', status: 'open', note: 'Installments to March 2026 are ours; later ones go to Mr Hoffmann.', position: 3 },
+  ],
+  ledger: [
+    { id: 1, entry_date: '2023-04-23', direction: 'in', amount: 1965600000, category: 'loan_drawdown', description: 'Investment Oliver', account: 'Oliver Permata', counterparty: 'mil', unit: null, commitment_id: null, source: 'import', source_ref: 'import:in:6', note: null, flags: [] },
+    { id: 2, entry_date: '2023-04-23', direction: 'out', amount: 1965600000, category: 'land', description: '60% payment land lease', account: 'Oliver Permata', counterparty: null, unit: null, commitment_id: null, source: 'import', source_ref: 'import:out:6', note: null, flags: [] },
+    { id: 3, entry_date: '2023-09-13', direction: 'in', amount: 655200000, category: 'loan_drawdown', description: 'Investment Oliver', account: 'Oliver Permata', counterparty: 'mil', unit: null, commitment_id: null, source: 'import', source_ref: 'import:in:7', note: null, flags: [] },
+    { id: 4, entry_date: '2023-09-13', direction: 'out', amount: 655200000, category: 'land', description: '20% payment land lease', account: 'Oliver Permata', counterparty: null, unit: null, commitment_id: null, source: 'import', source_ref: 'import:out:7', note: null, flags: [] },
+    { id: 5, entry_date: '2024-02-20', direction: 'out', amount: 500000000, category: 'construction', description: '15% DP Construction Ngurah 1', account: 'Oliver Permata', counterparty: null, unit: null, commitment_id: null, source: 'import', source_ref: 'import:out:10', note: null, flags: [] },
+    { id: 6, entry_date: '2024-10-31', direction: 'out', amount: 114800000, category: 'slf', description: '20% DP SLF', account: 'OCBC', counterparty: null, unit: null, commitment_id: 1, source: 'import', source_ref: 'import:out:26', note: null, flags: [] },
+    { id: 7, entry_date: '2025-10-09', direction: 'out', amount: 35000000, category: 'slf', description: 'Sisi SLF contribution', account: 'OCBC', counterparty: null, unit: null, commitment_id: 1, source: 'import', source_ref: 'import:out:106', note: null, flags: [] },
+    { id: 8, entry_date: '2025-07-22', direction: 'in', amount: 105735866, category: 'unit_sale', description: '1st Payment Kate Taylor', account: 'OCBC', counterparty: 'kate', unit: null, commitment_id: null, source: 'import', source_ref: 'import:in:62', note: null, flags: [] },
+    { id: 9, entry_date: '2026-01-31', direction: 'in', amount: 145000000, category: 'unit_sale', description: 'MWB KUPU KUPU COCOON', account: 'OCBC', counterparty: 'will', unit: 'A1', commitment_id: null, source: 'import', source_ref: 'bank:ocbc:2026-01-31:18', note: 'A1 (Will & Marie-Josée), paid via MWB Kupu Kupu Cocoon', flags: [] },
+    { id: 10, entry_date: '2026-02-25', direction: 'in', amount: 69537646, category: 'unit_sale', description: 'AIRWALLEX HONGKONG LTD', account: 'OCBC', counterparty: 'singapore', unit: 'A6', commitment_id: null, source: 'import', source_ref: 'bank:ocbc:2026-02-25:40', note: 'A6 resale installment (Airwallex)', flags: [] },
+    { id: 11, entry_date: '2026-03-01', direction: 'in', amount: 28000000, category: 'rental_income', description: 'VILLA RENTAL NIN', account: 'OCBC', counterparty: 'nina-oberoi', unit: 'B5', commitment_id: null, source: 'import', source_ref: 'bank:ocbc:2026-03-01:48', note: 'Nina Oberoi, B5 Mar to Apr 2026', flags: [] },
+    { id: 12, entry_date: '2026-04-16', direction: 'out', amount: 500000000, category: 'partner_out', description: 'iBank OLIVER HERRMANN', account: 'OCBC', counterparty: 'oli', unit: null, commitment_id: null, source: 'import', source_ref: 'bank:ocbc:2026-04-16:80', note: 'IDR 500M to Oli on 16 Apr 2026: a repayment towards the loan, or a distribution?', flags: ['review'] },
+    { id: 13, entry_date: '2026-05-07', direction: 'out', amount: 11700000, category: 'operating', description: 'I KETUT GEDE BU', account: 'OCBC', counterparty: null, unit: null, commitment_id: null, source: 'import', source_ref: 'bank:ocbc:2026-05-07:100', note: 'paid to I KETUT GEDE BU (no expense sheet for this month): what was it for?', flags: ['review'] },
+    { id: 14, entry_date: '2026-07-09', direction: 'out', amount: 13112000, category: 'rental_expense', description: 'ERA BALI VILLA', account: 'OCBC', counterparty: 'era', unit: null, commitment_id: null, source: 'import', source_ref: 'bank:ocbc:2026-07-09:126', note: "reimbursement to Era for the units' expenses", flags: [] },
+    { id: 15, entry_date: '2026-07-15', direction: 'in', amount: 250000000, category: 'rental_income', description: 'PT INTERNATIONA', account: 'OCBC', counterparty: 'nagar-bani', unit: 'B3', commitment_id: null, source: 'import', source_ref: 'bank:ocbc:2026-07-15:128', note: 'Nagar Bani, B3 one-year lease', flags: [] },
+    { id: 16, entry_date: '2026-08-20', direction: 'out', amount: 25000000, category: 'slf', description: 'SLF agent, second tranche', account: 'OCBC', counterparty: null, unit: null, commitment_id: 1, source: 'manual', source_ref: null, note: null, flags: [] },
+  ],
+};
+function mockFinanceApi(action, payload) {
+  const tables = { ledger: 'ledger', commitments: 'commitments', receivables: 'receivables', loans: 'loans', accounts: 'accounts' };
+  if (action === 'finance_get') return { status: 200, body: JSON.parse(JSON.stringify(mockFinance)) };
+  if (action === 'finance_settings') return { status: 200, body: { settings: mockFinance.settings } };
+  if (action === 'finance_settings_patch') { Object.assign(mockFinance.settings, payload.fields || {}); return { status: 200, body: { settings: mockFinance.settings } }; }
+  if (action === 'finance_put') {
+    const arr = mockFinance[tables[payload.table]]; if (!arr) return { status: 400, body: { error: 'unknown table' } };
+    const row = { ...payload.row };
+    for (const k of ['amount', 'total', 'contract_amount', 'fx_rate', 'balance_override', 'principal', 'interest_rate', 'balance', 'commitment_id']) if (row[k] != null && row[k] !== '') row[k] = Number(row[k]);
+    if (typeof row.units === 'string') row.units = row.units.split(',').map(x => x.trim().toUpperCase()).filter(Boolean);
+    if (row.id) { const cur = arr.find(x => x.id === +row.id); if (!cur) return { status: 404, body: { error: 'row not found' } }; Object.assign(cur, row, { id: cur.id }); return { status: 200, body: { row: cur } }; }
+    const nu = { id: ++mockFinId, source: 'manual', flags: [], ...row }; arr.push(nu); return { status: 200, body: { row: nu } };
+  }
+  if (action === 'finance_delete') { const arr = mockFinance[tables[payload.table]]; const i = arr ? arr.findIndex(x => x.id === +payload.id) : -1; if (i >= 0) arr.splice(i, 1); return { status: 200, body: { ok: true } }; }
+  if (action === 'finance_rental_upsert') {
+    let up = 0, rm = 0;
+    for (const r of payload.rows || []) {
+      const i = mockFinance.ledger.findIndex(x => x.source_ref === r.source_ref);
+      if (!(Number(r.amount) > 0)) { if (i >= 0) { mockFinance.ledger.splice(i, 1); rm++; } continue; }
+      const row = { entry_date: r.entry_date, direction: r.direction, amount: Math.round(r.amount), category: r.direction === 'out' ? 'rental_expense' : 'rental_income', description: r.description || '', account: null, counterparty: r.counterparty || null, unit: r.unit || null, commitment_id: null, source: 'rental', source_ref: r.source_ref, note: null, flags: [] };
+      if (i >= 0) Object.assign(mockFinance.ledger[i], row); else mockFinance.ledger.push({ id: ++mockFinId, ...row });
+      up++;
+    }
+    return { status: 200, body: { upserted: up, removed: rm } };
+  }
+  return null;
+}
+
 function mockStatementsApi({ action, payload = {} }) {
   const find = (id) => mockStatements.find(s => s.id === +id);
+  if (String(action).startsWith('finance_')) { const out = mockFinanceApi(action, payload); if (out) return out; }
   const monthLabel = (p) => { const [y, m] = String(p).split('-').map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }); };
   if (action === 'statement_groups') return { status: 200, body: { groups: mockGroups } };
   if (action === 'statement_wa_login_code') {
