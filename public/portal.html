@@ -812,6 +812,9 @@ let PORTAL_PREVIEW=null;   // signed admin preview token — read-only owner vie
   // The dash may have been stripped in transit, so 'd8' + 32 hex counts too.
   const mgmt = waTok && (/^d8-/.test(waTok) ? waTok.slice(3) : (/^d8[a-f0-9]{32}$/i.test(waTok) ? waTok.slice(2) : null));
   if (mgmt) { location.replace('/payouts?d8=' + encodeURIComponent(mgmt)); return; }
+  // The Tropicana Valley books (their own site) ride the same button too:
+  // a tv- token is theirs to verify, so hand it straight over.
+  if (waTok && /^tv-?0[12]/i.test(waTok)) { location.replace('https://tropicana-books.vercel.app/?wa_login=' + encodeURIComponent(waTok)); return; }
   if (waTok) {
     history.replaceState(null, '', '/portal');   // token is one-time; don't leave it in the bar
     try {
