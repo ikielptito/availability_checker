@@ -525,7 +525,9 @@ window.addEventListener('hashchange', route);
 let scope = null;
 const D8_VIEWS = ['payroll', 'maintenance', 'cleaning', 'records'];
 const d8Allowed = (h) => ['#/payroll', '#/maintenance', '#/cleaning', '#/records'].some(p => String(h || '').startsWith(p));
-// The partner reads; every control that changes something is Era's.
+// On the schedule and the records the partner reads; on maintenance he
+// acts, because those tickets are his own units. The register he can pick
+// from, not edit.
 const readOnly = () => scope === 'double8';
 async function boot() {
   document.getElementById('login').style.display = 'none';
@@ -1771,7 +1773,7 @@ async function renderMaintenance() {
 
   let html = `<div class="crumb">Maintenance</div>`;
   html += `<div class="banner ${maintData.needsReview ? 'amber' : 'calm'}" style="margin-bottom:14px"><div>
-    <b>${maintData.needsReview || 0}</b> waiting for ${readOnly() ? "Era's" : 'your'} review ·
+    <b>${maintData.needsReview || 0}</b> waiting for your review ·
     <b>${maintData.awaitingOwner || 0}</b> with the owner ·
     <b>${maintData.openWork || 0}</b> approved and not yet done
     <div style="margin-top:5px;font-size:.76rem">Send Maya a photo on WhatsApp with the villa and what's wrong. It appears here automatically.</div>
@@ -1798,15 +1800,13 @@ async function renderMaintenance() {
       </div>
       ${it.description ? `<div class="mdesc">${esc(it.description)}</div>` : ''}
       <div class="mshots" id="shots-${it.id}"></div>
-      ${readOnly() ? '' : `<div class="mrow" style="margin-top:8px">
+      <div class="mrow" style="margin-top:8px">
         <label class="btn ghost" style="cursor:pointer;font-size:.75rem">+ Add photo
           <input type="file" accept="image/*" style="display:none" onchange="maintAddPhoto(${it.id}, this)">
         </label>
-      </div>`}`;
+      </div>`;
 
-    if (readOnly()) {
-      // The partner reads the ticket; Era's controls stay with Era.
-    } else if (it.status === 'new') {
+    if (it.status === 'new') {
       html += `<div class="mrow">
         <span style="font-size:.76rem;color:var(--muted)">Estimated cost</span>
         <input type="text" id="mcost-${it.id}" placeholder="e.g. 850000" value="${it.estimated_cost ?? ''}" style="width:130px">
@@ -1827,16 +1827,16 @@ async function renderMaintenance() {
       html += `<div class="mrow"><button class="btn ghost" onclick="maintMove(${it.id})">Wrong villa</button></div>`;
     }
     if (it.status === 'approved' || it.status === 'scheduled') {
-      if (!readOnly()) html += dispatchRow(it);
+      html += dispatchRow(it);
       html += `<div class="mrow">
-        ${readOnly() ? '' : `<button class="btn green" onclick="maintComplete(${it.id})">Mark done</button>`}
+        <button class="btn green" onclick="maintComplete(${it.id})">Mark done</button>
         <span style="font-size:.76rem;color:var(--muted)">Next check-in ${it.next_followup_at ? esc(dstr(it.next_followup_at)) : '–'}${it.promised_date ? ` (you said ${esc(dstr(it.promised_date))})` : ''}</span>
       </div>`;
     }
     if (it.status === 'pending_approval') {
       html += `<div class="mrow">
-        <a class="btn ghost" href="/m/${esc(it.token || '')}" target="_blank">${readOnly() ? 'Approve or decline ↗' : 'Preview owner view ↗'}</a>
-        ${readOnly() ? '' : `<button class="btn ghost" onclick="maintApproveFor(${it.id})">Owner approved (by phone)</button>`}
+        <a class="btn ghost" href="/m/${esc(it.token || '')}" target="_blank">Preview owner view ↗</a>
+        <button class="btn ghost" onclick="maintApproveFor(${it.id})">Owner approved (by phone)</button>
       </div>`;
     }
     if (it.status === 'declined') {
@@ -1867,12 +1867,12 @@ async function renderMaintenance() {
         const paths = d.item.photos || [];
         box.innerHTML = (d.item.photo_urls || []).map((u, n) => `<span class="mshot">
           <img src="${esc(u)}" onclick="window.open('${esc(u)}','_blank')" alt="">
-          ${readOnly() ? '' : `<button class="mshot-x" title="Remove from this ticket" onclick="maintRemovePhoto(${it.id}, '${esc(paths[n] || '')}')">✕</button>`}
+          <button class="mshot-x" title="Remove from this ticket" onclick="maintRemovePhoto(${it.id}, '${esc(paths[n] || '')}')">✕</button>
         </span>`).join('')
         // Photos a model matched to this ticket: not on the ticket, not shown
         // to the owner, until someone says so.
-        + (!readOnly() && (d.item.suggested || []).length ? `<div style="flex-basis:100%;font-size:.7rem;color:var(--muted);margin-top:6px">Suggested by sight — confirm ✓ or drop ✕ (owners never see these until confirmed)</div>` : '')
-        + (readOnly() ? [] : (d.item.suggested || [])).map(sg => `<span class="mshot" style="outline:2px dashed var(--accent,#E2572B);outline-offset:-2px;opacity:.85">
+        + ((d.item.suggested || []).length ? `<div style="flex-basis:100%;font-size:.7rem;color:var(--muted);margin-top:6px">Suggested by sight — confirm ✓ or drop ✕ (owners never see these until confirmed)</div>` : '')
+        + (d.item.suggested || []).map(sg => `<span class="mshot" style="outline:2px dashed var(--accent,#E2572B);outline-offset:-2px;opacity:.85">
           <img src="${esc(sg.url)}" onclick="window.open('${esc(sg.url)}','_blank')" alt="">
           <button class="mshot-x" style="right:26px;background:#2f5d34" title="Confirm: attach to this ticket" onclick="maintPhotoDecide(${it.id}, '${esc(sg.path)}', true)">✓</button>
           <button class="mshot-x" title="Not this ticket" onclick="maintPhotoDecide(${it.id}, '${esc(sg.path)}', false)">✕</button>
@@ -2928,7 +2928,6 @@ async function staffApi(action, payload) {
 
 async function refreshStaff(force) {
   if (staffData && !force) return staffData;
-  if (readOnly()) return (staffData = { staff: [], units: [] });   // the register is closed to partners
   staffData = await staffApi('staff_list', {});
   return staffData;
 }
@@ -3217,7 +3216,7 @@ function staffFillPicker(sel, opts) {
           : (o.slug && !covers(p) ? ' · not their villa' : '');
         return `<option value="${p.id}">${esc(p.name)}${esc(why)}</option>`;
       }).join('')
-    + `<option value="__new__">+ Add someone new…</option>`;
+    + (readOnly() ? '' : `<option value="__new__">+ Add someone new…</option>`);
   if (keep) sel.value = keep;
 }
 function staffPickerChanged(sel, opts) {

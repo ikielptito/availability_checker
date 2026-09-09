@@ -3,8 +3,8 @@
 //   POST { action, payload }        admin proxy (Bearer <admin password>, or
 //     Era's scoped STATEMENTS_ADMIN_PASSWORD) → forwards maint_* actions to
 //     the CRM with LISTING_SYNC_SECRET, which never reaches the browser.
-//     A Double 8 partner's login gets maint_list and maint_detail for its
-//     own groups, and nothing else (partnerRead).
+//     A Double 8 partner's login gets the same actions on tickets that sit
+//     on its own groups, and nothing else (partnerProxy).
 //
 //   GET  ?action=items              owner session (or an admin preview token)
 //     — the owner's maintenance items for the portal's Maintenance tab.
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
       if (!/^maint_[a-z_]+$/.test(String(action || ''))) {
         return res.status(400).json({ error: `unsupported action: ${action}` });
       }
-      if (caller.role === 'double8') return partnerRead(res, caller, action, payload, crm, crmStatements);
+      if (caller.role === 'double8') return partnerProxy(res, caller, action, payload, crm, crmStatements);
       const { status, body } = await crm(action, { ...(payload || {}), actor: caller.role === 'era' ? 'era' : 'admin' });
       return res.status(status).json(body);
     }
@@ -157,11 +157,15 @@ export default async function handler(req, res) {
   }
 }
 
-// A Double 8 partner's maintenance: the tickets on their own groups, to
-// read. Approving and declining stay in the owner portal (the /m/ link on
-// each ticket), and everything Era does to a ticket stays with Era.
-async function partnerRead(res, caller, action, payload, crm, crmStatements) {
+// A Double 8 partner's maintenance: Oli owns the Tropicana B units, so on
+// their tickets he does everything Era does — review, publish, approve,
+// dispatch a tukang, mark done. The line is the ticket's group: the list is
+// cut to his groups, every action on a ticket first checks the ticket sits
+// on one of them, a move can only land on one of his units, and the
+// console-wide actions (backlog, sweeps, reporters) are not his.
+async function partnerProxy(res, caller, action, payload, crm, crmStatements) {
   const scope = await partnerScope(caller, (await crmStatements('statement_groups', {})).body?.groups);
+  const p = payload || {};
   res.setHeader('Cache-Control', 'no-store');
   if (action === 'maint_list') {
     const { status, body } = await crm('maint_list', {});
@@ -176,13 +180,20 @@ async function partnerRead(res, caller, action, payload, crm, crmStatements) {
       openWork: items.filter(i => ['approved', 'scheduled'].includes(i.status)).length,
     });
   }
-  if (action === 'maint_detail') {
-    const { status, body } = await crm('maint_detail', { id: parseInt(payload?.id, 10) });
-    if (status !== 200) return res.status(status).json(body);
-    if (!scope.groupKeys.has(body.item?.group_key)) return res.status(403).json({ error: 'Not your property' });
-    return res.status(200).json(body);
+  if (action === 'maint_create') {
+    if (!scope.groupKeys.has(String(p.group_key || ''))) return res.status(403).json({ error: 'Not your property' });
+    const { status, body } = await crm(action, { ...p, actor: 'oli' });
+    return res.status(status).json(body);
   }
-  return res.status(403).json({ error: 'Your login can read the tickets here; approve or decline them from your owner portal.' });
+  const id = parseInt(p.id ?? p.item_id, 10);
+  if (!id) return res.status(403).json({ error: 'Your login works on tickets for your own units; that action is not one of them.' });
+  const detail = await crm('maint_detail', { id });
+  if (detail.status !== 200) return res.status(detail.status).json(detail.body);
+  if (!scope.groupKeys.has(detail.body.item?.group_key)) return res.status(403).json({ error: 'Not your property' });
+  if (action === 'maint_move' && !scope.slugs.has(String(p.slug || ''))) return res.status(403).json({ error: 'You can only move a ticket to one of your own units.' });
+  if (action === 'maint_detail') return res.status(200).json(detail.body);
+  const { status, body } = await crm(action, { ...p, actor: 'oli' });
+  return res.status(status).json(body);
 }
 
 function readSessionToken(req) {
