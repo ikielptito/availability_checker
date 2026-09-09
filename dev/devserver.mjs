@@ -352,6 +352,10 @@ function mockHkBuild() {
                               stay(hkPlus(today, 3), hkPlus(today, 60), 33)] },         // arriving after a gap
     { slug: 'villa-saturno', stays: [stay(hkPlus(today, -50), hkPlus(today, -25))] },   // empty a while
     { slug: 'tropicana-b4', stays: [] },                                                // never booked
+    // Double 8's units, so a partner login has a schedule to look at.
+    { slug: 'tropicana-b2', stays: [stay(hkPlus(today, -20), hkPlus(today, 2))] },      // leaving soon
+    { slug: 'tropicana-b3', stays: [stay(hkPlus(today, -45), hkPlus(today, -12)),
+                                    stay(hkPlus(today, 4), hkPlus(today, 30), 16)] },   // arriving after a gap
   ];
   mockHkUnits = units;
   const planned = planTasks({ today, units, careDays: mockCare, lastInspection: { 'haus-2': hkPlus(today, -6) },
@@ -412,6 +416,7 @@ function mockHousekeepingApi({ action, payload = {} }) {
     recs.push({ type: 'inspection', id: 2, slug: 'haus-2', kind: 'inspection', status: 'clear', date: hkPlus(today, -20), at: hkPlus(today, -20) + 'T05:00:00Z', staff: 'Putu', photo_count: 6, findings: null, item_ids: [], task_id: null });
     return { status: 200, body: { from: payload.from, to: payload.to, names, records: recs.sort((a, b) => b.at.localeCompare(a.at)) } };
   }
+  if (action === 'hk_record_detail') return mockHousekeepingApi({ action: 'hk_record_export', payload });   // same shape, plus villa
   if (action === 'hk_record_export') {
     const c = mockReadiness().find(x => x.id === +payload.id) || mockReadiness()[0];
     const today = hkToday();
@@ -636,7 +641,7 @@ const mockGroups = [
   { key: 'haus-2-4', name: 'HAUS Canggu – Units 2 & 4', sheet_file_id: 'SHEET_HAUS24', listing_slugs: ['haus-2', 'haus-4'], owner_wa_nums: ['628111111111', '628122222222'], owner_names: 'Romina & Tim', notify: true, active: true, charges_commission: true },
   { key: 'lanehaus', name: 'LaneHAUS – Units 1 & 3', sheet_file_id: 'SHEET_LANE', listing_slugs: ['lanehaus-1', 'lanehaus-3'], owner_wa_nums: [], owner_names: 'Ikiel & Guy', notify: false, active: true, charges_commission: false, tracks_payments: false },
   { key: 'villa-saturno', name: 'Villa Saturno', sheet_file_id: 'SHEET_SAT', listing_slugs: ['villa-saturno'], owner_wa_nums: ['628133333333'], owner_names: 'Pedro', notify: true, active: true },
-  { key: 'tropicana-b2356', name: 'Tropicana Valley – Units B2, B3, B5 & B6', sheet_file_id: '', listing_slugs: ['tropicana-b2', 'tropicana-b3', 'tropicana-b5', 'tropicana-b6'], owner_wa_nums: ['6287832988120'], owner_names: 'Ikiel & Oli', notify: true, active: true },
+  { key: 'tropicana-b2356', name: 'Tropicana Valley – Units B2, B3, B5 & B6', sheet_file_id: '', listing_slugs: ['tropicana-b2', 'tropicana-b3', 'tropicana-b5', 'tropicana-b6'], owner_wa_nums: ['6287832988120', '6285951382262'], owner_names: 'Ikiel & Oli', notify: true, active: true, expenses_only: true },
 ];
 let mockLineId = 100;
 const mockStatements = [

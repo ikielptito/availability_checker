@@ -3,6 +3,8 @@
 //   POST { action, payload }        admin proxy (Bearer <admin password>, or
 //     Era's scoped STATEMENTS_ADMIN_PASSWORD) → forwards maint_* actions to
 //     the CRM with LISTING_SYNC_SECRET, which never reaches the browser.
+//     A Double 8 partner's login gets maint_list and maint_detail for its
+//     own groups, and nothing else (partnerRead).
 //
 //   GET  ?action=items              owner session (or an admin preview token)
 //     — the owner's maintenance items for the portal's Maintenance tab.
@@ -12,7 +14,7 @@
 //     signed token OR by the owner's session.
 
 import { verifyMaintenanceToken, verifyPreviewToken, verifyTukangToken } from '../lib/tokens.js';
-import { cockpitCaller, adminPasswordsConfigured } from '../lib/cockpit-auth.js';
+import { cockpitCaller, partnerScope, adminPasswordsConfigured } from '../lib/cockpit-auth.js';
 import { UNITS_BY_SLUG } from '../lib/catalog.js';
 import { loadHostexOwnerMap } from '../lib/owner-listings.js';
 
@@ -94,16 +96,16 @@ export default async function handler(req, res) {
         return res.status(status).json({ ...body, decision, group_key: groupKey });
       }
 
-      // Admin proxy — Ikiel or Era.
+      // Admin proxy — Ikiel or Era; a Double 8 partner reads its own units.
       if (!adminPasswordsConfigured()) return res.status(503).json({ error: 'Admin password not configured' });
       const caller = await cockpitCaller(req.headers.authorization);
-      if (!caller || (caller.role !== 'admin' && caller.role !== 'era')) return res.status(401).json({ error: 'Unauthorized' });
-      const isEra = caller.role === 'era';
+      if (!caller) return res.status(401).json({ error: 'Unauthorized' });
       if (!sync) return res.status(503).json({ error: 'LISTING_SYNC_SECRET not configured' });
       if (!/^maint_[a-z_]+$/.test(String(action || ''))) {
         return res.status(400).json({ error: `unsupported action: ${action}` });
       }
-      const { status, body } = await crm(action, { ...(payload || {}), actor: isEra ? 'era' : 'admin' });
+      if (caller.role === 'double8') return partnerRead(res, caller, action, payload, crm, crmStatements);
+      const { status, body } = await crm(action, { ...(payload || {}), actor: caller.role === 'era' ? 'era' : 'admin' });
       return res.status(status).json(body);
     }
 
@@ -153,6 +155,34 @@ export default async function handler(req, res) {
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
+}
+
+// A Double 8 partner's maintenance: the tickets on their own groups, to
+// read. Approving and declining stay in the owner portal (the /m/ link on
+// each ticket), and everything Era does to a ticket stays with Era.
+async function partnerRead(res, caller, action, payload, crm, crmStatements) {
+  const scope = await partnerScope(caller, (await crmStatements('statement_groups', {})).body?.groups);
+  res.setHeader('Cache-Control', 'no-store');
+  if (action === 'maint_list') {
+    const { status, body } = await crm('maint_list', {});
+    if (status !== 200) return res.status(status).json(body);
+    const items = (body.items || []).filter(i => scope.groupKeys.has(i.group_key));
+    const counts = items.reduce((a, i) => { a[i.status] = (a[i.status] || 0) + 1; return a; }, {});
+    return res.status(200).json({
+      unclaimed_groups: (body.unclaimed_groups || []).filter(k => scope.groupKeys.has(k)),
+      items, counts,
+      needsReview: items.filter(i => i.status === 'new').length,
+      awaitingOwner: items.filter(i => i.status === 'pending_approval').length,
+      openWork: items.filter(i => ['approved', 'scheduled'].includes(i.status)).length,
+    });
+  }
+  if (action === 'maint_detail') {
+    const { status, body } = await crm('maint_detail', { id: parseInt(payload?.id, 10) });
+    if (status !== 200) return res.status(status).json(body);
+    if (!scope.groupKeys.has(body.item?.group_key)) return res.status(403).json({ error: 'Not your property' });
+    return res.status(200).json(body);
+  }
+  return res.status(403).json({ error: 'Your login can read the tickets here; approve or decline them from your owner portal.' });
 }
 
 function readSessionToken(req) {

@@ -1,6 +1,8 @@
 // Housekeeping — the portal side. A thin admin proxy, the same shape as
 // api/staff.js: Ikiel or Era authenticate with the admin password, and this
-// route forwards hk_* actions to the CRM using LISTING_SYNC_SECRET.
+// route forwards hk_* actions to the CRM using LISTING_SYNC_SECRET. A
+// Double 8 partner's login gets the read actions only, each cut down to
+// that entity's units (servePartner).
 //
 // Owner-facing, read-only:
 //   GET ?action=owner                 the owner's cleaning log and what is
@@ -12,7 +14,7 @@
 // weekly report.
 
 import { calendarSig, verifyCalendarSig, recordToken, verifyRecordToken, verifyPreviewToken, todaySig, verifyTodaySig } from '../lib/tokens.js';
-import { isCockpitAdmin, adminPasswordsConfigured } from '../lib/cockpit-auth.js';
+import { cockpitCaller, partnerScope, adminPasswordsConfigured } from '../lib/cockpit-auth.js';
 import { makeKvGet, sessionOwner, ownerSlugs } from '../lib/owner-session.js';
 import { buildPdf } from '../lib/pdf.js';
 import { staysFrom } from '../lib/turnovers.js';
@@ -34,8 +36,10 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   if (!adminPasswordsConfigured()) return res.status(503).json({ error: 'Admin password not configured' });
-  // Ikiel's passwords, Era's password, or Era's WhatsApp-link session.
-  if (!(await isCockpitAdmin(req.headers.authorization))) return res.status(401).json({ error: 'Unauthorized' });
+  // Ikiel's passwords, Era's password or link session — or a Double 8
+  // partner, who gets a read-only, unit-scoped slice (servePartner).
+  const caller = await cockpitCaller(req.headers.authorization);
+  if (!caller) return res.status(401).json({ error: 'Unauthorized' });
 
   const sync = process.env.LISTING_SYNC_SECRET;
   if (!sync) return res.status(503).json({ error: 'LISTING_SYNC_SECRET not configured' });
@@ -44,21 +48,19 @@ export default async function handler(req, res) {
   if (!/^hk_[a-z_]+$/.test(String(action || ''))) {
     return res.status(400).json({ error: `unsupported action: ${action}` });
   }
+  if (caller.role === 'double8') return servePartner(req, res, caller, action, payload || {});
   // Answered here, not by the CRM: the feed URL is this host's.
   if (action === 'hk_record_link') {
     const type = ['inspection', 'visit'].includes(payload?.type) ? payload.type : 'handover';
     const id = parseInt(payload?.id, 10);
     if (!id) return res.status(400).json({ error: 'id required' });
-    const host = req.headers['x-forwarded-host'] || req.headers.host || 'sambarentals.com';
-    return res.status(200).json({ url: `https://${host}/api/housekeeping?record=${recordToken(type, id)}` });
+    return res.status(200).json({ url: `https://${hostOf(req)}/api/housekeeping?record=${recordToken(type, id)}` });
   }
   if (action === 'hk_today_url') {
-    const host = req.headers['x-forwarded-host'] || req.headers.host || 'sambarentals.com';
-    return res.status(200).json({ url: `https://${host}/today/${todaySig()}` });
+    return res.status(200).json({ url: `https://${hostOf(req)}/today/${todaySig()}` });
   }
   if (action === 'hk_calendar_url') {
-    const host = req.headers['x-forwarded-host'] || req.headers.host || 'sambarentals.com';
-    return res.status(200).json({ url: `https://${host}/api/housekeeping?ics=${calendarSig()}` });
+    return res.status(200).json({ url: `https://${hostOf(req)}/api/housekeeping?ics=${calendarSig()}` });
   }
 
   try {
@@ -70,6 +72,95 @@ export default async function handler(req, res) {
     });
     res.setHeader('Cache-Control', 'no-store');
     return res.status(r.status).json(await r.json().catch(() => ({ error: `CRM returned HTTP ${r.status}` })));
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+}
+
+const hostOf = (req) => req.headers['x-forwarded-host'] || req.headers.host || 'sambarentals.com';
+
+// ── A Double 8 partner's slice of the cockpit ───────────────────────
+// Oli's login sees the schedule and the records for the Tropicana B units
+// and nothing beyond them: every list is cut down to those slugs, every
+// single record is checked against them, and nothing here writes. Staff
+// names travel with the tasks (the Double 8 payroll shows them already);
+// the team register itself stays closed.
+async function servePartner(req, res, caller, action, payload) {
+  const sync = process.env.LISTING_SYNC_SECRET;
+  const crmBase = process.env.CRM_BASE_URL || 'https://kaya-agent-crm.vercel.app';
+  const crm = async (route, act, body) => {
+    const r = await fetch(`${crmBase}/api/${route}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sync}` },
+      body: JSON.stringify({ action: act, payload: body || {} }),
+    });
+    return { status: r.status, body: await r.json().catch(() => ({ error: `CRM returned HTTP ${r.status}` })) };
+  };
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const scope = await partnerScope(caller, (await crm('statements', 'statement_groups', {})).body?.groups);
+    const mine = (slug) => scope.slugs.has(slug);
+    const myNames = (names) => Object.fromEntries(Object.entries(names || {}).filter(([s]) => mine(s)));
+    const window_ = { from: payload.from, to: payload.to };
+    // One record, only if it sits on one of their units.
+    const detail = async (type, id) => {
+      const { status, body } = await crm('housekeeping', 'hk_record_detail', { type, id });
+      if (status !== 200) return { status, body };
+      if (!mine(body.record?.slug)) return { status: 403, body: { error: 'Not your property' } };
+      return { status: 200, body };
+    };
+
+    if (action === 'hk_schedule') {
+      const { status, body } = await crm('housekeeping', 'hk_schedule', window_);
+      if (status !== 200) return res.status(status).json(body);
+      const tasks = (body.tasks || []).filter(t => mine(t.slug));
+      return res.status(200).json({ ...body, tasks, names: myNames(body.names), unassigned: tasks.filter(t => !t.assigned_staff_id).length });
+    }
+    if (action === 'hk_stays') {
+      const { status, body } = await crm('housekeeping', 'hk_stays', window_);
+      if (status !== 200) return res.status(status).json(body);
+      return res.status(200).json({ ...body, units: (body.units || []).filter(u => mine(u.slug)) });
+    }
+    if (action === 'hk_readiness') {
+      const { status, body } = await crm('housekeeping', 'hk_readiness', window_);
+      if (status !== 200) return res.status(status).json(body);
+      return res.status(200).json({ ...body, checks: (body.checks || []).filter(c => mine(c.slug)) });
+    }
+    if (action === 'hk_readiness_photos') {
+      // The handover record carries the same photos, and the slug to check.
+      const { status, body } = await detail('handover', parseInt(payload.id, 10));
+      if (status !== 200) return res.status(status).json(body);
+      return res.status(200).json({ id: body.record.id, photo_urls: body.photo_urls || [], checks: body.record.checks || [], flags: body.record.flags || [] });
+    }
+    if (action === 'hk_rounds') {
+      const { status, body } = await crm('housekeeping', 'hk_rounds', { months: payload.months });
+      if (status !== 200) return res.status(status).json(body);
+      return res.status(200).json({ ...body, names: myNames(body.names), tasks: (body.tasks || []).filter(t => mine(t.slug)), projected: (body.projected || []).filter(r => mine(r.slug)) });
+    }
+    if (action === 'hk_records') {
+      if (payload.slug && !mine(String(payload.slug))) return res.status(403).json({ error: 'Not your property' });
+      const { status, body } = await crm('housekeeping', 'hk_records', { ...window_, slug: payload.slug, limit: payload.limit });
+      if (status !== 200) return res.status(status).json(body);
+      return res.status(200).json({ ...body, names: myNames(body.names), records: (body.records || []).filter(r => mine(r.slug)) });
+    }
+    if (action === 'hk_record_detail') {
+      const { status, body } = await detail(payload.type, parseInt(payload.id, 10));
+      return res.status(status).json(body);
+    }
+    if (action === 'hk_record_link') {
+      const type = ['inspection', 'visit'].includes(payload.type) ? payload.type : 'handover';
+      const id = parseInt(payload.id, 10);
+      if (!id) return res.status(400).json({ error: 'id required' });
+      const { status, body } = await detail(type, id);
+      if (status !== 200) return res.status(status).json(body);
+      return res.status(200).json({ url: `https://${hostOf(req)}/api/housekeeping?record=${recordToken(type, id)}` });
+    }
+    if (action === 'hk_standard') {
+      if (!mine(String(payload.slug || ''))) return res.status(403).json({ error: 'Not your property' });
+      const { status, body } = await crm('housekeeping', 'hk_standard', { slug: payload.slug });
+      return res.status(status).json(body);
+    }
+    return res.status(403).json({ error: 'Your login can read the schedule and the records; changes are made by Era.' });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }

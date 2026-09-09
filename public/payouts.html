@@ -499,6 +499,7 @@ function route() {
     : h.startsWith('#/payroll') ? 'payroll'
     : h === '#/cleaning' ? 'cleaning'
     : h.startsWith('#/records') ? 'records' : 'list';
+  if (readOnly() && !D8_VIEWS.includes(view)) { location.hash = '#/payroll'; return; }
   document.querySelectorAll('.rail a').forEach(a => a.classList.toggle('on', a.dataset.view === (view === 'detail' ? 'list' : view)));
   // The outstanding banner and the sheet sync are payouts controls; on the
   // cleaning schedule or the team register they were noise about money.
@@ -518,9 +519,14 @@ function route() {
 window.addEventListener('hashchange', route);
 
 // Who is signed in? Samba admins and Era see everything; a Double 8 login
-// (Oli) sees only the Double 8 payroll, and the page shapes itself before
-// making any other call (the statements engine would refuse that login).
+// (Oli) sees the Double 8 payroll and a read-only maintenance, schedule and
+// records for its units, and the page shapes itself before making any other
+// call (the statements engine would refuse that login).
 let scope = null;
+const D8_VIEWS = ['payroll', 'maintenance', 'cleaning', 'records'];
+const d8Allowed = (h) => ['#/payroll', '#/maintenance', '#/cleaning', '#/records'].some(p => String(h || '').startsWith(p));
+// The partner reads; every control that changes something is Era's.
+const readOnly = () => scope === 'double8';
 async function boot() {
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').style.display = 'block';
@@ -528,8 +534,9 @@ async function boot() {
   if (scope === 'double8') {
     payrollEntity = 'double8';
     document.body.classList.add('scope-double8');
-    document.querySelectorAll('.rail a').forEach(a => { if (a.dataset.view !== 'payroll') a.style.display = 'none'; });
-    if (!location.hash.startsWith('#/payroll')) location.hash = '#/payroll';
+    document.querySelectorAll('.rail a').forEach(a => { if (!D8_VIEWS.includes(a.dataset.view)) a.style.display = 'none'; });
+    if (!d8Allowed(location.hash)) location.hash = '#/payroll';
+    refreshMaint().catch(() => {});   // the badge; the list itself is cut down server-side
     route();
     return;
   }
@@ -1764,7 +1771,7 @@ async function renderMaintenance() {
 
   let html = `<div class="crumb">Maintenance</div>`;
   html += `<div class="banner ${maintData.needsReview ? 'amber' : 'calm'}" style="margin-bottom:14px"><div>
-    <b>${maintData.needsReview || 0}</b> waiting for your review ·
+    <b>${maintData.needsReview || 0}</b> waiting for ${readOnly() ? "Era's" : 'your'} review ·
     <b>${maintData.awaitingOwner || 0}</b> with the owner ·
     <b>${maintData.openWork || 0}</b> approved and not yet done
     <div style="margin-top:5px;font-size:.76rem">Send Maya a photo on WhatsApp with the villa and what's wrong. It appears here automatically.</div>
@@ -1791,13 +1798,15 @@ async function renderMaintenance() {
       </div>
       ${it.description ? `<div class="mdesc">${esc(it.description)}</div>` : ''}
       <div class="mshots" id="shots-${it.id}"></div>
-      <div class="mrow" style="margin-top:8px">
+      ${readOnly() ? '' : `<div class="mrow" style="margin-top:8px">
         <label class="btn ghost" style="cursor:pointer;font-size:.75rem">+ Add photo
           <input type="file" accept="image/*" style="display:none" onchange="maintAddPhoto(${it.id}, this)">
         </label>
-      </div>`;
+      </div>`}`;
 
-    if (it.status === 'new') {
+    if (readOnly()) {
+      // The partner reads the ticket; Era's controls stay with Era.
+    } else if (it.status === 'new') {
       html += `<div class="mrow">
         <span style="font-size:.76rem;color:var(--muted)">Estimated cost</span>
         <input type="text" id="mcost-${it.id}" placeholder="e.g. 850000" value="${it.estimated_cost ?? ''}" style="width:130px">
@@ -1818,16 +1827,16 @@ async function renderMaintenance() {
       html += `<div class="mrow"><button class="btn ghost" onclick="maintMove(${it.id})">Wrong villa</button></div>`;
     }
     if (it.status === 'approved' || it.status === 'scheduled') {
-      html += dispatchRow(it);
+      if (!readOnly()) html += dispatchRow(it);
       html += `<div class="mrow">
-        <button class="btn green" onclick="maintComplete(${it.id})">Mark done</button>
+        ${readOnly() ? '' : `<button class="btn green" onclick="maintComplete(${it.id})">Mark done</button>`}
         <span style="font-size:.76rem;color:var(--muted)">Next check-in ${it.next_followup_at ? esc(dstr(it.next_followup_at)) : '–'}${it.promised_date ? ` (you said ${esc(dstr(it.promised_date))})` : ''}</span>
       </div>`;
     }
     if (it.status === 'pending_approval') {
       html += `<div class="mrow">
-        <a class="btn ghost" href="/m/${esc(it.token || '')}" target="_blank">Preview owner view ↗</a>
-        <button class="btn ghost" onclick="maintApproveFor(${it.id})">Owner approved (by phone)</button>
+        <a class="btn ghost" href="/m/${esc(it.token || '')}" target="_blank">${readOnly() ? 'Approve or decline ↗' : 'Preview owner view ↗'}</a>
+        ${readOnly() ? '' : `<button class="btn ghost" onclick="maintApproveFor(${it.id})">Owner approved (by phone)</button>`}
       </div>`;
     }
     if (it.status === 'declined') {
@@ -1858,12 +1867,12 @@ async function renderMaintenance() {
         const paths = d.item.photos || [];
         box.innerHTML = (d.item.photo_urls || []).map((u, n) => `<span class="mshot">
           <img src="${esc(u)}" onclick="window.open('${esc(u)}','_blank')" alt="">
-          <button class="mshot-x" title="Remove from this ticket" onclick="maintRemovePhoto(${it.id}, '${esc(paths[n] || '')}')">✕</button>
+          ${readOnly() ? '' : `<button class="mshot-x" title="Remove from this ticket" onclick="maintRemovePhoto(${it.id}, '${esc(paths[n] || '')}')">✕</button>`}
         </span>`).join('')
         // Photos a model matched to this ticket: not on the ticket, not shown
         // to the owner, until someone says so.
-        + ((d.item.suggested || []).length ? `<div style="flex-basis:100%;font-size:.7rem;color:var(--muted);margin-top:6px">Suggested by sight — confirm ✓ or drop ✕ (owners never see these until confirmed)</div>` : '')
-        + (d.item.suggested || []).map(sg => `<span class="mshot" style="outline:2px dashed var(--accent,#E2572B);outline-offset:-2px;opacity:.85">
+        + (!readOnly() && (d.item.suggested || []).length ? `<div style="flex-basis:100%;font-size:.7rem;color:var(--muted);margin-top:6px">Suggested by sight — confirm ✓ or drop ✕ (owners never see these until confirmed)</div>` : '')
+        + (readOnly() ? [] : (d.item.suggested || [])).map(sg => `<span class="mshot" style="outline:2px dashed var(--accent,#E2572B);outline-offset:-2px;opacity:.85">
           <img src="${esc(sg.url)}" onclick="window.open('${esc(sg.url)}','_blank')" alt="">
           <button class="mshot-x" style="right:26px;background:#2f5d34" title="Confirm: attach to this ticket" onclick="maintPhotoDecide(${it.id}, '${esc(sg.path)}', true)">✓</button>
           <button class="mshot-x" title="Not this ticket" onclick="maintPhotoDecide(${it.id}, '${esc(sg.path)}', false)">✕</button>
@@ -2223,11 +2232,11 @@ async function renderCleaning() {
       </div>
       <div class="chips" id="sched-chips"></div>
       <div class="actionsrow" style="margin:12px 0 6px">
-        <button class="btn primary" onclick="hkAddSheet(1)">+ Add a clean</button>
+        ${readOnly() ? '' : `<button class="btn primary" onclick="hkAddSheet(1)">+ Add a clean</button>
         <button class="btn ghost" onclick="hkCareEdit()">Cleaning days</button>
-        <button class="btn ghost" onclick="hkGenerate()">Rebuild from the calendar</button>
+        <button class="btn ghost" onclick="hkGenerate()">Rebuild from the calendar</button>`}
         <button class="btn ghost" onclick="hkRoundsSheet()">Rounds ahead</button>
-        <button class="btn ghost" onclick="hkCalendarSheet()">Calendar feed</button>
+        ${readOnly() ? '' : `<button class="btn ghost" onclick="hkCalendarSheet()">Calendar feed</button>`}
       </div>
       <div id="sched-stats"></div>
       <div class="sched-list" id="sched-list"></div>
@@ -2244,7 +2253,7 @@ function schedRender() {
     : 'Schedule';
   const todayCount = tasks.filter(t => t.task_date === today && t.status !== 'done' && t.status !== 'skipped').length;
   document.getElementById('sched-sub').innerHTML = schedVilla
-    ? `The next 30 days at this villa. Tap a clean to change who does it or move it.`
+    ? `The next 30 days at this villa. ${readOnly() ? 'Tap a clean to see who does it and how it went.' : 'Tap a clean to change who does it or move it.'}`
     : `<b>${todayCount}</b> clean${todayCount === 1 ? '' : 's'} today · <b>${tasks.length}</b> in the next 30 days${hkData.unassigned ? ` · <b>${hkData.unassigned}</b> with nobody assigned` : ''}${hkStays ? '' : ' · guest calendar unavailable right now'}`;
 
   // Week strip.
@@ -2292,7 +2301,7 @@ function schedRender() {
     const ev = schedEvents(d);
     if (schedVilla && !ev.length) continue;
     h += `<div class="dayhead${d === today ? ' today' : ''}"><span>${dFmt(d, { weekday: 'long', day: 'numeric', month: 'long' })}${d === today ? ' · today' : ''}</span><span>${ev.length || ''}</span></div>`;
-    if (!ev.length) { h += `<div class="sempty">Nothing planned. Tap <b>Add a clean</b> if a villa needs one.</div>`; continue; }
+    if (!ev.length) { h += `<div class="sempty">Nothing planned.${readOnly() ? '' : ' Tap <b>Add a clean</b> if a villa needs one.'}</div>`; continue; }
     for (const e of ev) {
       const pill = e.type === 'clean'
         ? (e.ready ? (HK_READY[e.ready.status] || ['wait', e.ready.status])
@@ -2326,7 +2335,8 @@ function hkTaskSheet(id) {
   modal(`<h3>${esc(k[0])}</h3>
     <p>${esc(hkShort(t.slug))} · ${dFmt(t.task_date, { weekday: 'long', day: 'numeric', month: 'long' })} · <span class="pill ${st[0]}">${esc(st[1])}</span>${t.same_day ? '<br>The next guest arrives the same day, so this one cannot slip.' : ''}</p>
     ${hkReadyHtml(hkReadyFor(t.id))}
-    <label class="flab">Who does it</label>
+    ${readOnly() ? `<p style="font-size:12.5px"><b>Who does it</b> · ${esc(hkWho(t) || 'nobody assigned yet')}</p>
+    <div class="row" style="justify-content:flex-end"><button class="btn ghost" onclick="closeModal()">Close</button></div>` : `<label class="flab">Who does it</label>
     <select class="flt" id="hk-sheet-who" style="width:100%" onchange="staffPickerChanged(this,{role:'housekeeper'})"></select>
     <label class="flab">Move it to</label>
     <input type="date" id="hk-sheet-date" value="${t.task_date}" min="${hkToday()}" style="width:100%">
@@ -2336,10 +2346,12 @@ function hkTaskSheet(id) {
         ${t.status !== 'done' ? `<button class="btn ghost" onclick="hkStatus(${t.id},'done')">Done</button>` : ''}
       </span>
       <span style="display:flex;gap:6px"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="hkTaskSave(${t.id})">Save</button></span>
-    </div>`);
+    </div>`}`);
   const sel = document.getElementById('hk-sheet-who');
-  staffFillPicker(sel, { role: 'housekeeper', slug: t.slug, placeholder: 'Nobody assigned' });
-  if (t.assigned_staff_id) sel.value = String(t.assigned_staff_id);
+  if (sel) {
+    staffFillPicker(sel, { role: 'housekeeper', slug: t.slug, placeholder: 'Nobody assigned' });
+    if (t.assigned_staff_id) sel.value = String(t.assigned_staff_id);
+  }
   const r = hkReadyFor(t.id);
   if (r && r.photo_count) hkApi('hk_readiness_photos', { id: r.id }).then(d => {
     const el = document.getElementById('hk-ready-thumbs'); if (!el) return;
@@ -2385,8 +2397,8 @@ async function hkStandardSheet(slug) {
     <h4 style="margin:14px 0 2px">Handover photos Maya asks for</h4>
     <ul class="flaglist">${spots}</ul>
     <label class="flab">Notes for this villa</label>
-    <textarea id="kit-notes" class="flt" style="width:100%;min-height:56px">${esc(std.notes || '')}</textarea>
-    <div class="row"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" id="kit-save" onclick="hkStandardSave('${esc(slug)}')">Save</button></div>`, { wide: true });
+    <textarea id="kit-notes" class="flt" style="width:100%;min-height:56px"${readOnly() ? ' readonly' : ''}>${esc(std.notes || '')}</textarea>
+    <div class="row"><button class="btn ghost" onclick="closeModal()">${readOnly() ? 'Close' : 'Cancel'}</button>${readOnly() ? '' : `<button class="btn primary" id="kit-save" onclick="hkStandardSave('${esc(slug)}')">Save</button>`}</div>`, { wide: true });
 }
 function hkKitSet(i, present) {
   if (!hkStd) return;
@@ -2916,6 +2928,7 @@ async function staffApi(action, payload) {
 
 async function refreshStaff(force) {
   if (staffData && !force) return staffData;
+  if (readOnly()) return (staffData = { staff: [], units: [] });   // the register is closed to partners
   staffData = await staffApi('staff_list', {});
   return staffData;
 }
