@@ -726,9 +726,15 @@ export default async function handler(req, res) {
     // bank balances); this adds the rental side of the four unsold B units
     // from Hostex and Era's statements, writes each closed month back into
     // the ledger, and works out the loan headline (lib/project-finance.js).
-    // Ikiel and Era see and edit; Oli (double8) reads.
+    // Served to the Tropicana Valley books app; see PROJECT_FINANCE below.
     if (action === 'finance') {
-      const caller = await cockpitCaller(req.headers.authorization);
+      // The books app (its own Vercel project, Ikiel and Oli) calls with
+      // FINANCE_SECRET and says who is asking; the cockpit admin login
+      // still works for diagnostics.
+      const bearer = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+      const fin = process.env.FINANCE_SECRET;
+      const isBooksApp = !!fin && bearer.length === fin.length && crypto.timingSafeEqual(Buffer.from(bearer), Buffer.from(fin));
+      const caller = isBooksApp ? { role: 'partner', name: String(req.query.as || 'partner').slice(0, 40) } : await cockpitCaller(req.headers.authorization);
       if (!caller) return res.status(401).json({ error: 'Unauthorized' });
       if (!sync) return res.status(503).json({ error: 'LISTING_SYNC_SECRET not configured' });
       const readonly = caller.role === 'double8';

@@ -232,17 +232,6 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
 .fld{margin-bottom:12px;}
 .fld label{display:block;font:600 10px/1 var(--sb-font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
 .fld input[type=text],.fld select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font:500 13px/1.3 var(--sb-font-ui);}
-.fintabs{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin:-6px 0 14px;border-bottom:1px solid var(--border);padding-bottom:8px;}
-.fintabs a{font:600 12px/1 var(--sb-font-ui);color:var(--muted);padding:7px 10px;border-radius:9px;cursor:pointer;text-decoration:none;}
-.fintabs a.on{background:var(--sb-terracotta-050);color:var(--sb-terracotta-700);}
-.fintabs a:hover{color:var(--text);}
-.fingrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px;}
-.fintabs+.card .tblwrap,.card .tblwrap{min-width:0;max-width:100%;}
-.finnote{font-size:.72rem;color:var(--muted);margin-top:10px;line-height:1.5;}
-.finloan{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer;}
-.finloan:hover{border-color:var(--accent);}
-.tot .sub,td .sub,.sub{font-size:.66rem;color:var(--muted);margin-top:3px;line-height:1.4;}
-.fld input[type=date],.fld input[type=month]{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font:500 13px/1.3 var(--sb-font-ui);}
 .fld .hint{font:500 11px/1.5 var(--sb-font-ui);color:var(--muted);margin-top:5px;}
 .opts{display:flex;flex-wrap:wrap;gap:6px;}
 .opts label{display:inline-flex;align-items:center;gap:5px;font:500 12px/1 var(--sb-font-ui);color:var(--text-2);
@@ -394,7 +383,6 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
       <a href="#/" data-view="list"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.8h7l3 3v11.4H5z"/><path d="M12 2.8v3h3"/><path d="M7.6 9.5h4.8M7.6 12.4h4.8"/></svg>Payouts</a>
       <a href="#/maintenance" data-view="maintenance"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.6 3.6a3.6 3.6 0 0 0-4.9 4.4l-4.2 4.2a1.4 1.4 0 0 0 0 2l1.9 1.9a1.4 1.4 0 0 0 2 0l4.2-4.2a3.6 3.6 0 0 0 4.4-4.9l-2.2 2.2-2-.6-.6-2z"/></svg>Maintenance<span class="railbadge" id="maint-badge" style="display:none"></span></a>
       <a href="#/earnings" data-view="earnings"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 16.2h14"/><path d="M4.6 12.4l3.6-4 3 2.6 4.2-5.2"/></svg>Earnings</a>
-      <a href="#/finance" data-view="finance"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.8" y="6" width="14.4" height="10" rx="2"/><path d="M2.8 9.4h14.4"/><path d="M5.6 6V4.6a1.4 1.4 0 0 1 1.4-1.4h6a1.4 1.4 0 0 1 1.4 1.4V6"/><path d="M13 13h1.6"/></svg>Finance</a>
       <a href="#/payroll" data-view="payroll"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.6" y="5.2" width="14.8" height="9.6" rx="1.8"/><circle cx="10" cy="10" r="2.2"/><path d="M5.4 10h.01M14.6 10h.01"/></svg>Payroll</a>
       <a href="#/groups" data-view="groups"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.2 8.6L10 3.2l6.8 5.4"/><path d="M5 10v6.8h10V10"/><path d="M8.4 16.8v-4h3.2v4"/></svg>Properties</a>
       <a href="#/cleaning" data-view="cleaning"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.2" width="14" height="12.6" rx="2"/><path d="M3 8h14M7 2.8v2.8M13 2.8v2.8"/><path d="M7.4 11.6l1.5 1.5 3.2-3.2"/></svg>Schedule<span class="railbadge" id="hk-badge" style="display:none"></span></a>
@@ -510,7 +498,6 @@ function route() {
   const view = h.startsWith('#/statement/') ? 'detail'
     : h.startsWith('#/maintenance') ? 'maintenance'
     : h === '#/groups' ? 'groups' : h === '#/earnings' ? 'earnings' : h === '#/staff' ? 'staff'
-    : h.startsWith('#/finance') ? 'finance'
     : h.startsWith('#/payroll') ? 'payroll'
     : h === '#/cleaning' ? 'cleaning'
     : h.startsWith('#/records') ? 'records' : 'list';
@@ -522,7 +509,6 @@ function route() {
   const render = view === 'list' ? renderList()
     : view === 'groups' ? renderGroups()
     : view === 'earnings' ? renderEarnings()
-    : view === 'finance' ? renderFinance(h)
     : view === 'maintenance' ? renderMaintenance()
     : view === 'staff' ? renderStaff()
     : view === 'payroll' ? (h.startsWith('#/payroll/') ? renderPayrollRun(parseInt(h.slice('#/payroll/'.length), 10)) : renderPayroll())
@@ -541,8 +527,8 @@ window.addEventListener('hashchange', route);
 let scope = null;
 let whoName = null;   // 'admin' (Ikiel), 'Era' or 'Oli', from payroll_whoami
 const myName = () => whoName === 'Era' ? 'Era' : whoName === 'Oli' ? 'Oli' : 'Ikiel';
-const D8_VIEWS = ['payroll', 'maintenance', 'cleaning', 'records', 'finance'];
-const d8Allowed = (h) => ['#/payroll', '#/maintenance', '#/cleaning', '#/records', '#/finance'].some(p => String(h || '').startsWith(p));
+const D8_VIEWS = ['payroll', 'maintenance', 'cleaning', 'records'];
+const d8Allowed = (h) => ['#/payroll', '#/maintenance', '#/cleaning', '#/records'].some(p => String(h || '').startsWith(p));
 // On the schedule and the records the partner reads; on maintenance he
 // acts, because those tickets are his own units. The register he can pick
 // from, not edit.
@@ -1330,354 +1316,6 @@ async function renderEarnings() {
   </table></div></div>`;
 
   c.innerHTML = html;
-}
-
-// ── Finance: the Tropicana Valley development as a whole ─────────────
-// The workbook Ikiel and Oli ran the project from, as a page: a ledger of
-// every rupiah in or out, the costs still to pay, the buyers still paying,
-// the loans, and the bank balances (kept in the CRM). The rent and expenses
-// of the four unsold B units come in on their own from the calendar and
-// Era's statements. The number at the top is the one Ikiel asked for: how
-// much of the loan that bought the land is still to pay, once the company
-// account, the remaining costs, what the buyers still owe and the rent are
-// counted. Ikiel and Era edit; Oli reads.
-let finData = null;      // the last /api/statements?action=finance answer
-let finLoading = null;
-const FIN_TABS = [['', 'Overview'], ['ledger', 'Ledger'], ['costs', 'Costs to pay'], ['buyers', 'Buyers'], ['loans', 'Loans'], ['accounts', 'Accounts']];
-const FIN_CATS = {
-  out: [['land', 'Land lease'], ['architecture', 'Architecture & engineering'], ['construction', 'Construction'], ['construction_addon', 'Construction add-ons'], ['doors_windows', 'Doors & windows'], ['kitchen_wardrobe', 'Kitchen & wardrobe'], ['aircon', 'Air conditioning'], ['furniture', 'Furniture'], ['appliances', 'Appliances'], ['fit_out', 'Fit-out & deco'], ['finishing', 'Finishing works'], ['slf', 'SLF permit'], ['landscaping', 'Landscaping'], ['permits_fees', 'Permits, utilities & fees'], ['operating', 'Operating & unit prep'], ['rental_expense', 'Rental unit expenses'], ['agent_commission', 'Agent commission'], ['deposit_refund', 'Tenant deposit returned'], ['partner_out', 'To a partner'], ['loan_repayment', 'Loan repayment'], ['bank_charges', 'Bank charges & tax'], ['other', 'Other']],
-  in: [['unit_sale', 'Unit sale'], ['rental_income', 'Rental income'], ['deposit_in', 'Tenant deposit'], ['loan_drawdown', 'Loan received'], ['capital_in', 'Partner capital'], ['bank_interest', 'Bank interest'], ['other', 'Other']],
-};
-const FIN_CAT_LABEL = Object.fromEntries([...FIN_CATS.out, ...FIN_CATS.in]);
-const finCat = (c) => FIN_CAT_LABEL[c] || c || '';
-const finFx = () => finData?.fx_live || Number(finData?.data?.settings?.fx_usd) || 16300;
-const USD = (n) => '≈ $' + Math.round((Number(n) || 0) / finFx()).toLocaleString('en-US');
-const finDate = (d) => d ? new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '';
-const finSub = (h) => { const m = String(h || location.hash).match(/^#\/finance\/?([a-z]*)/); return m ? m[1] : ''; };
-
-async function loadFinance(force) {
-  if (finData && !force) return finData;
-  if (finLoading) return finLoading;
-  finLoading = (async () => {
-    const r = await fetch('/api/statements?action=finance', { headers: { Authorization: 'Bearer ' + adminPw } });
-    if (r.status === 401) { showGate('Session expired. Please log in again.'); throw new Error('unauthorized'); }
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
-    finData = d; return d;
-  })();
-  try { return await finLoading; } finally { finLoading = null; }
-}
-
-async function renderFinance(h) {
-  const c = document.getElementById('content');
-  const sub = finSub(h);
-  const tabs = `<div class="crumb">Finance · Tropicana Valley</div>
-    <div class="fintabs">${FIN_TABS.map(([k, l]) => `<a class="${k === sub ? 'on' : ''}" onclick="go('#/finance${k ? '/' + k : ''}')">${l}</a>`).join('')}
-      ${readOnly() ? '' : `<button class="btn ghost" style="margin-left:auto;padding:6px 10px" onclick="finData=null;renderFinance()">⟳ Refresh</button>`}</div>`;
-  if (!finData) c.innerHTML = tabs + '<div class="loading-state"><div class="spinner"></div>Adding up the project…</div>';
-  try { await loadFinance(); }
-  catch (e) { if (e.message !== 'unauthorized') c.innerHTML = tabs + `<div class="banner red"><div>${esc(e.message)}</div></div>`; return; }
-  if (finData.migration) { c.innerHTML = tabs + `<div class="banner amber"><div><b>One step first.</b> ${esc(finData.migration)}</div></div>`; return; }
-  const body = sub === 'ledger' ? finLedgerHtml() : sub === 'costs' ? finCostsHtml() : sub === 'buyers' ? finBuyersHtml() : sub === 'loans' ? finLoansHtml() : sub === 'accounts' ? finAccountsHtml() : finOverviewHtml();
-  c.innerHTML = tabs + body;
-}
-
-function finOverviewHtml() {
-  const p = finData.position, r = finData.rental, s = finData.data.settings || {};
-  const loan = p.loan;
-  const review = (finData.data.ledger || []).filter(x => (x.flags || []).includes('review')).length;
-  const cashAccts = p.accounts.filter(a => a.counts_as_cash);
-  const asOf = cashAccts.map(a => a.has_snapshot ? `${esc(a.name)} balance of ${finDate(a.balance_as_of)}${a.rows_after ? ` plus ${a.rows_after} ledger ${a.rows_after === 1 ? 'row' : 'rows'} since` : ''}` : `${esc(a.name)}: no bank balance on file, ledger only`).join('; ');
-  const gapTile = p.covered
-    ? `<div class="tot big"><div class="lab">Loan left to pay</div><div class="val" style="color:var(--green)">Covered</div><div class="sub">The position is ${IDR(-p.gap)} more than the loan. ${USD(-p.gap)}</div></div>`
-    : `<div class="tot big"><div class="lab">Loan left to pay, after everything else</div><div class="val">${IDR(p.gap)}</div><div class="sub">${USD(p.gap)} · ${p.months_to_close == null ? 'no rental average yet to say how long' : `about <b>${p.months_to_close} month${p.months_to_close === 1 ? '' : 's'}</b> of rent at the current pace, so around <b>${esc(mlabel(p.payoff_eta))}</b>`}</div></div>`;
-  let html = `<div class="card">
-    <h3>${loan ? `The loan from ${esc(loan.lender)}` : 'The loan'}</h3>
-    ${!loan ? `<div class="banner amber"><div>No loan on file yet. Add one under <a onclick="go('#/finance/loans')">Loans</a>.</div></div>` : ''}
-    ${loan && /PLACEHOLDER/i.test(loan.note || '') ? `<div class="banner amber"><div><b>Placeholder terms.</b> ${esc(loan.note)} Edit it under <a onclick="go('#/finance/loans')">Loans</a>.</div></div>` : ''}
-    <div class="totgrid">
-      ${gapTile}
-      <div class="tot"><div class="lab">Loan outstanding</div><div class="val">${IDR(p.loan ? p.loan.outstanding : 0)}</div><div class="sub">${loan ? `${IDR(loan.drawn || loan.principal_idr)} received, ${IDR(loan.repaid)} repaid${loan.interest ? `, ${IDR(loan.interest)} interest` : ''}` : ''}</div></div>
-      <div class="tot"><div class="lab">In the company account</div><div class="val">${IDR(p.cash)}</div><div class="sub">${asOf || 'no account counts as cash yet'}</div></div>
-      <div class="tot"><div class="lab">Costs still to pay</div><div class="val">− ${IDR(p.remaining_costs)}</div><div class="sub">${p.commitments.filter(x => x.remaining > 0).map(x => esc(x.name)).join(', ') || 'nothing open'}</div></div>
-      <div class="tot"><div class="lab">Buyers still owe</div><div class="val">+ ${IDR(p.receivables_due)}</div><div class="sub">${p.receivables.filter(x => x.due > 0).map(x => esc(x.buyer)).join(', ') || 'all settled'}</div></div>
-      <div class="tot"><div class="lab">Rent, net, per month</div><div class="val">${IDR(p.rental_avg_net)}</div><div class="sub">average of the last ${r?.window || 0} closed month${r?.window === 1 ? '' : 's'} on the calendar, after Era's expenses</div></div>
-    </div>
-    <p class="finnote">Loan outstanding ${IDR(p.loan ? p.loan.outstanding : 0)} − (cash ${IDR(p.cash)} − costs ${IDR(p.remaining_costs)} + receivables ${IDR(p.receivables_due)}) = <b>${IDR(p.gap)}</b>. Dollar figures use ${finData.fx_live ? 'today\'s rate' : 'the rate in settings'} of ${finFx().toLocaleString('en-US')} per USD and are for reading only.</p>
-    ${review ? `<div class="banner amber" style="margin:10px 0 0"><div><b>${review} ledger ${review === 1 ? 'row needs' : 'rows need'} your eye.</b> Imported from the bank statements without a description of what they were for. <a onclick="go('#/finance/ledger?review=1')">Review them</a>: the cash figure is right either way, the cost breakdown is not until they are categorised.</div></div>` : ''}
-  </div>`;
-
-  // Rental months
-  if (r) {
-    const ms = (r.months || []).slice().reverse();
-    html += `<div class="card"><h3>Rent from the unsold units · ${esc(pname(r.group_name || r.group_key))}</h3>
-      ${r.hostex_ok === false ? '<div class="banner amber"><div>The booking calendar did not answer; the calendar column is empty until it does.</div></div>' : ''}
-      <div class="totgrid">
-        <div class="tot"><div class="lab">Calendar rent, closed months</div><div class="val">${IDR(r.total_gross)}</div></div>
-        <div class="tot"><div class="lab">Era's expenses</div><div class="val">${IDR(r.total_expenses)}</div></div>
-        <div class="tot big"><div class="lab">Net since ${esc(mlabel(r.from))}</div><div class="val">${IDR(r.total_net)}</div></div>
-      </div>
-      <div class="tblwrap" style="margin-top:12px"><table class="lines">
-        <tr><th>Month</th><th class="num">Calendar rent</th><th class="num">Expenses</th><th class="num">Net</th><th class="num">Rent banked</th><th class="num">Paid from the bank</th><th></th></tr>
-        ${ms.map(m => `<tr${m.statement_id ? ` onclick="go('#/statement/${m.statement_id}')" style="cursor:pointer"` : ''}>
-          <td style="white-space:nowrap;font-weight:600">${esc(m.label)}${m.closed ? '' : ' <span class="pill draft">open</span>'}</td>
-          <td class="num">${IDR(m.gross)}${m.nights != null ? `<div class="sub" style="white-space:normal;min-width:120px">${m.nights} nights · ${Object.entries(m.units || {}).filter(([, v]) => v).map(([k, v]) => `${k.slice(-2).toUpperCase()} ${Math.round(v / 1e6 * 10) / 10}M`).join(' · ') || '–'}</div>` : ''}</td>
-          <td class="num">${IDR(m.expenses)}</td>
-          <td class="num" style="font-weight:700;${m.net < 0 ? 'color:var(--red-fg)' : ''}">${IDR(m.net)}</td>
-          <td class="num" style="color:${Math.abs((m.banked_income || 0) - m.gross) > Math.max(1e6, m.gross * 0.1) ? 'var(--amber-fg)' : 'var(--muted)'}">${IDR(m.banked_income)}</td>
-          <td class="num" style="color:var(--muted)">${IDR(m.banked_expenses)}</td>
-          <td class="sub">${m.status ? esc(m.status) : (m.source === 'hostex' ? 'no statement yet' : m.source === 'none' ? 'nothing on the calendar' : '')}</td>
-        </tr>`).join('')}
-      </table></div>
-      <p class="finnote">Calendar rent is what the booking calendar shows the units earned (after channel commission); expenses are Era's ledger statements. "Rent banked" is what the bank statements and the ledger show arriving that month, deposits included, so a tenant who pays in a different month than they stay shows as a gap, not an error. Closed months are written into the ledger as calendar rows so the history keeps.</p>
-    </div>`;
-  }
-
-  // Project P&L, the sheet's profit overview
-  const pnl = p.pnl, cats = FIN_CATS.out.filter(([k]) => !['rental_expense', 'agent_commission', 'deposit_refund', 'partner_out', 'loan_repayment', 'bank_charges'].includes(k));
-  const maxC = Math.max(1, ...cats.map(([k]) => pnl.by_category['out:' + k] || 0));
-  const unsold = Array.isArray(s.units_unsold) ? s.units_unsold : [];
-  html += `<div class="card"><h3>The project so far</h3>
-    <div class="totgrid">
-      <div class="tot"><div class="lab">Built for</div><div class="val">${IDR(pnl.build_cost)}</div><div class="sub">${USD(pnl.build_cost)} · land, build, fit-out, permits</div></div>
-      <div class="tot"><div class="lab">Sold for</div><div class="val">${IDR(pnl.sales)}</div><div class="sub">${USD(pnl.sales)} · ${(s.units_total || 14) - unsold.length} of ${s.units_total || 14} units, cash received</div></div>
-      <div class="tot ${pnl.gross_profit < 0 ? '' : 'big'}"><div class="lab">Sales less cost</div><div class="val" style="${pnl.gross_profit < 0 ? 'color:var(--red-fg)' : ''}">${IDR(pnl.gross_profit)}</div><div class="sub">before the ${unsold.length} unsold ${unsold.length === 1 ? 'unit' : 'units'} (${unsold.map(esc).join(', ') || '–'}) and their rent</div></div>
-      <div class="tot"><div class="lab">Rent, cash basis</div><div class="val">${IDR(pnl.rental_net)}</div><div class="sub">${IDR(pnl.rental_income)} in, ${IDR(pnl.rental_expense)} out, from the bank and the ledger</div></div>
-    </div>
-    <div class="tblwrap" style="margin-top:12px"><table class="lines">
-      <tr><th>Cost</th><th></th><th class="num">IDR</th><th class="num">USD</th></tr>
-      ${cats.filter(([k]) => pnl.by_category['out:' + k]).sort((a, b) => (pnl.by_category['out:' + b[0]] || 0) - (pnl.by_category['out:' + a[0]] || 0)).map(([k, l]) => { const v = pnl.by_category['out:' + k] || 0; return `<tr onclick="go('#/finance/ledger?cat=${k}')" style="cursor:pointer"><td>${esc(l)}</td><td style="width:36%;min-width:120px"><div style="height:9px;border-radius:5px;background:var(--surface2);overflow:hidden"><div style="height:100%;width:${Math.round(v / maxC * 100)}%;background:var(--accent);border-radius:5px"></div></div></td><td class="num">${IDR(v)}</td><td class="num sub">${USD(v)}</td></tr>`; }).join('')}
-      <tr class="totrow"><td>Total</td><td></td><td class="num">${IDR(pnl.build_cost)}</td><td class="num">${USD(pnl.build_cost)}</td></tr>
-    </table></div>
-  </div>`;
-
-  // Settings
-  html += `<div class="card"><h3>Settings</h3>
-    <div class="fingrid">
-      <div class="fld"><label>IDR per USD (fallback)</label><input type="text" id="fs-fx" value="${esc(s.fx_usd || '')}"${readOnly() ? ' readonly' : ''}></div>
-      <div class="fld"><label>Rent counted from</label><input type="month" id="fs-from" value="${esc(s.rental_from || '')}"${readOnly() ? ' readonly' : ''}></div>
-      <div class="fld"><label>Months in the rent average</label><input type="text" id="fs-win" value="${esc(s.projection_months || 3)}"${readOnly() ? ' readonly' : ''}></div>
-      <div class="fld"><label>Unsold units</label><input type="text" id="fs-unsold" value="${esc(unsold.join(', '))}"${readOnly() ? ' readonly' : ''}></div>
-    </div>
-    ${readOnly() ? '' : `<div class="row" style="justify-content:flex-start"><button class="btn primary" onclick="finSaveSettings()">Save settings</button></div>`}
-  </div>`;
-  return html;
-}
-const mlabel = (p) => { if (!p) return ''; const [y, m] = String(p).split('-').map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }); };
-
-async function finSaveSettings() {
-  try {
-    await api('finance_settings_patch', { fields: {
-      fx_usd: Number(document.getElementById('fs-fx').value) || undefined,
-      rental_from: document.getElementById('fs-from').value || undefined,
-      projection_months: Number(document.getElementById('fs-win').value) || undefined,
-      units_unsold: document.getElementById('fs-unsold').value.split(',').map(x => x.trim()).filter(Boolean),
-    } });
-    showToast('Saved', 'success'); finData = null; renderFinance();
-  } catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
-}
-
-// ── Ledger ───────────────────────────────────────────────────────────
-let finFilter = { q: '', dir: '', cat: '', year: '', review: false, source: '' };
-function finLedgerHtml() {
-  const qs = new URLSearchParams((location.hash.split('?')[1] || ''));
-  if (qs.get('review')) { finFilter.review = true; location.hash = '#/finance/ledger'; }
-  if (qs.get('cat')) { finFilter.cat = qs.get('cat'); location.hash = '#/finance/ledger'; }
-  const rows = finData.data.ledger || [];
-  const years = [...new Set(rows.map(r => String(r.entry_date).slice(0, 4)))].sort().reverse();
-  const f = finFilter, q = f.q.toLowerCase();
-  const shown = rows.filter(r => (!f.dir || r.direction === f.dir) && (!f.cat || r.category === f.cat) && (!f.year || String(r.entry_date).startsWith(f.year))
-    && (!f.review || (r.flags || []).includes('review')) && (!f.source || r.source === f.source)
-    && (!q || [r.description, r.counterparty, r.account, r.unit, r.note, finCat(r.category)].join(' ').toLowerCase().includes(q))).slice().reverse();
-  const tin = shown.filter(r => r.direction === 'in').reduce((a, r) => a + Number(r.amount), 0), tout = shown.filter(r => r.direction === 'out').reduce((a, r) => a + Number(r.amount), 0);
-  const cats = [...FIN_CATS.in.map(([k, l]) => [k, l + ' (in)']), ...FIN_CATS.out.map(([k, l]) => [k, l + ' (out)'])];
-  return `<div class="card">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-      <input type="text" class="flt" placeholder="Search description, who, account…" value="${esc(f.q)}" oninput="finFilter.q=this.value;finRedraw()" style="flex:1;min-width:180px">
-      <select class="flt" onchange="finFilter.year=this.value;finRedraw()"><option value="">All years</option>${years.map(y => `<option${f.year === y ? ' selected' : ''}>${y}</option>`).join('')}</select>
-      <select class="flt" onchange="finFilter.dir=this.value;finRedraw()"><option value="">In & out</option><option value="in"${f.dir === 'in' ? ' selected' : ''}>Money in</option><option value="out"${f.dir === 'out' ? ' selected' : ''}>Money out</option></select>
-      <select class="flt" onchange="finFilter.cat=this.value;finRedraw()"><option value="">All categories</option>${cats.map(([k, l]) => `<option value="${k}"${f.cat === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>
-      <select class="flt" onchange="finFilter.source=this.value;finRedraw()"><option value="">Every source</option><option value="import"${f.source === 'import' ? ' selected' : ''}>Imported (sheet, bank)</option><option value="manual"${f.source === 'manual' ? ' selected' : ''}>Typed here</option><option value="rental"${f.source === 'rental' ? ' selected' : ''}>Calendar rows</option></select>
-      <label class="chk" style="margin:0;font-size:.78rem"><input type="checkbox"${f.review ? ' checked' : ''} onchange="finFilter.review=this.checked;finRedraw()"> needs review</label>
-      ${readOnly() ? '' : `<button class="btn primary" onclick="finEditLedger(null)">+ Add entry</button>`}
-    </div>
-    <div class="totgrid"><div class="tot"><div class="lab">In</div><div class="val">${IDR(tin)}</div></div><div class="tot"><div class="lab">Out</div><div class="val">${IDR(tout)}</div></div><div class="tot"><div class="lab">Net · ${shown.length} rows</div><div class="val" style="${tin - tout < 0 ? 'color:var(--red-fg)' : ''}">${IDR(tin - tout)}</div></div></div>
-    <div class="tblwrap" style="margin-top:10px"><table class="lines">
-      <tr><th>Date</th><th>What</th><th>Category</th><th>Account</th><th class="num">In</th><th class="num">Out</th><th></th></tr>
-      ${shown.map(r => `<tr onclick="finEditLedger(${r.id})" style="cursor:pointer${(r.flags || []).includes('review') ? ';background:var(--amber-bg)' : ''}">
-        <td style="white-space:nowrap">${esc(finDate(r.entry_date))}</td>
-        <td>${esc(r.description || '')}${r.counterparty ? ` <span class="sub">· ${esc(r.counterparty)}</span>` : ''}${r.unit ? ` <span class="pill draft">${esc(r.unit)}</span>` : ''}${r.note ? `<div class="sub">${esc(r.note)}</div>` : ''}</td>
-        <td style="white-space:nowrap">${esc(finCat(r.category))}</td>
-        <td class="sub">${esc(r.account || (r.source === 'rental' ? 'calendar' : ''))}</td>
-        <td class="num" style="color:var(--green)">${r.direction === 'in' ? IDR(r.amount) : ''}</td>
-        <td class="num">${r.direction === 'out' ? IDR(r.amount) : ''}</td>
-        <td class="sub">${(r.flags || []).includes('review') ? '<span class="pill review">review</span>' : r.source === 'rental' ? '<span class="pill draft">calendar</span>' : r.source === 'import' ? '<span class="pill draft">imported</span>' : ''}</td>
-      </tr>`).join('') || '<tr><td colspan="7" class="sub">Nothing matches.</td></tr>'}
-    </table></div>
-    <p class="finnote">Calendar rows are written by this page from the booking calendar and Era's statements for closed months; the bank and the sheet were imported once. Tap a row to correct it. A row's category is what the cost breakdown and the rental figures read, so a wrong one moves money between buckets, never out of the account.</p>
-  </div>`;
-}
-function finRedraw() { const c = document.getElementById('content'); const tabs = c.querySelector('.fintabs'); const crumb = c.querySelector('.crumb'); c.innerHTML = crumb.outerHTML + tabs.outerHTML + finLedgerHtml(); }
-
-function finEditLedger(id) {
-  if (readOnly()) return;
-  const r = id ? (finData.data.ledger || []).find(x => x.id === id) : { entry_date: new Date().toISOString().slice(0, 10), direction: 'out', category: 'operating', account: (finData.data.accounts.find(a => a.counts_as_cash) || {}).name || '' };
-  if (!r) return;
-  const accts = finData.data.accounts.map(a => a.name);
-  const cps = [...new Set([...finData.data.receivables.map(x => x.ledger_match), ...finData.data.loans.map(x => x.key), ...(finData.data.ledger || []).map(x => x.counterparty).filter(Boolean)])].sort();
-  const catOpts = (dir) => FIN_CATS[dir].map(([k, l]) => `<option value="${k}"${r.category === k ? ' selected' : ''}>${esc(l)}</option>`).join('');
-  modal(`<h3>${id ? 'Ledger entry' : 'New ledger entry'}</h3>
-    ${r.source === 'rental' ? '<p>A calendar row: the page rewrites it from the booking calendar each time, so change the calendar or the statement instead.</p>' : ''}
-    <div class="fingrid">
-      <div class="fld"><label>Date</label><input type="date" id="fl-date" value="${esc(r.entry_date || '')}"></div>
-      <div class="fld"><label>Direction</label><select id="fl-dir" onchange="document.getElementById('fl-cat').innerHTML=this.value==='in'?${JSON.stringify(catOpts('in')).replace(/"/g, '&quot;')}:${JSON.stringify(catOpts('out')).replace(/"/g, '&quot;')}"><option value="in"${r.direction === 'in' ? ' selected' : ''}>Money in</option><option value="out"${r.direction === 'out' ? ' selected' : ''}>Money out</option></select></div>
-      <div class="fld"><label>Amount (IDR)</label><input type="text" id="fl-amt" value="${esc(r.amount != null ? Math.round(r.amount) : '')}" inputmode="numeric"></div>
-      <div class="fld"><label>Category</label><select id="fl-cat">${catOpts(r.direction === 'in' ? 'in' : 'out')}</select></div>
-      <div class="fld" style="grid-column:1/-1"><label>Description</label><input type="text" id="fl-desc" value="${esc(r.description || '')}"></div>
-      <div class="fld"><label>Account</label><input type="text" id="fl-acc" list="fl-accts" value="${esc(r.account || '')}"><datalist id="fl-accts">${accts.map(a => `<option value="${esc(a)}">`).join('')}</datalist></div>
-      <div class="fld"><label>Who (buyer / loan / vendor key)</label><input type="text" id="fl-cp" list="fl-cps" value="${esc(r.counterparty || '')}"><datalist id="fl-cps">${cps.map(a => `<option value="${esc(a)}">`).join('')}</datalist><div class="hint">A buyer's key counts towards what they still owe; a loan's key towards the loan.</div></div>
-      <div class="fld"><label>Unit</label><input type="text" id="fl-unit" value="${esc(r.unit || '')}" placeholder="A1 … B7"></div>
-      <div class="fld"><label>Pays down</label><select id="fl-com"><option value="">–</option>${finData.data.commitments.map(x => `<option value="${x.id}"${Number(r.commitment_id) === x.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
-      <div class="fld" style="grid-column:1/-1"><label>Note</label><input type="text" id="fl-note" value="${esc(r.note || '')}"></div>
-    </div>
-    <label class="chk"><input type="checkbox" id="fl-review"${(r.flags || []).includes('review') ? ' checked' : ''}> still needs review</label>
-    <div class="row">${id && r.source !== 'rental' ? `<button class="btn ghost" style="margin-right:auto;color:var(--red-fg)" onclick="finDelete('ledger', ${id})">Delete</button>` : ''}<button class="btn ghost" onclick="closeModal()">Cancel</button>${r.source === 'rental' ? '' : `<button class="btn primary" onclick="finSaveLedger(${id || 'null'})">Save</button>`}</div>`, { wide: true });
-}
-async function finSaveLedger(id) {
-  const v = (i) => document.getElementById(i).value.trim();
-  const row = { id: id || undefined, entry_date: v('fl-date'), direction: v('fl-dir'), amount: Number(v('fl-amt').replace(/[^\d.]/g, '')), category: v('fl-cat'), description: v('fl-desc'), account: v('fl-acc') || null, counterparty: v('fl-cp') || null, unit: v('fl-unit').toUpperCase() || null, commitment_id: v('fl-com') || null, note: v('fl-note') || null, flags: document.getElementById('fl-review').checked ? ['review'] : [] };
-  await finPut('ledger', row);
-}
-async function finPut(table, row) {
-  try { await api('finance_put', { table, row }); closeModal(); showToast('Saved', 'success'); finData = null; renderFinance(); }
-  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
-}
-async function finDelete(table, id) {
-  if (!confirm('Delete this row? The figures above recompute without it.')) return;
-  try { await api('finance_delete', { table, id }); closeModal(); showToast('Deleted', 'success'); finData = null; renderFinance(); }
-  catch (e) { if (e.message !== 'unauthorized') showToast(e.message, 'error'); }
-}
-
-// ── Costs still to pay ───────────────────────────────────────────────
-function finCostsHtml() {
-  const rows = finData.position.commitments;
-  const open = rows.filter(x => x.status === 'open');
-  return `<div class="card"><h3>Costs still to pay${readOnly() ? '' : `<button class="btn primary" style="margin-left:auto" onclick="finEditCommitment(null)">+ Add a cost</button>`}</h3>
-    <div class="totgrid"><div class="tot big"><div class="lab">Still to pay</div><div class="val">${IDR(finData.position.remaining_costs)}</div><div class="sub">${USD(finData.position.remaining_costs)}</div></div><div class="tot"><div class="lab">Open items</div><div class="val">${open.length}</div></div></div>
-    <div class="tblwrap" style="margin-top:10px"><table class="lines">
-      <tr><th>Cost</th><th>Category</th><th class="num">Total</th><th class="num">Paid</th><th class="num">Remaining</th><th>Due</th><th></th></tr>
-      ${rows.map(x => `<tr onclick="finEditCommitment(${x.id})" style="cursor:pointer${x.status !== 'open' ? ';opacity:.6' : ''}">
-        <td><b>${esc(x.name)}</b>${x.note ? `<div class="sub">${esc(x.note)}</div>` : ''}</td><td>${esc(finCat(x.category))}</td>
-        <td class="num">${IDR(x.total)}</td><td class="num">${IDR(x.paid)}</td><td class="num" style="font-weight:700">${IDR(x.remaining)}</td>
-        <td class="sub">${esc(finDate(x.due_on))}</td><td><span class="pill ${x.status === 'open' ? 'outstanding' : x.status === 'paid' ? 'paid' : 'void'}">${esc(x.status)}</span></td></tr>`).join('') || '<tr><td colspan="7" class="sub">Nothing on the list.</td></tr>'}
-    </table></div>
-    <p class="finnote">"Paid" is every ledger payment that points at the cost (the <i>Pays down</i> field on a ledger entry). Mark a cost <b>paid</b> or <b>dropped</b> to take it out of the headline.</p></div>`;
-}
-function finEditCommitment(id) {
-  if (readOnly()) return;
-  const r = id ? finData.data.commitments.find(x => x.id === id) : { status: 'open', category: 'construction' };
-  modal(`<h3>${id ? 'Cost' : 'New cost to pay'}</h3><div class="fingrid">
-    <div class="fld" style="grid-column:1/-1"><label>Name</label><input type="text" id="fc-name" value="${esc(r.name || '')}"></div>
-    <div class="fld"><label>Category</label><select id="fc-cat">${FIN_CATS.out.map(([k, l]) => `<option value="${k}"${r.category === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></div>
-    <div class="fld"><label>Total (IDR)</label><input type="text" id="fc-total" value="${esc(r.total != null ? Math.round(r.total) : '')}" inputmode="numeric"></div>
-    <div class="fld"><label>Due</label><input type="date" id="fc-due" value="${esc(r.due_on || '')}"></div>
-    <div class="fld"><label>Status</label><select id="fc-status">${['open', 'paid', 'dropped'].map(s => `<option${r.status === s ? ' selected' : ''}>${s}</option>`).join('')}</select></div>
-    <div class="fld" style="grid-column:1/-1"><label>Note</label><input type="text" id="fc-note" value="${esc(r.note || '')}"></div></div>
-    <div class="row">${id ? `<button class="btn ghost" style="margin-right:auto;color:var(--red-fg)" onclick="finDelete('commitments', ${id})">Delete</button>` : ''}<button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="finPut('commitments', {id: ${id || 'undefined'}, name: document.getElementById('fc-name').value, category: document.getElementById('fc-cat').value, total: document.getElementById('fc-total').value.replace(/[^\\d.]/g, ''), due_on: document.getElementById('fc-due').value || null, status: document.getElementById('fc-status').value, note: document.getElementById('fc-note').value || null})">Save</button></div>`, { wide: true });
-}
-
-// ── Buyers ───────────────────────────────────────────────────────────
-function finBuyersHtml() {
-  const rows = finData.position.receivables;
-  return `<div class="card"><h3>Buyers${readOnly() ? '' : `<button class="btn primary" style="margin-left:auto" onclick="finEditReceivable(null)">+ Add a buyer</button>`}</h3>
-    <div class="totgrid"><div class="tot big"><div class="lab">Still owed by buyers</div><div class="val">${IDR(finData.position.receivables_due)}</div><div class="sub">${USD(finData.position.receivables_due)}</div></div><div class="tot"><div class="lab">Received, all buyers</div><div class="val">${IDR(rows.reduce((a, x) => a + x.received, 0))}</div></div></div>
-    <div class="tblwrap" style="margin-top:10px"><table class="lines">
-      <tr><th>Buyer</th><th>Units</th><th class="num">Contract</th><th class="num">Received</th><th class="num">Still due</th><th></th></tr>
-      ${rows.map(x => `<tr onclick="finEditReceivable(${x.id})" style="cursor:pointer${x.status !== 'open' ? ';opacity:.6' : ''}">
-        <td><b>${esc(x.buyer)}</b><div class="sub">key ${esc(x.ledger_match)}${x.note ? ' · ' + esc(x.note) : ''}</div></td><td>${(x.units || []).map(esc).join(', ')}</td>
-        <td class="num">${x.currency === 'IDR' ? IDR(x.contract_amount) : `${esc(x.currency)} ${Number(x.contract_amount).toLocaleString('en-US')}<div class="sub">${IDR(x.contract_idr)} at ${Number(x.fx_rate || finData.data.settings?.fx_usd).toLocaleString('en-US')}</div>`}</td>
-        <td class="num">${IDR(x.received)}</td>
-        <td class="num" style="font-weight:700">${IDR(x.due)}${x.balance_override != null && x.status === 'open' ? `<div class="sub">set by hand; computed ${IDR(x.computed_due)}</div>` : ''}</td>
-        <td><span class="pill ${x.status === 'open' ? 'outstanding' : 'paid'}">${esc(x.status)}</span></td></tr>`).join('')}
-    </table></div>
-    <p class="finnote">"Received" adds up every ledger entry whose <i>Who</i> is the buyer's key. A USD contract converts at the buyer's own rate, so the balance drifts with the rupiah; set the balance by hand when the contract says otherwise.</p></div>`;
-}
-function finEditReceivable(id) {
-  if (readOnly()) return;
-  const r = id ? finData.data.receivables.find(x => x.id === id) : { currency: 'USD', status: 'open', fx_rate: finData.data.settings?.fx_usd };
-  modal(`<h3>${id ? 'Buyer' : 'New buyer'}</h3><div class="fingrid">
-    <div class="fld"><label>Buyer</label><input type="text" id="fr-buyer" value="${esc(r.buyer || '')}"></div>
-    <div class="fld"><label>Ledger key</label><input type="text" id="fr-key" value="${esc(r.ledger_match || '')}" placeholder="e.g. will"><div class="hint">Ledger entries with this <i>Who</i> count as received.</div></div>
-    <div class="fld"><label>Units</label><input type="text" id="fr-units" value="${esc((r.units || []).join(', '))}" placeholder="A1, A2"></div>
-    <div class="fld"><label>Contract amount</label><input type="text" id="fr-amt" value="${esc(r.contract_amount != null ? r.contract_amount : '')}" inputmode="decimal"></div>
-    <div class="fld"><label>Currency</label><select id="fr-cur">${['USD', 'IDR', 'EUR', 'AUD', 'SGD', 'CAD'].map(c => `<option${r.currency === c ? ' selected' : ''}>${c}</option>`).join('')}</select></div>
-    <div class="fld"><label>IDR per unit of currency</label><input type="text" id="fr-fx" value="${esc(r.fx_rate != null ? r.fx_rate : '')}" inputmode="numeric"></div>
-    <div class="fld"><label>Balance due, by hand (IDR)</label><input type="text" id="fr-ovr" value="${esc(r.balance_override != null ? Math.round(r.balance_override) : '')}" inputmode="numeric"><div class="hint">Leave empty to compute it.</div></div>
-    <div class="fld"><label>Status</label><select id="fr-status">${['open', 'settled'].map(s => `<option${r.status === s ? ' selected' : ''}>${s}</option>`).join('')}</select></div>
-    <div class="fld" style="grid-column:1/-1"><label>Note</label><input type="text" id="fr-note" value="${esc(r.note || '')}"></div></div>
-    <div class="row">${id ? `<button class="btn ghost" style="margin-right:auto;color:var(--red-fg)" onclick="finDelete('receivables', ${id})">Delete</button>` : ''}<button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="finPut('receivables', {id: ${id || 'undefined'}, buyer: document.getElementById('fr-buyer').value, ledger_match: document.getElementById('fr-key').value.trim().toLowerCase(), units: document.getElementById('fr-units').value, contract_amount: document.getElementById('fr-amt').value.replace(/[^\\d.]/g, ''), currency: document.getElementById('fr-cur').value, fx_rate: document.getElementById('fr-fx').value.replace(/[^\\d.]/g, '') || null, balance_override: document.getElementById('fr-ovr').value.replace(/[^\\d.]/g, '') || null, status: document.getElementById('fr-status').value, note: document.getElementById('fr-note').value || null})">Save</button></div>`, { wide: true });
-}
-
-// ── Loans ────────────────────────────────────────────────────────────
-function finLoansHtml() {
-  const rows = finData.position.loans;
-  return `<div class="card"><h3>Loans${readOnly() ? '' : `<button class="btn primary" style="margin-left:auto" onclick="finEditLoan(null)">+ Add a loan</button>`}</h3>
-    ${rows.map(l => `<div class="finloan" onclick="finEditLoan(${l.id})">
-      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline"><b>${esc(l.lender)}</b>${l.headline ? '<span class="pill outstanding">headline</span>' : ''}<span class="sub">key ${esc(l.key)}${l.started_on ? ' · since ' + esc(finDate(l.started_on)) : ''}${Number(l.interest_rate) ? ` · ${l.interest_rate}% a year, simple` : ' · interest-free'}</span></div>
-      <div class="totgrid" style="margin-top:8px">
-        <div class="tot"><div class="lab">Agreed</div><div class="val">${l.currency === 'IDR' ? IDR(l.principal) : `${esc(l.currency)} ${Number(l.principal || 0).toLocaleString('en-US')}`}</div></div>
-        <div class="tot"><div class="lab">Received</div><div class="val">${IDR(l.drawn)}</div></div>
-        <div class="tot"><div class="lab">Repaid</div><div class="val">${IDR(l.repaid)}</div></div>
-        ${l.interest ? `<div class="tot"><div class="lab">Interest accrued</div><div class="val">${IDR(l.interest)}</div></div>` : ''}
-        <div class="tot big"><div class="lab">Outstanding</div><div class="val">${IDR(l.outstanding)}</div><div class="sub">${USD(l.outstanding)}</div></div>
-      </div>
-      ${l.note ? `<p class="finnote">${esc(l.note)}</p>` : ''}
-      ${l.events.length ? `<div class="tblwrap" style="margin-top:8px"><table class="lines"><tr><th>Date</th><th>What</th><th class="num">Received</th><th class="num">Repaid</th></tr>${l.events.map(e => `<tr><td>${esc(finDate(e.entry_date))}</td><td>${esc(e.description || '')}${e.account ? ` <span class="sub">· ${esc(e.account)}</span>` : ''}</td><td class="num">${e.direction === 'in' ? IDR(e.amount) : ''}</td><td class="num">${e.direction === 'out' ? IDR(e.amount) : ''}</td></tr>`).join('')}</table></div>` : '<p class="sub">No ledger rows carry this loan\'s key yet; the agreed amount stands in as outstanding.</p>'}
-    </div>`).join('') || '<p class="sub">No loan on file.</p>'}
-    <p class="finnote">A loan's money movements are ledger entries: <i>Loan received</i> and <i>Loan repayment</i> with the loan's key as <i>Who</i>. The headline loan is the one the overview leads with.</p></div>`;
-}
-function finEditLoan(id) {
-  if (readOnly()) return;
-  const r = id ? finData.data.loans.find(x => x.id === id) : { currency: 'IDR', interest_rate: 0, headline: !finData.data.loans.length };
-  modal(`<h3>${id ? 'Loan' : 'New loan'}</h3><div class="fingrid">
-    <div class="fld"><label>Lender</label><input type="text" id="fo-lender" value="${esc(r.lender || '')}"></div>
-    <div class="fld"><label>Ledger key</label><input type="text" id="fo-key" value="${esc(r.key || '')}" placeholder="e.g. mil"></div>
-    <div class="fld"><label>Agreed amount</label><input type="text" id="fo-principal" value="${esc(r.principal != null ? r.principal : '')}" inputmode="decimal"></div>
-    <div class="fld"><label>Currency</label><select id="fo-cur">${['IDR', 'USD', 'EUR', 'AUD', 'SGD'].map(c => `<option${r.currency === c ? ' selected' : ''}>${c}</option>`).join('')}</select></div>
-    <div class="fld"><label>IDR per unit (foreign currency)</label><input type="text" id="fo-fx" value="${esc(r.fx_rate != null ? r.fx_rate : '')}" inputmode="numeric"></div>
-    <div class="fld"><label>Interest, % a year (0 = none)</label><input type="text" id="fo-rate" value="${esc(r.interest_rate != null ? r.interest_rate : 0)}" inputmode="decimal"></div>
-    <div class="fld"><label>Started</label><input type="date" id="fo-start" value="${esc(r.started_on || '')}"></div>
-    <div class="fld"><label class="chk" style="margin:22px 0 0"><input type="checkbox" id="fo-head"${r.headline ? ' checked' : ''}> the headline loan</label></div>
-    <div class="fld" style="grid-column:1/-1"><label>Note</label><input type="text" id="fo-note" value="${esc(r.note || '')}"></div></div>
-    <div class="row">${id ? `<button class="btn ghost" style="margin-right:auto;color:var(--red-fg)" onclick="finDelete('loans', ${id})">Delete</button>` : ''}<button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="finPut('loans', {id: ${id || 'undefined'}, lender: document.getElementById('fo-lender').value, key: document.getElementById('fo-key').value.trim().toLowerCase(), principal: document.getElementById('fo-principal').value.replace(/[^\\d.]/g, '') || null, currency: document.getElementById('fo-cur').value, fx_rate: document.getElementById('fo-fx').value.replace(/[^\\d.]/g, '') || null, interest_rate: document.getElementById('fo-rate').value.replace(/[^\\d.]/g, '') || 0, started_on: document.getElementById('fo-start').value || null, headline: document.getElementById('fo-head').checked, note: document.getElementById('fo-note').value || null})">Save</button></div>`, { wide: true });
-}
-
-// ── Accounts ─────────────────────────────────────────────────────────
-function finAccountsHtml() {
-  const rows = finData.position.accounts;
-  return `<div class="card"><h3>Accounts${readOnly() ? '' : `<button class="btn primary" style="margin-left:auto" onclick="finEditAccount(null)">+ Add an account</button>`}</h3>
-    <div class="totgrid"><div class="tot big"><div class="lab">Counts as company cash</div><div class="val">${IDR(finData.position.cash)}</div><div class="sub">${USD(finData.position.cash)}</div></div></div>
-    <div class="tblwrap" style="margin-top:10px"><table class="lines">
-      <tr><th>Account</th><th></th><th class="num">Bank said</th><th>On</th><th class="num">Now, per the ledger</th><th class="num">Ledger only</th></tr>
-      ${rows.map(a => `<tr onclick="finEditAccount(${a.id})" style="cursor:pointer">
-        <td><b>${esc(a.name)}</b><div class="sub">${esc(a.kind)}${a.note ? ' · ' + esc(a.note) : ''}</div></td><td>${a.counts_as_cash ? '<span class="pill paid">cash</span>' : ''}</td>
-        <td class="num">${a.balance != null ? IDR(a.balance) : '<span class="sub">–</span>'}</td><td class="sub">${esc(finDate(a.balance_as_of))}</td>
-        <td class="num" style="font-weight:700">${IDR(a.computed)}${a.rows_after ? `<div class="sub">${a.rows_after} row${a.rows_after === 1 ? '' : 's'} since</div>` : ''}</td>
-        <td class="num sub">${IDR(a.ledger_only)}</td></tr>`).join('')}
-    </table></div>
-    <p class="finnote">Type the balance from the latest bank statement and its date; every ledger entry dated after it rolls the figure forward. "Ledger only" is the sheet's old running total: every entry on that account from the start, with no bank balance to anchor it.</p></div>`;
-}
-function finEditAccount(id) {
-  if (readOnly()) return;
-  const r = id ? finData.data.accounts.find(x => x.id === id) : { kind: 'bank', counts_as_cash: true };
-  modal(`<h3>${id ? 'Account' : 'New account'}</h3><div class="fingrid">
-    <div class="fld"><label>Name</label><input type="text" id="fa-name" value="${esc(r.name || '')}"></div>
-    <div class="fld"><label>Kind</label><select id="fa-kind">${['bank', 'partner', 'cash', 'wallet'].map(k => `<option${r.kind === k ? ' selected' : ''}>${k}</option>`).join('')}</select></div>
-    <div class="fld"><label>Balance the bank said (IDR)</label><input type="text" id="fa-bal" value="${esc(r.balance != null ? Math.round(r.balance) : '')}" inputmode="numeric"></div>
-    <div class="fld"><label>On</label><input type="date" id="fa-asof" value="${esc(r.balance_as_of || '')}"></div>
-    <div class="fld" style="grid-column:1/-1"><label class="chk" style="margin:0"><input type="checkbox" id="fa-cash"${r.counts_as_cash ? ' checked' : ''}> counts as company cash for the loan headline</label></div>
-    <div class="fld" style="grid-column:1/-1"><label>Note</label><input type="text" id="fa-note" value="${esc(r.note || '')}"></div></div>
-    <div class="row">${id ? `<button class="btn ghost" style="margin-right:auto;color:var(--red-fg)" onclick="finDelete('accounts', ${id})">Delete</button>` : ''}<button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="finPut('accounts', {id: ${id || 'undefined'}, name: document.getElementById('fa-name').value, kind: document.getElementById('fa-kind').value, balance: document.getElementById('fa-bal').value.replace(/[^\\d.]/g, '') || null, balance_as_of: document.getElementById('fa-asof').value || null, counts_as_cash: document.getElementById('fa-cash').checked, note: document.getElementById('fa-note').value || null})">Save</button></div>`, { wide: true });
 }
 
 // ── Payroll: Era's staff sheet as monthly runs ───────────────────────
@@ -3201,18 +2839,6 @@ const HELP = {
     </ol>
     <p>Use the property dropdown to see one villa at a time.</p>
     <p><b>Expenses by chat.</b> You can tell Maya what you paid — "laundry HAUS 5 250rb" — and send her the receipt photo. If the month's draft exists it lands there, marked <i>via Maya</i>; if not, it waits under "Logged via Maya" on this page and joins the draft when you sync, skipping anything your sheet already has. The receipt appears under Invoices &amp; receipts. The sheet stays the record: still write the expense there at month end; the duplicate is recognised, never counted twice.</p>` },
-  finance: { title: 'Finance', html: `
-    <p>The Tropicana Valley development as a whole: every rupiah in or out since the land was leased, the costs still to pay, the buyers still paying, the loans, and the bank balances. The rent and expenses of the four unsold B units arrive on their own from the booking calendar and Era's statements.</p>
-    <h4>The number at the top</h4>
-    <p><b>Loan left to pay, after everything else</b> = the loan outstanding, less what is in the company account, plus the costs still to pay, less what the buyers still owe. Under it: how many months of rent, at the current pace, would close that gap.</p>
-    <h4>What you do here</h4>
-    <ol>
-      <li>Each month, open <b>Accounts</b> and type the balance from the bank statement with its date. Ledger entries dated after it roll the figure forward.</li>
-      <li>Add payments and receipts to the <b>Ledger</b> as they happen. Give a buyer's payment the buyer's key as <i>Who</i>; give a loan repayment the loan's key.</li>
-      <li>Rows marked <b>review</b> came from the bank statements without a description. Open each and pick what it was for.</li>
-      <li>Keep <b>Costs to pay</b> current: add the invoice when you know it, point the payment at it from the ledger, mark it paid when done.</li>
-    </ol>
-    <p>Oli sees this page too, read-only. Dollar figures are for reading; every amount is kept in rupiah.</p>` },
   detail: { title: 'One statement', html: `
     <p>The lines that make up this month's payout: rent received, our fee, costs, adjustments, and the total owed.</p>
     <h4>What you do here</h4>
