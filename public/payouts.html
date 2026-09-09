@@ -83,6 +83,8 @@ body:not(.view-payouts) #outbanner,body:not(.view-payouts) #syncbtn{display:none
 .content{flex:1;min-width:0;padding:18px 18px 80px;}
 @media(max-width:900px){
   .shell{flex-direction:column;}
+  /* stacked under the rail the main column is sized by its content (the shell aligns flex-start); a wide table must scroll inside its wrapper, never widen the page */
+  .content{width:100%;box-sizing:border-box;}
   .rail{position:static;width:100%;flex-direction:row;overflow-x:auto;padding:10px 14px 2px;gap:4px;scrollbar-width:none;}
   .rail::-webkit-scrollbar{display:none;}
   .rail a{white-space:nowrap;}
@@ -235,6 +237,7 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
 .fintabs a.on{background:var(--sb-terracotta-050);color:var(--sb-terracotta-700);}
 .fintabs a:hover{color:var(--text);}
 .fingrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px;}
+.fintabs+.card .tblwrap,.card .tblwrap{min-width:0;max-width:100%;}
 .finnote{font-size:.72rem;color:var(--muted);margin-top:10px;line-height:1.5;}
 .finloan{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer;}
 .finloan:hover{border-color:var(--accent);}
@@ -1418,7 +1421,7 @@ function finOverviewHtml() {
         <tr><th>Month</th><th class="num">Calendar rent</th><th class="num">Expenses</th><th class="num">Net</th><th class="num">Rent banked</th><th class="num">Paid from the bank</th><th></th></tr>
         ${ms.map(m => `<tr${m.statement_id ? ` onclick="go('#/statement/${m.statement_id}')" style="cursor:pointer"` : ''}>
           <td style="white-space:nowrap;font-weight:600">${esc(m.label)}${m.closed ? '' : ' <span class="pill draft">open</span>'}</td>
-          <td class="num">${IDR(m.gross)}${m.nights != null ? `<div class="sub">${m.nights} nights · ${Object.entries(m.units || {}).filter(([, v]) => v).map(([k, v]) => `${k.slice(-2).toUpperCase()} ${Math.round(v / 1e6 * 10) / 10}M`).join(' · ') || '–'}</div>` : ''}</td>
+          <td class="num">${IDR(m.gross)}${m.nights != null ? `<div class="sub" style="white-space:normal;min-width:120px">${m.nights} nights · ${Object.entries(m.units || {}).filter(([, v]) => v).map(([k, v]) => `${k.slice(-2).toUpperCase()} ${Math.round(v / 1e6 * 10) / 10}M`).join(' · ') || '–'}</div>` : ''}</td>
           <td class="num">${IDR(m.expenses)}</td>
           <td class="num" style="font-weight:700;${m.net < 0 ? 'color:var(--red-fg)' : ''}">${IDR(m.net)}</td>
           <td class="num" style="color:${Math.abs((m.banked_income || 0) - m.gross) > Math.max(1e6, m.gross * 0.1) ? 'var(--amber-fg)' : 'var(--muted)'}">${IDR(m.banked_income)}</td>
