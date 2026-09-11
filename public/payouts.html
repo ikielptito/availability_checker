@@ -2184,7 +2184,7 @@ const HK_STATUS = {
 const hkPill = (t) => {
   if (t.status !== 'skipped') return HK_STATUS[t.status] || ['wait', t.status];
   const n = String(t.notes || '');
-  if (/cleaning days|hari biasa|Off the villa/i.test(n)) return ['wait', 'Off-day'];
+  if (/cleaning days|hari biasa|Off the villa|said today is/i.test(n)) return ['wait', 'Off-day'];
   if (/Duplicate of/i.test(n)) return ['wait', 'Removed'];
   if (/Not done — |· Not done — /.test(n)) return ['no', 'Not done'];
   return ['no', 'Skipped'];
