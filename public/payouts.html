@@ -2178,6 +2178,17 @@ const HK_STATUS = {
   done:      ['done', 'Done'],
   skipped:   ['no',   'Skipped'],
 };
+// "Skipped" on its own read as "she did not turn up" (11 Sep 2026). The
+// task's note says why, so the pill says why: a clean taken off the plan
+// by a rule is not the housekeeper's doing.
+const hkPill = (t) => {
+  if (t.status !== 'skipped') return HK_STATUS[t.status] || ['wait', t.status];
+  const n = String(t.notes || '');
+  if (/cleaning days|hari biasa|Off the villa/i.test(n)) return ['wait', 'Off-day'];
+  if (/Duplicate of/i.test(n)) return ['wait', 'Removed'];
+  if (/Not done — |· Not done — /.test(n)) return ['no', 'Not done'];
+  return ['no', 'Skipped'];
+};
 const HK_LETTER = { turnover: 'T', regular: 'R', pre_arrival: 'A', inspection: 'I', deep_clean: 'D' };
 
 async function hkApi(action, payload) {
@@ -2220,7 +2231,7 @@ function schedEvents(d) {
     const k = HK_KIND[t.kind] || [t.kind, ''];
     const who = hkWho(t);
     const ready = hkReadyFor(t.id);
-    out.push({ type: 'clean', slug: t.slug, id: t.id, kind: t.kind, staffId: t.assigned_staff_id, text: k[0], status: t.status, sameDay: !!t.same_day, ready,
+    out.push({ type: 'clean', slug: t.slug, id: t.id, kind: t.kind, staffId: t.assigned_staff_id, text: k[0], status: t.status, notes: t.notes || null, sameDay: !!t.same_day, ready,
       sub: [who || 'nobody assigned', k[1], t.same_day ? 'next guest arrives the same day' : (hkInResidence(t.slug, d) ? 'guest in residence' : ''), t.moved_by ? 'moved by hand' : '',
         ready ? (ready.status === 'pass' ? `${ready.photo_count} photos checked` : ready.status === 'awaiting' ? 'waiting for her photos' : (ready.flags || []).join('; ')) : ''].filter(Boolean).join(' · ') });
   }
@@ -2345,7 +2356,7 @@ function schedRender() {
     for (const e of ev) {
       const pill = e.type === 'clean'
         ? (e.ready ? (HK_READY[e.ready.status] || ['wait', e.ready.status])
-          : e.sameDay && e.status !== 'done' && e.status !== 'skipped' ? ['hot', 'Same day'] : (HK_STATUS[e.status] || ['wait', e.status]))
+          : e.sameDay && e.status !== 'done' && e.status !== 'skipped' ? ['hot', 'Same day'] : hkPill(e))
         : null;
       const icon = e.type === 'clean' ? (HK_LETTER[e.kind] || 'C') : e.type === 'guest' ? ICO_HOUSE : ICO_TOOL;
       const onclick = e.type === 'clean' ? `hkTaskSheet(${e.id})` : e.type === 'maint' ? `go('#/maintenance')` : (schedVilla ? '' : `schedShowVilla('${esc(e.slug)}')`);
@@ -2371,7 +2382,7 @@ function hkTaskSheet(id) {
   const t = (hkData?.tasks || []).find(x => x.id === id);
   if (!t) return;
   const k = HK_KIND[t.kind] || [t.kind, ''];
-  const st = HK_STATUS[t.status] || ['wait', t.status];
+  const st = hkPill(t);
   modal(`<h3>${esc(k[0])}</h3>
     <p>${esc(hkShort(t.slug))} · ${dFmt(t.task_date, { weekday: 'long', day: 'numeric', month: 'long' })} · <span class="pill ${st[0]}">${esc(st[1])}</span>${t.same_day ? '<br>The next guest arrives the same day, so this one cannot slip.' : ''}</p>
     ${hkReadyHtml(hkReadyFor(t.id))}
