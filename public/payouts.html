@@ -2328,12 +2328,16 @@ function schedRender() {
 
   // Property: one option per complex or standalone villa, built from the
   // units on the calendar. Era looks after one compound at a time.
-  const props = [...new Set(tasks.map(t => schedPropOf(t.slug)))].sort((a, b) => a.localeCompare(b));
+  // Managed units = every unit on the cleaning calendar or the guest
+  // calendar, not just those with a clean in the next 30 days, so a quiet
+  // unit still appears (HAUS Unit 5, 11 Sep 2026).
+  const managed = [...new Set([...tasks.map(t => t.slug), ...(hkStays?.units || []).map(u => u.slug)])];
+  const props = [...new Set(managed.map(schedPropOf))].sort((a, b) => a.localeCompare(b));
   const psel = document.getElementById('sched-prop');
   if (psel) psel.innerHTML = `<option value="">All properties</option>` + props.map(n => `<option value="${esc(n)}"${schedProp === n ? ' selected' : ''}>${esc(n)}</option>`).join('');
   // Then the units of that property, when it has more than one.
   const usel = document.getElementById('sched-unit');
-  const units = schedProp ? [...new Set(tasks.map(t => t.slug).filter(sl => schedPropOf(sl) === schedProp))].sort((a, b) => hkName(a).localeCompare(hkName(b), undefined, { numeric: true })) : [];
+  const units = schedProp ? managed.filter(sl => schedPropOf(sl) === schedProp).sort((a, b) => hkName(a).localeCompare(hkName(b), undefined, { numeric: true })) : [];
   const unitLabel = (sl) => hkName(sl).slice(schedProp.length).replace(/^\s*[–—·-]\s*/, '').trim() || hkName(sl);
   if (usel) {
     usel.hidden = units.length < 2;
