@@ -279,6 +279,8 @@ table.lines .del:hover{background:var(--red-bg);color:var(--red-fg);}
 .sched-list{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-top:8px;}
 .dayhead{position:sticky;top:0;background:var(--surface2);padding:9px 14px;font:700 11px/1 var(--sb-font-display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--sb-hairline);border-bottom:1px solid var(--sb-hairline);display:flex;justify-content:space-between;z-index:1;}
 .dayhead.today{color:var(--accent);}
+.dayhead.sub{top:30px;z-index:0;text-transform:none;letter-spacing:0;font:600 12px/1 var(--sb-font-ui);color:var(--text);background:var(--surface);padding-left:22px;border-top:0;}
+.dayhead.sub.today{color:var(--accent);}
 .rec-strip{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px 10px;margin-top:8px;}
 .rec-strip-cells{display:grid;grid-template-columns:repeat(28,1fr);gap:3px;}
 .rec-strip .rc{position:relative;height:16px;border-radius:4px;background:var(--surface2);}
@@ -2714,13 +2716,20 @@ function recRender() {
 
   let h = '';
   if (recFilter.slug) h += recUnitStrip(rows, recFilter.slug);
-  let month = '';
+  // All villas: the month, then each day inside it, the way the Schedule
+  // reads. Sixty-nine September rows in one block was unreadable (11 Sep
+  // 2026). One villa: grouped by the stay the visit sits in instead.
+  const today = witaToday();
+  let month = '', day = '';
   for (const r of rows) {
     const m = r.date.slice(0, 7);
     if (recFilter.slug) {
       const seg = recSegmentFor(r.slug, r.date);
       if (seg !== month) { month = seg; h += `<div class="dayhead"><span>${esc(seg)}</span><span></span></div>`; }
-    } else if (m !== month) { month = m; h += `<div class="dayhead"><span>${esc(monthLabel(m))}</span><span>${rows.filter(x => x.date.startsWith(m)).length}</span></div>`; }
+    } else {
+      if (m !== month) { month = m; h += `<div class="dayhead"><span>${esc(monthLabel(m))}</span><span>${rows.filter(x => x.date.startsWith(m)).length}</span></div>`; }
+      if (r.date !== day) { day = r.date; h += `<div class="dayhead sub${r.date === today ? ' today' : ''}"><span>${esc(dFmt(r.date, { weekday: 'long', day: 'numeric', month: 'long' }))}${r.date === today ? ' · today' : ''}</span><span>${rows.filter(x => x.date === r.date).length}</span></div>`; }
+    }
     const st = REC_STATUS[r.status] || ['wait', r.status];
     const sub = [recKindLabel(r), r.staff || 'unassigned', r.photo_count ? `${r.photo_count} photo${r.photo_count === 1 ? '' : 's'}` : (r.evidence && r.evidence !== 'photos' ? REC_EVIDENCE[r.evidence] : 'no photos'),
       r.guest_in_date && r.kind !== 'regular' ? `guest arrives ${dFmt(r.guest_in_date, { day: 'numeric', month: 'short' })}` : '',
@@ -2728,7 +2737,7 @@ function recRender() {
       r.moved_by ? `moved by ${r.moved_by}` : ''].filter(Boolean).join(' · ');
     h += `<div class="sitem" onclick="recSheet('${r.type}',${r.id})" role="button" tabindex="0">
       <div class="sic ${r.type === 'inspection' ? 'guest' : 'clean'}"${REC_ATTENTION.includes(r.status) ? ' style="opacity:.6"' : ''}>${esc(recLetters(r))}</div>
-      <div class="stxt"><div class="t">${esc(dFmt(r.date, { weekday: 'short', day: 'numeric', month: 'short' }))} · ${esc(pname(names(r.slug)))}</div><div class="s">${esc(sub)}</div></div>
+      <div class="stxt"><div class="t">${recFilter.slug ? `${esc(dFmt(r.date, { weekday: 'short', day: 'numeric', month: 'short' }))} · ` : ''}${esc(pname(names(r.slug)))}</div><div class="s">${esc(sub)}</div></div>
       <span class="pill ${st[0]}">${esc(st[1])}</span>
     </div>`;
   }
