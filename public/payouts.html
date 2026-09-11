@@ -2149,6 +2149,11 @@ let schedSel = null;      // the day the list starts on
 let schedWeek = null;     // Monday of the week strip
 let schedFilter = 'all';  // all | clean | guest | maint | who:<staff id>
 let schedVilla = null;    // a slug, when looking at one villa's 30 days
+let schedProp = '';       // a property: 'Tropicana Valley', 'HAUS Canggu', 'Villa Saturno' (11 Sep 2026)
+let schedUnit = '';       // then one unit of it: a slug
+// The property a unit belongs to, read off its catalog name: "Tropicana
+// Valley - Unit B3" → "Tropicana Valley"; a standalone villa is its own.
+const schedPropOf = (slug) => hkName(slug).split(/\s*[–—-]\s*|\s·\s/)[0].trim();
 let hkAdd = {};           // the add-a-clean draft
 
 const HK_KIND = {
@@ -2245,6 +2250,8 @@ function schedEvents(d) {
   const order = { guest: 0, clean: 1, maint: 2 };
   return out
     .filter(e => !schedVilla || e.slug === schedVilla)
+    .filter(e => !schedProp || schedPropOf(e.slug) === schedProp)
+    .filter(e => !schedUnit || e.slug === schedUnit)
     .filter(e => schedFilter === 'all' || schedFilter === e.type || (schedFilter.startsWith('who:') && String(e.staffId) === schedFilter.slice(4)))
     .sort((a, b) => order[a.type] - order[b.type] || hkName(a.slug).localeCompare(hkName(b.slug), undefined, { numeric: true }));
 }
@@ -2281,6 +2288,7 @@ async function renderCleaning() {
         <div class="week" id="sched-week"></div>
         <div class="weeknav"><button type="button" onclick="schedShift(-7)">‹ Last week</button><span id="sched-weeklabel"></span><button type="button" onclick="schedShift(7)">Next week ›</button></div>
       </div>
+      <div class="row" style="margin:10px 0 0;gap:8px;flex-wrap:wrap"><select class="flt" id="sched-prop" onchange="schedSetProp(this.value)"></select><select class="flt" id="sched-unit" onchange="schedSetUnit(this.value)" hidden></select></div>
       <div class="chips" id="sched-chips"></div>
       <div class="actionsrow" style="margin:12px 0 6px">
         ${readOnly() ? '' : `<button class="btn primary" onclick="hkAddSheet(1)">+ Add a clean</button>
@@ -2317,6 +2325,20 @@ function schedRender() {
   }
   document.getElementById('sched-week').innerHTML = w;
   document.getElementById('sched-weeklabel').textContent = `${dFmt(schedWeek, { day: 'numeric', month: 'short' })} – ${dFmt(dPlus(schedWeek, 6), { day: 'numeric', month: 'short' })}`;
+
+  // Property: one option per complex or standalone villa, built from the
+  // units on the calendar. Era looks after one compound at a time.
+  const props = [...new Set(tasks.map(t => schedPropOf(t.slug)))].sort((a, b) => a.localeCompare(b));
+  const psel = document.getElementById('sched-prop');
+  if (psel) psel.innerHTML = `<option value="">All properties</option>` + props.map(n => `<option value="${esc(n)}"${schedProp === n ? ' selected' : ''}>${esc(n)}</option>`).join('');
+  // Then the units of that property, when it has more than one.
+  const usel = document.getElementById('sched-unit');
+  const units = schedProp ? [...new Set(tasks.map(t => t.slug).filter(sl => schedPropOf(sl) === schedProp))].sort((a, b) => hkName(a).localeCompare(hkName(b), undefined, { numeric: true })) : [];
+  const unitLabel = (sl) => hkName(sl).slice(schedProp.length).replace(/^\s*[–—·-]\s*/, '').trim() || hkName(sl);
+  if (usel) {
+    usel.hidden = units.length < 2;
+    usel.innerHTML = `<option value="">All units</option>` + units.map(sl => `<option value="${esc(sl)}"${schedUnit === sl ? ' selected' : ''}>${esc(unitLabel(sl))}</option>`).join('');
+  }
 
   // Chips: the three kinds of thing, then one per housekeeper.
   const keepers = (staffData?.staff || []).filter(p => p.active && (p.roles || []).includes('housekeeper'));
@@ -2375,6 +2397,8 @@ function schedRender() {
 function schedPick(d) { schedSel = d; schedVilla = null; schedRender(); }
 function schedShift(n) { schedWeek = dPlus(schedWeek, n); schedRender(); }
 function schedSetFilter(k) { schedFilter = k; schedRender(); }
+function schedSetProp(v) { schedProp = v || ''; schedUnit = ''; schedVilla = null; schedRender(); }
+function schedSetUnit(v) { schedUnit = v || ''; schedVilla = null; schedRender(); }
 function schedShowVilla(slug) { schedVilla = slug; schedRender(); if (slug) document.getElementById('content').scrollIntoView({ block: 'start' }); }
 
 // ── One clean: who, when, done, skip ──
